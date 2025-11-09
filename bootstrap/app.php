@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // PERFORMANCE FIX: Explicit route model bindings
             // Allows controllers to receive models directly instead of IDs
+            // NOTE: These bindings automatically handle soft-deleted models
+            // Use ->withTrashed() in controllers if you need to include soft-deleted records
             \Illuminate\Support\Facades\Route::model('candidate', \App\Models\Candidate::class);
             \Illuminate\Support\Facades\Route::model('campus', \App\Models\Campus::class);
             \Illuminate\Support\Facades\Route::model('oep', \App\Models\Oep::class);
@@ -26,6 +28,16 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Support\Facades\Route::model('instructor', \App\Models\Instructor::class);
             \Illuminate\Support\Facades\Route::model('class', \App\Models\TrainingClass::class);
             \Illuminate\Support\Facades\Route::model('correspondence', \App\Models\Correspondence::class);
+
+            // ADVANCED: Custom binding example for specialized lookups
+            // Uncomment and customize if you need to bind by fields other than ID:
+            /*
+            \Illuminate\Support\Facades\Route::bind('candidate', function ($value) {
+                // Example: Look up by BTEVTA ID instead of primary key
+                return \App\Models\Candidate::where('btevta_id', $value)
+                    ->firstOrFail();
+            });
+            */
 
             // SECURITY FIX: Global route parameter constraints
             // Ensures IDs are numeric, prevents injection attempts
