@@ -13,7 +13,7 @@ class RegistrationService
     /**
      * Get required documents list
      */
-    public function getRequiredDocuments()
+    public function getRequiredDocuments(): array
     {
         return [
             'cnic' => 'CNIC Copy',
@@ -29,7 +29,7 @@ class RegistrationService
     /**
      * Count candidates with complete documents
      */
-    public function countCompleteDocuments()
+    public function countCompleteDocuments(): int
     {
         $requiredDocs = ['cnic', 'education', 'domicile', 'photo'];
         
@@ -44,7 +44,7 @@ class RegistrationService
     /**
      * Check document completeness for a candidate
      */
-    public function checkDocumentCompleteness($candidate)
+    public function checkDocumentCompleteness($candidate): array
     {
         $required = ['cnic', 'education', 'domicile', 'photo'];
         $optional = ['passport', 'police_clearance', 'medical'];
@@ -93,7 +93,7 @@ class RegistrationService
     /**
      * Generate undertaking content
      */
-    public function generateUndertakingContent($candidate)
+    public function generateUndertakingContent($candidate): string
     {
         $template = "
             GOVERNMENT OF PUNJAB
@@ -178,7 +178,7 @@ class RegistrationService
     /**
      * Generate undertaking PDF
      */
-    public function generateUndertakingPDF($candidate)
+    public function generateUndertakingPDF($candidate): \Barryvdh\DomPDF\PDF
     {
         $data = [
             'candidate' => $candidate,
@@ -196,7 +196,7 @@ class RegistrationService
     /**
      * Generate QR code for verification
      */
-    protected function generateQRCode($candidate)
+    protected function generateQRCode($candidate): string
     {
         // This would generate a QR code for document verification
         // You can use a package like simplesoftwareio/simple-qrcode
@@ -213,7 +213,7 @@ class RegistrationService
     /**
      * Allocate OEP (Overseas Employment Promoter)
      */
-    public function allocateOEP($candidate)
+    public function allocateOEP($candidate): string
     {
         // Logic to auto-allocate OEP based on trade, district, etc.
         $oepMapping = [
@@ -223,7 +223,8 @@ class RegistrationService
             // Add more mappings
         ];
 
-        $trade = $candidate->trade->code ?? null;
+        // NULL CHECK: Handle case when trade relationship is null
+        $trade = $candidate->trade?->code ?? null;
         $availableOEPs = $oepMapping[$trade] ?? ['OEP_DEFAULT'];
         
         // Select OEP with least candidates
@@ -234,17 +235,22 @@ class RegistrationService
     /**
      * Validate document authenticity
      */
-    public function validateDocument($documentPath, $type)
+    public function validateDocument($documentPath, $type): array
     {
         // This could integrate with AI/ML services for document verification
         // For now, basic validation
-        
+
+        // ERROR HANDLING: Check file existence
         if (!Storage::disk('public')->exists($documentPath)) {
             return ['valid' => false, 'reason' => 'File not found'];
         }
 
-        $file = Storage::disk('public')->get($documentPath);
-        $size = strlen($file);
+        try {
+            $file = Storage::disk('public')->get($documentPath);
+            $size = strlen($file);
+        } catch (\Exception $e) {
+            return ['valid' => false, 'reason' => 'Error reading file: ' . $e->getMessage()];
+        }
 
         // Basic size validation
         if ($size < 1024) { // Less than 1KB
@@ -271,7 +277,7 @@ class RegistrationService
     /**
      * Create registration summary
      */
-    public function createRegistrationSummary($candidate)
+    public function createRegistrationSummary($candidate): array
     {
         $documents = $candidate->registrationDocuments;
         $nextOfKin = $candidate->nextOfKin;
@@ -282,7 +288,8 @@ class RegistrationService
                 'name' => $candidate->name,
                 'cnic' => $candidate->formatted_cnic,
                 'application_id' => $candidate->application_id,
-                'registration_date' => $candidate->registration_date->format('d-m-Y'),
+                // NULL CHECK: Handle case when registration_date is null
+                'registration_date' => $candidate->registration_date?->format('d-m-Y') ?? 'N/A',
                 'status' => $candidate->status_label,
             ],
             'documents' => $documents->map(function($doc) {
