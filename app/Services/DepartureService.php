@@ -36,7 +36,7 @@ class DepartureService
     /**
      * Get all departure stages
      */
-    public function getStages()
+    public function getStages(): array
     {
         return self::STAGES;
     }
@@ -74,8 +74,12 @@ class DepartureService
             ]);
         }
 
-        // Update candidate status
-        Candidate::find($candidateId)->update(['status' => 'pre_briefing_completed']);
+        // Update candidate status with NULL CHECK
+        $candidate = Candidate::find($candidateId);
+        if (!$candidate) {
+            throw new \Exception("Candidate not found with ID: {$candidateId}");
+        }
+        $candidate->update(['status' => 'pre_briefing_completed']);
 
         // Log activity
         activity()
@@ -105,8 +109,12 @@ class DepartureService
             'current_stage' => 'departed',
         ]);
 
-        // Update candidate status
-        Candidate::find($candidateId)->update(['status' => 'departed']);
+        // Update candidate status with NULL CHECK
+        $candidate = Candidate::find($candidateId);
+        if (!$candidate) {
+            throw new \Exception("Candidate not found with ID: {$candidateId}");
+        }
+        $candidate->update(['status' => 'departed']);
 
         // Log activity
         activity()

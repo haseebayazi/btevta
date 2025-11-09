@@ -43,7 +43,7 @@ class NotificationService
     /**
      * Get notification types
      */
-    public function getTypes()
+    public function getTypes(): array
     {
         return self::TYPES;
     }
@@ -51,7 +51,7 @@ class NotificationService
     /**
      * Get channels
      */
-    public function getChannels()
+    public function getChannels(): array
     {
         return self::CHANNELS;
     }
@@ -59,7 +59,7 @@ class NotificationService
     /**
      * Send single notification
      */
-    public function send($recipient, $type, $data = [], $channels = ['email'])
+    public function send($recipient, string $type, array $data = [], array $channels = ['email']): array
     {
         // Prepare notification data
         $notificationData = $this->prepareNotificationData($type, $data);
@@ -99,7 +99,7 @@ class NotificationService
     /**
      * Prepare notification data based on type
      */
-    private function prepareNotificationData($type, $data)
+    private function prepareNotificationData(string $type, array $data): array
     {
         $templates = $this->getTemplates();
         $template = $templates[$type] ?? $templates['default'];
@@ -115,7 +115,7 @@ class NotificationService
     /**
      * Replace placeholders in template
      */
-    private function replacePlaceholders($text, $data)
+    private function replacePlaceholders(string $text, array $data): string
     {
         foreach ($data as $key => $value) {
             if (is_string($value) || is_numeric($value)) {
@@ -128,7 +128,7 @@ class NotificationService
     /**
      * Get notification templates
      */
-    private function getTemplates()
+    private function getTemplates(): array
     {
         return [
             'screening_scheduled' => [
@@ -193,7 +193,7 @@ class NotificationService
     /**
      * Send email notification
      */
-    private function sendEmail($recipient, $notificationData)
+    private function sendEmail($recipient, array $notificationData): array
     {
         $email = is_object($recipient) ? $recipient->email : $recipient;
         
@@ -332,7 +332,7 @@ class NotificationService
     /**
      * Bulk send notifications
      */
-    public function bulkSend($recipients, $type, $data = [], $channels = ['email'])
+    public function bulkSend(array $recipients, string $type, array $data = [], array $channels = ['email']): array
     {
         $results = [
             'total' => count($recipients),
@@ -375,7 +375,7 @@ class NotificationService
     /**
      * Personalize data for individual recipient
      */
-    private function personalizeData($data, $recipient)
+    private function personalizeData(array $data, $recipient): array
     {
         if (is_object($recipient)) {
             $personalData = [
@@ -404,7 +404,7 @@ class NotificationService
     /**
      * Send scheduled notifications
      */
-    public function sendScheduled($scheduledFor, $recipient, $type, $data = [], $channels = ['email'])
+    public function sendScheduled($scheduledFor, $recipient, string $type, array $data = [], array $channels = ['email']): array
     {
         // Store in database for scheduled sending
         DB::table('scheduled_notifications')->insert([
@@ -429,7 +429,7 @@ class NotificationService
     /**
      * Process scheduled notifications (called by cron job)
      */
-    public function processScheduled()
+    public function processScheduled(): array
     {
         $pending = DB::table('scheduled_notifications')
             ->where('status', 'pending')
@@ -440,9 +440,18 @@ class NotificationService
         foreach ($pending as $notification) {
             try {
                 $recipient = $this->resolveRecipient($notification);
+
+                // JSON ERROR HANDLING: Safely decode JSON data
                 $data = json_decode($notification->data, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \Exception('Invalid JSON data: ' . json_last_error_msg());
+                }
+
                 $channels = json_decode($notification->channels, true);
-                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \Exception('Invalid JSON channels: ' . json_last_error_msg());
+                }
+
                 $this->send($recipient, $notification->type, $data, $channels);
                 
                 DB::table('scheduled_notifications')
@@ -472,14 +481,26 @@ class NotificationService
 
     /**
      * Resolve recipient from scheduled notification
+     * SECURITY FIX: Added whitelist validation for dynamic class loading
      */
     private function resolveRecipient($notification)
     {
         if ($notification->recipient_type !== 'string') {
+            // Whitelist of allowed recipient types for security
+            $allowedClasses = [
+                'App\\Models\\User',
+                'App\\Models\\Candidate',
+                'App\\Models\\Campus',
+            ];
+
+            if (!in_array($notification->recipient_type, $allowedClasses)) {
+                throw new \Exception('Invalid recipient type: Security violation');
+            }
+
             $class = $notification->recipient_type;
             return $class::find($notification->recipient_id);
         }
-        
+
         return $notification->recipient_value;
     }
 
@@ -518,7 +539,7 @@ class NotificationService
     /**
      * Send departure reminders
      */
-    public function sendDepartureReminders($daysBefore = 7)
+    public function sendDepartureReminders(int $daysBefore = 7): array
     {
         $upcomingDepartures = DB::table('departures')
             ->join('candidates', 'departures.candidate_id', '=', 'candidates.id')
@@ -529,7 +550,13 @@ class NotificationService
         $results = [];
         foreach ($upcomingDepartures as $departure) {
             $candidate = Candidate::find($departure->candidate_id);
-            
+
+            // NULL CHECK: Skip if candidate not found
+            if (!$candidate) {
+                \Log::warning("Candidate not found for departure reminder", ['candidate_id' => $departure->candidate_id]);
+                continue;
+            }
+
             $data = [
                 'candidate_name' => $candidate->name,
                 'departure_date' => $departure->departure_date,
@@ -546,7 +573,7 @@ class NotificationService
     /**
      * Send compliance reminders
      */
-    public function sendComplianceReminders()
+    public function sendComplianceReminders(): array
     {
         $departureService = new DepartureService();
         $pendingCompliance = $departureService->getPendingComplianceItems();
@@ -571,7 +598,7 @@ class NotificationService
     /**
      * Send document expiry alerts
      */
-    public function sendDocumentExpiryAlerts($days = 30)
+    public function sendDocumentExpiryAlerts(int $days = 30): array
     {
         $documentService = new DocumentArchiveService();
         $expiringDocs = $documentService->getExpiringDocuments($days);
@@ -599,7 +626,7 @@ class NotificationService
     /**
      * Send complaint update notification
      */
-    public function sendComplaintUpdate($complaint, $updateMessage)
+    public function sendComplaintUpdate($complaint, string $updateMessage): array
     {
         $candidate = $complaint->candidate;
         
@@ -619,7 +646,7 @@ class NotificationService
     /**
      * Get notification statistics
      */
-    public function getStatistics($filters = [])
+    public function getStatistics(array $filters = []): array
     {
         // This would query a notifications log table
         // For now, return from activity log

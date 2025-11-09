@@ -103,7 +103,12 @@ class VisaProcessingService
         }
 
         // Update candidate status
-        Candidate::find($candidateId)->update(['status' => 'interview_scheduled']);
+        // Update candidate status with NULL CHECK
+        $candidate = Candidate::find($candidateId);
+        if (!$candidate) {
+            throw new \Exception("Candidate not found with ID: {$candidateId}");
+        }
+        $candidate->update(['status' => 'interview_scheduled']);
 
         return $visaProcess;
     }
