@@ -66,7 +66,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
     });
 
-    // Candidates Management (UNCHANGED)
+    // ========================================================================
+    // CANDIDATES MANAGEMENT
+    // Throttle: Standard 60/min, Export 5/min, Upload 30/min
+    // ========================================================================
     Route::resource('candidates', CandidateController::class);
     Route::prefix('candidates')->name('candidates.')->group(function () {
         Route::get('/{candidate}/profile', [CandidateController::class, 'profile'])->name('profile');
@@ -74,30 +77,55 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/update-status', [CandidateController::class, 'updateStatus'])->name('update-status');
         Route::post('/{candidate}/assign-campus', [CandidateController::class, 'assignCampus'])->name('assign-campus');
         Route::post('/{candidate}/assign-oep', [CandidateController::class, 'assignOep'])->name('assign-oep');
-        Route::post('/{candidate}/upload-photo', [CandidateController::class, 'uploadPhoto'])->name('upload-photo');
-        Route::get('export', [CandidateController::class, 'export'])->name('export');
+
+        // THROTTLE FIX: Upload limited to 30/min to prevent abuse
+        Route::post('/{candidate}/upload-photo', [CandidateController::class, 'uploadPhoto'])
+            ->middleware('throttle:30,1')->name('upload-photo');
+
+        // THROTTLE FIX: Export limited to 5/min (resource intensive)
+        Route::get('export', [CandidateController::class, 'export'])
+            ->middleware('throttle:5,1')->name('export');
     });
 
-    // Import/Export (UNCHANGED)
+    // ========================================================================
+    // IMPORT/EXPORT
+    // Throttle: View 60/min, Import 5/min (database intensive)
+    // ========================================================================
     Route::prefix('import')->name('import.')->group(function () {
         Route::get('/candidates', [ImportController::class, 'showCandidateImport'])->name('candidates.form');
-        Route::post('/candidates', [ImportController::class, 'importCandidates'])->name('candidates.process');
+
+        // THROTTLE FIX: Import limited to 5/min (database intensive)
+        Route::post('/candidates', [ImportController::class, 'importCandidates'])
+            ->middleware('throttle:5,1')->name('candidates.process');
+
         Route::get('/template/download', [ImportController::class, 'downloadTemplate'])->name('template.download');
     });
 
-    // Screening (UNCHANGED)
+    // ========================================================================
+    // SCREENING
+    // Throttle: Standard 60/min, Export 5/min
+    // ========================================================================
     Route::resource('screening', ScreeningController::class)->except(['show']);
     Route::prefix('screening')->name('screening.')->group(function () {
         Route::get('/pending', [ScreeningController::class, 'pending'])->name('pending');
         Route::post('/{candidate}/call-log', [ScreeningController::class, 'logCall'])->name('log-call');
         Route::post('/{candidate}/screening-outcome', [ScreeningController::class, 'recordOutcome'])->name('outcome');
-        Route::get('/export', [ScreeningController::class, 'export'])->name('export');
+
+        // THROTTLE FIX: Export limited to 5/min (resource intensive)
+        Route::get('/export', [ScreeningController::class, 'export'])
+            ->middleware('throttle:5,1')->name('export');
     });
 
-    // Registration (UNCHANGED)
+    // ========================================================================
+    // REGISTRATION
+    // Throttle: Document upload 30/min to prevent storage abuse
+    // ========================================================================
     Route::resource('registration', RegistrationController::class);
     Route::prefix('registration')->name('registration.')->group(function () {
-        Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])->name('upload-document');
+        // THROTTLE FIX: Upload limited to 30/min (storage abuse prevention)
+        Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])
+            ->middleware('throttle:30,1')->name('upload-document');
+
         Route::delete('/documents/{document}', [RegistrationController::class, 'deleteDocument'])->name('delete-document');
         Route::post('/{candidate}/next-of-kin', [RegistrationController::class, 'saveNextOfKin'])->name('next-of-kin');
         Route::post('/{candidate}/undertaking', [RegistrationController::class, 'saveUndertaking'])->name('undertaking');
@@ -105,33 +133,44 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // TRAINING ROUTES - UPDATED WITH NEW CONTROLLER
+    // TRAINING ROUTES
+    // Throttle: Standard 60/min, Bulk operations 30/min, Reports 5/min
     // ========================================================================
     Route::resource('training', TrainingController::class);
     Route::prefix('training')->name('training.')->group(function () {
         // EXISTING ROUTES (Keep for backward compatibility)
         Route::get('/batches', [TrainingController::class, 'batches'])->name('batches');
-        Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance'); // Existing
-        Route::post('/assessment', [TrainingController::class, 'recordAssessment'])->name('assessment'); // Existing
-        Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate'); // Existing
+        Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance');
+        Route::post('/assessment', [TrainingController::class, 'recordAssessment'])->name('assessment');
+        Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate');
         Route::get('/batch/{batch}/report', [TrainingController::class, 'batchReport'])->name('batch-report');
-        
+
         // NEW ROUTES (From updated controller)
-        Route::get('/attendance/form', [TrainingController::class, 'attendance'])->name('attendance-form'); // NEW
-        Route::post('/{candidate}/mark-attendance', [TrainingController::class, 'markAttendance'])->name('mark-attendance'); // NEW - Individual
-        Route::post('/attendance/bulk', [TrainingController::class, 'bulkAttendance'])->name('bulk-attendance'); // NEW - Bulk
-        Route::get('/{candidate}/assessment', [TrainingController::class, 'assessment'])->name('assessment-view'); // NEW
-        Route::post('/{candidate}/store-assessment', [TrainingController::class, 'storeAssessment'])->name('store-assessment'); // NEW
-        Route::put('/assessment/{assessment}', [TrainingController::class, 'updateAssessment'])->name('update-assessment'); // NEW
-        Route::get('/{candidate}/certificate/download', [TrainingController::class, 'downloadCertificate'])->name('download-certificate'); // NEW
-        Route::post('/{candidate}/complete', [TrainingController::class, 'complete'])->name('complete'); // NEW
-        Route::post('/reports/attendance', [TrainingController::class, 'attendanceReport'])->name('attendance-report'); // NEW
-        Route::post('/reports/assessment', [TrainingController::class, 'assessmentReport'])->name('assessment-report'); // NEW
-        Route::get('/batch/{batch}/performance', [TrainingController::class, 'batchPerformance'])->name('batch-performance'); // NEW
+        Route::get('/attendance/form', [TrainingController::class, 'attendance'])->name('attendance-form');
+        Route::post('/{candidate}/mark-attendance', [TrainingController::class, 'markAttendance'])->name('mark-attendance');
+
+        // THROTTLE FIX: Bulk attendance limited to 30/min (database intensive)
+        Route::post('/attendance/bulk', [TrainingController::class, 'bulkAttendance'])
+            ->middleware('throttle:30,1')->name('bulk-attendance');
+
+        Route::get('/{candidate}/assessment', [TrainingController::class, 'assessment'])->name('assessment-view');
+        Route::post('/{candidate}/store-assessment', [TrainingController::class, 'storeAssessment'])->name('store-assessment');
+        Route::put('/assessment/{assessment}', [TrainingController::class, 'updateAssessment'])->name('update-assessment');
+        Route::get('/{candidate}/certificate/download', [TrainingController::class, 'downloadCertificate'])->name('download-certificate');
+        Route::post('/{candidate}/complete', [TrainingController::class, 'complete'])->name('complete');
+
+        // THROTTLE FIX: Reports limited to 5/min (resource intensive)
+        Route::post('/reports/attendance', [TrainingController::class, 'attendanceReport'])
+            ->middleware('throttle:5,1')->name('attendance-report');
+        Route::post('/reports/assessment', [TrainingController::class, 'assessmentReport'])
+            ->middleware('throttle:5,1')->name('assessment-report');
+
+        Route::get('/batch/{batch}/performance', [TrainingController::class, 'batchPerformance'])->name('batch-performance');
     });
 
     // ========================================================================
-    // VISA PROCESSING ROUTES - UPDATED WITH NEW CONTROLLER
+    // VISA PROCESSING ROUTES
+    // Throttle: Standard 60/min, Upload 30/min, Reports 5/min
     // ========================================================================
     Route::resource('visa-processing', VisaProcessingController::class);
     Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
@@ -143,9 +182,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber'); // Existing
         Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric'); // Existing
         Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa'); // Existing
-        Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])->name('ticket'); // Existing
-        Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])->name('timeline-report'); // Existing
-        
+
+        // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
+        Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
+            ->middleware('throttle:30,1')->name('ticket');
+
+        // THROTTLE FIX: Timeline report limited to 5/min (resource intensive)
+        Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
+            ->middleware('throttle:5,1')->name('timeline-report');
+
         // NEW ROUTES (From updated controller)
         Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview'); // NEW
         Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test'); // NEW
@@ -154,13 +199,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric'); // NEW
         Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa'); // NEW
         Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline'); // NEW
-        Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])->name('overdue'); // NEW
+
+        // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
+        Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
+            ->middleware('throttle:5,1')->name('overdue');
+
         Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete'); // NEW
-        Route::post('/reports/generate', [VisaProcessingController::class, 'report'])->name('report'); // NEW
+
+        // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
+        Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
+            ->middleware('throttle:5,1')->name('report');
     });
 
     // ========================================================================
-    // DEPARTURE ROUTES - UPDATED WITH NEW CONTROLLER
+    // DEPARTURE ROUTES
+    // Throttle: Standard 60/min, Reports 5/min
     // ========================================================================
     Route::resource('departure', DepartureController::class);
     Route::prefix('departure')->name('departure.')->group(function () {
@@ -172,7 +225,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // Existing - DEPRECATED, use 'first-salary' instead
         Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Existing
         Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance'); // Existing
-        
+
         // NEW ROUTES (From updated controller)
         Route::post('/{candidate}/record-departure', [DepartureController::class, 'recordDeparture'])->name('record-departure'); // NEW
         Route::post('/{candidate}/wps', [DepartureController::class, 'recordWps'])->name('wps'); // NEW (replaces qiwa)
@@ -181,7 +234,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/issue', [DepartureController::class, 'reportIssue'])->name('report-issue'); // NEW
         Route::put('/issue/{issue}', [DepartureController::class, 'updateIssue'])->name('update-issue'); // NEW
         Route::get('/{candidate}/timeline', [DepartureController::class, 'timeline'])->name('timeline'); // NEW
-        Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])->name('compliance-report'); // NEW
+
+        // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
+        Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
+            ->middleware('throttle:5,1')->name('compliance-report');
+
         Route::get('/tracking/90-days', [DepartureController::class, 'tracking90Days'])->name('tracking-90-days'); // NEW
         Route::get('/non-compliant', [DepartureController::class, 'nonCompliant'])->name('non-compliant'); // NEW
         Route::get('/active-issues', [DepartureController::class, 'activeIssues'])->name('active-issues'); // NEW
@@ -197,58 +254,82 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // COMPLAINT ROUTES - UPDATED WITH NEW CONTROLLER
+    // COMPLAINTS MANAGEMENT
+    // Throttle: Standard 60/min, Escalate 30/min, Reports/Export 5/min
     // ========================================================================
     Route::resource('complaints', ComplaintController::class);
     Route::prefix('complaints')->name('complaints.')->group(function () {
         // EXISTING ROUTES (Keep for backward compatibility)
-        Route::get('/overdue', [ComplaintController::class, 'overdue'])->name('overdue'); // Existing
-        Route::post('/{complaint}/assign', [ComplaintController::class, 'assign'])->name('assign'); // Existing
-        Route::post('/{complaint}/resolve', [ComplaintController::class, 'resolve'])->name('resolve'); // Existing
-        Route::post('/{complaint}/escalate', [ComplaintController::class, 'escalate'])->name('escalate'); // Existing
-        Route::get('/statistics', [ComplaintController::class, 'statistics'])->name('statistics'); // Existing
-        
+        Route::get('/overdue', [ComplaintController::class, 'overdue'])->name('overdue');
+        Route::post('/{complaint}/assign', [ComplaintController::class, 'assign'])->name('assign');
+        Route::post('/{complaint}/resolve', [ComplaintController::class, 'resolve'])->name('resolve');
+
+        // THROTTLE FIX: Escalate limited to 30/min (important workflow action)
+        Route::post('/{complaint}/escalate', [ComplaintController::class, 'escalate'])
+            ->middleware('throttle:30,1')->name('escalate');
+
+        Route::get('/statistics', [ComplaintController::class, 'statistics'])->name('statistics');
+
         // NEW ROUTES (From updated controller)
-        Route::post('/{complaint}/update', [ComplaintController::class, 'addUpdate'])->name('add-update'); // NEW
-        Route::post('/{complaint}/evidence', [ComplaintController::class, 'addEvidence'])->name('add-evidence'); // NEW
-        Route::post('/{complaint}/close', [ComplaintController::class, 'close'])->name('close'); // NEW
-        Route::post('/{complaint}/reopen', [ComplaintController::class, 'reopen'])->name('reopen'); // NEW
-        Route::get('/category/{category}', [ComplaintController::class, 'byCategory'])->name('by-category'); // NEW
-        Route::get('/my/assignments', [ComplaintController::class, 'myAssignments'])->name('my-assignments'); // NEW
-        Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])->name('analytics'); // NEW
-        Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])->name('sla-report'); // NEW
-        Route::post('/export', [ComplaintController::class, 'export'])->name('export'); // NEW
+        Route::post('/{complaint}/update', [ComplaintController::class, 'addUpdate'])->name('add-update');
+        Route::post('/{complaint}/evidence', [ComplaintController::class, 'addEvidence'])->name('add-evidence');
+        Route::post('/{complaint}/close', [ComplaintController::class, 'close'])->name('close');
+        Route::post('/{complaint}/reopen', [ComplaintController::class, 'reopen'])->name('reopen');
+        Route::get('/category/{category}', [ComplaintController::class, 'byCategory'])->name('by-category');
+        Route::get('/my/assignments', [ComplaintController::class, 'myAssignments'])->name('my-assignments');
+
+        // THROTTLE FIX: Reports and exports limited to 5/min (resource intensive)
+        Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])
+            ->middleware('throttle:5,1')->name('analytics');
+        Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])
+            ->middleware('throttle:5,1')->name('sla-report');
+        Route::post('/export', [ComplaintController::class, 'export'])
+            ->middleware('throttle:5,1')->name('export');
     });
 
     // ========================================================================
-    // DOCUMENT ARCHIVE ROUTES - UPDATED WITH NEW CONTROLLER
+    // DOCUMENT ARCHIVE
+    // Throttle: Standard 60/min, Download 60/min, Bulk upload 10/min, Reports 5/min
     // ========================================================================
-    Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']); // Kept except
+    Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']);
     Route::prefix('document-archive')->name('document-archive.')->group(function () {
         // EXISTING ROUTES (Keep for backward compatibility)
-        Route::get('/expiring', [DocumentArchiveController::class, 'expiring'])->name('expiring'); // Existing
-        Route::get('/search', [DocumentArchiveController::class, 'search'])->name('search'); // Existing
-        Route::get('/{document}/download', [DocumentArchiveController::class, 'download'])->name('download'); // Existing
-        Route::get('/{document}/versions', [DocumentArchiveController::class, 'versions'])->name('versions'); // Existing
-        
+        Route::get('/expiring', [DocumentArchiveController::class, 'expiring'])->name('expiring');
+        Route::get('/search', [DocumentArchiveController::class, 'search'])->name('search');
+        Route::get('/{document}/versions', [DocumentArchiveController::class, 'versions'])->name('versions');
+
+        // THROTTLE FIX: Download limited to 60/min (bandwidth management)
+        Route::get('/{document}/download', [DocumentArchiveController::class, 'download'])
+            ->middleware('throttle:60,1')->name('download');
+
         // NEW ROUTES (From updated controller)
-        Route::get('/create', [DocumentArchiveController::class, 'create'])->name('create'); // NEW - Added back
-        Route::get('/{document}/edit', [DocumentArchiveController::class, 'edit'])->name('edit'); // NEW - Added back
-        Route::post('/{document}/version', [DocumentArchiveController::class, 'uploadVersion'])->name('upload-version'); // NEW
-        Route::get('/{document}/view', [DocumentArchiveController::class, 'view'])->name('view'); // NEW
-        Route::post('/{document}/restore-version', [DocumentArchiveController::class, 'restoreVersion'])->name('restore-version'); // NEW
-        Route::get('/tracking/expired', [DocumentArchiveController::class, 'expired'])->name('expired'); // NEW
-        Route::get('/candidate/{candidate}/documents', [DocumentArchiveController::class, 'candidateDocuments'])->name('candidate-documents'); // NEW
-        Route::get('/{document}/access-logs', [DocumentArchiveController::class, 'accessLogs'])->name('access-logs'); // NEW
-        Route::get('/reports/statistics', [DocumentArchiveController::class, 'statistics'])->name('statistics'); // NEW
-        Route::post('/reports/generate', [DocumentArchiveController::class, 'report'])->name('report'); // NEW
-        Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])->name('bulk-upload'); // NEW
-        Route::post('/{document}/archive', [DocumentArchiveController::class, 'archive'])->name('archive'); // NEW
-        Route::post('/{document}/restore', [DocumentArchiveController::class, 'restore'])->name('restore'); // NEW
-        Route::post('/reminders/send', [DocumentArchiveController::class, 'sendExpiryReminders'])->name('send-expiry-reminders'); // NEW
+        Route::get('/create', [DocumentArchiveController::class, 'create'])->name('create');
+        Route::get('/{document}/edit', [DocumentArchiveController::class, 'edit'])->name('edit');
+        Route::post('/{document}/version', [DocumentArchiveController::class, 'uploadVersion'])->name('upload-version');
+        Route::get('/{document}/view', [DocumentArchiveController::class, 'view'])->name('view');
+        Route::post('/{document}/restore-version', [DocumentArchiveController::class, 'restoreVersion'])->name('restore-version');
+        Route::get('/tracking/expired', [DocumentArchiveController::class, 'expired'])->name('expired');
+        Route::get('/candidate/{candidate}/documents', [DocumentArchiveController::class, 'candidateDocuments'])->name('candidate-documents');
+        Route::get('/{document}/access-logs', [DocumentArchiveController::class, 'accessLogs'])->name('access-logs');
+        Route::get('/reports/statistics', [DocumentArchiveController::class, 'statistics'])->name('statistics');
+
+        // THROTTLE FIX: Report generation limited to 5/min (CPU intensive)
+        Route::post('/reports/generate', [DocumentArchiveController::class, 'report'])
+            ->middleware('throttle:5,1')->name('report');
+
+        // THROTTLE FIX: Bulk upload limited to 10/min (storage abuse prevention)
+        Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
+            ->middleware('throttle:10,1')->name('bulk-upload');
+
+        Route::post('/{document}/archive', [DocumentArchiveController::class, 'archive'])->name('archive');
+        Route::post('/{document}/restore', [DocumentArchiveController::class, 'restore'])->name('restore');
+        Route::post('/reminders/send', [DocumentArchiveController::class, 'sendExpiryReminders'])->name('send-expiry-reminders');
     });
 
-    // Reports (UNCHANGED)
+    // ========================================================================
+    // REPORTS
+    // Throttle: Standard 60/min, Generate custom 3/min (very CPU intensive)
+    // ========================================================================
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/candidate-profile/{candidate}', [ReportController::class, 'candidateProfile'])->name('candidate-profile');
@@ -259,8 +340,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/training-statistics', [ReportController::class, 'trainingStatistics'])->name('training-statistics');
         Route::get('/complaint-analysis', [ReportController::class, 'complaintAnalysis'])->name('complaint-analysis');
         Route::get('/custom-report', [ReportController::class, 'customReport'])->name('custom-report');
-        Route::post('/generate-custom', [ReportController::class, 'generateCustomReport'])->name('generate-custom');
-        Route::get('/export/{type}', [ReportController::class, 'export'])->name('export');
+
+        // THROTTLE FIX: Custom report generation limited to 3/min (very CPU intensive)
+        Route::post('/generate-custom', [ReportController::class, 'generateCustomReport'])
+            ->middleware('throttle:3,1')->name('generate-custom');
+
+        // THROTTLE FIX: Export limited to 5/min (resource intensive)
+        Route::get('/export/{type}', [ReportController::class, 'export'])
+            ->middleware('throttle:5,1')->name('export');
     });
 
     // Admin Routes (UNCHANGED)

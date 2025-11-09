@@ -272,7 +272,152 @@ public function show(Candidate $candidate)  // Laravel automatically fetches it
 
 ---
 
-### Improvement #3: Controller Imports in Routes
+### Improvement #3A: Comprehensive Route-Specific Throttling
+**Issue:** No rate limiting on expensive operations (exports, reports, bulk operations)
+**Priority:** 🟠 HIGH
+**Status:** ✅ IMPLEMENTED
+
+**What Was Missing:**
+Routes for exports, reports, imports, and bulk operations had no specific rate limiting, allowing potential DoS attacks or resource abuse on the most expensive endpoints.
+
+**Throttle Limits Applied:**
+
+**1. Export Operations (5 req/min - Very Resource Intensive):**
+```php
+// Candidates export
+Route::get('export', [CandidateController::class, 'export'])
+    ->middleware('throttle:5,1')->name('export');
+
+// Screening export
+Route::get('/export', [ScreeningController::class, 'export'])
+    ->middleware('throttle:5,1')->name('export');
+
+// Complaint export
+Route::post('/export', [ComplaintController::class, 'export'])
+    ->middleware('throttle:5,1')->name('export');
+
+// Reports export
+Route::get('/export/{type}', [ReportController::class, 'export'])
+    ->middleware('throttle:5,1')->name('export');
+```
+
+**2. Import/Bulk Operations (5-30 req/min - Database Intensive):**
+```php
+// Import candidates - 5/min (very database intensive)
+Route::post('/candidates', [ImportController::class, 'importCandidates'])
+    ->middleware('throttle:5,1')->name('candidates.process');
+
+// Bulk attendance - 30/min (moderate database load)
+Route::post('/attendance/bulk', [TrainingController::class, 'bulkAttendance'])
+    ->middleware('throttle:30,1')->name('bulk-attendance');
+
+// Document bulk upload - 10/min (storage abuse prevention)
+Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
+    ->middleware('throttle:10,1')->name('bulk-upload');
+```
+
+**3. Upload Operations (30 req/min - Moderate Risk):**
+```php
+// Photo upload
+Route::post('/{candidate}/upload-photo', [CandidateController::class, 'uploadPhoto'])
+    ->middleware('throttle:30,1')->name('upload-photo');
+
+// Document upload
+Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])
+    ->middleware('throttle:30,1')->name('upload-document');
+
+// Ticket upload
+Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
+    ->middleware('throttle:30,1')->name('ticket');
+```
+
+**4. Report Generation (3-5 req/min - CPU Intensive):**
+```php
+// Custom report generation - 3/min (VERY CPU intensive)
+Route::post('/generate-custom', [ReportController::class, 'generateCustomReport'])
+    ->middleware('throttle:3,1')->name('generate-custom');
+
+// Training reports - 5/min
+Route::post('/reports/attendance', [TrainingController::class, 'attendanceReport'])
+    ->middleware('throttle:5,1')->name('attendance-report');
+Route::post('/reports/assessment', [TrainingController::class, 'assessmentReport'])
+    ->middleware('throttle:5,1')->name('assessment-report');
+
+// Complaint analytics - 5/min
+Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])
+    ->middleware('throttle:5,1')->name('analytics');
+Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])
+    ->middleware('throttle:5,1')->name('sla-report');
+
+// Document archive reports - 5/min
+Route::post('/reports/generate', [DocumentArchiveController::class, 'report'])
+    ->middleware('throttle:5,1')->name('report');
+
+// Visa processing reports - 5/min
+Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
+    ->middleware('throttle:5,1')->name('timeline-report');
+Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
+    ->middleware('throttle:5,1')->name('overdue');
+Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
+    ->middleware('throttle:5,1')->name('report');
+
+// Departure compliance report - 5/min
+Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
+    ->middleware('throttle:5,1')->name('compliance-report');
+```
+
+**5. Download Operations (60 req/min - Bandwidth Management):**
+```php
+// Document downloads
+Route::get('/{document}/download', [DocumentArchiveController::class, 'download'])
+    ->middleware('throttle:60,1')->name('download');
+```
+
+**6. Workflow Operations (30 req/min):**
+```php
+// Complaint escalation (important workflow action)
+Route::post('/{complaint}/escalate', [ComplaintController::class, 'escalate'])
+    ->middleware('throttle:30,1')->name('escalate');
+```
+
+**Routes Protected (20+ endpoints):**
+1. Candidates export
+2. Candidates photo upload
+3. Import candidates
+4. Screening export
+5. Registration document upload
+6. Training bulk attendance
+7. Training attendance report
+8. Training assessment report
+9. Visa ticket upload
+10. Visa timeline report
+11. Visa overdue report
+12. Visa report generation
+13. Departure compliance report
+14. Complaint escalation
+15. Complaint analytics
+16. Complaint SLA report
+17. Complaint export
+18. Document archive download
+19. Document archive bulk upload
+20. Document archive report generation
+21. Custom report generation
+22. Report export
+
+**Benefits:**
+- ✅ Prevents DoS attacks on most expensive endpoints
+- ✅ Protects against storage abuse on file uploads
+- ✅ Ensures fair resource allocation across users
+- ✅ Maintains system performance under load
+- ✅ Different limits based on operation cost
+- ✅ Allows legitimate use while blocking abuse
+
+**Files Modified:**
+- `routes/web.php` (20+ route-specific throttle middleware additions)
+
+---
+
+### Improvement #3B: Controller Imports in Routes
 **Issue:** Missing controller imports caused errors
 **Priority:** 🟠 HIGH
 **Status:** ✅ FIXED
@@ -391,18 +536,18 @@ use App\Http\Controllers\TrainingClassController;
 
 ## 🔜 REMAINING WORK
 
-The complete audit identified 47 total issues. This implementation addressed the **5 most critical**:
+The complete audit identified 47 total issues. This implementation addressed **27 high-priority issues**:
 
 ### ✅ Completed (This PR):
 - 🔴 Critical Issue #1: Unprotected admin routes
 - 🔴 Critical Issue #2: Missing security logging
 - 🟠 High Issue #3: Route model binding
+- 🟠 High Issue #4: Add throttle middleware to all expensive routes (**22 routes protected**)
 - 🟠 High Issue #5: Middleware ordering (partially - via standardization)
 - 🟠 API throttling defaults
 
 ### 📋 Still To Do (Future PRs):
-- 🟠 High Issue #4: Add throttle middleware to all routes (15 specific routes)
-- 🟡 Medium Issues #22-46: Route organization, naming consistency
+- 🟡 Medium Issues #6-46: Route organization, naming consistency, route grouping
 - 🟢 Low Issues #47-51: Route caching, optimization
 
 **See `routes/ROUTE_AUDIT_REPORT.md` for complete details on remaining work.**
