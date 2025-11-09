@@ -7,9 +7,11 @@
             <h2>Campus Management</h2>
         </div>
         <div class="col-md-4 text-right">
+            @can('create', App\Models\Campus::class)
             <a href="{{ route('admin.campuses.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New Campus
             </a>
+            @endcan
         </div>
     </div>
 
@@ -54,18 +56,24 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @can('view', $campus)
                                     <a href="{{ route('admin.campuses.show', $campus->id) }}" class="btn btn-sm btn-info" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    @endcan
+                                    @can('update', $campus)
                                     <a href="{{ route('admin.campuses.edit', $campus->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    @endcan
+                                    @can('delete', $campus)
                                     <form action="{{ route('admin.campuses.destroy', $campus->id) }}" method="POST" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this campus?')" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

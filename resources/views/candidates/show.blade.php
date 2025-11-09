@@ -12,9 +12,11 @@
                 <p class="text-gray-600 mt-2">BTEVTA ID: <span class="font-semibold">{{ $candidate->btevta_id }}</span></p>
             </div>
             <div class="flex gap-2">
+                @can('update', $candidate)
                 <a href="{{ route('candidates.edit', $candidate) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-edit mr-2"></i>Edit
                 </a>
+                @endcan
                 <a href="{{ route('candidates.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-arrow-left mr-2"></i>Back
                 </a>
@@ -178,23 +180,23 @@
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
                 <div class="space-y-2">
+                    @can('update', $candidate)
                     <a href="{{ route('candidates.edit', $candidate) }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center px-4 py-2 rounded-lg transition">
                         <i class="fas fa-edit mr-2"></i>Edit Candidate
                     </a>
-                    <button type="button" onclick="if(confirm('Are you sure?')) deleteCandidate({{ $candidate->id }})" class="block w-full bg-red-600 hover:bg-red-700 text-white text-center px-4 py-2 rounded-lg transition">
-                        <i class="fas fa-trash mr-2"></i>Delete
-                    </button>
+                    @endcan
+                    @can('delete', $candidate)
+                    <form action="{{ route('candidates.destroy', $candidate) }}" method="POST" class="inline-block w-full" onsubmit="return confirm('Are you sure you want to delete this candidate?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="block w-full bg-red-600 hover:bg-red-700 text-white text-center px-4 py-2 rounded-lg transition">
+                            <i class="fas fa-trash mr-2"></i>Delete
+                        </button>
+                    </form>
+                    @endcan
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-function deleteCandidate(id) {
-    // Implementation for delete would go here
-    // This would typically send a DELETE request to the server
-    alert('Delete functionality would be implemented here');
-}
-</script>
 @endsection
