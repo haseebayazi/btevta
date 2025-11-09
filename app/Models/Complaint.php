@@ -138,7 +138,17 @@ class Complaint extends Model
 
     public function oep()
     {
-        return $this->belongsTo(OEP::class);
+        return $this->belongsTo(Oep::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // Scopes
