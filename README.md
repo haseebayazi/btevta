@@ -396,8 +396,20 @@ Training materials and user guides available at:
 - OEP Guide: `/docs/oep-guide.pdf`
 - Video Tutorials: Available on request
 
+## 📝 Changelog
+
+### Version 1.0.1 (November 2025)
+- **Code Cleanup:** Removed duplicate view files from incorrect path `resources/views/resources/views/`
+- All views are now correctly located in `resources/views/` directory
+- Affected modules: Admin, Complaints, Correspondence, Departure, Document Archive, Registration, Reports, Screening, Training, and Visa Processing
+
+### Version 1.0.0 (October 2025)
+- Initial release with all core modules
+- Complete candidate lifecycle management
+- 10 integrated modules for overseas employment management
+
 ---
 
 **Developed for BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab**
 
-Version: 1.0.0 | Last Updated: October 2025# btevta
+Version: 1.0.1 | Last Updated: November 2025
