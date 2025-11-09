@@ -19,7 +19,9 @@ class User extends Authenticatable
         'password',
         'role',
         'campus_id',
+        'oep_id',
         'is_active',
+        'phone',
     ];
 
     protected $hidden = [
@@ -37,6 +39,11 @@ class User extends Authenticatable
     public function campus()
     {
         return $this->belongsTo(Campus::class);
+    }
+
+    public function oep()
+    {
+        return $this->belongsTo(Oep::class);
     }
 
     // Check if user has specific role

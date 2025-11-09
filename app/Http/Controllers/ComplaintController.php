@@ -133,12 +133,13 @@ class ComplaintController extends Controller
     {
         $complaint->load([
             'candidate',
+            'complainant',
             'campus',
             'oep',
-            'assignedTo',
-            'updates' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            }
+            'assignee',
+            'registeredBy',
+            'updates',
+            'evidence'
         ]);
 
         // Get SLA status
