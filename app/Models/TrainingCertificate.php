@@ -4,14 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class TrainingCertificate extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'candidate_id', 'batch_id', 'certificate_number', 'issue_date',
-        'validity_period', 'certificate_path', 'status', 'remarks'
+        'candidate_id',
+        'batch_id',
+        'certificate_number',
+        'issue_date',
+        'validity_period',
+        'certificate_path',
+        'status',
+        'remarks',
+        'created_by',
+        'updated_by'
     ];
 
     protected $casts = [
@@ -27,5 +36,33 @@ class TrainingCertificate extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = auth()->id();
+                $model->updated_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
     }
 }

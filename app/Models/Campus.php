@@ -4,14 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Campus extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-   protected $fillable = [
-    'name', 'code', 'address', 'city', 'contact_person', 'phone', 'email', 'is_active'
-];
+    protected $fillable = [
+        'name',
+        'code',
+        'address',
+        'city',
+        'contact_person',
+        'phone',
+        'email',
+        'is_active',
+        'created_by',
+        'updated_by'
+    ];
 
     protected $casts = [
         'is_active' => 'boolean'
@@ -32,11 +42,6 @@ class Campus extends Model
         return $this->hasMany(User::class);
     }
 
-    // Add scope for convenience
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
     public function departures()
     {
         return $this->hasManyThrough(Departure::class, Candidate::class);
@@ -45,5 +50,39 @@ class Campus extends Model
     public function visaProcesses()
     {
         return $this->hasManyThrough(VisaProcess::class, Candidate::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = auth()->id();
+                $model->updated_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
     }
 }

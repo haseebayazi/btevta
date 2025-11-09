@@ -99,6 +99,14 @@ class Batch extends Model
     }
 
     /**
+     * Get the OEP associated with this batch.
+     */
+    public function oep()
+    {
+        return $this->belongsTo(Oep::class);
+    }
+
+    /**
      * Get all candidates in this batch.
      */
     public function candidates()
@@ -136,6 +144,22 @@ class Batch extends Model
     public function assessments()
     {
         return $this->hasManyThrough(TrainingAssessment::class, Candidate::class);
+    }
+
+    /**
+     * Get the user who created this batch.
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who last updated this batch.
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // ==================== SCOPES ====================

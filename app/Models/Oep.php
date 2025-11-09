@@ -4,14 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Oep extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name', 'code', 'company_name', 'registration_number', 'contact_person', 
-        'phone', 'email', 'address', 'website', 'country', 'city', 'is_active'
+        'name',
+        'code',
+        'company_name',
+        'registration_number',
+        'contact_person',
+        'phone',
+        'email',
+        'address',
+        'website',
+        'country',
+        'city',
+        'is_active',
+        'created_by',
+        'updated_by'
     ];
 
     protected $casts = [
@@ -28,7 +41,6 @@ class Oep extends Model
         return $this->hasMany(Batch::class);
     }
 
-    // FIX: This was missing and causing crash
     public function departures()
     {
         return $this->hasManyThrough(Departure::class, Candidate::class);
@@ -39,6 +51,17 @@ class Oep extends Model
         return $this->hasMany(User::class);
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // Scopes
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -47,5 +70,23 @@ class Oep extends Model
     public function scopeByCountry($query, $country)
     {
         return $query->where('country', $country);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = auth()->id();
+                $model->updated_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
     }
 }
