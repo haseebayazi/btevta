@@ -36,18 +36,25 @@ return new class extends Migration
             Schema::create('candidate_screenings', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('candidate_id');
-                $table->date('screening_date');
-                $table->enum('call_number', ['1', '2', '3'])->default('1');
-                $table->enum('status', ['pending', 'contacted', 'not_contacted', 'no_response'])->default('pending');
-                $table->enum('result', ['pass', 'fail', 'pending'])->default('pending');
+                $table->string('screening_type')->nullable(); // desk, call, physical, document, medical
+                $table->string('status')->default('pending'); // pending, in_progress, passed, failed, deferred, cancelled
                 $table->text('remarks')->nullable();
-                $table->string('evidence_path')->nullable();
                 $table->unsignedBigInteger('screened_by')->nullable();
+                $table->timestamp('screened_at')->nullable();
+                $table->string('evidence_path')->nullable();
+                $table->integer('call_count')->default(0);
+                $table->integer('call_duration')->nullable(); // in seconds
+                $table->timestamp('next_call_date')->nullable();
+                $table->string('verification_status')->nullable();
+                $table->text('verification_remarks')->nullable();
+                $table->unsignedBigInteger('created_by')->nullable();
+                $table->unsignedBigInteger('updated_by')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
-                
+
                 $table->foreign('candidate_id')->references('id')->on('candidates')->onDelete('cascade');
-                $table->index(['candidate_id', 'call_number']);
+                $table->index(['candidate_id', 'screening_type']);
+                $table->index('status');
             });
         }
 

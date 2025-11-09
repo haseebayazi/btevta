@@ -50,18 +50,19 @@ class ScreeningController extends Controller
     {
         $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
-            'screening_date' => 'required|date',
-            'call_duration' => 'required|integer|min:1',
-            'call_notes' => 'nullable|string',
-            'screening_outcome' => 'required|in:pass,fail,pending',
+            'screening_type' => 'required|string',
+            'screened_at' => 'required|date',
+            'call_duration' => 'nullable|integer|min:1',
+            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
             'remarks' => 'nullable|string',
+            'evidence_path' => 'nullable|string',
         ]);
-        
+
         $validated['screened_by'] = auth()->id();
-        $validated['screened_at'] = now();
-        
+        $validated['created_by'] = auth()->id();
+
         CandidateScreening::create($validated);
-        
+
         return redirect()->route('screening.index')->with('success', 'Screening record created successfully!');
     }
 
@@ -81,62 +82,69 @@ class ScreeningController extends Controller
     {
         $candidate = Candidate::findOrFail($candidateId);
         $screening = $candidate->screenings()->latest()->firstOrFail();
-        
+
         $validated = $request->validate([
-            'screening_date' => 'required|date',
-            'call_duration' => 'required|integer|min:1',
-            'call_notes' => 'nullable|string',
-            'screening_outcome' => 'required|in:pass,fail,pending',
+            'screening_type' => 'required|string',
+            'screened_at' => 'required|date',
+            'call_duration' => 'nullable|integer|min:1',
+            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
             'remarks' => 'nullable|string',
+            'evidence_path' => 'nullable|string',
         ]);
-        
+
+        $validated['updated_by'] = auth()->id();
         $screening->update($validated);
-        
+
         return redirect()->route('screening.index')->with('success', 'Screening record updated successfully!');
     }
 
     public function logCall(Request $request, Candidate $candidate)
     {
         $validated = $request->validate([
-            'call_date' => 'required|date',
+            'screened_at' => 'required|date',
             'call_duration' => 'required|integer|min:1',
-            'call_notes' => 'nullable|string',
+            'remarks' => 'nullable|string',
         ]);
-        
+
         $validated['candidate_id'] = $candidate->id;
+        $validated['screening_type'] = 'call';
+        $validated['status'] = 'in_progress';
         $validated['screened_by'] = auth()->id();
-        $validated['screened_at'] = now();
-        
+        $validated['created_by'] = auth()->id();
+
         CandidateScreening::create($validated);
-        
+
         return back()->with('success', 'Call logged successfully!');
     }
 
     public function recordOutcome(Request $request, Candidate $candidate)
     {
         $validated = $request->validate([
-            'screening_outcome' => 'required|in:pass,fail,pending',
+            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
             'remarks' => 'nullable|string',
         ]);
-        
+
         $screening = $candidate->screenings()->latest()->first();
-        
+
         if ($screening) {
+            $validated['updated_by'] = auth()->id();
             $screening->update($validated);
         } else {
             $validated['candidate_id'] = $candidate->id;
+            $validated['screening_type'] = 'desk';
             $validated['screened_by'] = auth()->id();
             $validated['screened_at'] = now();
+            $validated['created_by'] = auth()->id();
             CandidateScreening::create($validated);
         }
-        
+
         // Update candidate status if passed
-        if ($validated['screening_outcome'] === 'pass') {
+        if ($validated['status'] === 'passed') {
             $candidate->update(['status' => 'registered']);
-        } elseif ($validated['screening_outcome'] === 'fail') {
+        } elseif ($validated['status'] === 'failed') {
             $candidate->update(['status' => 'rejected']);
         }
-        
+
         return back()->with('success', 'Screening outcome recorded successfully!');
     }
 
@@ -158,16 +166,17 @@ class ScreeningController extends Controller
         
         $callback = function() use ($screenings) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Candidate ID', 'Name', 'Screening Date', 'Outcome', 'Duration (mins)', 'Remarks']);
-            
+            fputcsv($file, ['Candidate ID', 'Name', 'Screening Type', 'Screening Date', 'Status', 'Duration (secs)', 'Remarks']);
+
             foreach ($screenings as $screening) {
                 fputcsv($file, [
-                    $screening->candidate->btevta_id,
-                    $screening->candidate->name,
-                    $screening->screened_at,
-                    $screening->screening_outcome,
-                    $screening->call_duration,
-                    $screening->remarks,
+                    $screening->candidate->btevta_id ?? 'N/A',
+                    $screening->candidate->name ?? 'N/A',
+                    $screening->screening_type ?? 'N/A',
+                    $screening->screened_at ? $screening->screened_at->format('Y-m-d H:i:s') : 'N/A',
+                    $screening->status ?? 'N/A',
+                    $screening->call_duration ?? 'N/A',
+                    $screening->remarks ?? '',
                 ]);
             }
             fclose($file);
