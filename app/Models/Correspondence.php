@@ -1,0 +1,158 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Correspondence extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'correspondence';
+
+    protected $fillable = [
+        'file_reference_number',
+        'sender',
+        'recipient',
+        'correspondence_type',
+        'subject',
+        'description',
+        'correspondence_date',
+        'reply_date',
+        'document_path',
+        'priority_level',
+        'status',
+        'candidate_id',
+        'assigned_to',
+        'created_by',
+        'updated_by'
+    ];
+
+    protected $casts = [
+        'correspondence_date' => 'date',
+        'reply_date' => 'date',
+    ];
+
+    protected $attributes = [
+        'status' => 'pending',
+        'priority_level' => 'normal',
+        'correspondence_type' => 'letter',
+    ];
+
+    // Type constants
+    const TYPE_EMAIL = 'email';
+    const TYPE_LETTER = 'letter';
+    const TYPE_MEMO = 'memo';
+    const TYPE_NOTICE = 'notice';
+    const TYPE_OTHER = 'other';
+
+    // Priority constants
+    const PRIORITY_URGENT = 'urgent';
+    const PRIORITY_NORMAL = 'normal';
+    const PRIORITY_LOW = 'low';
+
+    // Status constants
+    const STATUS_PENDING = 'pending';
+    const STATUS_IN_PROGRESS = 'in_progress';
+    const STATUS_REPLIED = 'replied';
+    const STATUS_CLOSED = 'closed';
+
+    public static function getTypes()
+    {
+        return [
+            self::TYPE_EMAIL => 'Email',
+            self::TYPE_LETTER => 'Letter',
+            self::TYPE_MEMO => 'Memo',
+            self::TYPE_NOTICE => 'Notice',
+            self::TYPE_OTHER => 'Other',
+        ];
+    }
+
+    public static function getPriorities()
+    {
+        return [
+            self::PRIORITY_URGENT => 'Urgent',
+            self::PRIORITY_NORMAL => 'Normal',
+            self::PRIORITY_LOW => 'Low',
+        ];
+    }
+
+    public static function getStatuses()
+    {
+        return [
+            self::STATUS_PENDING => 'Pending',
+            self::STATUS_IN_PROGRESS => 'In Progress',
+            self::STATUS_REPLIED => 'Replied',
+            self::STATUS_CLOSED => 'Closed',
+        ];
+    }
+
+    // Relationships
+    public function candidate()
+    {
+        return $this->belongsTo(Candidate::class);
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    // Scopes
+    public function scopePendingReply($query)
+    {
+        return $query->where('status', self::STATUS_PENDING);
+    }
+
+    public function scopeUrgent($query)
+    {
+        return $query->where('priority_level', self::PRIORITY_URGENT);
+    }
+
+    // Helper Methods
+    public static function generateFileReferenceNumber()
+    {
+        $year = date('Y');
+        $month = date('m');
+        
+        $lastCorrespondence = self::where('file_reference_number', 'like', "COR-{$year}{$month}%")
+                                   ->orderBy('file_reference_number', 'desc')
+                                   ->first();
+        
+        if ($lastCorrespondence && $lastCorrespondence->file_reference_number) {
+            $lastNumber = intval(substr($lastCorrespondence->file_reference_number, -5));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        
+        return 'COR-' . $year . $month . '-' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($correspondence) {
+            if (empty($correspondence->file_reference_number)) {
+                $correspondence->file_reference_number = self::generateFileReferenceNumber();
+            }
+            
+            if (empty($correspondence->correspondence_date)) {
+                $correspondence->correspondence_date = now();
+            }
+            
+            if (auth()->check()) {
+                $correspondence->created_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($correspondence) {
+            if (auth()->check()) {
+                $correspondence->updated_by = auth()->id();
+            }
+        });
+    }
+}

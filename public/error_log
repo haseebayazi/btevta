@@ -1,0 +1,14 @@
+[01-Nov-2025 14:22:47 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::assessments() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 419
+[01-Nov-2025 14:25:09 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::visaProcess() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 423
+[01-Nov-2025 14:25:13 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::visaProcess() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 423
+[01-Nov-2025 14:26:57 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::departure() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 420
+[01-Nov-2025 14:27:22 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::nextOfKin() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 422
+[01-Nov-2025 14:28:02 UTC] PHP Fatal error:  Cannot redeclare App\Models\Candidate::complaints() in /home/iihsedup/oep.jaamiah.com/app/Models/Candidate.php on line 422
+[01-Nov-2025 14:28:36 UTC] PHP Fatal error:  Cannot redeclare App\Models\Campus::scopeActive() in /home/iihsedup/oep.jaamiah.com/app/Models/Campus.php on line 50
+[01-Nov-2025 14:30:21 UTC] PHP Fatal error:  Cannot redeclare App\Models\Trade::batches() in /home/iihsedup/oep.jaamiah.com/app/Models/Trade.php on line 26
+[01-Nov-2025 14:37:02 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
+[01-Nov-2025 14:37:26 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
+[03-Nov-2025 17:56:28 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
+[03-Nov-2025 17:56:42 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
+[04-Nov-2025 09:30:53 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
+[05-Nov-2025 05:51:17 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\CandidateController::apiSearch() in /home/iihsedup/oep.jaamiah.com/app/Http/Controllers/CandidateController.php on line 412
