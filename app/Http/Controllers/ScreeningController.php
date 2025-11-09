@@ -1,8 +1,4 @@
 <?php
-// ============================================
-// FILE: app/Http/Controllers/ScreeningController.php
-// REPLACE ENTIRE FILE WITH THIS VERSION
-// ============================================
 
 namespace App\Http\Controllers;
 
