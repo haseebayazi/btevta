@@ -24,12 +24,42 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Support\Facades\Route::model('instructor', \App\Models\Instructor::class);
             \Illuminate\Support\Facades\Route::model('class', \App\Models\TrainingClass::class);
             \Illuminate\Support\Facades\Route::model('correspondence', \App\Models\Correspondence::class);
+
+            // SECURITY FIX: Global route parameter constraints
+            // Ensures IDs are numeric, prevents injection attempts
+            \Illuminate\Support\Facades\Route::pattern('id', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('candidate', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('campus', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('oep', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('batch', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('trade', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('user', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('complaint', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('document', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('instructor', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('class', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('correspondence', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('notification', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('assessment', '[0-9]+');
+            \Illuminate\Support\Facades\Route::pattern('issue', '[0-9]+');
         }
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Register custom middleware aliases
         $middleware->alias([
             'role' => RoleMiddleware::class,
+        ]);
+
+        // PERFORMANCE: Define middleware groups for common patterns
+        // These combine auth + role checks for routes outside the main auth group
+        $middleware->group('admin', [
+            'auth',
+            'role:admin',
+        ]);
+
+        $middleware->group('staff', [
+            'auth',
+            'role:admin,staff',
         ]);
 
         // SECURITY FIX: Add default throttle limits

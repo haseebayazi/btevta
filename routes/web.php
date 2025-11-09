@@ -350,7 +350,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('export');
     });
 
-    // Admin Routes (UNCHANGED)
+    // ========================================================================
+    // ADMIN ROUTES
+    // Access: Admin only | Middleware: role:admin
+    // ========================================================================
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('campuses', CampusController::class);
         Route::post('campuses/{campus}/toggle-status', [CampusController::class, 'toggleStatus'])->name('campuses.toggle-status');
