@@ -75,6 +75,7 @@
                 <h3 class="text-lg font-bold mb-4">Add Update</h3>
                 <form method="POST" action="{{ route('complaints.update-status', $complaint) }}">
                     @csrf
+                    @method('PATCH')
                     <div class="mb-4">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-input">

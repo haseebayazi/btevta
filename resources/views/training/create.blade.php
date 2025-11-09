@@ -19,7 +19,15 @@
             <div class="form-group">
                 <label>Candidates</label>
                 <select name="candidate_ids[]" class="form-control" multiple required size="10">
-                    <option value="">Select Candidates...</option>
+                    @if(isset($candidates) && $candidates->count() > 0)
+                        @foreach($candidates as $candidate)
+                            <option value="{{ $candidate->id }}">
+                                {{ $candidate->name }} ({{ $candidate->btevta_id ?? $candidate->application_id }})
+                            </option>
+                        @endforeach
+                    @else
+                        <option value="" disabled>No candidates available</option>
+                    @endif
                 </select>
                 @error('candidate_ids')<span class="text-danger">{{ $message }}</span>@enderror
             </div>

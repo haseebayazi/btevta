@@ -68,18 +68,19 @@
                                 <h3 class="font-semibold text-gray-900">Notifications</h3>
                             </div>
                             <div class="max-h-96 overflow-y-auto">
-                                <a href="#" class="block px-4 py-3 hover:bg-gray-50 border-b">
-                                    <p class="text-sm font-medium text-gray-900">New candidate registered</p>
-                                    <p class="text-xs text-gray-600">5 minutes ago</p>
-                                </a>
-                                <a href="#" class="block px-4 py-3 hover:bg-gray-50 border-b">
-                                    <p class="text-sm font-medium text-gray-900">Document expiring soon</p>
-                                    <p class="text-xs text-gray-600">1 hour ago</p>
-                                </a>
-                                <a href="#" class="block px-4 py-3 hover:bg-gray-50">
-                                    <p class="text-sm font-medium text-gray-900">Complaint resolved</p>
-                                    <p class="text-xs text-gray-600">2 hours ago</p>
-                                </a>
+                                @php
+                                    $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
+                                @endphp
+                                @forelse($notifications as $notification)
+                                    <a href="#" class="block px-4 py-3 hover:bg-gray-50 border-b">
+                                        <p class="text-sm font-medium text-gray-900">{{ $notification->data['message'] ?? 'New notification' }}</p>
+                                        <p class="text-xs text-gray-600">{{ $notification->created_at->diffForHumans() }}</p>
+                                    </a>
+                                @empty
+                                    <div class="px-4 py-3 text-center text-gray-500">
+                                        <p class="text-sm">No notifications</p>
+                                    </div>
+                                @endforelse
                             </div>
                             <div class="px-4 py-2 border-t">
                                 <a href="#" class="text-sm text-blue-600 hover:text-blue-800">View all notifications</a>
@@ -323,6 +324,9 @@
     </footer>
     
     <!-- Scripts -->
+    <!-- Axios for AJAX (must load BEFORE usage) -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <script>
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {
@@ -332,18 +336,15 @@
                 setTimeout(() => el.remove(), 500);
             });
         }, 5000);
-        
+
         // CSRF Token for AJAX requests
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
-        // Global AJAX setup
+
+        // Global AJAX setup (axios is now loaded above)
         window.axios = axios;
         window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
     </script>
-    
-    <!-- Axios for AJAX -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
     @stack('scripts')
 </body>
