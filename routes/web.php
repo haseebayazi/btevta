@@ -19,6 +19,8 @@ use App\Http\Controllers\BatchController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\TrainingClassController;
 
 /*
 |--------------------------------------------------------------------------
@@ -278,23 +280,23 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings', [UserController::class, 'updateSettings'])->name('settings.update');
         Route::get('/audit-logs', [UserController::class, 'auditLogs'])->name('audit-logs');
     });
-});
 
-// API Routes (UNCHANGED)
     // ========================================================================
-    // INSTRUCTORS ROUTES
+    // INSTRUCTORS ROUTES - SECURITY FIX: Moved inside auth middleware
     // ========================================================================
     Route::resource('instructors', InstructorController::class);
 
     // ========================================================================
-    // TRAINING CLASSES ROUTES
+    // TRAINING CLASSES ROUTES - SECURITY FIX: Moved inside auth middleware
     // ========================================================================
     Route::resource('classes', TrainingClassController::class);
     Route::prefix('classes')->name('classes.')->group(function () {
         Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
         Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
     });
+});
 
+// API Routes
 Route::middleware(['auth', 'throttle:60,1'])->prefix('api')->name('api.')->group(function () {
     Route::get('/candidates/search', [CandidateController::class, 'apiSearch'])->name('candidates.search');
     Route::get('/campuses/list', [CampusController::class, 'apiList'])->name('campuses.list');
