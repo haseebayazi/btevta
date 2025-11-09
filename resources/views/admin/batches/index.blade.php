@@ -7,7 +7,9 @@
             <h2>Batches Management</h2>
         </div>
         <div class="col-md-4 text-right">
+            @can('create', App\Models\Batch::class)
             <a href="{{ route('batches.create') }}" class="btn btn-primary">+ Add New Batch</a>
+            @endcan
         </div>
     </div>
 
@@ -54,13 +56,19 @@
                             </td>
                             <td>{{ $batch->candidates_count ?? 0 }}</td>
                             <td>
+                                @can('view', $batch)
                                 <a href="{{ route('batches.show', $batch->id) }}" class="btn btn-sm btn-info">View</a>
+                                @endcan
+                                @can('update', $batch)
                                 <a href="{{ route('batches.edit', $batch->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                @endcan
+                                @can('delete', $batch)
                                 <form method="POST" action="{{ route('batches.destroy', $batch->id) }}" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                     @empty

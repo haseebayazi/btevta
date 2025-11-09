@@ -7,9 +7,11 @@
             <h2>Trade Management</h2>
         </div>
         <div class="col-md-4 text-right">
+            @can('create', App\Models\Trade::class)
             <a href="{{ route('trades.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New Trade
             </a>
+            @endcan
         </div>
     </div>
 
@@ -38,18 +40,24 @@
                                 <td><span class="badge badge-primary">{{ $trade->candidates_count }}</span></td>
                                 <td><span class="badge badge-success">{{ $trade->batches_count }}</span></td>
                                 <td>
+                                    @can('view', $trade)
                                     <a href="{{ route('trades.show', $trade->id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    @endcan
+                                    @can('update', $trade)
                                     <a href="{{ route('trades.edit', $trade->id) }}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    @endcan
+                                    @can('delete', $trade)
                                     <form action="{{ route('trades.destroy', $trade->id) }}" method="POST" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete trade?')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

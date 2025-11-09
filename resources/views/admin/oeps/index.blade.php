@@ -7,7 +7,9 @@
             <h2>OEPs Management</h2>
         </div>
         <div class="col-md-4 text-right">
+            @can('create', App\Models\Oep::class)
             <a href="{{ route('oeps.create') }}" class="btn btn-primary">+ Add New OEP</a>
+            @endcan
         </div>
     </div>
 
@@ -48,13 +50,19 @@
                                 @endif
                             </td>
                             <td>
+                                @can('view', $oep)
                                 <a href="{{ route('oeps.show', $oep->id) }}" class="btn btn-sm btn-info">View</a>
+                                @endcan
+                                @can('update', $oep)
                                 <a href="{{ route('oeps.edit', $oep->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                @endcan
+                                @can('delete', $oep)
                                 <form method="POST" action="{{ route('oeps.destroy', $oep->id) }}" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                     @empty

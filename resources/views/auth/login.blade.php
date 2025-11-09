@@ -110,7 +110,8 @@
                 </button>
             </form>
             
-            <!-- Demo Credentials Info -->
+            <!-- Demo Credentials Info (Development Only) -->
+            @if(config('app.env') === 'local')
             <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <p class="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
                 <div class="text-xs text-blue-800 space-y-1">
@@ -119,6 +120,7 @@
                     <p><strong>OEP:</strong> info@alkhabeer.com / Oep@123</p>
                 </div>
             </div>
+            @endif
         </div>
         
         <!-- Footer -->
