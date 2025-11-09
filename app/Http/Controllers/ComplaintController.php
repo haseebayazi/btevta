@@ -30,6 +30,8 @@ class ComplaintController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Complaint::class);
+
         $query = Complaint::with(['candidate', 'campus', 'oep', 'assignedTo'])->latest();
 
         // Apply filters
@@ -69,6 +71,8 @@ class ComplaintController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Complaint::class);
+
         $candidates = Candidate::select('id', 'name', 'cnic', 'passport_number')->get();
         $campuses = Campus::where('is_active', true)->get();
         $oeps = Oep::where('is_active', true)->get();
@@ -81,6 +85,8 @@ class ComplaintController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Complaint::class);
+
         $validated = $request->validate([
             'candidate_id' => 'nullable|exists:candidates,id',
             'campus_id' => 'nullable|exists:campuses,id',
@@ -131,6 +137,8 @@ class ComplaintController extends Controller
      */
     public function show(Complaint $complaint)
     {
+        $this->authorize('view', $complaint);
+
         $complaint->load([
             'candidate',
             'complainant',
@@ -153,6 +161,8 @@ class ComplaintController extends Controller
      */
     public function edit(Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $candidates = Candidate::select('id', 'name', 'cnic')->get();
         $campuses = Campus::where('is_active', true)->get();
         $oeps = Oep::where('is_active', true)->get();
@@ -166,6 +176,8 @@ class ComplaintController extends Controller
      */
     public function update(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'priority' => 'nullable|in:low,medium,high,critical',
             'status' => 'nullable|in:registered,investigating,resolved,closed',
@@ -199,6 +211,8 @@ class ComplaintController extends Controller
      */
     public function assign(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'assigned_to' => 'required|exists:users,id',
             'assignment_notes' => 'nullable|string|max:1000',
@@ -227,6 +241,8 @@ class ComplaintController extends Controller
      */
     public function addUpdate(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'update_text' => 'required|string',
             'is_internal' => 'nullable|boolean',
@@ -250,6 +266,8 @@ class ComplaintController extends Controller
      */
     public function addEvidence(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'evidence_file' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
             'evidence_description' => 'nullable|string|max:500',
@@ -276,6 +294,8 @@ class ComplaintController extends Controller
      */
     public function escalate(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'escalation_reason' => 'required|string',
         ]);
@@ -299,6 +319,8 @@ class ComplaintController extends Controller
      */
     public function resolve(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'resolution_details' => 'required|string',
             'resolution_date' => 'required|date',
@@ -328,6 +350,8 @@ class ComplaintController extends Controller
      */
     public function close(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'closure_notes' => 'nullable|string|max:2000',
         ]);
@@ -352,6 +376,8 @@ class ComplaintController extends Controller
      */
     public function reopen(Request $request, Complaint $complaint)
     {
+        $this->authorize('update', $complaint);
+
         $validated = $request->validate([
             'reopen_reason' => 'required|string',
         ]);
@@ -373,6 +399,8 @@ class ComplaintController extends Controller
      */
     public function overdue()
     {
+        $this->authorize('viewAny', Complaint::class);
+
         try {
             $overdueComplaints = $this->complaintService->getOverdueComplaints();
 
@@ -387,6 +415,8 @@ class ComplaintController extends Controller
      */
     public function byCategory(Request $request)
     {
+        $this->authorize('viewAny', Complaint::class);
+
         $validated = $request->validate([
             'category' => 'required|in:screening,training,visa,salary,conduct,facility,medical,document,other',
         ]);
@@ -405,6 +435,8 @@ class ComplaintController extends Controller
      */
     public function myAssignments()
     {
+        $this->authorize('viewAny', Complaint::class);
+
         try {
             $assignedComplaints = $this->complaintService->getAssignedComplaints(auth()->id());
 
@@ -419,6 +451,8 @@ class ComplaintController extends Controller
      */
     public function analytics(Request $request)
     {
+        $this->authorize('viewAny', Complaint::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -443,6 +477,8 @@ class ComplaintController extends Controller
      */
     public function slaReport(Request $request)
     {
+        $this->authorize('viewAny', Complaint::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -465,6 +501,8 @@ class ComplaintController extends Controller
      */
     public function export(Request $request)
     {
+        $this->authorize('viewAny', Complaint::class);
+
         $validated = $request->validate([
             'format' => 'required|in:pdf,excel,csv',
             'start_date' => 'nullable|date',
@@ -491,6 +529,8 @@ class ComplaintController extends Controller
      */
     public function destroy(Complaint $complaint)
     {
+        $this->authorize('delete', $complaint);
+
         try {
             $this->complaintService->deleteComplaint($complaint->id);
 
@@ -506,6 +546,8 @@ class ComplaintController extends Controller
      */
     public function statistics()
     {
+        $this->authorize('viewAny', Complaint::class);
+
         try {
             // Get overall statistics
             $totalComplaints = Complaint::count();
@@ -544,13 +586,16 @@ class ComplaintController extends Controller
                 ->get();
 
             // Top assigned users
+            // FIXED: N+1 query - load assignedTo relationship properly after grouping
             $topAssignees = Complaint::select('assigned_to', \DB::raw('count(*) as count'))
                 ->whereNotNull('assigned_to')
                 ->groupBy('assigned_to')
-                ->with('assignedTo:id,name')
                 ->orderBy('count', 'desc')
                 ->limit(10)
                 ->get();
+
+            // Load the assignedTo relationship for the results
+            $topAssignees->load('assignedTo:id,name');
 
             // SLA compliance rate
             $slaCompliant = Complaint::whereNotNull('resolved_at')

@@ -15,6 +15,8 @@ class CandidateController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Candidate::class);
+
         $query = Candidate::with(['trade', 'campus', 'batch', 'oep']);
 
         // Role-based filtering
@@ -59,6 +61,8 @@ class CandidateController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Candidate::class);
+
         $campuses = Campus::where('is_active', true)->get();
         $trades = Trade::where('is_active', true)->get();
         $oeps = Oep::where('is_active', true)->get();
@@ -68,6 +72,8 @@ class CandidateController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Candidate::class);
+
         $validated = $request->validate([
             'btevta_id' => 'required|unique:candidates,btevta_id',
             'cnic' => 'required|digits:13|unique:candidates,cnic',
@@ -105,6 +111,8 @@ class CandidateController extends Controller
 
     public function show(Candidate $candidate)
     {
+        $this->authorize('view', $candidate);
+
         $candidate->load([
             'trade', 
             'campus', 
@@ -127,6 +135,8 @@ class CandidateController extends Controller
 
     public function edit(Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $campuses = Campus::where('is_active', true)->get();
         $trades = Trade::where('is_active', true)->get();
         $oeps = Oep::where('is_active', true)->get();
@@ -136,6 +146,8 @@ class CandidateController extends Controller
 
     public function update(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $validated = $request->validate([
             'btevta_id' => 'required|unique:candidates,btevta_id,' . $candidate->id,
             'cnic' => 'required|digits:13|unique:candidates,cnic,' . $candidate->id,
@@ -166,19 +178,27 @@ class CandidateController extends Controller
 
     public function destroy(Candidate $candidate)
     {
-        // Soft delete
-        $candidate->delete();
+        $this->authorize('delete', $candidate);
 
-        activity()
-            ->performedOn($candidate)
-            ->log('Candidate deleted');
+        try {
+            // Soft delete
+            $candidate->delete();
 
-        return redirect()->route('candidates.index')
-            ->with('success', 'Candidate deleted successfully!');
+            activity()
+                ->performedOn($candidate)
+                ->log('Candidate deleted');
+
+            return redirect()->route('candidates.index')
+                ->with('success', 'Candidate deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete candidate: ' . $e->getMessage());
+        }
     }
 
     public function profile(Candidate $candidate)
     {
+        $this->authorize('view', $candidate);
+
         $candidate->load([
             'trade', 
             'campus', 
@@ -198,6 +218,8 @@ class CandidateController extends Controller
 
     public function timeline(Candidate $candidate)
     {
+        $this->authorize('view', $candidate);
+
         $activities = activity()
             ->forSubject($candidate)
             ->latest()
@@ -208,90 +230,117 @@ class CandidateController extends Controller
 
     public function updateStatus(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $request->validate([
             'status' => 'required|in:listed,screening,registered,training,visa_processing,departed,rejected',
             'remarks' => 'nullable|string'
         ]);
 
-        $oldStatus = $candidate->status;
-        $candidate->status = $request->status;
-        $candidate->remarks = $request->remarks;
-        $candidate->save();
+        try {
+            $oldStatus = $candidate->status;
+            $candidate->status = $request->status;
+            $candidate->remarks = $request->remarks;
+            $candidate->save();
 
-        activity()
-            ->performedOn($candidate)
-            ->withProperties([
-                'old_status' => $oldStatus,
-                'new_status' => $request->status,
-                'remarks' => $request->remarks
-            ])
-            ->log('Status changed');
+            activity()
+                ->performedOn($candidate)
+                ->withProperties([
+                    'old_status' => $oldStatus,
+                    'new_status' => $request->status,
+                    'remarks' => $request->remarks
+                ])
+                ->log('Status changed');
 
-        return back()->with('success', 'Status updated successfully!');
+            return back()->with('success', 'Status updated successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to update status: ' . $e->getMessage());
+        }
     }
 
     public function assignCampus(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $request->validate([
             'campus_id' => 'required|exists:campuses,id'
         ]);
 
-        $campus = Campus::findOrFail($request->campus_id);
-        $candidate->campus_id = $campus->id;
-        $candidate->save();
+        try {
+            $campus = Campus::findOrFail($request->campus_id);
+            $candidate->campus_id = $campus->id;
+            $candidate->save();
 
-        activity()
-            ->performedOn($candidate)
-            ->withProperties(['campus' => $campus->name])
-            ->log('Campus assigned');
+            activity()
+                ->performedOn($candidate)
+                ->withProperties(['campus' => $campus->name])
+                ->log('Campus assigned');
 
-        return back()->with('success', 'Campus assigned successfully!');
+            return back()->with('success', 'Campus assigned successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to assign campus: ' . $e->getMessage());
+        }
     }
 
     public function assignOep(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $request->validate([
             'oep_id' => 'required|exists:oeps,id'
         ]);
 
-        $oep = Oep::findOrFail($request->oep_id);
-        $candidate->oep_id = $oep->id;
-        $candidate->save();
+        try {
+            $oep = Oep::findOrFail($request->oep_id);
+            $candidate->oep_id = $oep->id;
+            $candidate->save();
 
-        activity()
-            ->performedOn($candidate)
-            ->withProperties(['oep' => $oep->name])
-            ->log('OEP assigned');
+            activity()
+                ->performedOn($candidate)
+                ->withProperties(['oep' => $oep->name])
+                ->log('OEP assigned');
 
-        return back()->with('success', 'OEP assigned successfully!');
+            return back()->with('success', 'OEP assigned successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to assign OEP: ' . $e->getMessage());
+        }
     }
 
     public function uploadPhoto(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $request->validate([
             'photo' => 'required|image|max:2048|mimes:jpg,jpeg,png'
         ]);
 
-        // Delete old photo if exists
-        if ($candidate->photo_path) {
-            Storage::disk('public')->delete($candidate->photo_path);
+        try {
+            // Delete old photo if exists
+            if ($candidate->photo_path) {
+                Storage::disk('public')->delete($candidate->photo_path);
+            }
+
+            // Store new photo
+            $path = $request->file('photo')->store('candidates/photos', 'public');
+            $candidate->photo_path = $path;
+            $candidate->save();
+
+            activity()
+                ->performedOn($candidate)
+                ->log('Photo uploaded');
+
+            return back()->with('success', 'Photo uploaded successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to upload photo: ' . $e->getMessage());
         }
-
-        // Store new photo
-        $path = $request->file('photo')->store('candidates/photos', 'public');
-        $candidate->photo_path = $path;
-        $candidate->save();
-
-        activity()
-            ->performedOn($candidate)
-            ->log('Photo uploaded');
-
-        return back()->with('success', 'Photo uploaded successfully!');
     }
 
     public function export(Request $request)
     {
+        $this->authorize('viewAny', Candidate::class);
+
         try {
+            // FIXED: Removed duplicate eager loading - already loaded at the beginning
             $query = Candidate::with(['trade', 'campus', 'batch', 'oep']);
 
             // Apply same filters as index
@@ -311,7 +360,7 @@ class CandidateController extends Controller
                 $query->where('trade_id', $request->trade_id);
             }
 
-            $candidates = $query->with(['trade', 'campus', 'batch', 'oep'])->get();
+            $candidates = $query->get();
 
             // Create Excel export
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -395,6 +444,8 @@ class CandidateController extends Controller
 
     public function apiSearch(Request $request)
     {
+        $this->authorize('viewAny', Candidate::class);
+
         $query = Candidate::query();
 
         // Support both 'term' and 'q' parameters for backward compatibility
