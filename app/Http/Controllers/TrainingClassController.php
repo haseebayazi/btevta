@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\Batch;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TrainingClassController extends Controller
 {
@@ -17,6 +18,8 @@ class TrainingClassController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', TrainingClass::class);
+
         $classes = TrainingClass::with(['campus', 'trade', 'instructor', 'batch'])
             ->when($request->search, function ($query) use ($request) {
                 $query->where('class_name', 'like', '%' . $request->search . '%')
@@ -41,6 +44,8 @@ class TrainingClassController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', TrainingClass::class);
+
         $campuses = Campus::all();
         $trades = Trade::all();
         $instructors = Instructor::active()->get();
@@ -54,6 +59,8 @@ class TrainingClassController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', TrainingClass::class);
+
         $validated = $request->validate([
             'class_name' => 'required|string|max:255',
             'class_code' => 'nullable|string|max:50|unique:training_classes,class_code',
@@ -69,9 +76,18 @@ class TrainingClassController extends Controller
             'status' => 'required|in:scheduled,ongoing,completed,cancelled',
         ]);
 
-        TrainingClass::create($validated);
+        try {
+            $class = TrainingClass::create($validated);
 
-        return redirect()->route('classes.index')->with('success', 'Training class created successfully!');
+            activity()
+                ->performedOn($class)
+                ->causedBy(auth()->user())
+                ->log('Training class created');
+
+            return redirect()->route('classes.index')->with('success', 'Training class created successfully!');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Failed to create training class: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -79,6 +95,8 @@ class TrainingClassController extends Controller
      */
     public function show(TrainingClass $class)
     {
+        $this->authorize('view', $class);
+
         $class->load(['campus', 'trade', 'instructor', 'batch', 'candidates']);
 
         return view('classes.show', compact('class'));
@@ -89,6 +107,8 @@ class TrainingClassController extends Controller
      */
     public function edit(TrainingClass $class)
     {
+        $this->authorize('update', $class);
+
         $campuses = Campus::all();
         $trades = Trade::all();
         $instructors = Instructor::active()->get();
@@ -102,6 +122,8 @@ class TrainingClassController extends Controller
      */
     public function update(Request $request, TrainingClass $class)
     {
+        $this->authorize('update', $class);
+
         $validated = $request->validate([
             'class_name' => 'required|string|max:255',
             'class_code' => 'nullable|string|max:50|unique:training_classes,class_code,' . $class->id,
@@ -117,9 +139,18 @@ class TrainingClassController extends Controller
             'status' => 'required|in:scheduled,ongoing,completed,cancelled',
         ]);
 
-        $class->update($validated);
+        try {
+            $class->update($validated);
 
-        return redirect()->route('classes.index')->with('success', 'Training class updated successfully!');
+            activity()
+                ->performedOn($class)
+                ->causedBy(auth()->user())
+                ->log('Training class updated');
+
+            return redirect()->route('classes.index')->with('success', 'Training class updated successfully!');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Failed to update training class: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -127,9 +158,20 @@ class TrainingClassController extends Controller
      */
     public function destroy(TrainingClass $class)
     {
-        $class->delete();
+        $this->authorize('delete', $class);
 
-        return redirect()->route('classes.index')->with('success', 'Training class deleted successfully!');
+        try {
+            $className = $class->class_name;
+            $class->delete();
+
+            activity()
+                ->causedBy(auth()->user())
+                ->log("Training class deleted: {$className}");
+
+            return redirect()->route('classes.index')->with('success', 'Training class deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete training class: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -137,20 +179,47 @@ class TrainingClassController extends Controller
      */
     public function assignCandidates(Request $request, TrainingClass $class)
     {
+        $this->authorize('update', $class);
+
         $validated = $request->validate([
             'candidate_ids' => 'required|array',
             'candidate_ids.*' => 'exists:candidates,id',
         ]);
 
-        foreach ($validated['candidate_ids'] as $candidateId) {
-            try {
-                $class->enrollCandidate($candidateId);
-            } catch (\Exception $e) {
-                return back()->with('error', $e->getMessage());
-            }
-        }
+        try {
+            // FIXED: Wrap in transaction to ensure all or nothing assignment
+            DB::beginTransaction();
 
-        return back()->with('success', 'Candidates assigned successfully!');
+            $assignedCount = 0;
+            $errors = [];
+
+            foreach ($validated['candidate_ids'] as $candidateId) {
+                try {
+                    $class->enrollCandidate($candidateId);
+                    $assignedCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Candidate ID {$candidateId}: " . $e->getMessage();
+                }
+            }
+
+            if (!empty($errors)) {
+                DB::rollBack();
+                return back()->with('error', 'Failed to assign some candidates: ' . implode(', ', $errors));
+            }
+
+            activity()
+                ->performedOn($class)
+                ->causedBy(auth()->user())
+                ->withProperties(['assigned_count' => $assignedCount])
+                ->log("Assigned {$assignedCount} candidate(s) to class");
+
+            DB::commit();
+
+            return back()->with('success', "Successfully assigned {$assignedCount} candidate(s) to class!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to assign candidates: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -158,8 +227,20 @@ class TrainingClassController extends Controller
      */
     public function removeCandidate(TrainingClass $class, Candidate $candidate)
     {
-        $class->removeCandidate($candidate->id);
+        $this->authorize('update', $class);
 
-        return back()->with('success', 'Candidate removed from class successfully!');
+        try {
+            $class->removeCandidate($candidate->id);
+
+            activity()
+                ->performedOn($class)
+                ->causedBy(auth()->user())
+                ->withProperties(['candidate_id' => $candidate->id, 'candidate_name' => $candidate->name])
+                ->log('Removed candidate from class');
+
+            return back()->with('success', 'Candidate removed from class successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to remove candidate: ' . $e->getMessage());
+        }
     }
 }

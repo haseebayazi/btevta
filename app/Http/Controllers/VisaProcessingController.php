@@ -7,6 +7,7 @@ use App\Models\VisaProcess;
 use App\Services\VisaProcessingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class VisaProcessingController extends Controller
@@ -27,6 +28,8 @@ class VisaProcessingController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', VisaProcess::class);
+
         $query = Candidate::with(['trade', 'campus', 'oep', 'visaProcess'])
             ->where('status', 'visa_processing');
 
@@ -61,9 +64,11 @@ class VisaProcessingController extends Controller
      */
     public function create(Request $request)
     {
+        $this->authorize('create', VisaProcess::class);
+
         // Get candidates eligible for visa processing (completed training)
-        $candidates = Candidate::where('status', 'training_completed')
-            ->orWhere('status', 'screening_passed')
+        // FIXED: Changed orWhere to whereIn to properly scope the query
+        $candidates = Candidate::whereIn('status', ['training_completed', 'screening_passed'])
             ->with(['trade', 'campus'])
             ->get();
 
@@ -75,6 +80,8 @@ class VisaProcessingController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', VisaProcess::class);
+
         $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
             'interview_date' => 'nullable|date',
@@ -105,6 +112,8 @@ class VisaProcessingController extends Controller
      */
     public function show(Candidate $candidate)
     {
+        $this->authorize('view', $candidate->visaProcess ?? VisaProcess::class);
+
         $candidate->load(['visaProcess', 'trade', 'campus', 'oep']);
 
         if (!$candidate->visaProcess) {
@@ -120,6 +129,8 @@ class VisaProcessingController extends Controller
      */
     public function edit(Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $candidate->load('visaProcess');
 
         if (!$candidate->visaProcess) {
@@ -135,6 +146,8 @@ class VisaProcessingController extends Controller
      */
     public function update(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'overall_status' => 'nullable|string',
             'remarks' => 'nullable|string|max:2000',
@@ -163,6 +176,8 @@ class VisaProcessingController extends Controller
      */
     public function updateInterview(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'interview_date' => 'required|date',
             'interview_status' => 'required|in:pending,passed,failed',
@@ -192,6 +207,8 @@ class VisaProcessingController extends Controller
      */
     public function updateTradeTest(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'trade_test_date' => 'required|date',
             'trade_test_status' => 'required|in:pending,passed,failed',
@@ -220,6 +237,8 @@ class VisaProcessingController extends Controller
      */
     public function updateTakamol(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'takamol_date' => 'required|date',
             'takamol_status' => 'required|in:pending,completed,failed',
@@ -248,6 +267,8 @@ class VisaProcessingController extends Controller
      */
     public function updateMedical(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'medical_date' => 'required|date',
             'medical_status' => 'required|in:pending,fit,unfit',
@@ -276,6 +297,8 @@ class VisaProcessingController extends Controller
      */
     public function updateBiometric(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'biometric_date' => 'required|date',
             'biometric_status' => 'required|in:pending,completed,failed',
@@ -304,6 +327,8 @@ class VisaProcessingController extends Controller
      */
     public function updateVisa(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'visa_date' => 'required|date',
             'visa_number' => 'required|string|max:50',
@@ -333,6 +358,8 @@ class VisaProcessingController extends Controller
      */
     public function uploadTicket(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         $validated = $request->validate([
             'ticket_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'ticket_date' => 'required|date',
@@ -359,6 +386,8 @@ class VisaProcessingController extends Controller
      */
     public function timeline(Candidate $candidate)
     {
+        $this->authorize('view', $candidate->visaProcess ?? VisaProcess::class);
+
         try {
             $timeline = $this->visaService->getTimeline($candidate->visaProcess->id);
 
@@ -373,6 +402,8 @@ class VisaProcessingController extends Controller
      */
     public function overdue()
     {
+        $this->authorize('viewAny', VisaProcess::class);
+
         try {
             $overdueCandidates = $this->visaService->getOverdueProcesses();
 
@@ -387,7 +418,11 @@ class VisaProcessingController extends Controller
      */
     public function complete(Candidate $candidate)
     {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
         try {
+            DB::beginTransaction();
+
             $visaProcess = $this->visaService->completeVisaProcess($candidate->visaProcess->id);
 
             // Update candidate status to ready for departure
@@ -395,9 +430,18 @@ class VisaProcessingController extends Controller
 
             $this->notificationService->sendVisaProcessCompleted($candidate);
 
+            // Log activity
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->log('Visa process completed');
+
+            DB::commit();
+
             return redirect()->route('visa-processing.index')
                 ->with('success', 'Visa process completed successfully!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Failed to complete visa process: ' . $e->getMessage());
         }
     }
@@ -407,6 +451,8 @@ class VisaProcessingController extends Controller
      */
     public function report(Request $request)
     {
+        $this->authorize('viewAny', VisaProcess::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -431,18 +477,31 @@ class VisaProcessingController extends Controller
      */
     public function destroy(Candidate $candidate)
     {
+        $this->authorize('delete', $candidate->visaProcess ?? VisaProcess::class);
+
         try {
             if (!$candidate->visaProcess) {
                 throw new Exception('No visa process found');
             }
 
+            DB::beginTransaction();
+
             $this->visaService->deleteVisaProcess($candidate->visaProcess->id);
 
             $candidate->update(['status' => 'training_completed']);
 
+            // Log activity
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->log('Visa process deleted');
+
+            DB::commit();
+
             return redirect()->route('visa-processing.index')
                 ->with('success', 'Visa process deleted successfully!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Failed to delete visa process: ' . $e->getMessage());
         }
     }

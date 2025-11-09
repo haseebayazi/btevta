@@ -10,101 +10,235 @@ use Illuminate\Http\Request;
 
 class BatchController extends Controller
 {
+    /**
+     * Display a listing of batches.
+     */
     public function index()
     {
-        $batches = Batch::with(['campus', 'trade'])->withCount('candidates')->latest()->paginate(20);
+        $this->authorize('viewAny', Batch::class);
+
+        $batches = Batch::with(['campus', 'trade'])
+            ->withCount('candidates')
+            ->latest()
+            ->paginate(20);
+
         return view('admin.batches.index', compact('batches'));
     }
 
+    /**
+     * Show the form for creating a new batch.
+     */
     public function create()
     {
-        $campuses = Campus::pluck('name', 'id');
-        $trades = Trade::pluck('name', 'id');
-        $users = User::where('role', 'trainer')->pluck('name', 'id');
+        $this->authorize('create', Batch::class);
+
+        $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+        $trades = Trade::where('is_active', true)->pluck('name', 'id');
+        $users = User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
+
         return view('admin.batches.create', compact('campuses', 'trades', 'users'));
     }
 
+    /**
+     * Store a newly created batch.
+     */
     public function store(Request $request)
     {
+        $this->authorize('create', Batch::class);
+
         $validated = $request->validate([
-            'batch_code' => 'required|string|unique:batches,batch_code',
+            'batch_code' => 'required|string|max:100|unique:batches,batch_code',
+            'name' => 'nullable|string|max:255',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'required|exists:campuses,id',
             'oep_id' => 'nullable|exists:oeps,id',
             'trainer_id' => 'nullable|exists:users,id',
-            'trainer_name' => 'nullable|string',
+            'coordinator_id' => 'nullable|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
             'capacity' => 'required|integer|min:1',
-            'name' => 'nullable|string',
-            'description' => 'nullable|string',
-            'status' => 'required|in:pending,active,completed,cancelled',
+            'intake_period' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'specialization' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'required|in:planned,active,completed,cancelled',
         ]);
 
-        Batch::create($validated);
+        try {
+            $batch = Batch::create($validated);
 
-        return redirect()->route('batches.index')->with('success', 'Batch created successfully!');
+            // Log activity
+            activity()
+                ->performedOn($batch)
+                ->causedBy(auth()->user())
+                ->log('Batch created');
+
+            return redirect()->route('batches.index')
+                ->with('success', 'Batch created successfully!');
+        } catch (\Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to create batch: ' . $e->getMessage());
+        }
     }
 
+    /**
+     * Display the specified batch.
+     */
     public function show(Batch $batch)
     {
-        $batch->load('campus', 'trade', 'trainer', 'candidates');
+        $this->authorize('view', $batch);
+
+        $batch->load(['campus', 'trade', 'trainer', 'coordinator', 'candidates' => function ($query) {
+            $query->latest()->limit(10);
+        }]);
+
         return view('admin.batches.show', compact('batch'));
     }
 
+    /**
+     * Show the form for editing the batch.
+     */
     public function edit(Batch $batch)
     {
-        $campuses = Campus::pluck('name', 'id');
-        $trades = Trade::pluck('name', 'id');
-        $users = User::where('role', 'trainer')->pluck('name', 'id');
+        $this->authorize('update', $batch);
+
+        $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+        $trades = Trade::where('is_active', true)->pluck('name', 'id');
+        $users = User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
+
         return view('admin.batches.edit', compact('batch', 'campuses', 'trades', 'users'));
     }
 
+    /**
+     * Update the specified batch.
+     */
     public function update(Request $request, Batch $batch)
     {
+        $this->authorize('update', $batch);
+
         $validated = $request->validate([
-            'batch_code' => 'required|string|unique:batches,batch_code,' . $batch->id,
+            'batch_code' => 'required|string|max:100|unique:batches,batch_code,' . $batch->id,
+            'name' => 'nullable|string|max:255',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'required|exists:campuses,id',
             'oep_id' => 'nullable|exists:oeps,id',
             'trainer_id' => 'nullable|exists:users,id',
-            'trainer_name' => 'nullable|string',
+            'coordinator_id' => 'nullable|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
             'capacity' => 'required|integer|min:1',
-            'name' => 'nullable|string',
-            'description' => 'nullable|string',
-            'status' => 'required|in:pending,active,completed,cancelled',
+            'intake_period' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'specialization' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'status' => 'required|in:planned,active,completed,cancelled',
         ]);
 
-        $batch->update($validated);
+        try {
+            $batch->update($validated);
 
-        return redirect()->route('batches.index')->with('success', 'Batch updated successfully!');
+            // Log activity
+            activity()
+                ->performedOn($batch)
+                ->causedBy(auth()->user())
+                ->log('Batch updated');
+
+            return redirect()->route('batches.index')
+                ->with('success', 'Batch updated successfully!');
+        } catch (\Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to update batch: ' . $e->getMessage());
+        }
     }
 
+    /**
+     * Remove the specified batch.
+     */
     public function destroy(Batch $batch)
     {
-        $batch->delete();
-        return back()->with('success', 'Batch deleted successfully!');
+        $this->authorize('delete', $batch);
+
+        try {
+            // Check for associated candidates
+            $candidatesCount = $batch->candidates()->count();
+            if ($candidatesCount > 0) {
+                return back()->with('error',
+                    "Cannot delete batch: {$candidatesCount} candidate(s) are enrolled in this batch. " .
+                    "Please reassign or remove them first."
+                );
+            }
+
+            // Check for associated training schedules
+            $schedulesCount = $batch->trainingSchedules()->count();
+            if ($schedulesCount > 0) {
+                return back()->with('error',
+                    "Cannot delete batch: {$schedulesCount} training schedule(s) are associated with this batch. " .
+                    "Please remove them first."
+                );
+            }
+
+            $batchCode = $batch->batch_code;
+            $batch->delete();
+
+            // Log activity
+            activity()
+                ->causedBy(auth()->user())
+                ->log("Batch deleted: {$batchCode}");
+
+            return back()->with('success', 'Batch deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete batch: ' . $e->getMessage());
+        }
     }
 
+    /**
+     * Change batch status.
+     */
     public function changeStatus(Request $request, Batch $batch)
     {
+        $this->authorize('changeStatus', $batch);
+
         $validated = $request->validate([
-            'status' => 'required|in:pending,active,completed,cancelled',
+            'status' => 'required|in:planned,active,completed,cancelled',
         ]);
 
-        $batch->update(['status' => $validated['status']]);
+        try {
+            $oldStatus = $batch->status;
+            $batch->update(['status' => $validated['status']]);
 
-        return back()->with('success', 'Batch status updated successfully!');
+            // Log activity
+            activity()
+                ->performedOn($batch)
+                ->causedBy(auth()->user())
+                ->log("Batch status changed from {$oldStatus} to {$validated['status']}");
+
+            return back()->with('success', 'Batch status updated successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to update batch status: ' . $e->getMessage());
+        }
     }
 
+    /**
+     * API endpoint to get list of active batches.
+     */
     public function apiList()
     {
-        $batches = Batch::where('status', 'active')
-            ->select('id', 'batch_code', 'name', 'campus_id')
-            ->get();
-        
-        return response()->json($batches);
+        try {
+            $batches = Batch::where('status', 'active')
+                ->with(['campus:id,name', 'trade:id,name'])
+                ->select('id', 'batch_code', 'name', 'campus_id', 'trade_id', 'capacity', 'start_date', 'end_date')
+                ->orderBy('start_date', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $batches
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch batches'
+            ], 500);
+        }
     }
 }
