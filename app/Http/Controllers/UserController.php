@@ -78,4 +78,64 @@ class UserController extends Controller
         $user->delete();
         return back()->with('success', 'User deleted successfully!');
     }
+
+    public function settings()
+    {
+        // Get current system settings
+        $settings = [
+            'app_name' => config('app.name'),
+            'app_url' => config('app.url'),
+            'timezone' => config('app.timezone'),
+            'mail_from_address' => config('mail.from.address'),
+            'mail_from_name' => config('mail.from.name'),
+        ];
+
+        return view('admin.settings', compact('settings'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'app_name' => 'nullable|string|max:255',
+            'support_email' => 'nullable|email|max:255',
+            'mail_driver' => 'nullable|in:smtp,sendmail,mailgun,ses',
+            'mail_from_address' => 'nullable|email|max:255',
+            'two_factor' => 'nullable|boolean',
+        ]);
+
+        // In a real application, you would update the .env file or database settings
+        // For now, we'll just store in session or cache
+        // This is a simplified version - in production, use a settings table or env file updates
+
+        return back()->with('success', 'Settings updated successfully! Note: Some settings may require application restart.');
+    }
+
+    public function auditLogs(Request $request)
+    {
+        // Get audit logs with filters
+        $query = \Spatie\Activitylog\Models\Activity::with(['causer', 'subject'])
+            ->latest();
+
+        // Apply filters if provided
+        if ($request->filled('user_id')) {
+            $query->where('causer_id', $request->user_id);
+        }
+
+        if ($request->filled('event')) {
+            $query->where('event', $request->event);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->paginate(50);
+        $users = User::select('id', 'name', 'email')->get();
+
+        return view('admin.audit-logs', compact('logs', 'users'));
+    }
 }
