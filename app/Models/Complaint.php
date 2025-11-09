@@ -13,8 +13,11 @@ class Complaint extends Model
 
     protected $fillable = [
         'candidate_id',
+        'campus_id',
+        'oep_id',
         'complaint_number',
         'complaint_category',
+        'subject',
         'title',
         'description',
         'status',
@@ -103,6 +106,11 @@ class Complaint extends Model
         return $this->belongsTo(Candidate::class);
     }
 
+    public function complainant()
+    {
+        return $this->belongsTo(Candidate::class, 'candidate_id');
+    }
+
     public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
@@ -111,6 +119,26 @@ class Complaint extends Model
     public function registeredBy()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function updates()
+    {
+        return $this->hasMany(ComplaintUpdate::class)->orderBy('created_at', 'desc');
+    }
+
+    public function evidence()
+    {
+        return $this->hasMany(ComplaintEvidence::class);
+    }
+
+    public function campus()
+    {
+        return $this->belongsTo(Campus::class);
+    }
+
+    public function oep()
+    {
+        return $this->belongsTo(OEP::class);
     }
 
     // Scopes
@@ -130,11 +158,49 @@ class Complaint extends Model
         return $query->where('complaint_category', $category);
     }
 
+    // Accessors
+    public function getPriorityColorAttribute()
+    {
+        $colors = [
+            self::PRIORITY_LOW => 'secondary',
+            self::PRIORITY_NORMAL => 'primary',
+            self::PRIORITY_HIGH => 'warning',
+            self::PRIORITY_URGENT => 'danger',
+        ];
+
+        return $colors[$this->priority] ?? 'secondary';
+    }
+
+    public function getStatusColorAttribute()
+    {
+        $colors = [
+            self::STATUS_OPEN => 'info',
+            self::STATUS_ASSIGNED => 'primary',
+            self::STATUS_IN_PROGRESS => 'warning',
+            self::STATUS_RESOLVED => 'success',
+            self::STATUS_CLOSED => 'secondary',
+        ];
+
+        return $colors[$this->status] ?? 'secondary';
+    }
+
+    public function getPriorityBorderColorAttribute()
+    {
+        $colors = [
+            self::PRIORITY_LOW => 'border-secondary',
+            self::PRIORITY_NORMAL => 'border-primary',
+            self::PRIORITY_HIGH => 'border-warning',
+            self::PRIORITY_URGENT => 'border-danger',
+        ];
+
+        return $colors[$this->priority] ?? 'border-secondary';
+    }
+
     // Helper Methods
     public function isOverdue()
     {
-        return $this->sla_due_date && 
-               $this->sla_due_date < now() && 
+        return $this->sla_due_date &&
+               $this->sla_due_date < now() &&
                !in_array($this->status, [self::STATUS_RESOLVED, self::STATUS_CLOSED]);
     }
 

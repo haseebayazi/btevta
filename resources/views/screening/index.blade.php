@@ -56,15 +56,15 @@
                                 <td>{{ $screening->screened_at ? $screening->screened_at->format('Y-m-d H:i') : '-' }}</td>
                                 <td>{{ $screening->call_duration ?? '-' }}</td>
                                 <td>
-                                    <span class="badge badge-{{ $screening->screening_outcome === 'pass' ? 'success' : ($screening->screening_outcome === 'fail' ? 'danger' : 'warning') }}">
-                                        {{ ucfirst($screening->screening_outcome ?? 'Pending') }}
+                                    <span class="badge badge-{{ $screening->status === 'passed' ? 'success' : ($screening->status === 'failed' ? 'danger' : 'warning') }}">
+                                        {{ ucfirst($screening->status ?? 'Pending') }}
                                     </span>
                                 </td>
-                                <td>{{ $screening->screenedBy->name ?? 'N/A' }}</td>
+                                <td>{{ $screening->screener->name ?? 'N/A' }}</td>
                                 <td>
-                                    @if($screening->call_notes || $screening->remarks)
+                                    @if($screening->remarks)
                                         <button class="btn btn-sm btn-info" data-toggle="tooltip"
-                                                title="{{ $screening->call_notes ?? $screening->remarks }}">
+                                                title="{{ $screening->remarks }}">
                                             <i class="fas fa-sticky-note"></i>
                                         </button>
                                     @else

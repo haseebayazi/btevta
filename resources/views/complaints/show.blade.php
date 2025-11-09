@@ -21,15 +21,15 @@
         <div class="lg:col-span-2 space-y-6">
             <!-- Complaint Details -->
             <div class="card">
-                <h2 class="text-xl font-bold mb-4">{{ $complaint->title }}</h2>
+                <h2 class="text-xl font-bold mb-4">{{ $complaint->subject ?? $complaint->title }}</h2>
                 <div class="prose max-w-none">
                     <p>{{ $complaint->description }}</p>
                 </div>
-                
+
                 <div class="grid md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
                     <div>
                         <p class="text-sm text-gray-600">Category</p>
-                        <p class="font-semibold">{{ $complaint->category }}</p>
+                        <p class="font-semibold">{{ ucfirst($complaint->complaint_category) }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">Filed On</p>
@@ -37,7 +37,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">Assigned To</p>
-                        <p class="font-semibold">{{ $complaint->assigned_to->name ?? 'Unassigned' }}</p>
+                        <p class="font-semibold">{{ $complaint->assignee->name ?? 'Unassigned' }}</p>
                     </div>
                 </div>
             </div>

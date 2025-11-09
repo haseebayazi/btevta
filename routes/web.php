@@ -281,6 +281,20 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // API Routes (UNCHANGED)
+    // ========================================================================
+    // INSTRUCTORS ROUTES
+    // ========================================================================
+    Route::resource('instructors', InstructorController::class);
+
+    // ========================================================================
+    // TRAINING CLASSES ROUTES
+    // ========================================================================
+    Route::resource('classes', TrainingClassController::class);
+    Route::prefix('classes')->name('classes.')->group(function () {
+        Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
+        Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+    });
+
 Route::middleware(['auth', 'throttle:60,1'])->prefix('api')->name('api.')->group(function () {
     Route::get('/candidates/search', [CandidateController::class, 'apiSearch'])->name('candidates.search');
     Route::get('/campuses/list', [CampusController::class, 'apiList'])->name('campuses.list');
