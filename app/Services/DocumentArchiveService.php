@@ -51,7 +51,7 @@ class DocumentArchiveService
     /**
      * Get all document types
      */
-    public function getDocumentTypes()
+    public function getDocumentTypes(): array
     {
         return self::DOCUMENT_TYPES;
     }
@@ -59,7 +59,7 @@ class DocumentArchiveService
     /**
      * Upload document to archive
      */
-    public function uploadDocument($data, $file)
+    public function uploadDocument($data, $file): DocumentArchive
     {
         // Check if document already exists for this candidate/type
         $existingDoc = DocumentArchive::where('candidate_id', $data['candidate_id'])
@@ -68,11 +68,11 @@ class DocumentArchiveService
             ->first();
 
         $version = 1;
-        
+
         // If document exists, archive old version and increment version number
         if ($existingDoc) {
             $version = $existingDoc->version + 1;
-            
+
             // Archive the old version (soft delete)
             $existingDoc->update([
                 'is_current' => false,
@@ -80,8 +80,12 @@ class DocumentArchiveService
             ]);
         }
 
-        // Store the file
-        $path = $file->store("archive/{$data['document_type']}", 'public');
+        // ERROR HANDLING: Store the file with error handling
+        try {
+            $path = $file->store("archive/{$data['document_type']}", 'public');
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to store file: " . $e->getMessage());
+        }
 
         // Create new document record
         $document = DocumentArchive::create([
@@ -113,7 +117,7 @@ class DocumentArchiveService
     /**
      * Get document by ID with access logging
      */
-    public function getDocument($documentId)
+    public function getDocument($documentId): DocumentArchive
     {
         $document = DocumentArchive::findOrFail($documentId);
         
@@ -129,7 +133,7 @@ class DocumentArchiveService
     /**
      * Download document with access logging
      */
-    public function downloadDocument($documentId)
+    public function downloadDocument($documentId): array
     {
         $document = DocumentArchive::findOrFail($documentId);
         
@@ -149,7 +153,7 @@ class DocumentArchiveService
     /**
      * Log document access
      */
-    private function logAccess($document, $action)
+    private function logAccess($document, $action): void
     {
         activity()
             ->performedOn($document)
@@ -165,7 +169,7 @@ class DocumentArchiveService
     /**
      * Get document versions
      */
-    public function getVersions($candidateId, $documentType)
+    public function getVersions($candidateId, $documentType): \Illuminate\Database\Eloquent\Collection
     {
         return DocumentArchive::withTrashed()
             ->where('candidate_id', $candidateId)
@@ -177,7 +181,7 @@ class DocumentArchiveService
     /**
      * Restore previous version
      */
-    public function restoreVersion($documentId)
+    public function restoreVersion($documentId): DocumentArchive
     {
         $document = DocumentArchive::withTrashed()->findOrFail($documentId);
         
@@ -214,7 +218,7 @@ class DocumentArchiveService
     /**
      * Search documents with filters
      */
-    public function searchDocuments($filters = [])
+    public function searchDocuments($filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DocumentArchive::with(['candidate', 'campus', 'trade', 'oep', 'uploadedByUser'])
             ->where('is_current', true);
@@ -275,7 +279,7 @@ class DocumentArchiveService
     /**
      * Get expiring documents
      */
-    public function getExpiringDocuments($days = 30)
+    public function getExpiringDocuments($days = 30): \Illuminate\Support\Collection
     {
         $alertDate = Carbon::now()->addDays($days);
         $today = Carbon::now();
@@ -301,7 +305,7 @@ class DocumentArchiveService
     /**
      * Calculate expiry urgency level
      */
-    private function calculateExpiryUrgency($daysUntilExpiry)
+    private function calculateExpiryUrgency($daysUntilExpiry): string
     {
         if ($daysUntilExpiry <= 7) return 'critical';
         if ($daysUntilExpiry <= 15) return 'high';
@@ -312,7 +316,7 @@ class DocumentArchiveService
     /**
      * Get expired documents
      */
-    public function getExpiredDocuments()
+    public function getExpiredDocuments(): \Illuminate\Support\Collection
     {
         return DocumentArchive::with(['candidate', 'campus'])
             ->where('is_current', true)
@@ -333,7 +337,7 @@ class DocumentArchiveService
     /**
      * Get missing documents for candidate
      */
-    public function getMissingDocuments($candidateId)
+    public function getMissingDocuments($candidateId): array
     {
         $candidate = Candidate::findOrFail($candidateId);
         
@@ -363,7 +367,7 @@ class DocumentArchiveService
     /**
      * Get required documents based on candidate status
      */
-    private function getRequiredDocuments($status)
+    private function getRequiredDocuments($status): array
     {
         $baseDocuments = ['cnic', 'passport', 'education_certificate', 'photo'];
         
@@ -395,7 +399,7 @@ class DocumentArchiveService
     /**
      * Get document statistics
      */
-    public function getStatistics($filters = [])
+    public function getStatistics($filters = []): array
     {
         $query = DocumentArchive::where('is_current', true);
 
@@ -427,7 +431,7 @@ class DocumentArchiveService
     /**
      * Group documents by type
      */
-    private function groupByType($documents)
+    private function groupByType($documents): \Illuminate\Support\Collection
     {
         return $documents->groupBy('document_type')->map(function($group, $type) {
             return [
@@ -441,11 +445,14 @@ class DocumentArchiveService
     /**
      * Group documents by campus
      */
-    private function groupByCampus($documents)
+    private function groupByCampus($documents): \Illuminate\Support\Collection
     {
         return $documents->filter(function($doc) {
             return !is_null($doc->campus_id);
-        })->groupBy('campus.name')->map(function($group) {
+        })->groupBy(function($doc) {
+            // NULL CHECK: Handle case when campus relationship is null
+            return $doc->campus?->name ?? 'Unknown';
+        })->map(function($group) {
             return [
                 'count' => $group->count(),
                 'total_size' => $this->formatBytes($group->sum('file_size')),
@@ -456,7 +463,7 @@ class DocumentArchiveService
     /**
      * Format bytes to human readable
      */
-    private function formatBytes($bytes)
+    private function formatBytes($bytes): string
     {
         if ($bytes >= 1073741824) {
             return number_format($bytes / 1073741824, 2) . ' GB';
@@ -472,7 +479,7 @@ class DocumentArchiveService
     /**
      * Get audit log for document
      */
-    public function getAuditLog($documentId, $limit = 50)
+    public function getAuditLog($documentId, $limit = 50): \Illuminate\Database\Eloquent\Collection
     {
         $document = DocumentArchive::findOrFail($documentId);
         
@@ -486,7 +493,7 @@ class DocumentArchiveService
     /**
      * Bulk delete documents
      */
-    public function bulkDelete($documentIds)
+    public function bulkDelete($documentIds): array
     {
         $documents = DocumentArchive::whereIn('id', $documentIds)->get();
         
@@ -514,10 +521,10 @@ class DocumentArchiveService
     /**
      * Cleanup old archived versions
      */
-    public function cleanupOldVersions($keepVersions = 3, $olderThanDays = 90)
+    public function cleanupOldVersions($keepVersions = 3, $olderThanDays = 90): array
     {
         $cutoffDate = Carbon::now()->subDays($olderThanDays);
-        
+
         // Get all document types for each candidate
         $documentGroups = DocumentArchive::withTrashed()
             ->whereNotNull('candidate_id')
@@ -533,13 +540,18 @@ class DocumentArchiveService
         foreach ($documentGroups as $group) {
             // Keep only the latest $keepVersions
             $toDelete = $group->sortByDesc('version')->skip($keepVersions);
-            
+
             foreach ($toDelete as $document) {
-                // Permanently delete file
-                if (Storage::disk('public')->exists($document->document_path)) {
-                    Storage::disk('public')->delete($document->document_path);
+                // ERROR HANDLING: Permanently delete file with error handling
+                try {
+                    if (Storage::disk('public')->exists($document->document_path)) {
+                        Storage::disk('public')->delete($document->document_path);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to delete file: {$document->document_path}", ['error' => $e->getMessage()]);
+                    // Continue with database deletion even if file deletion fails
                 }
-                
+
                 // Force delete from database
                 $document->forceDelete();
                 $deletedCount++;
@@ -555,7 +567,7 @@ class DocumentArchiveService
     /**
      * Generate document verification report
      */
-    public function generateVerificationReport($filters = [])
+    public function generateVerificationReport($filters = []): array
     {
         $query = Candidate::with(['documentArchives' => function($q) {
             $q->where('is_current', true);
@@ -599,7 +611,7 @@ class DocumentArchiveService
     /**
      * Send expiry alerts
      */
-    public function sendExpiryAlerts($days = 30)
+    public function sendExpiryAlerts($days = 30): array
     {
         $expiringDocs = $this->getExpiringDocuments($days);
         

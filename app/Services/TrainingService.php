@@ -40,7 +40,7 @@ class TrainingService
     /**
      * Get all training modules
      */
-    public function getModules()
+    public function getModules(): array
     {
         return self::MODULES;
     }
@@ -48,7 +48,7 @@ class TrainingService
     /**
      * Get assessment types
      */
-    public function getAssessmentTypes()
+    public function getAssessmentTypes(): array
     {
         return self::ASSESSMENT_TYPES;
     }
@@ -158,7 +158,7 @@ class TrainingService
     /**
      * Get attendance statistics for a candidate
      */
-    public function getAttendanceStatistics($candidateId, $fromDate = null, $toDate = null)
+    public function getAttendanceStatistics($candidateId, $fromDate = null, $toDate = null): array
     {
         $query = TrainingAttendance::where('candidate_id', $candidateId);
 
@@ -189,7 +189,7 @@ class TrainingService
     /**
      * Get batch attendance summary
      */
-    public function getBatchAttendanceSummary($batchId, $fromDate = null, $toDate = null)
+    public function getBatchAttendanceSummary($batchId, $fromDate = null, $toDate = null): array
     {
         $batch = Batch::with('candidates')->findOrFail($batchId);
         
@@ -211,7 +211,7 @@ class TrainingService
     /**
      * Calculate batch average attendance
      */
-    private function calculateBatchAverageAttendance($summary)
+    private function calculateBatchAverageAttendance(array $summary): float
     {
         if (empty($summary)) {
             return 0;
@@ -366,7 +366,7 @@ class TrainingService
     /**
      * Get training statistics for a batch
      */
-    public function getBatchStatistics($batchId)
+    public function getBatchStatistics($batchId): array
     {
         $batch = Batch::with('candidates')->findOrFail($batchId);
         
@@ -407,7 +407,7 @@ class TrainingService
     /**
      * Get batch average attendance
      */
-    private function getBatchAverageAttendance($batchId)
+    private function getBatchAverageAttendance($batchId): float
     {
         $batch = Batch::with('candidates')->findOrFail($batchId);
         
@@ -428,7 +428,7 @@ class TrainingService
     /**
      * Get trainer performance metrics
      */
-    public function getTrainerPerformance($trainerId, $fromDate = null, $toDate = null)
+    public function getTrainerPerformance($trainerId, $fromDate = null, $toDate = null): array
     {
         $query = TrainingAssessment::where('trainer_id', $trainerId);
 
@@ -462,7 +462,7 @@ class TrainingService
     /**
      * Get campus training performance comparison
      */
-    public function getCampusPerformanceComparison($campusIds = null, $fromDate = null, $toDate = null)
+    public function getCampusPerformanceComparison($campusIds = null, $fromDate = null, $toDate = null): array
     {
         $query = Batch::with(['candidates', 'campus']);
 
@@ -505,7 +505,7 @@ class TrainingService
     /**
      * Generate training report
      */
-    public function generateReport($filters = [])
+    public function generateReport(array $filters = []): array
     {
         $query = Batch::with(['candidates', 'campus', 'trade']);
 

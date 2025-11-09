@@ -62,7 +62,7 @@ class ComplaintService
     /**
      * Get all complaint categories
      */
-    public function getCategories()
+    public function getCategories(): array
     {
         return self::CATEGORIES;
     }
@@ -70,7 +70,7 @@ class ComplaintService
     /**
      * Get priorities
      */
-    public function getPriorities()
+    public function getPriorities(): array
     {
         return self::PRIORITIES;
     }
@@ -78,7 +78,7 @@ class ComplaintService
     /**
      * Get SLA days for priority
      */
-    public function getSLADays($priority)
+    public function getSLADays($priority): int
     {
         return self::SLA_DAYS[$priority] ?? 7;
     }
@@ -86,7 +86,7 @@ class ComplaintService
     /**
      * Register a new complaint
      */
-    public function registerComplaint($data)
+    public function registerComplaint($data): Complaint
     {
         // Calculate SLA due date
         $priority = $data['priority'] ?? 'normal';
@@ -132,7 +132,7 @@ class ComplaintService
     /**
      * Generate complaint reference number
      */
-    private function generateReferenceNumber($category)
+    private function generateReferenceNumber($category): string
     {
         $categoryCode = strtoupper(substr($category, 0, 3));
         $year = date('Y');
@@ -155,15 +155,26 @@ class ComplaintService
     /**
      * Upload complaint evidence
      */
-    public function uploadEvidence($complaintId, $file)
+    public function uploadEvidence($complaintId, $file): string
     {
         $complaint = Complaint::findOrFail($complaintId);
-        
-        // Store file
-        $path = $file->store('complaints/evidence', 'public');
-        
-        // Get existing evidence files
-        $evidenceFiles = $complaint->evidence_files ? json_decode($complaint->evidence_files, true) : [];
+
+        // ERROR HANDLING: Store file with error handling
+        try {
+            $path = $file->store('complaints/evidence', 'public');
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to store evidence file: " . $e->getMessage());
+        }
+
+        // JSON ERROR HANDLING: Get existing evidence files with error checking
+        $evidenceFiles = [];
+        if ($complaint->evidence_files) {
+            $evidenceFiles = json_decode($complaint->evidence_files, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                \Log::warning("Invalid JSON in evidence_files for complaint {$complaintId}");
+                $evidenceFiles = [];
+            }
+        }
         
         // Add new file
         $evidenceFiles[] = [
@@ -183,7 +194,7 @@ class ComplaintService
     /**
      * Assign complaint to user
      */
-    public function assignComplaint($complaintId, $assignedToUserId, $remarks = null)
+    public function assignComplaint($complaintId, $assignedToUserId, $remarks = null): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
         
@@ -209,7 +220,7 @@ class ComplaintService
     /**
      * Update complaint status
      */
-    public function updateStatus($complaintId, $status, $remarks = null)
+    public function updateStatus($complaintId, $status, $remarks = null): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
         
@@ -236,12 +247,19 @@ class ComplaintService
     /**
      * Add investigation note
      */
-    public function addInvestigationNote($complaintId, $note)
+    public function addInvestigationNote($complaintId, $note): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
-        
-        // Get existing notes
-        $notes = $complaint->investigation_notes ? json_decode($complaint->investigation_notes, true) : [];
+
+        // JSON ERROR HANDLING: Get existing notes with error checking
+        $notes = [];
+        if ($complaint->investigation_notes) {
+            $notes = json_decode($complaint->investigation_notes, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                \Log::warning("Invalid JSON in investigation_notes for complaint {$complaintId}");
+                $notes = [];
+            }
+        }
         
         // Add new note
         $notes[] = [
@@ -260,7 +278,7 @@ class ComplaintService
     /**
      * Resolve complaint
      */
-    public function resolveComplaint($complaintId, $data)
+    public function resolveComplaint($complaintId, $data): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
         
@@ -289,7 +307,7 @@ class ComplaintService
     /**
      * Close complaint
      */
-    public function closeComplaint($complaintId, $closureRemarks = null)
+    public function closeComplaint($complaintId, $closureRemarks = null): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
         
@@ -316,7 +334,7 @@ class ComplaintService
     /**
      * Escalate complaint
      */
-    public function escalateComplaint($complaintId, $reason = null)
+    public function escalateComplaint($complaintId, $reason = null): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
         
@@ -345,7 +363,7 @@ class ComplaintService
     /**
      * Increase priority for escalation
      */
-    private function increasePriority($currentPriority)
+    private function increasePriority($currentPriority): string
     {
         $priorities = ['low', 'normal', 'high', 'urgent', 'critical'];
         $currentIndex = array_search($currentPriority, $priorities);
@@ -357,7 +375,7 @@ class ComplaintService
     /**
      * Recalculate SLA based on new priority
      */
-    private function recalculateSLA($complaint)
+    private function recalculateSLA($complaint): void
     {
         $slaDays = $this->getSLADays($complaint->priority);
         $newDueDate = Carbon::parse($complaint->registered_at)->addDays($slaDays);
@@ -371,7 +389,7 @@ class ComplaintService
     /**
      * Check and auto-escalate overdue complaints
      */
-    public function checkAndAutoEscalate()
+    public function checkAndAutoEscalate(): array
     {
         $overdueComplaints = Complaint::where('status', '!=', 'closed')
             ->where('status', '!=', 'resolved')
@@ -404,7 +422,7 @@ class ComplaintService
     /**
      * Get overdue complaints
      */
-    public function getOverdueComplaints($filters = [])
+    public function getOverdueComplaints($filters = []): \Illuminate\Support\Collection
     {
         $query = Complaint::with(['candidate', 'assignedToUser'])
             ->where('status', '!=', 'closed')
@@ -438,7 +456,7 @@ class ComplaintService
     /**
      * Calculate overdue severity
      */
-    private function calculateOverdueSeverity($daysPastDue)
+    private function calculateOverdueSeverity($daysPastDue): string
     {
         if ($daysPastDue <= 2) return 'moderate';
         if ($daysPastDue <= 5) return 'serious';
@@ -448,7 +466,7 @@ class ComplaintService
     /**
      * Get complaint statistics
      */
-    public function getStatistics($filters = [])
+    public function getStatistics($filters = []): array
     {
         $query = Complaint::query();
 
@@ -485,7 +503,7 @@ class ComplaintService
     /**
      * Group complaints by category
      */
-    private function groupByCategory($complaints)
+    private function groupByCategory($complaints): \Illuminate\Support\Collection
     {
         return $complaints->groupBy('complaint_category')->map(function($group, $category) {
             return [
@@ -499,7 +517,7 @@ class ComplaintService
     /**
      * Group complaints by priority
      */
-    private function groupByPriority($complaints)
+    private function groupByPriority($complaints): \Illuminate\Support\Collection
     {
         return $complaints->groupBy('priority')->map(function($group) {
             return [
@@ -512,7 +530,7 @@ class ComplaintService
     /**
      * Calculate average resolution time
      */
-    private function calculateAverageResolutionTime($complaints)
+    private function calculateAverageResolutionTime($complaints): float
     {
         $resolved = $complaints->whereNotNull('resolved_at');
         
@@ -531,7 +549,7 @@ class ComplaintService
     /**
      * Calculate SLA compliance rate
      */
-    private function calculateSLAComplianceRate($complaints)
+    private function calculateSLAComplianceRate($complaints): float
     {
         $resolved = $complaints->whereNotNull('resolved_at');
         
@@ -549,7 +567,7 @@ class ComplaintService
     /**
      * Get campus-wise complaint trends
      */
-    public function getCampusTrends($filters = [])
+    public function getCampusTrends($filters = []): \Illuminate\Support\Collection
     {
         $query = Complaint::with('candidate.campus')
             ->whereHas('candidate');
@@ -564,7 +582,10 @@ class ComplaintService
 
         $complaints = $query->get();
 
-        return $complaints->groupBy('candidate.campus.name')->map(function($group, $campusName) {
+        // NULL CHECK: Group by campus name with null handling
+        return $complaints->groupBy(function($complaint) {
+            return $complaint->candidate?->campus?->name ?? 'Unknown';
+        })->map(function($group, $campusName) {
             return [
                 'campus' => $campusName,
                 'total' => $group->count(),
@@ -577,7 +598,7 @@ class ComplaintService
     /**
      * Generate complaint analysis report
      */
-    public function generateAnalysisReport($filters = [])
+    public function generateAnalysisReport($filters = []): array
     {
         $statistics = $this->getStatistics($filters);
         $campusTrends = $this->getCampusTrends($filters);
@@ -594,7 +615,7 @@ class ComplaintService
     /**
      * Generate recommendations based on complaint data
      */
-    private function generateRecommendations($statistics)
+    private function generateRecommendations($statistics): array
     {
         $recommendations = [];
 
@@ -626,7 +647,7 @@ class ComplaintService
     /**
      * Export complaints data
      */
-    public function exportComplaints($filters = [])
+    public function exportComplaints($filters = []): \Illuminate\Database\Eloquent\Collection
     {
         $query = Complaint::with(['candidate', 'assignedToUser']);
 

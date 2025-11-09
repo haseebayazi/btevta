@@ -13,7 +13,7 @@ class ScreeningService
     /**
      * Generate undertaking content
      */
-    public function generateUndertakingContent($candidate)
+    public function generateUndertakingContent($candidate): string
     {
         return "
             UNDERTAKING
@@ -50,7 +50,7 @@ class ScreeningService
     /**
      * Get call logs for a screening
      */
-    public function getCallLogs($screening)
+    public function getCallLogs($screening): array
     {
         // This would typically fetch from a call_logs table
         // For now, we'll parse from remarks
@@ -74,7 +74,7 @@ class ScreeningService
     /**
      * Generate screening report
      */
-    public function generateReport($filters = [])
+    public function generateReport($filters = []): array
     {
         $query = CandidateScreening::query();
 
@@ -99,7 +99,8 @@ class ScreeningService
             'total_screenings' => $total,
             'passed' => $passed->where('status', 'passed')->count(),
             'failed' => $failed->where('status', 'failed')->count(),
-            'pending' => clone $query->where('status', 'pending')->count(),
+            // BUG FIX: Correct clone syntax
+            'pending' => (clone $query)->where('status', 'pending')->count(),
             'by_type' => $this->getScreeningsByType($filters),
             'by_screener' => $this->getScreeningsByScreener($filters),
             'average_call_attempts' => $this->calculateAverageCallAttempts($filters),
@@ -110,7 +111,7 @@ class ScreeningService
     /**
      * Get screenings grouped by type
      */
-    protected function getScreeningsByType($filters = [])
+    protected function getScreeningsByType($filters = []): \Illuminate\Support\Collection
     {
         return CandidateScreening::select('screening_type', DB::raw('count(*) as count'))
             ->when(!empty($filters['from_date']), function($q) use ($filters) {
@@ -123,7 +124,7 @@ class ScreeningService
     /**
      * Get screenings grouped by screener
      */
-    protected function getScreeningsByScreener($filters = [])
+    protected function getScreeningsByScreener($filters = []): \Illuminate\Support\Collection
     {
         return CandidateScreening::select('screened_by', DB::raw('count(*) as count'))
             ->with('screener:id,name')
@@ -144,7 +145,7 @@ class ScreeningService
     /**
      * Calculate average call attempts
      */
-    protected function calculateAverageCallAttempts($filters = [])
+    protected function calculateAverageCallAttempts($filters = []): float
     {
         $avg = CandidateScreening::where('screening_type', 'call')
             ->when(!empty($filters['from_date']), function($q) use ($filters) {
@@ -158,7 +159,7 @@ class ScreeningService
     /**
      * Get daily statistics
      */
-    protected function getDailyStats($filters = [])
+    protected function getDailyStats($filters = []): \Illuminate\Database\Eloquent\Collection
     {
         $fromDate = $filters['from_date'] ?? Carbon::now()->subDays(30);
         $toDate = $filters['to_date'] ?? Carbon::now();
@@ -178,7 +179,7 @@ class ScreeningService
     /**
      * Auto-schedule next screening
      */
-    public function scheduleNextScreening($candidate, $completedType)
+    public function scheduleNextScreening($candidate, $completedType): void
     {
         $sequence = [
             'desk' => 'call',
@@ -201,7 +202,7 @@ class ScreeningService
     /**
      * Check screening eligibility
      */
-    public function checkEligibility($candidateId, $screeningType)
+    public function checkEligibility($candidateId, $screeningType): array
     {
         $candidate = Candidate::find($candidateId);
 
