@@ -397,28 +397,29 @@ class CandidateController extends Controller
     {
         $query = Candidate::query();
 
-        if ($request->filled('term')) {
-            $query->search($request->term);
+        // Support both 'term' and 'q' parameters for backward compatibility
+        $searchTerm = $request->filled('term') ? $request->term : $request->query('q');
+
+        if ($searchTerm) {
+            // Use search scope if available, otherwise use direct LIKE queries
+            if (method_exists(Candidate::class, 'scopeSearch')) {
+                $query->search($searchTerm);
+            } else {
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%")
+                      ->orWhere('btevta_id', 'like', "%{$searchTerm}%")
+                      ->orWhere('cnic', 'like', "%{$searchTerm}%");
+                });
+            }
         }
 
+        // Apply role-based filtering for security
         if (auth()->user()->role === 'campus_admin') {
             $query->where('campus_id', auth()->user()->campus_id);
         }
 
-        $candidates = $query->limit(10)->get(['id', 'btevta_id', 'name', 'cnic', 'status']);
+        $candidates = $query->limit(20)->get(['id', 'btevta_id', 'name', 'cnic', 'status']);
 
-        return response()->json($candidates);
-    }
-    public function apiSearch(Request $request)
-    {
-        $search = $request->query('q');
-        
-        $candidates = Candidate::where('name', 'like', "%{$search}%")
-            ->orWhere('btevta_id', 'like', "%{$search}%")
-            ->select('id', 'name', 'btevta_id', 'status')
-            ->limit(20)
-            ->get();
-        
         return response()->json($candidates);
     }
 }
