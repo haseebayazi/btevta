@@ -1,0 +1,99 @@
+# Laravel & PHP
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# IDE & Editor files
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+.project
+.settings
+.buildpath
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+error_log
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/storage/logs/*.log
+
+# Temporary & Build files
+*.tmp
+*.temp
+*.cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+# Backup files
+*.bak
+*.backup
+*~
+*.orig
+
+# Composer
+composer.phar
+composer-setup.php
+/vendor/
+
+# Node modules
+/node_modules/
+node_modules/
+
+# Test coverage
+/coverage/
+.phpunit.cache
+/phpunit.xml
+
+# Build artifacts
+/public/build
+/public/css
+/public/js
+/public/mix-manifest.json
+
+# Deployment
+.deployment
+*.publish.xml
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploaded files (optional - adjust based on your needs)
+# /storage/app/public/*
+# !/storage/app/public/.gitkeep
+
+# Temporary migration scripts
+fix_*.php
+run_*.php
+
+# Environment-specific
+.htaccess.local

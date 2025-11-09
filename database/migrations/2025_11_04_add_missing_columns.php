@@ -12,9 +12,9 @@ return new class extends Migration
         // STEP 1: CREATE MISSING TABLES
         // ==========================================
         
-        // Create next_of_kin table if it doesn't exist
-        if (!Schema::hasTable('next_of_kin')) {
-            Schema::create('next_of_kin', function (Blueprint $table) {
+        // Create next_of_kins table if it doesn't exist
+        if (!Schema::hasTable('next_of_kins')) {
+            Schema::create('next_of_kins', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('candidate_id')->nullable();
                 $table->string('name');
@@ -121,28 +121,32 @@ return new class extends Migration
             });
         }
 
+        // NOTE: document_archives table is created in the main migration (2025_01_01_000000_create_all_tables.php)
+        // This section is commented out to avoid duplication
+        // If you need additional columns, add them below in STEP 2
+
         // Create document_archives table if it doesn't exist
-        if (!Schema::hasTable('document_archives')) {
-            Schema::create('document_archives', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('candidate_id')->nullable();
-                $table->unsignedBigInteger('campus_id')->nullable();
-                $table->unsignedBigInteger('trade_id')->nullable();
-                $table->unsignedBigInteger('oep_id')->nullable();
-                $table->string('document_type');
-                $table->string('document_name');
-                $table->string('document_path');
-                $table->integer('version')->default(1);
-                $table->date('expiry_date')->nullable();
-                $table->unsignedBigInteger('uploaded_by');
-                $table->integer('download_count')->default(0);
-                $table->timestamps();
-                $table->softDeletes();
-                
-                $table->index(['candidate_id', 'document_type']);
-                $table->index('expiry_date');
-            });
-        }
+        // if (!Schema::hasTable('document_archives')) {
+        //     Schema::create('document_archives', function (Blueprint $table) {
+        //         $table->id();
+        //         $table->unsignedBigInteger('candidate_id')->nullable();
+        //         $table->unsignedBigInteger('campus_id')->nullable();
+        //         $table->unsignedBigInteger('trade_id')->nullable();
+        //         $table->unsignedBigInteger('oep_id')->nullable();
+        //         $table->string('document_type');
+        //         $table->string('document_name');
+        //         $table->string('document_path');
+        //         $table->integer('version')->default(1);
+        //         $table->date('expiry_date')->nullable();
+        //         $table->unsignedBigInteger('uploaded_by');
+        //         $table->integer('download_count')->default(0);
+        //         $table->timestamps();
+        //         $table->softDeletes();
+        //
+        //         $table->index(['candidate_id', 'document_type']);
+        //         $table->index('expiry_date');
+        //     });
+        // }
 
         // ==========================================
         // STEP 2: ADD MISSING COLUMNS TO EXISTING TABLES
@@ -304,19 +308,19 @@ return new class extends Migration
             });
         }
 
-        // 9. next_of_kin table - add columns if table was pre-existing but incomplete
-        if (Schema::hasTable('next_of_kin')) {
-            Schema::table('next_of_kin', function (Blueprint $table) {
-                if (!Schema::hasColumn('next_of_kin', 'address')) {
+        // 9. next_of_kins table - add columns if table was pre-existing but incomplete
+        if (Schema::hasTable('next_of_kins')) {
+            Schema::table('next_of_kins', function (Blueprint $table) {
+                if (!Schema::hasColumn('next_of_kins', 'address')) {
                     $table->text('address')->nullable();
                 }
-                if (!Schema::hasColumn('next_of_kin', 'phone')) {
+                if (!Schema::hasColumn('next_of_kins', 'phone')) {
                     $table->string('phone')->nullable();
                 }
-                if (!Schema::hasColumn('next_of_kin', 'email')) {
+                if (!Schema::hasColumn('next_of_kins', 'email')) {
                     $table->string('email')->nullable();
                 }
-                if (!Schema::hasColumn('next_of_kin', 'occupation')) {
+                if (!Schema::hasColumn('next_of_kins', 'occupation')) {
                     $table->string('occupation')->nullable();
                 }
             });
@@ -326,11 +330,11 @@ return new class extends Migration
     public function down(): void
     {
         // Drop columns from existing tables
-        if (Schema::hasTable('next_of_kin')) {
-            Schema::table('next_of_kin', function (Blueprint $table) {
+        if (Schema::hasTable('next_of_kins')) {
+            Schema::table('next_of_kins', function (Blueprint $table) {
                 $columns = ['address', 'phone', 'email', 'occupation'];
                 foreach ($columns as $column) {
-                    if (Schema::hasColumn('next_of_kin', $column)) $table->dropColumn($column);
+                    if (Schema::hasColumn('next_of_kins', $column)) $table->dropColumn($column);
                 }
             });
         }
@@ -408,12 +412,12 @@ return new class extends Migration
         }
 
         // Drop created tables
-        Schema::dropIfExists('document_archives');
+        // Note: document_archives is dropped in main migration
         Schema::dropIfExists('training_certificates');
         Schema::dropIfExists('undertakings');
         Schema::dropIfExists('registration_documents');
         Schema::dropIfExists('registrations');
         Schema::dropIfExists('candidate_screenings');
-        Schema::dropIfExists('next_of_kin');
+        Schema::dropIfExists('next_of_kins');
     }
 };

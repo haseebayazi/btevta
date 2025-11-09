@@ -168,11 +168,11 @@ return new class extends Migration
             $table->foreign('campus_id')->references('id')->on('campuses')->onDelete('set null');
             $table->foreign('oep_id')->references('id')->on('oeps')->onDelete('set null');
             $table->index('status');
-             $table->dateTime('registered_at')->nullable();   // ✅ Add this
-    $table->integer('sla_days')->default(7);         // ✅ Add this
+            $table->dateTime('registered_at')->nullable();
+            $table->integer('sla_days')->default(7);
         });
 
-        Schema::create('document_archive', function (Blueprint $table) {
+        Schema::create('document_archives', function (Blueprint $table) {
             $table->id();
             $table->string('document_name');
             $table->string('document_type');
@@ -201,7 +201,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('system_settings');
-        Schema::dropIfExists('document_archive');
+        Schema::dropIfExists('document_archives');
         Schema::dropIfExists('complaints');
         Schema::dropIfExists('correspondence');
         Schema::dropIfExists('candidates');
