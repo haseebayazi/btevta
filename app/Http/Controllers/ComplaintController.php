@@ -499,4 +499,89 @@ class ComplaintController extends Controller
             return back()->with('error', 'Failed to delete complaint: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Display complaint statistics
+     */
+    public function statistics()
+    {
+        try {
+            // Get overall statistics
+            $totalComplaints = Complaint::count();
+            $openComplaints = Complaint::whereIn('status', ['registered', 'investigating'])->count();
+            $resolvedComplaints = Complaint::where('status', 'resolved')->count();
+            $closedComplaints = Complaint::where('status', 'closed')->count();
+
+            // Complaints by category
+            $byCategory = Complaint::select('category', \DB::raw('count(*) as count'))
+                ->groupBy('category')
+                ->get()
+                ->pluck('count', 'category');
+
+            // Complaints by priority
+            $byPriority = Complaint::select('priority', \DB::raw('count(*) as count'))
+                ->groupBy('priority')
+                ->get()
+                ->pluck('count', 'priority');
+
+            // Complaints by status
+            $byStatus = Complaint::select('status', \DB::raw('count(*) as count'))
+                ->groupBy('status')
+                ->get()
+                ->pluck('count', 'status');
+
+            // Average resolution time (in days)
+            $avgResolutionTime = Complaint::whereNotNull('resolved_at')
+                ->selectRaw('AVG(DATEDIFF(resolved_at, created_at)) as avg_days')
+                ->value('avg_days') ?? 0;
+
+            // Monthly trends (last 6 months)
+            $monthlyTrends = Complaint::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, count(*) as count')
+                ->where('created_at', '>=', now()->subMonths(6))
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+
+            // Top assigned users
+            $topAssignees = Complaint::select('assigned_to', \DB::raw('count(*) as count'))
+                ->whereNotNull('assigned_to')
+                ->groupBy('assigned_to')
+                ->with('assignedTo:id,name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+
+            // SLA compliance rate
+            $slaCompliant = Complaint::whereNotNull('resolved_at')
+                ->whereRaw('DATEDIFF(resolved_at, created_at) <= sla_days')
+                ->count();
+            $totalResolved = Complaint::whereNotNull('resolved_at')->count();
+            $slaComplianceRate = $totalResolved > 0 ? ($slaCompliant / $totalResolved) * 100 : 0;
+
+            // Recent complaints
+            $recentComplaints = Complaint::with(['candidate', 'assignedTo'])
+                ->latest()
+                ->limit(10)
+                ->get();
+
+            $statistics = compact(
+                'totalComplaints',
+                'openComplaints',
+                'resolvedComplaints',
+                'closedComplaints',
+                'byCategory',
+                'byPriority',
+                'byStatus',
+                'avgResolutionTime',
+                'monthlyTrends',
+                'topAssignees',
+                'slaComplianceRate',
+                'recentComplaints'
+            );
+
+            return view('complaints.statistics', compact('statistics'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate statistics: ' . $e->getMessage());
+        }
+    }
 }
