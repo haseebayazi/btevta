@@ -54,6 +54,7 @@ class Departure extends Model
         'iqama_number',
         'qiwa_id',
         'salary_amount',
+        'post_arrival_medical_path',
     ];
 
     public function candidate()

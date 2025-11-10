@@ -33,6 +33,17 @@ class VisaProcess extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide sensitive visa and document information
+     */
+    protected $hidden = [
+        'visa_number',
+        'ticket_number',
+        'ticket_path',
+    ];
+
+    /**
      * Boot method for automatic audit trail.
      */
     protected static function boot()

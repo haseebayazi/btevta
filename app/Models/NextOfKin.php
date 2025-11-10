@@ -43,6 +43,17 @@ class NextOfKin extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide sensitive personal information and PII
+     */
+    protected $hidden = [
+        'cnic',
+        'emergency_contact',
+        'address',
+    ];
+
+    /**
      * Relationship types
      */
     const RELATIONSHIP_FATHER = 'father';

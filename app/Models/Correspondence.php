@@ -41,6 +41,15 @@ class Correspondence extends Model
         'correspondence_type' => 'letter',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide document paths to prevent unauthorized access
+     */
+    protected $hidden = [
+        'document_path',
+    ];
+
     // Type constants
     const TYPE_EMAIL = 'email';
     const TYPE_LETTER = 'letter';

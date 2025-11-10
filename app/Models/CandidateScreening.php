@@ -58,6 +58,15 @@ class CandidateScreening extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide evidence file paths to prevent unauthorized access
+     */
+    protected $hidden = [
+        'evidence_path',
+    ];
+
+    /**
      * Screening type constants
      */
     const TYPE_DESK = 'desk';

@@ -31,6 +31,17 @@ class SystemSetting extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide setting values which may contain sensitive configuration
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'value',
+    ];
+
+    /**
      * Get a setting by key
      */
     public static function get($key, $default = null)

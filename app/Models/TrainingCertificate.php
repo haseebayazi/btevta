@@ -28,6 +28,15 @@ class TrainingCertificate extends Model
         'validity_period' => 'date',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide certificate paths to prevent unauthorized access
+     */
+    protected $hidden = [
+        'certificate_path',
+    ];
+
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);
