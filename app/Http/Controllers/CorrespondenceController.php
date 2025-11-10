@@ -8,6 +8,7 @@ use App\Models\Correspondence;
 use App\Models\Campus;
 use App\Models\Oep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CorrespondenceController extends Controller
 {
@@ -34,8 +35,14 @@ class CorrespondenceController extends Controller
     {
         $this->authorize('create', Correspondence::class);
 
-        $campuses = Campus::where('is_active', true)->get();
-        $oeps = Oep::where('is_active', true)->get();
+        // PERFORMANCE: Use cached dropdown data
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->select('id', 'name')->get();
+        });
+
+        $oeps = Cache::remember('active_oeps', 86400, function () {
+            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
 
         return view('correspondence.create', compact('campuses', 'oeps'));
     }
@@ -73,7 +80,9 @@ class CorrespondenceController extends Controller
             return redirect()->route('correspondence.index')
                 ->with('success', 'Correspondence recorded successfully!');
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to record correspondence: ' . $e->getMessage());
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Correspondence creation failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
+            return back()->withInput()->with('error', 'Failed to record correspondence. Please try again or contact support.');
         }
     }
 
