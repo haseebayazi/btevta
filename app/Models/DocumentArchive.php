@@ -36,6 +36,15 @@ class DocumentArchive extends Model
         'is_current_version' => 'boolean',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide file paths to prevent unauthorized access
+     */
+    protected $hidden = [
+        'file_path',
+    ];
+
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);

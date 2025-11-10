@@ -28,6 +28,8 @@ class DocumentArchiveController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         $query = DocumentArchive::with(['candidate', 'uploader'])
             ->where('is_current_version', true);
 
@@ -63,6 +65,8 @@ class DocumentArchiveController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', DocumentArchive::class);
+
         $candidates = Candidate::select('id', 'name', 'cnic', 'passport_number')->get();
 
         return view('document-archive.create', compact('candidates'));
@@ -195,6 +199,8 @@ class DocumentArchiveController extends Controller
      */
     public function download(DocumentArchive $document)
     {
+        $this->authorize('view', $document);
+
         try {
             // Log the access
             $this->documentService->logAccess($document->id, 'download');
@@ -213,6 +219,8 @@ class DocumentArchiveController extends Controller
      */
     public function view(DocumentArchive $document)
     {
+        $this->authorize('view', $document);
+
         try {
             // Log the access
             $this->documentService->logAccess($document->id, 'view');

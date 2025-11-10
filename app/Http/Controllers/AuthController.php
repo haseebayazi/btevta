@@ -29,26 +29,22 @@ class AuthController extends Controller
 
         $remember = $request->filled('remember');
 
-        // Check if user exists and is active
-        $user = User::where('email', $credentials['email'])->first();
+        // SECURITY: Let Auth::attempt() handle authentication first to prevent timing attacks
+        if (Auth::attempt($credentials, $remember)) {
+            $user = Auth::user();
 
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'email' => ['No account found with this email address.'],
-            ]);
+            // Check if user is active after successful authentication
+            if (!$user->is_active) {
+                Auth::logout();
+                throw ValidationException::withMessages([
+                    'email' => ['Your account has been deactivated. Please contact administrator.'],
+                ]);
+            }
+
+            $request->session()->regenerate();
+            activity()->causedBy($user)->log('User logged in');
+            return redirect()->intended('dashboard');
         }
-if (!$user->is_active) {
-            throw ValidationException::withMessages([
-                'email' => ['Your account has been deactivated. Please contact administrator.'],
-            ]);
-        }
-
-   if (Auth::attempt($credentials, $remember)) {
-    $request->session()->regenerate();
-    activity()->causedBy($user)->log('User logged in');
-    return redirect()->intended('dashboard');
-}
-
 
         throw ValidationException::withMessages([
             'email' => ['The provided credentials do not match our records.'],

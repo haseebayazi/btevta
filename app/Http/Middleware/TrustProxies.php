@@ -10,9 +10,15 @@ class TrustProxies extends Middleware
     /**
      * The proxies that the application should trust.
      *
+     * SECURITY: Only trust specific proxy IP ranges, never use '*'
+     *
+     * For AWS ELB/ALB: null (trust all in VPC)
+     * For specific proxies: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+     * For no proxies: null or []
+     *
      * @var array<int, string>|string|null
      */
-    protected $proxies = '*';
+    protected $proxies = null;
 
     /**
      * The headers that should be used to detect proxies.

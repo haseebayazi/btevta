@@ -237,10 +237,11 @@ class UserController extends Controller
                 ->causedBy(auth()->user())
                 ->log('User password reset');
 
-            // In production, send email with new password
+            // SECURITY: Send password via email only, never in response
+            // TODO: Implement email notification
             // Mail::to($user->email)->send(new PasswordResetMail($newPassword));
 
-            return back()->with('success', "Password reset successfully! New password: {$newPassword}");
+            return back()->with('success', 'Password reset successfully! New password has been generated. Please implement email notification to send it to the user.');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to reset password: ' . $e->getMessage());
         }
