@@ -7,6 +7,7 @@ use App\Models\Campus;
 use App\Models\Trade;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BatchController extends Controller
 {
@@ -32,9 +33,18 @@ class BatchController extends Controller
     {
         $this->authorize('create', Batch::class);
 
-        $campuses = Campus::where('is_active', true)->pluck('name', 'id');
-        $trades = Trade::where('is_active', true)->pluck('name', 'id');
-        $users = User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
+        // PERFORMANCE: Use cached dropdown data
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->pluck('name', 'id');
+        });
+
+        $trades = Cache::remember('active_trades', 86400, function () {
+            return Trade::where('is_active', true)->pluck('name', 'id');
+        });
+
+        $users = Cache::remember('active_trainers', 3600, function () {
+            return User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
+        });
 
         return view('admin.batches.create', compact('campuses', 'trades', 'users'));
     }
@@ -76,8 +86,10 @@ class BatchController extends Controller
             return redirect()->route('batches.index')
                 ->with('success', 'Batch created successfully!');
         } catch (\Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Batch creation failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
             return back()->withInput()
-                ->with('error', 'Failed to create batch: ' . $e->getMessage());
+                ->with('error', 'Failed to create batch. Please try again or contact support.');
         }
     }
 
@@ -146,8 +158,10 @@ class BatchController extends Controller
             return redirect()->route('batches.index')
                 ->with('success', 'Batch updated successfully!');
         } catch (\Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Batch update failed', ['batch_id' => $batch->id, 'error' => $e->getMessage()]);
             return back()->withInput()
-                ->with('error', 'Failed to update batch: ' . $e->getMessage());
+                ->with('error', 'Failed to update batch. Please try again or contact support.');
         }
     }
 

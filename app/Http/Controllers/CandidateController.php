@@ -9,6 +9,7 @@ use App\Models\Oep;
 use App\Models\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class CandidateController extends Controller
@@ -52,9 +53,18 @@ class CandidateController extends Controller
 
         $candidates = $query->latest()->paginate(20);
 
-        $campuses = Campus::where('is_active', true)->get();
-        $trades = Trade::where('is_active', true)->get();
-        $batches = Batch::where('status', 'active')->get();
+        // PERFORMANCE: Cache dropdown data for 24 hours to reduce database queries
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->select('id', 'name')->get();
+        });
+
+        $trades = Cache::remember('active_trades', 86400, function () {
+            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
+
+        $batches = Cache::remember('active_batches', 3600, function () {
+            return Batch::where('status', 'active')->select('id', 'batch_code', 'name')->get();
+        });
 
         return view('candidates.index', compact('candidates', 'campuses', 'trades', 'batches'));
     }
@@ -63,9 +73,18 @@ class CandidateController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        $campuses = Campus::where('is_active', true)->get();
-        $trades = Trade::where('is_active', true)->get();
-        $oeps = Oep::where('is_active', true)->get();
+        // PERFORMANCE: Use cached dropdown data
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->select('id', 'name')->get();
+        });
+
+        $trades = Cache::remember('active_trades', 86400, function () {
+            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
+
+        $oeps = Cache::remember('active_oeps', 86400, function () {
+            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
 
         return view('candidates.create', compact('campuses', 'trades', 'oeps'));
     }

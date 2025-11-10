@@ -66,8 +66,10 @@ class OepController extends Controller
             return redirect()->route('oeps.index')
                 ->with('success', 'OEP created successfully!');
         } catch (\Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('OEP creation failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
             return back()->withInput()
-                ->with('error', 'Failed to create OEP: ' . $e->getMessage());
+                ->with('error', 'Failed to create OEP. Please try again or contact support.');
         }
     }
 
@@ -131,8 +133,10 @@ class OepController extends Controller
             return redirect()->route('oeps.index')
                 ->with('success', 'OEP updated successfully!');
         } catch (\Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('OEP update failed', ['oep_id' => $oep->id, 'error' => $e->getMessage()]);
             return back()->withInput()
-                ->with('error', 'Failed to update OEP: ' . $e->getMessage());
+                ->with('error', 'Failed to update OEP. Please try again or contact support.');
         }
     }
 
