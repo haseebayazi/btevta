@@ -388,12 +388,19 @@ class VisaProcessingController extends Controller
     {
         $this->authorize('view', $candidate->visaProcess ?? VisaProcess::class);
 
+        // SECURITY: Check if visa process exists before accessing
+        if (!$candidate->visaProcess) {
+            return back()->with('error', 'No visa process found for this candidate.');
+        }
+
         try {
             $timeline = $this->visaService->getTimeline($candidate->visaProcess->id);
 
             return view('visa-processing.timeline', compact('candidate', 'timeline'));
         } catch (Exception $e) {
-            return back()->with('error', 'Failed to fetch timeline: ' . $e->getMessage());
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Failed to fetch visa timeline', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to fetch timeline. Please try again.');
         }
     }
 
