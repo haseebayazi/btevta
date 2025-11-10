@@ -61,7 +61,13 @@ class ComplaintController extends Controller
         }
 
         $complaints = $query->paginate(20);
-        $users = User::where('role', 'admin')->get();
+
+        // PERFORMANCE: Only select needed fields and filter by campus if needed
+        $users = User::where('role', 'admin')
+            ->when(auth()->user()->role === 'campus_admin', fn($q) =>
+                $q->where('campus_id', auth()->user()->campus_id))
+            ->select('id', 'name', 'email')
+            ->get();
 
         return view('complaints.index', compact('complaints', 'users'));
     }
@@ -127,8 +133,10 @@ class ComplaintController extends Controller
             return redirect()->route('complaints.show', $complaint)
                 ->with('success', 'Complaint registered successfully! Complaint Number: ' . $complaint->complaint_number);
         } catch (Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Complaint registration failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return back()->withInput()
-                ->with('error', 'Failed to register complaint: ' . $e->getMessage());
+                ->with('error', 'Failed to register complaint. Please try again or contact support.');
         }
     }
 

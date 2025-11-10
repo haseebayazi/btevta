@@ -90,17 +90,19 @@ class TrainingController extends Controller
                 $validated['training_end_date']
             );
 
-            // Send notifications to candidates
-            foreach ($validated['candidate_ids'] as $candidateId) {
-                $candidate = Candidate::find($candidateId);
+            // PERFORMANCE: Load all candidates at once instead of N+1 queries
+            $candidates = Candidate::whereIn('id', $validated['candidate_ids'])->get();
+            foreach ($candidates as $candidate) {
                 $this->notificationService->sendTrainingAssigned($candidate, $batch);
             }
 
             return redirect()->route('training.index')
                 ->with('success', count($validated['candidate_ids']) . ' candidates assigned to training successfully!');
         } catch (Exception $e) {
+            // SECURITY: Log exception details, show generic message to user
+            \Log::error('Training assignment failed', ['error' => $e->getMessage()]);
             return back()->withInput()
-                ->with('error', 'Failed to assign candidates: ' . $e->getMessage());
+                ->with('error', 'Failed to assign candidates. Please try again.');
         }
     }
 
