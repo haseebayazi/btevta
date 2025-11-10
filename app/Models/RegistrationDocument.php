@@ -30,6 +30,16 @@ class RegistrationDocument extends Model
         'expiry_date' => 'date',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide file paths and document numbers to prevent unauthorized access
+     */
+    protected $hidden = [
+        'file_path',
+        'document_number',
+    ];
+
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);

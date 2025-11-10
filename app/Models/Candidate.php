@@ -68,6 +68,17 @@ class Candidate extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide sensitive PII from API responses and serialization
+     */
+    protected $hidden = [
+        'cnic',
+        'passport_number',
+        'emergency_contact',
+    ];
+
+    /**
      * The model's default values for attributes.
      */
     protected $attributes = [

@@ -22,8 +22,8 @@ class RegistrationController extends Controller
         $query = Candidate::with(['trade', 'campus', 'documents', 'nextOfKin'])
             ->whereIn('status', ['screening_passed', 'registered', 'pending_registration']);
 
-        // Filter by campus for campus users
-        if (auth()->user()->role === 'campus' && auth()->user()->campus_id) {
+        // Filter by campus for campus_admin users
+        if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
             $query->where('campus_id', auth()->user()->campus_id);
         }
 

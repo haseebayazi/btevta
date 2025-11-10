@@ -27,11 +27,27 @@ class CandidatesImport implements ToModel, WithHeadingRow, WithValidation, WithB
         'duplicates' => 0,
         'errors' => []
     ];
+    protected $campusesCache = [];
+    protected $tradesCache = [];
 
     public function __construct($batchId = null, $campusId = null)
     {
         $this->batchId = $batchId;
         $this->campusId = $campusId;
+
+        // PERFORMANCE: Pre-load campuses and trades to avoid N+1 queries
+        $campuses = Campus::all();
+        foreach ($campuses as $campus) {
+            $this->campusesCache[strtolower($campus->name)] = $campus->id;
+        }
+
+        $trades = Trade::all();
+        foreach ($trades as $trade) {
+            $this->tradesCache[strtolower($trade->name)] = $trade->id;
+            if ($trade->code) {
+                $this->tradesCache[strtolower($trade->code)] = $trade->id;
+            }
+        }
     }
 
     /**
@@ -50,19 +66,40 @@ class CandidatesImport implements ToModel, WithHeadingRow, WithValidation, WithB
             return null;
         }
 
-        // Find or create campus
-        $campus = null;
+        // PERFORMANCE: Find campus from pre-loaded cache instead of database query
+        $campusId = $this->campusId;
         if (!empty($row['campus'])) {
-            $campus = Campus::where('name', 'like', '%' . $row['campus'] . '%')->first();
+            $campusKey = strtolower(trim($row['campus']));
+            // Try exact match first
+            if (isset($this->campusesCache[$campusKey])) {
+                $campusId = $this->campusesCache[$campusKey];
+            } else {
+                // Try partial match
+                foreach ($this->campusesCache as $name => $id) {
+                    if (str_contains($name, $campusKey) || str_contains($campusKey, $name)) {
+                        $campusId = $id;
+                        break;
+                    }
+                }
+            }
         }
-        $campusId = $campus ? $campus->id : $this->campusId;
 
-        // Find trade
-        $trade = null;
+        // PERFORMANCE: Find trade from pre-loaded cache instead of database query
+        $tradeId = null;
         if (!empty($row['trade'])) {
-            $trade = Trade::where('name', 'like', '%' . $row['trade'] . '%')
-                ->orWhere('code', $row['trade'])
-                ->first();
+            $tradeKey = strtolower(trim($row['trade']));
+            // Try exact match first
+            if (isset($this->tradesCache[$tradeKey])) {
+                $tradeId = $this->tradesCache[$tradeKey];
+            } else {
+                // Try partial match
+                foreach ($this->tradesCache as $name => $id) {
+                    if (str_contains($name, $tradeKey) || str_contains($tradeKey, $name)) {
+                        $tradeId = $id;
+                        break;
+                    }
+                }
+            }
         }
 
         // Parse date
@@ -94,7 +131,7 @@ class CandidatesImport implements ToModel, WithHeadingRow, WithValidation, WithB
                 'passport_number' => $row['passport_no'] ?? $row['passport'] ?? null,
                 'campus_id' => $campusId,
                 'batch_id' => $this->batchId,
-                'trade_id' => $trade ? $trade->id : null,
+                'trade_id' => $tradeId,
                 'status' => 'new',
                 'application_id' => $row['application_id'] ?? Candidate::generateApplicationId(),
             ]);

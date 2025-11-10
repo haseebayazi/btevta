@@ -45,6 +45,17 @@ class Departure extends Model
         'ninety_day_report_submitted' => 'boolean',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide sensitive employment and financial information
+     */
+    protected $hidden = [
+        'iqama_number',
+        'qiwa_id',
+        'salary_amount',
+    ];
+
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);

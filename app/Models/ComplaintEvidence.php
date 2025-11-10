@@ -29,6 +29,15 @@ class ComplaintEvidence extends Model
         'deleted_at' => 'datetime',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide file paths to prevent unauthorized access
+     */
+    protected $hidden = [
+        'file_path',
+    ];
+
     // Relationships
     public function complaint()
     {

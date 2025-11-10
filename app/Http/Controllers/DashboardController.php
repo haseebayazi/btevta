@@ -33,21 +33,31 @@ class DashboardController extends Controller
 
     private function getStatistics($campusId = null)
     {
-        $query = Candidate::query();
-        
-        if ($campusId) {
-            $query->where('campus_id', $campusId);
-        }
+        // PERFORMANCE: Use single query with CASE statements instead of 8 separate queries
+        $candidateStats = DB::table('candidates')
+            ->selectRaw('
+                COUNT(*) as total_candidates,
+                SUM(CASE WHEN status = "listed" THEN 1 ELSE 0 END) as listed,
+                SUM(CASE WHEN status = "screening" THEN 1 ELSE 0 END) as screening,
+                SUM(CASE WHEN status = "registered" THEN 1 ELSE 0 END) as registered,
+                SUM(CASE WHEN status = "training" THEN 1 ELSE 0 END) as in_training,
+                SUM(CASE WHEN status = "visa_processing" THEN 1 ELSE 0 END) as visa_processing,
+                SUM(CASE WHEN status = "departed" THEN 1 ELSE 0 END) as departed,
+                SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected
+            ')
+            ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+            ->whereNull('deleted_at')
+            ->first();
 
         return [
-            'total_candidates' => $query->count(),
-            'listed' => $query->clone()->where('status', 'listed')->count(),
-            'screening' => $query->clone()->where('status', 'screening')->count(),
-            'registered' => $query->clone()->where('status', 'registered')->count(),
-            'in_training' => $query->clone()->where('status', 'training')->count(),
-            'visa_processing' => $query->clone()->where('status', 'visa_processing')->count(),
-            'departed' => $query->clone()->where('status', 'departed')->count(),
-            'rejected' => $query->clone()->where('status', 'rejected')->count(),
+            'total_candidates' => $candidateStats->total_candidates ?? 0,
+            'listed' => $candidateStats->listed ?? 0,
+            'screening' => $candidateStats->screening ?? 0,
+            'registered' => $candidateStats->registered ?? 0,
+            'in_training' => $candidateStats->in_training ?? 0,
+            'visa_processing' => $candidateStats->visa_processing ?? 0,
+            'departed' => $candidateStats->departed ?? 0,
+            'rejected' => $candidateStats->rejected ?? 0,
             'active_batches' => Batch::where('status', 'active')
                 ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
                 ->count(),
