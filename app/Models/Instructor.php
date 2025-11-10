@@ -42,6 +42,16 @@ class Instructor extends Model
         'employment_type' => 'permanent',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * SECURITY: Hide sensitive personal information
+     */
+    protected $hidden = [
+        'cnic',
+        'photo_path',
+    ];
+
     // Status constants
     const STATUS_ACTIVE = 'active';
     const STATUS_INACTIVE = 'inactive';
