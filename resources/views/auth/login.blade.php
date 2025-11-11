@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - BTEVTA</title>
+    <meta name="description" content="{{ config('app.subtitle') }}">
+    <title>Login - {{ config('app.full_name') }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" type="image/png" href="/images/wasl-logo.svg">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -13,11 +19,12 @@
     <div class="max-w-md w-full">
         <!-- Logo and Title -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
-                <img src="/images/logo.png" alt="BTEVTA Logo" class="w-16 h-16" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%233b82f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2260%22 font-size=%2250%22 text-anchor=%22middle%22 fill=%22white%22 font-weight=%22bold%22%3EB%3C/text%3E%3C/svg%3E'">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-4">
+                <img src="/images/wasl-logo.png" alt="WASL Logo" class="w-20 h-20" onerror="this.outerHTML='<div class=\'text-5xl\'>🌐</div>'">
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">BTEVTA</h1>
-            <p class="text-blue-100">Overseas Employment Management System</p>
+            <h1 class="text-4xl font-bold text-white mb-2">{{ config('app.full_name') }}</h1>
+            <p class="text-blue-100 text-lg">{{ config('app.tagline') }}</p>
+            <p class="text-blue-200 text-sm mt-1">{{ config('app.subtitle') }}</p>
         </div>
         
         <!-- Login Card -->
@@ -124,8 +131,14 @@
         </div>
         
         <!-- Footer -->
-        <div class="text-center mt-8 text-blue-100 text-sm">
-            <p>&copy; {{ date('Y') }} BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab</p>
+        <div class="text-center mt-8 text-blue-100 text-sm space-y-2">
+            <p class="font-semibold">🌐 {{ config('app.full_name') }}</p>
+            <p class="text-xs text-blue-200">
+                Product Conceived by: {{ config('app.product_credits.conceived_by') }} •
+                Developed by: {{ config('app.product_credits.developed_by') }}
+            </p>
+            <p class="text-xs">Operated by: {{ config('app.operated_by') }}</p>
+            <p class="text-xs mt-2">&copy; {{ date('Y') }} All rights reserved.</p>
         </div>
     </div>
     
