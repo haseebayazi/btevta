@@ -7,6 +7,9 @@ use App\Http\Controllers\OepController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\RemittanceApiController;
+use App\Http\Controllers\Api\RemittanceReportApiController;
+use App\Http\Controllers\Api\RemittanceAlertApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,4 +59,48 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
     Route::post('/notifications/{notification}/mark-read', [UserController::class, 'markNotificationRead'])
         ->name('notifications.mark-read');
+
+    // ========================================================================
+    // REMITTANCE API ROUTES
+    // ========================================================================
+
+    // Remittances CRUD
+    Route::prefix('remittances')->name('remittances.')->group(function () {
+        Route::get('/', [RemittanceApiController::class, 'index'])->name('index');
+        Route::get('/{id}', [RemittanceApiController::class, 'show'])->name('show');
+        Route::post('/', [RemittanceApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [RemittanceApiController::class, 'update'])->name('update');
+        Route::delete('/{id}', [RemittanceApiController::class, 'destroy'])->name('destroy');
+
+        // Additional endpoints
+        Route::get('/candidate/{candidateId}', [RemittanceApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::get('/search/query', [RemittanceApiController::class, 'search'])->name('search');
+        Route::get('/stats/overview', [RemittanceApiController::class, 'statistics'])->name('statistics');
+        Route::post('/{id}/verify', [RemittanceApiController::class, 'verify'])->name('verify');
+    });
+
+    // Remittance Reports
+    Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
+        Route::get('/dashboard', [RemittanceReportApiController::class, 'dashboard'])->name('dashboard');
+        Route::get('/monthly-trends', [RemittanceReportApiController::class, 'monthlyTrends'])->name('monthly-trends');
+        Route::get('/purpose-analysis', [RemittanceReportApiController::class, 'purposeAnalysis'])->name('purpose-analysis');
+        Route::get('/transfer-methods', [RemittanceReportApiController::class, 'transferMethods'])->name('transfer-methods');
+        Route::get('/country-analysis', [RemittanceReportApiController::class, 'countryAnalysis'])->name('country-analysis');
+        Route::get('/proof-compliance', [RemittanceReportApiController::class, 'proofCompliance'])->name('proof-compliance');
+        Route::get('/beneficiary-report', [RemittanceReportApiController::class, 'beneficiaryReport'])->name('beneficiary-report');
+        Route::get('/impact-analytics', [RemittanceReportApiController::class, 'impactAnalytics'])->name('impact-analytics');
+        Route::get('/top-candidates', [RemittanceReportApiController::class, 'topCandidates'])->name('top-candidates');
+    });
+
+    // Remittance Alerts
+    Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
+        Route::get('/', [RemittanceAlertApiController::class, 'index'])->name('index');
+        Route::get('/{id}', [RemittanceAlertApiController::class, 'show'])->name('show');
+        Route::get('/stats/overview', [RemittanceAlertApiController::class, 'statistics'])->name('statistics');
+        Route::get('/stats/unread-count', [RemittanceAlertApiController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/candidate/{candidateId}', [RemittanceAlertApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::post('/{id}/read', [RemittanceAlertApiController::class, 'markAsRead'])->name('mark-read');
+        Route::post('/{id}/resolve', [RemittanceAlertApiController::class, 'resolve'])->name('resolve');
+        Route::post('/{id}/dismiss', [RemittanceAlertApiController::class, 'dismiss'])->name('dismiss');
+    });
 });
