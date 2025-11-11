@@ -63,6 +63,20 @@ class RemittanceAlert extends Model
         return $query->where('severity', 'critical');
     }
 
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function($q) use ($term) {
+            $q->where('title', 'like', "%{$term}%")
+              ->orWhere('message', 'like', "%{$term}%")
+              ->orWhere('alert_type', 'like', "%{$term}%")
+              ->orWhereHas('candidate', function($subQ) use ($term) {
+                  $subQ->where('name', 'like', "%{$term}%")
+                       ->orWhere('cnic', 'like', "%{$term}%")
+                       ->orWhere('btevta_id', 'like', "%{$term}%");
+              });
+        });
+    }
+
     // Accessors
     public function getAlertTypeLabelAttribute()
     {

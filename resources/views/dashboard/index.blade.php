@@ -101,9 +101,77 @@
                 </div>
             </div>
         </div>
-        
+
     </div>
-    
+
+    <!-- Remittance Statistics -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Remittance Overview</h3>
+            <a href="{{ route('remittances.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Remittances -->
+            <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-emerald-700 text-xs font-medium uppercase tracking-wide">Total Remittances</p>
+                        <p class="text-2xl font-bold text-emerald-900 mt-1">{{ number_format($stats['remittances_total']) }}</p>
+                        <p class="text-emerald-600 text-xs mt-1">PKR {{ number_format($stats['remittances_amount'], 0) }}</p>
+                    </div>
+                    <div class="bg-emerald-200 rounded-full p-3">
+                        <i class="fas fa-money-bill-wave text-emerald-700 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- This Month -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-700 text-xs font-medium uppercase tracking-wide">This Month</p>
+                        <p class="text-2xl font-bold text-blue-900 mt-1">{{ number_format($stats['remittances_this_month_count']) }}</p>
+                        <p class="text-blue-600 text-xs mt-1">PKR {{ number_format($stats['remittances_this_month_amount'], 0) }}</p>
+                    </div>
+                    <div class="bg-blue-200 rounded-full p-3">
+                        <i class="fas fa-calendar-alt text-blue-700 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Verification -->
+            <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-700 text-xs font-medium uppercase tracking-wide">Pending Verify</p>
+                        <p class="text-2xl font-bold text-amber-900 mt-1">{{ number_format($stats['remittances_pending']) }}</p>
+                        <a href="{{ route('remittances.index', ['status' => 'pending']) }}" class="text-amber-600 text-xs hover:underline mt-1 block">View pending</a>
+                    </div>
+                    <div class="bg-amber-200 rounded-full p-3">
+                        <i class="fas fa-clock text-amber-700 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Missing Proof -->
+            <div class="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border border-rose-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-rose-700 text-xs font-medium uppercase tracking-wide">Missing Proof</p>
+                        <p class="text-2xl font-bold text-rose-900 mt-1">{{ number_format($stats['remittances_missing_proof']) }}</p>
+                        <a href="{{ route('remittance.alerts.index', ['type' => 'missing_proof']) }}" class="text-rose-600 text-xs hover:underline mt-1 block">View alerts</a>
+                    </div>
+                    <div class="bg-rose-200 rounded-full p-3">
+                        <i class="fas fa-file-excel text-rose-700 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Process Flow Statistics -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         

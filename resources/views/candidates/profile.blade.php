@@ -101,6 +101,141 @@
                 </div>
             </div>
 
+            <!-- Remittance Summary -->
+            @if($candidate->status === 'departed' || $remittanceStats['total_count'] > 0)
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-money-bill-wave"></i> Remittance Summary
+                        </h5>
+                        <a href="{{ route('remittances.index', ['candidate_id' => $candidate->id]) }}"
+                           class="btn btn-sm btn-light">
+                            View All <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-1">Total Remittances</h6>
+                                <h4 class="mb-0 text-success">{{ number_format($remittanceStats['total_count']) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-1">Total Amount</h6>
+                                <h4 class="mb-0 text-success">PKR {{ number_format($remittanceStats['total_amount'], 0) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-1">With Proof</h6>
+                                <h4 class="mb-0 text-info">{{ number_format($remittanceStats['with_proof']) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted mb-1">Active Alerts</h6>
+                                <h4 class="mb-0 {{ $remittanceStats['unresolved_alerts'] > 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ number_format($remittanceStats['unresolved_alerts']) }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($remittanceStats['last_remittance'])
+                    <!-- Last Remittance Info -->
+                    <div class="alert alert-info mb-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <strong>Last Remittance:</strong>
+                                PKR {{ number_format($remittanceStats['last_remittance']->amount, 2) }}
+                                on {{ $remittanceStats['last_remittance']->transfer_date->format('M d, Y') }}
+                                <span class="badge bg-{{ $remittanceStats['last_remittance']->status === 'verified' ? 'success' : 'warning' }} ms-2">
+                                    {{ ucfirst($remittanceStats['last_remittance']->status) }}
+                                </span>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <small class="text-muted">
+                                    {{ $remittanceStats['last_remittance']->transfer_date->diffForHumans() }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($remittanceStats['total_count'] > 0)
+                    <!-- Recent Remittances Table -->
+                    <h6 class="mb-3">Recent Remittances</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Purpose</th>
+                                    <th>Status</th>
+                                    <th>Proof</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($candidate->remittances as $remittance)
+                                <tr>
+                                    <td>{{ $remittance->transfer_date->format('M d, Y') }}</td>
+                                    <td class="fw-bold">PKR {{ number_format($remittance->amount, 0) }}</td>
+                                    <td>{{ ucwords(str_replace('_', ' ', $remittance->primary_purpose)) }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $remittance->status === 'verified' ? 'success' : ($remittance->status === 'pending' ? 'warning' : 'danger') }}">
+                                            {{ ucfirst($remittance->status) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if($remittance->has_proof)
+                                            <i class="fas fa-check-circle text-success"></i>
+                                        @else
+                                            <i class="fas fa-times-circle text-danger"></i>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($remittanceStats['total_count'] > 5)
+                    <div class="text-center mt-3">
+                        <a href="{{ route('remittances.index', ['candidate_id' => $candidate->id]) }}" class="btn btn-sm btn-outline-success">
+                            View All {{ number_format($remittanceStats['total_count']) }} Remittances
+                            <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    @endif
+                    @else
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-info-circle"></i> No remittances recorded yet for this candidate.
+                    </div>
+                    @endif
+
+                    @if($remittanceStats['unresolved_alerts'] > 0)
+                    <div class="alert alert-danger mb-0 mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>{{ $remittanceStats['unresolved_alerts'] }} active alert(s)</strong> require attention
+                            </span>
+                            <a href="{{ route('remittance.alerts.index', ['candidate_id' => $candidate->id]) }}"
+                               class="btn btn-sm btn-danger">
+                                View Alerts
+                            </a>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <div class="d-flex gap-2">
                 <a href="{{ route('candidates.edit', $candidate) }}" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Edit

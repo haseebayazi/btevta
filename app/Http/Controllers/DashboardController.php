@@ -12,8 +12,11 @@ use App\Models\VisaProcess;
 use App\Models\Departure;
 use App\Models\DocumentArchive;
 use App\Models\TrainingAttendance;
+use App\Models\Remittance;
+use App\Models\RemittanceAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -33,8 +36,13 @@ class DashboardController extends Controller
 
     private function getStatistics($campusId = null)
     {
-        // PERFORMANCE: Use single query with CASE statements instead of 8 separate queries
-        $candidateStats = DB::table('candidates')
+        // PERFORMANCE: Cache dashboard statistics for 5 minutes
+        // Cache key includes campus_id for role-based isolation
+        $cacheKey = 'dashboard_stats_' . ($campusId ?? 'all');
+
+        return Cache::remember($cacheKey, 300, function () use ($campusId) {
+            // Use single query with CASE statements instead of 8 separate queries
+            $candidateStats = DB::table('candidates')
             ->selectRaw('
                 COUNT(*) as total_candidates,
                 SUM(CASE WHEN status = "listed" THEN 1 ELSE 0 END) as listed,
@@ -47,6 +55,28 @@ class DashboardController extends Controller
             ')
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
             ->whereNull('deleted_at')
+            ->first();
+
+        // Remittance statistics
+        $remittanceQuery = Remittance::query();
+        if ($campusId) {
+            $remittanceQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
+        }
+
+        $remittanceStats = $remittanceQuery
+            ->selectRaw('
+                COUNT(*) as total_remittances,
+                SUM(amount) as total_amount,
+                SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_verification,
+                SUM(CASE WHEN has_proof = 0 THEN 1 ELSE 0 END) as missing_proof
+            ')
+            ->first();
+
+        $currentMonthRemittances = Remittance::query()
+            ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
+            ->where('year', date('Y'))
+            ->where('month', date('n'))
+            ->selectRaw('COUNT(*) as count, SUM(amount) as amount')
             ->first();
 
         return [
@@ -68,7 +98,16 @@ class DashboardController extends Controller
                 ->where('replied', false)
                 ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
                 ->count(),
+
+            // Remittance stats
+            'remittances_total' => $remittanceStats->total_remittances ?? 0,
+            'remittances_amount' => $remittanceStats->total_amount ?? 0,
+            'remittances_this_month_count' => $currentMonthRemittances->count ?? 0,
+            'remittances_this_month_amount' => $currentMonthRemittances->amount ?? 0,
+            'remittances_pending' => $remittanceStats->pending_verification ?? 0,
+            'remittances_missing_proof' => $remittanceStats->missing_proof ?? 0,
         ];
+        });
     }
 
     private function getRecentActivities($campusId = null)
@@ -84,7 +123,11 @@ class DashboardController extends Controller
 
     private function getAlerts($campusId = null)
     {
-        $alerts = [];
+        // PERFORMANCE: Cache alerts for 1 minute (more dynamic than stats)
+        $cacheKey = 'dashboard_alerts_' . ($campusId ?? 'all');
+
+        return Cache::remember($cacheKey, 60, function () use ($campusId) {
+            $alerts = [];
 
         // Document expiry alerts
         $expiringDocs = DB::table('registration_documents')
@@ -131,7 +174,34 @@ class DashboardController extends Controller
             ];
         }
 
+        // Remittance alerts
+        $criticalAlerts = RemittanceAlert::where('is_resolved', false)
+            ->where('severity', 'critical')
+            ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
+            ->count();
+
+        if ($criticalAlerts > 0) {
+            $alerts[] = [
+                'type' => 'danger',
+                'message' => "{$criticalAlerts} critical remittance alerts require attention",
+                'action_url' => route('remittance.alerts.index', ['severity' => 'critical']),
+            ];
+        }
+
+        $pendingVerification = Remittance::where('status', 'pending')
+            ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
+            ->count();
+
+        if ($pendingVerification > 0) {
+            $alerts[] = [
+                'type' => 'info',
+                'message' => "{$pendingVerification} remittances pending verification",
+                'action_url' => route('remittances.index', ['status' => 'pending']),
+            ];
+        }
+
         return $alerts;
+        });
     }
 
     // ============================================

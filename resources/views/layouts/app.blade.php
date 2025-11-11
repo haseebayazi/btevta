@@ -60,7 +60,90 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Global Search -->
+                <div class="flex-1 max-w-2xl mx-8" x-data="globalSearch()">
+                    <div class="relative">
+                        <div class="relative">
+                            <input
+                                type="text"
+                                x-model="searchTerm"
+                                @input.debounce.300ms="search()"
+                                @keydown.escape="closeResults()"
+                                @keydown.down.prevent="navigateDown()"
+                                @keydown.up.prevent="navigateUp()"
+                                @keydown.enter.prevent="selectResult()"
+                                @focus="showResults = true"
+                                placeholder="Search candidates, remittances, batches..."
+                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <span x-show="loading" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                            </span>
+                        </div>
+
+                        <!-- Search Results Dropdown -->
+                        <div x-show="showResults && (Object.keys(results).length > 0 || searchTerm.length > 0)"
+                             @click.away="closeResults()"
+                             x-cloak
+                             class="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl max-h-[600px] overflow-y-auto z-50 border border-gray-200">
+
+                            <!-- No Results -->
+                            <div x-show="searchTerm.length >= 2 && Object.keys(results).length === 0 && !loading"
+                                 class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-search text-4xl mb-3 text-gray-300"></i>
+                                <p class="text-sm">No results found for "<span x-text="searchTerm"></span>"</p>
+                            </div>
+
+                            <!-- Results by Type -->
+                            <template x-for="(group, type) in results" :key="type">
+                                <div class="border-b border-gray-100 last:border-b-0">
+                                    <!-- Group Header -->
+                                    <div class="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                                        <h4 class="text-xs font-semibold text-gray-700 uppercase flex items-center">
+                                            <i :class="group.icon" class="mr-2"></i>
+                                            <span x-text="group.label"></span>
+                                            <span class="ml-2 text-gray-500">(<span x-text="group.items.length"></span>)</span>
+                                        </h4>
+                                    </div>
+
+                                    <!-- Group Items -->
+                                    <div>
+                                        <template x-for="(item, index) in group.items" :key="item.id">
+                                            <a :href="item.url"
+                                               :class="{ 'bg-blue-50': selectedIndex === getGlobalIndex(type, index) }"
+                                               @mouseenter="selectedIndex = getGlobalIndex(type, index)"
+                                               class="block px-4 py-3 hover:bg-gray-50 transition-colors duration-150">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900 truncate" x-text="item.title"></p>
+                                                        <p class="text-xs text-gray-600 truncate" x-text="item.subtitle"></p>
+                                                    </div>
+                                                    <div x-show="item.badge" class="ml-3">
+                                                        <span :class="item.badge_class"
+                                                              class="px-2 py-1 text-xs font-medium rounded-full text-white"
+                                                              x-text="item.badge"></span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Footer -->
+                            <div x-show="totalResults > 0" class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+                                <p class="text-xs text-gray-600">
+                                    Showing <span x-text="totalResults"></span> result(s)
+                                    <span class="text-gray-400 mx-2">•</span>
+                                    Press <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">↑↓</kbd> to navigate, <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">Enter</kbd> to select
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Right Side Menu -->
                 <div class="flex items-center space-x-4">
                     <!-- Notifications -->
@@ -384,8 +467,100 @@
         window.axios = axios;
         window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+
+        // Global Search Component
+        function globalSearch() {
+            return {
+                searchTerm: '',
+                results: {},
+                showResults: false,
+                loading: false,
+                selectedIndex: 0,
+                totalResults: 0,
+                allItems: [],
+
+                async search() {
+                    const term = this.searchTerm.trim();
+
+                    if (term.length < 2) {
+                        this.results = {};
+                        this.totalResults = 0;
+                        this.allItems = [];
+                        return;
+                    }
+
+                    this.loading = true;
+
+                    try {
+                        const response = await axios.get('/api/v1/global-search', {
+                            params: { q: term }
+                        });
+
+                        if (response.data.success) {
+                            this.results = response.data.results;
+                            this.totalResults = response.data.total_results;
+                            this.buildFlatList();
+                            this.selectedIndex = 0;
+                            this.showResults = true;
+                        }
+                    } catch (error) {
+                        console.error('Search failed:', error);
+                        this.results = {};
+                        this.totalResults = 0;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                buildFlatList() {
+                    this.allItems = [];
+                    Object.keys(this.results).forEach(type => {
+                        this.results[type].items.forEach(item => {
+                            this.allItems.push({
+                                type: type,
+                                ...item
+                            });
+                        });
+                    });
+                },
+
+                getGlobalIndex(type, index) {
+                    let globalIndex = 0;
+                    for (let t in this.results) {
+                        if (t === type) {
+                            return globalIndex + index;
+                        }
+                        globalIndex += this.results[t].items.length;
+                    }
+                    return globalIndex;
+                },
+
+                navigateDown() {
+                    if (this.allItems.length === 0) return;
+                    this.selectedIndex = Math.min(this.selectedIndex + 1, this.allItems.length - 1);
+                },
+
+                navigateUp() {
+                    if (this.allItems.length === 0) return;
+                    this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                },
+
+                selectResult() {
+                    if (this.allItems.length === 0 || this.selectedIndex >= this.allItems.length) return;
+                    const selected = this.allItems[this.selectedIndex];
+                    if (selected && selected.url) {
+                        window.location.href = selected.url;
+                    }
+                },
+
+                closeResults() {
+                    this.showResults = false;
+                    this.selectedIndex = 0;
+                }
+            }
+        }
     </script>
-    
+
     @stack('scripts')
 </body>
 </html>
