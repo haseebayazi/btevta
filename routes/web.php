@@ -23,6 +23,7 @@ use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\TrainingClassController;
 use App\Http\Controllers\RemittanceController;
 use App\Http\Controllers\RemittanceBeneficiaryController;
+use App\Http\Controllers\RemittanceReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -452,6 +453,25 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
         Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
+    });
+
+    // ========================================================================
+    // REMITTANCE REPORTS & ANALYTICS ROUTES
+    // Throttle: Standard 60/min, Export 5/min
+    // ========================================================================
+    Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
+        // Dashboard & Analytics
+        Route::get('/dashboard', [RemittanceReportController::class, 'dashboard'])->name('dashboard');
+        Route::get('/monthly', [RemittanceReportController::class, 'monthlyReport'])->name('monthly');
+        Route::get('/purpose-analysis', [RemittanceReportController::class, 'purposeAnalysis'])->name('purpose');
+        Route::get('/beneficiary', [RemittanceReportController::class, 'beneficiaryReport'])->name('beneficiary');
+        Route::get('/proof-compliance', [RemittanceReportController::class, 'proofComplianceReport'])->name('proof');
+        Route::get('/impact', [RemittanceReportController::class, 'impactAnalytics'])->name('impact');
+
+        // Export functionality
+        Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
+            ->name('export')
+            ->middleware('throttle:5,1');
     });
 });
 
