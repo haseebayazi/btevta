@@ -28,6 +28,13 @@ class NotificationService
         'document_expiry' => 'Document Expiry Alert',
         'complaint_update' => 'Complaint Status Update',
         'sla_breach' => 'SLA Breach Alert',
+        'remittance_recorded' => 'New Remittance Recorded',
+        'remittance_verified' => 'Remittance Verified',
+        'remittance_proof_missing' => 'Remittance Proof Missing',
+        'remittance_alert_critical' => 'Critical Remittance Alert',
+        'remittance_alert_resolved' => 'Remittance Alert Resolved',
+        'first_remittance_received' => 'First Remittance Received',
+        'remittance_monthly_summary' => 'Monthly Remittance Summary',
     ];
 
     /**
@@ -182,6 +189,34 @@ class NotificationService
             'sla_breach' => [
                 'subject' => 'SLA Breach Alert - {{item_type}}',
                 'message' => 'ALERT: {{item_type}} {{item_reference}} has breached SLA by {{days_overdue}} days. Immediate action required.',
+            ],
+            'remittance_recorded' => [
+                'subject' => 'New Remittance Recorded - PKR {{amount}}',
+                'message' => 'Dear {{candidate_name}}, a new remittance of PKR {{amount}} has been recorded on {{transfer_date}}. Transaction Ref: {{transaction_reference}}. Purpose: {{purpose}}. Thank you for supporting your family.',
+            ],
+            'remittance_verified' => [
+                'subject' => 'Remittance Verified - PKR {{amount}}',
+                'message' => 'Good news! Your remittance of PKR {{amount}} (Ref: {{transaction_reference}}) has been verified on {{verification_date}}. Status: Approved.',
+            ],
+            'remittance_proof_missing' => [
+                'subject' => 'Action Required: Upload Remittance Proof',
+                'message' => 'Dear {{candidate_name}}, your remittance of PKR {{amount}} (Ref: {{transaction_reference}}) is missing proof documentation. Please upload the proof within {{days_remaining}} days to avoid complications.',
+            ],
+            'remittance_alert_critical' => [
+                'subject' => 'URGENT: Critical Remittance Alert',
+                'message' => 'URGENT ALERT: {{alert_title}}. Details: {{alert_message}}. Immediate action required. Contact your campus administrator.',
+            ],
+            'remittance_alert_resolved' => [
+                'subject' => 'Remittance Alert Resolved',
+                'message' => 'Good news! The remittance alert "{{alert_title}}" has been resolved. Resolution: {{resolution_notes}}. Thank you for your cooperation.',
+            ],
+            'first_remittance_received' => [
+                'subject' => 'Congratulations! First Remittance Received',
+                'message' => 'Congratulations {{candidate_name}}! Your first remittance of PKR {{amount}} has been recorded on {{transfer_date}}. This is an important milestone. Keep supporting your family back home!',
+            ],
+            'remittance_monthly_summary' => [
+                'subject' => 'Monthly Remittance Summary - {{month}} {{year}}',
+                'message' => 'Dear {{candidate_name}}, your remittance summary for {{month}} {{year}}: Total remittances: {{count}}, Total amount: PKR {{total_amount}}, Average: PKR {{average_amount}}. Keep up the good work!',
             ],
             'default' => [
                 'subject' => 'Notification from BTEVTA System',
@@ -673,5 +708,157 @@ class NotificationService
             })->map->count(),
             'recent' => $query->orderBy('created_at', 'desc')->limit(10)->get(),
         ];
+    }
+
+    /**
+     * Send remittance recorded notification
+     */
+    public function sendRemittanceRecorded($remittance): array
+    {
+        $candidate = $remittance->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'amount' => number_format($remittance->amount, 2),
+            'transfer_date' => $remittance->transfer_date->format('M d, Y'),
+            'transaction_reference' => $remittance->transaction_reference ?? 'N/A',
+            'purpose' => ucwords(str_replace('_', ' ', $remittance->primary_purpose)),
+        ];
+
+        // Send to candidate with email and SMS
+        return $this->send($candidate, 'remittance_recorded', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send remittance verified notification
+     */
+    public function sendRemittanceVerified($remittance): array
+    {
+        $candidate = $remittance->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'amount' => number_format($remittance->amount, 2),
+            'transaction_reference' => $remittance->transaction_reference ?? 'N/A',
+            'verification_date' => $remittance->verified_at ? $remittance->verified_at->format('M d, Y') : now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'remittance_verified', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send proof missing notification
+     */
+    public function sendRemittanceProofMissing($remittance, int $daysRemaining = 7): array
+    {
+        $candidate = $remittance->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'amount' => number_format($remittance->amount, 2),
+            'transaction_reference' => $remittance->transaction_reference ?? 'N/A',
+            'days_remaining' => $daysRemaining,
+        ];
+
+        return $this->send($candidate, 'remittance_proof_missing', $data, ['email', 'sms', 'whatsapp']);
+    }
+
+    /**
+     * Send critical remittance alert notification
+     */
+    public function sendRemittanceAlertCritical($alert): array
+    {
+        $candidate = $alert->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'alert_title' => $alert->title,
+            'alert_message' => $alert->message,
+        ];
+
+        // Critical alerts go through all channels
+        return $this->send($candidate, 'remittance_alert_critical', $data, ['email', 'sms', 'whatsapp', 'in_app']);
+    }
+
+    /**
+     * Send alert resolved notification
+     */
+    public function sendRemittanceAlertResolved($alert): array
+    {
+        $candidate = $alert->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'alert_title' => $alert->title,
+            'resolution_notes' => $alert->resolution_notes ?? 'Alert has been resolved',
+        ];
+
+        return $this->send($candidate, 'remittance_alert_resolved', $data, ['email', 'in_app']);
+    }
+
+    /**
+     * Send first remittance notification (special congratulations)
+     */
+    public function sendFirstRemittanceReceived($remittance): array
+    {
+        $candidate = $remittance->candidate;
+
+        if (!$candidate) {
+            return ['success' => false, 'error' => 'Candidate not found'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'amount' => number_format($remittance->amount, 2),
+            'transfer_date' => $remittance->transfer_date->format('M d, Y'),
+        ];
+
+        // Special notification - send through all channels
+        return $this->send($candidate, 'first_remittance_received', $data, ['email', 'sms', 'whatsapp']);
+    }
+
+    /**
+     * Send monthly remittance summary
+     */
+    public function sendRemittanceMonthlySummary($candidate, $month, $year, $stats): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'month' => $month,
+            'year' => $year,
+            'count' => $stats['count'],
+            'total_amount' => number_format($stats['total_amount'], 2),
+            'average_amount' => number_format($stats['average_amount'], 2),
+        ];
+
+        return $this->send($candidate, 'remittance_monthly_summary', $data, ['email']);
+    }
+
+    /**
+     * Send bulk remittance notifications to multiple candidates
+     */
+    public function sendBulkRemittanceNotifications($candidates, string $notificationType, array $customData = []): array
+    {
+        return $this->bulkSend($candidates, $notificationType, $customData, ['email', 'sms']);
     }
 }
