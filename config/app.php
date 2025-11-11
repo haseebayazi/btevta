@@ -13,7 +13,37 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'BTEVTA'),
+    'name' => env('APP_NAME', 'WASL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Tagline
+    |--------------------------------------------------------------------------
+    |
+    | WASL platform tagline and branding information
+    |
+    */
+
+    'tagline' => env('APP_TAGLINE', 'Connecting Talent, Opportunity, and Remittance'),
+
+    'full_name' => env('APP_FULL_NAME', 'WASL - وصل'),
+
+    'subtitle' => env('APP_SUBTITLE', 'Integrated Digital Platform for Overseas Employment & Remittance Lifecycle Management'),
+
+    'operated_by' => env('APP_OPERATED_BY', 'BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab'),
+
+    'product_credits' => [
+        'conceived_by' => 'AMAN Innovatia',
+        'developed_by' => 'The LEAP @ ZAFNM',
+        'operated_by' => 'BTEVTA, Punjab Government',
+    ],
+
+    'contact' => [
+        'email' => env('APP_CONTACT_EMAIL', 'info@amaninnovatia.com'),
+        'website' => env('APP_CONTACT_WEBSITE', 'www.amaninnovatia.com'),
+        'support_email' => 'support@btevta.gov.pk',
+        'support_phone' => '+92-51-9201596',
+    ],
 
     /*
     |--------------------------------------------------------------------------

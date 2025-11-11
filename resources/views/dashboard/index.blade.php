@@ -1,19 +1,36 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - BTEVTA')
+@section('title', 'Dashboard - ' . config('app.name'))
 
 @section('content')
 <div class="space-y-6">
-    
-    <!-- Page Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p class="text-gray-600 mt-1">Welcome back, {{ auth()->user()->name }}</p>
+
+    <!-- WASL Welcome Banner -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="text-5xl">🌐</div>
+                <div>
+                    <h1 class="text-3xl font-bold">{{ config('app.full_name') }}</h1>
+                    <p class="text-blue-100 mt-1">{{ config('app.tagline') }}</p>
+                    <p class="text-blue-200 text-sm mt-1">{{ config('app.subtitle') }}</p>
+                </div>
+            </div>
+            <div class="text-right hidden md:block">
+                <p class="text-sm text-blue-100">{{ now()->format('l, F d, Y') }}</p>
+                <p class="text-sm text-blue-100">{{ now()->format('h:i A') }}</p>
+            </div>
         </div>
-        <div class="text-right">
-            <p class="text-sm text-gray-600">{{ now()->format('l, F d, Y') }}</p>
-            <p class="text-sm text-gray-600">{{ now()->format('h:i A') }}</p>
+    </div>
+
+    <!-- Welcome Message -->
+    <div class="bg-white rounded-lg shadow-sm p-4">
+        <div class="flex items-center space-x-3">
+            <div class="text-2xl">👋</div>
+            <div>
+                <p class="text-lg font-semibold text-gray-900">Welcome back, {{ auth()->user()->name }}</p>
+                <p class="text-sm text-gray-600">{{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }} Dashboard</p>
+            </div>
         </div>
     </div>
     
