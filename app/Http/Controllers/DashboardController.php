@@ -16,6 +16,7 @@ use App\Models\Remittance;
 use App\Models\RemittanceAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -35,8 +36,13 @@ class DashboardController extends Controller
 
     private function getStatistics($campusId = null)
     {
-        // PERFORMANCE: Use single query with CASE statements instead of 8 separate queries
-        $candidateStats = DB::table('candidates')
+        // PERFORMANCE: Cache dashboard statistics for 5 minutes
+        // Cache key includes campus_id for role-based isolation
+        $cacheKey = 'dashboard_stats_' . ($campusId ?? 'all');
+
+        return Cache::remember($cacheKey, 300, function () use ($campusId) {
+            // Use single query with CASE statements instead of 8 separate queries
+            $candidateStats = DB::table('candidates')
             ->selectRaw('
                 COUNT(*) as total_candidates,
                 SUM(CASE WHEN status = "listed" THEN 1 ELSE 0 END) as listed,
@@ -101,6 +107,7 @@ class DashboardController extends Controller
             'remittances_pending' => $remittanceStats->pending_verification ?? 0,
             'remittances_missing_proof' => $remittanceStats->missing_proof ?? 0,
         ];
+        });
     }
 
     private function getRecentActivities($campusId = null)
@@ -116,7 +123,11 @@ class DashboardController extends Controller
 
     private function getAlerts($campusId = null)
     {
-        $alerts = [];
+        // PERFORMANCE: Cache alerts for 1 minute (more dynamic than stats)
+        $cacheKey = 'dashboard_alerts_' . ($campusId ?? 'all');
+
+        return Cache::remember($cacheKey, 60, function () use ($campusId) {
+            $alerts = [];
 
         // Document expiry alerts
         $expiringDocs = DB::table('registration_documents')
@@ -190,6 +201,7 @@ class DashboardController extends Controller
         }
 
         return $alerts;
+        });
     }
 
     // ============================================
