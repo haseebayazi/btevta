@@ -261,6 +261,38 @@ class Candidate extends Model
     }
 
     /**
+     * Get all remittances for the candidate.
+     */
+    public function remittances()
+    {
+        return $this->hasMany(Remittance::class);
+    }
+
+    /**
+     * Get all beneficiaries for the candidate.
+     */
+    public function beneficiaries()
+    {
+        return $this->hasMany(RemittanceBeneficiary::class);
+    }
+
+    /**
+     * Get the primary beneficiary for the candidate.
+     */
+    public function primaryBeneficiary()
+    {
+        return $this->hasOne(RemittanceBeneficiary::class)->where('is_primary', true);
+    }
+
+    /**
+     * Get all remittance alerts for the candidate.
+     */
+    public function remittanceAlerts()
+    {
+        return $this->hasMany(RemittanceAlert::class);
+    }
+
+    /**
      * Get the user who created this candidate record.
      */
     public function creator()

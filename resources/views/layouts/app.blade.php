@@ -220,8 +220,15 @@
                         <i class="fas fa-chart-bar text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Reports</span>
                     </a>
+
+                    <!-- Tab 11: Remittance Management -->
+                    <a href="{{ route('remittances.index') }}"
+                       class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('remittances.*') || request()->routeIs('beneficiaries.*') ? 'sidebar-item-active' : '' }}">
+                        <i class="fas fa-money-bill-transfer text-lg w-6"></i>
+                        <span x-show="sidebarOpen" class="font-medium">Remittance</span>
+                    </a>
                 </div>
-                
+
                 <!-- Admin Section -->
                 @if(auth()->user()->role === 'admin')
                 <div class="pt-4 border-t">

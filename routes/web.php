@@ -21,6 +21,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\TrainingClassController;
+use App\Http\Controllers\RemittanceController;
+use App\Http\Controllers\RemittanceBeneficiaryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -413,6 +415,43 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('classes')->name('classes.')->group(function () {
         Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
         Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+    });
+
+    // ========================================================================
+    // REMITTANCE MANAGEMENT ROUTES - Module 10
+    // Purpose: Track remittance inflows from deployed workers
+    // Features: Multi-currency, purpose tagging, receipt upload, beneficiary management
+    // Throttle: Standard 60/min, Upload 30/min
+    // ========================================================================
+    Route::resource('remittances', RemittanceController::class);
+    Route::prefix('remittances')->name('remittances.')->group(function () {
+        // Verification
+        Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
+
+        // Receipt Management
+        Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])
+            ->name('upload-receipt')
+            ->middleware('throttle:30,1');
+        Route::delete('/receipts/{id}', [RemittanceController::class, 'deleteReceipt'])->name('delete-receipt');
+
+        // Export
+        Route::get('/export/{format}', [RemittanceController::class, 'export'])
+            ->name('export')
+            ->middleware('throttle:5,1');
+    });
+
+    // Beneficiary Management Routes
+    Route::prefix('candidates/{candidateId}/beneficiaries')->name('beneficiaries.')->group(function () {
+        Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
+        Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
+        Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
+    });
+
+    Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
+        Route::get('/{id}/edit', [RemittanceBeneficiaryController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
+        Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
     });
 });
 
