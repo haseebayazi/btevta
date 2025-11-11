@@ -24,6 +24,7 @@ use App\Http\Controllers\TrainingClassController;
 use App\Http\Controllers\RemittanceController;
 use App\Http\Controllers\RemittanceBeneficiaryController;
 use App\Http\Controllers\RemittanceReportController;
+use App\Http\Controllers\RemittanceAlertController;
 
 /*
 |--------------------------------------------------------------------------
@@ -472,6 +473,34 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
             ->name('export')
             ->middleware('throttle:5,1');
+    });
+
+    // ========================================================================
+    // REMITTANCE ALERTS ROUTES
+    // Throttle: Standard 60/min
+    // ========================================================================
+    Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
+        // Alert listing and viewing
+        Route::get('/', [RemittanceAlertController::class, 'index'])->name('index');
+        Route::get('/{id}', [RemittanceAlertController::class, 'show'])->name('show');
+
+        // Alert actions
+        Route::post('/{id}/read', [RemittanceAlertController::class, 'markAsRead'])->name('read');
+        Route::post('/read-all', [RemittanceAlertController::class, 'markAllAsRead'])->name('read-all');
+        Route::post('/{id}/resolve', [RemittanceAlertController::class, 'resolve'])->name('resolve');
+        Route::post('/{id}/dismiss', [RemittanceAlertController::class, 'dismiss'])->name('dismiss');
+        Route::post('/bulk-action', [RemittanceAlertController::class, 'bulkAction'])->name('bulk-action');
+
+        // Admin-only actions
+        Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
+            ->name('generate')
+            ->middleware('can:admin');
+        Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
+            ->name('auto-resolve')
+            ->middleware('can:admin');
+
+        // AJAX endpoint
+        Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
     });
 });
 
