@@ -72,6 +72,18 @@ class Oep extends Model
         return $query->where('country', $country);
     }
 
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('code', 'like', "%{$term}%")
+              ->orWhere('company_name', 'like', "%{$term}%")
+              ->orWhere('contact_person', 'like', "%{$term}%")
+              ->orWhere('country', 'like', "%{$term}%")
+              ->orWhere('city', 'like', "%{$term}%");
+        });
+    }
+
     protected static function boot()
     {
         parent::boot();

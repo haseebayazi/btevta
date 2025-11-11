@@ -53,6 +53,15 @@ class Trade extends Model
         return $query->where('is_active', true);
     }
 
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('code', 'like', "%{$term}%")
+              ->orWhere('description', 'like', "%{$term}%");
+        });
+    }
+
     protected static function boot()
     {
         parent::boot();

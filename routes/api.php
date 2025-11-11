@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\RemittanceApiController;
 use App\Http\Controllers\Api\RemittanceReportApiController;
 use App\Http\Controllers\Api\RemittanceAlertApiController;
+use App\Http\Controllers\Api\GlobalSearchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,6 +33,10 @@ use App\Http\Controllers\Api\RemittanceAlertApiController;
 // ========================================================================
 
 Route::prefix('v1')->name('v1.')->group(function () {
+
+    // Global Search
+    Route::get('/global-search', [GlobalSearchController::class, 'search'])
+        ->name('global-search');
 
     // Candidate Search
     Route::get('/candidates/search', [CandidateController::class, 'apiSearch'])

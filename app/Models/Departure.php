@@ -72,6 +72,20 @@ class Departure extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    // Scopes
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function($q) use ($term) {
+            $q->where('flight_number', 'like', "%{$term}%")
+              ->orWhere('destination', 'like', "%{$term}%")
+              ->orWhereHas('candidate', function($subQ) use ($term) {
+                  $subQ->where('name', 'like', "%{$term}%")
+                       ->orWhere('cnic', 'like', "%{$term}%")
+                       ->orWhere('btevta_id', 'like', "%{$term}%");
+              });
+        });
+    }
+
     protected static function boot()
     {
         parent::boot();
