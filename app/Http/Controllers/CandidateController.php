@@ -219,9 +219,9 @@ class CandidateController extends Controller
         $this->authorize('view', $candidate);
 
         $candidate->load([
-            'trade', 
-            'campus', 
-            'batch', 
+            'trade',
+            'campus',
+            'batch',
             'oep',
             'screenings' => function($q) {
                 $q->orderBy('call_date', 'desc');
@@ -229,10 +229,25 @@ class CandidateController extends Controller
             'documents',
             'nextOfKin',
             'visaProcess',
-            'departure'
+            'departure',
+            'remittances' => function($q) {
+                $q->orderBy('transfer_date', 'desc')->limit(5);
+            }
         ]);
 
-        return view('candidates.profile', compact('candidate'));
+        // Calculate remittance statistics
+        $remittanceStats = [
+            'total_count' => $candidate->remittances()->count(),
+            'total_amount' => $candidate->remittances()->sum('amount'),
+            'last_remittance' => $candidate->remittances()->latest('transfer_date')->first(),
+            'pending_count' => $candidate->remittances()->where('status', 'pending')->count(),
+            'with_proof' => $candidate->remittances()->where('has_proof', true)->count(),
+            'unresolved_alerts' => \App\Models\RemittanceAlert::where('candidate_id', $candidate->id)
+                ->where('is_resolved', false)
+                ->count(),
+        ];
+
+        return view('candidates.profile', compact('candidate', 'remittanceStats'));
     }
 
     public function timeline(Candidate $candidate)
