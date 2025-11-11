@@ -20,7 +20,7 @@
         <!-- Logo and Title -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full shadow-lg mb-4">
-                <img src="/images/wasl-logo.png" alt="WASL Logo" class="w-20 h-20" onerror="this.outerHTML='<div class=\'text-5xl\'>🌐</div>'">
+                <span class="text-blue-600 font-bold text-5xl">W</span>
             </div>
             <h1 class="text-4xl font-bold text-white mb-2">{{ config('app.full_name') }}</h1>
             <p class="text-blue-100 text-lg">{{ config('app.tagline') }}</p>
@@ -132,12 +132,11 @@
         
         <!-- Footer -->
         <div class="text-center mt-8 text-blue-100 text-sm space-y-2">
-            <p class="font-semibold">🌐 {{ config('app.full_name') }}</p>
+            <p class="font-semibold">{{ config('app.full_name') }}</p>
             <p class="text-xs text-blue-200">
                 Product Conceived by: {{ config('app.product_credits.conceived_by') }} •
                 Developed by: {{ config('app.product_credits.developed_by') }}
             </p>
-            <p class="text-xs">Operated by: {{ config('app.operated_by') }}</p>
             <p class="text-xs mt-2">&copy; {{ date('Y') }} All rights reserved.</p>
         </div>
     </div>

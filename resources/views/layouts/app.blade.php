@@ -51,7 +51,9 @@
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                     <div class="flex items-center space-x-3">
-                        <img src="/images/wasl-logo.png" alt="WASL Logo" class="h-10 w-10" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Cdefs%3E%3ClinearGradient id=%22grad%22 x1=%220%25%22 y1=%220%25%22 x2=%22100%25%22 y2=%22100%25%22%3E%3Cstop offset=%220%25%22 style=%22stop-color:%233b82f6;stop-opacity:1%22 /%3E%3Cstop offset=%22100%25%22 style=%22stop-color:%231e40af;stop-opacity:1%22 /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill=%22url(%23grad)%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2260%22 font-size=%2245%22 text-anchor=%22middle%22 fill=%22white%22 font-weight=%22bold%22%3E🌐%3C/text%3E%3C/svg%3E'">
+                        <div class="h-10 w-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">W</span>
+                        </div>
                         <div>
                             <h1 class="text-lg font-bold text-gray-900">{{ config('app.full_name') }}</h1>
                             <p class="text-xs text-gray-600">{{ config('app.tagline') }}</p>
@@ -149,73 +151,73 @@
                         Process Management
                     </p>
                     
-                    <!-- Tab 1: Candidates Listing 📋 -->
+                    <!-- Tab 1: Candidates Listing -->
                     <a href="{{ route('dashboard.candidates-listing') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.candidates-listing') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">📋</span>
+                        <i class="fas fa-list text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Candidates Listing</span>
                     </a>
 
-                    <!-- Tab 2: Screening 📡 -->
+                    <!-- Tab 2: Screening -->
                     <a href="{{ route('dashboard.screening') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.screening') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">📡</span>
+                        <i class="fas fa-phone text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Screening</span>
                     </a>
 
-                    <!-- Tab 3: Registration 🧾 -->
+                    <!-- Tab 3: Registration -->
                     <a href="{{ route('dashboard.registration') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.registration') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">🧾</span>
+                        <i class="fas fa-user-check text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Registration</span>
                     </a>
 
-                    <!-- Tab 4: Training 🧠 -->
+                    <!-- Tab 4: Training -->
                     <a href="{{ route('dashboard.training') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.training') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">🧠</span>
+                        <i class="fas fa-graduation-cap text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Training</span>
                     </a>
 
-                    <!-- Tab 5: Visa Processing 🛫 -->
+                    <!-- Tab 5: Visa Processing -->
                     <a href="{{ route('dashboard.visa-processing') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.visa-processing') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">🛫</span>
+                        <i class="fas fa-passport text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Visa Processing</span>
                     </a>
 
-                    <!-- Tab 6: Departure & Post-Deployment 🌍 -->
+                    <!-- Tab 6: Departure -->
                     <a href="{{ route('dashboard.departure') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.departure') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">🌍</span>
+                        <i class="fas fa-plane-departure text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Departure</span>
                     </a>
 
-                    <!-- Tab 7: Correspondence 📑 -->
+                    <!-- Tab 7: Correspondence -->
                     <a href="{{ route('dashboard.correspondence') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.correspondence') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">📑</span>
+                        <i class="fas fa-envelope text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Correspondence</span>
                     </a>
 
-                    <!-- Tab 8: Complaints & Grievance 💬 -->
+                    <!-- Tab 8: Complaints -->
                     <a href="{{ route('dashboard.complaints') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.complaints') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">💬</span>
+                        <i class="fas fa-exclamation-triangle text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Complaints</span>
                     </a>
 
-                    <!-- Tab 9: Document Archive ☁️ -->
+                    <!-- Tab 9: Document Archive -->
                     <a href="{{ route('dashboard.document-archive') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.document-archive') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">☁️</span>
+                        <i class="fas fa-archive text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Documents</span>
                     </a>
 
-                    <!-- Tab 10: Reports 📊 -->
+                    <!-- Tab 10: Reports -->
                     <a href="{{ route('dashboard.reports') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.reports') ? 'sidebar-item-active' : '' }}">
-                        <span class="text-lg w-6">📊</span>
+                        <i class="fas fa-chart-bar text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Reports</span>
                     </a>
                 </div>
@@ -329,7 +331,6 @@
         <div class="max-w-4xl mx-auto space-y-3">
             <!-- Main Footer Text -->
             <div class="flex items-center justify-center space-x-2 text-sm">
-                <span class="text-2xl">🌐</span>
                 <p class="text-gray-900 font-semibold">{{ config('app.full_name') }}</p>
                 <span class="text-gray-400">|</span>
                 <p class="text-gray-600">{{ config('app.tagline') }}</p>
@@ -342,17 +343,13 @@
                     <span class="mx-2">•</span>
                     <span class="font-medium">Developed by:</span> {{ config('app.product_credits.developed_by') }}
                 </p>
-                <p>
-                    <span class="font-medium">Operated by:</span> {{ config('app.operated_by') }}
-                </p>
             </div>
 
             <!-- Contact & Copyright -->
             <div class="text-xs text-gray-500 pt-2 border-t">
                 <p>
-                    <span class="mr-3">📧 {{ config('app.contact.support_email') }}</span>
-                    <span class="mr-3">📞 {{ config('app.contact.support_phone') }}</span>
-                    <span>🌐 {{ config('app.contact.website') }}</span>
+                    <span class="mr-3">{{ config('app.contact.email') }}</span>
+                    <span>{{ config('app.contact.website') }}</span>
                 </p>
                 <p class="mt-2">&copy; {{ date('Y') }} All rights reserved.</p>
             </div>
