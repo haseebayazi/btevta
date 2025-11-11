@@ -157,4 +157,21 @@ return [
         'other' => 'Other',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Alert Thresholds
+    |--------------------------------------------------------------------------
+    |
+    | Thresholds for generating automated alerts.
+    |
+    */
+
+    'alert_thresholds' => [
+        'missing_remittance_days' => 90, // Alert if no remittance in X days
+        'proof_upload_days' => 30, // Alert if proof not uploaded within X days
+        'first_remittance_days' => 60, // Alert if first remittance not sent within X days
+        'low_frequency_months' => 6, // Check frequency after X months
+        'min_expected_remittances' => 3, // Minimum remittances expected in frequency period
+    ],
+
 ];
