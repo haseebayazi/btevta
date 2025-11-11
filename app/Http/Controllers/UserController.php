@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Campus;
+use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
@@ -238,10 +240,20 @@ class UserController extends Controller
                 ->log('User password reset');
 
             // SECURITY: Send password via email only, never in response
-            // TODO: Implement email notification
-            // Mail::to($user->email)->send(new PasswordResetMail($newPassword));
+            try {
+                Mail::to($user->email)->send(new PasswordResetMail($user, $newPassword, auth()->user()));
 
-            return back()->with('success', 'Password reset successfully! New password has been generated. Please implement email notification to send it to the user.');
+                return back()->with('success', 'Password reset successfully! New password has been emailed to ' . $user->email);
+            } catch (\Exception $mailException) {
+                // Log email failure but don't expose the password
+                \Log::error('Failed to send password reset email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $mailException->getMessage()
+                ]);
+
+                return back()->with('warning', 'Password reset successfully but failed to send email notification. Please configure email settings or manually notify the user.');
+            }
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to reset password: ' . $e->getMessage());
         }
