@@ -205,6 +205,14 @@ class Candidate extends Model
     }
 
     /**
+     * Get all registration documents for the candidate.
+     */
+    public function documents()
+    {
+        return $this->hasMany(RegistrationDocument::class);
+    }
+
+    /**
      * Get all training attendances for the candidate.
      */
     public function trainingAttendances()
