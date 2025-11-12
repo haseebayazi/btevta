@@ -11,25 +11,37 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Helper function to check if index exists
+        $indexExists = function($table, $indexName) {
+            $indexes = \DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = ?", [$indexName]);
+            return !empty($indexes);
+        };
+
         // Add unique constraint to oeps.registration_number
-        Schema::table('oeps', function (Blueprint $table) {
-            if (Schema::hasColumn('oeps', 'registration_number')) {
-                $table->unique('registration_number', 'oeps_registration_number_unique');
+        if (Schema::hasTable('oeps') && Schema::hasColumn('oeps', 'registration_number')) {
+            if (!$indexExists('oeps', 'oeps_registration_number_unique')) {
+                Schema::table('oeps', function (Blueprint $table) {
+                    $table->unique('registration_number', 'oeps_registration_number_unique');
+                });
             }
-        });
+        }
 
         // Add unique constraint to candidates.btevta_id (if exists)
         if (Schema::hasTable('candidates') && Schema::hasColumn('candidates', 'btevta_id')) {
-            Schema::table('candidates', function (Blueprint $table) {
-                $table->unique('btevta_id', 'candidates_btevta_id_unique');
-            });
+            if (!$indexExists('candidates', 'candidates_btevta_id_unique')) {
+                Schema::table('candidates', function (Blueprint $table) {
+                    $table->unique('btevta_id', 'candidates_btevta_id_unique');
+                });
+            }
         }
 
         // Add unique constraint to complaint_reference in complaints table
         if (Schema::hasTable('complaints') && Schema::hasColumn('complaints', 'complaint_reference')) {
-            Schema::table('complaints', function (Blueprint $table) {
-                $table->unique('complaint_reference', 'complaints_complaint_reference_unique');
-            });
+            if (!$indexExists('complaints', 'complaints_complaint_reference_unique')) {
+                Schema::table('complaints', function (Blueprint $table) {
+                    $table->unique('complaint_reference', 'complaints_complaint_reference_unique');
+                });
+            }
         }
     }
 

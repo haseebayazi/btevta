@@ -1,0 +1,23 @@
+---
+deployment:
+  tasks:
+    # Install Composer dependencies
+    - export COMPOSER_HOME=/home/iihsedup/.config/composer
+    - /usr/local/bin/ea-php82 /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
+
+    # Copy environment file if it doesn't exist
+    - cp -n .env.example .env || true
+
+    # Run Laravel optimization commands
+    - /usr/local/bin/ea-php82 artisan config:cache
+    - /usr/local/bin/ea-php82 artisan route:cache
+    - /usr/local/bin/ea-php82 artisan view:cache
+
+    # Run database migrations (optional - uncomment if needed)
+    # - /usr/local/bin/ea-php82 artisan migrate --force
+
+    # Create storage symlink
+    - /usr/local/bin/ea-php82 artisan storage:link || true
+
+    # Set permissions
+    - chmod -R 755 storage bootstrap/cache
