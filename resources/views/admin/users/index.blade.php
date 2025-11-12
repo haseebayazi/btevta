@@ -8,7 +8,7 @@
         </div>
         <div class="col-md-4 text-right">
             @can('create', App\Models\User::class)
-            <a href="{{ route('users.create') }}" class="btn btn-primary">
+            <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New User
             </a>
             @endcan
@@ -47,17 +47,17 @@
                                 </td>
                                 <td>
                                     @can('view', $user)
-                                    <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-info">
+                                    <a href="{{ route('admin.users.show', $user->id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @endcan
                                     @can('update', $user)
-                                    <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning">
+                                    <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @endcan
                                     @can('delete', $user)
-                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete user?')">
                                             <i class="fas fa-trash"></i>
