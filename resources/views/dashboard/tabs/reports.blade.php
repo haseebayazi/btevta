@@ -58,21 +58,21 @@
             </div>
         </a>
 
-        <a href="{{ route('reports.batch-summary') }}" class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
+        <a href="{{ route('reports.training-statistics') }}" class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="font-semibold text-lg">Batch Summary</h3>
+                    <h3 class="font-semibold text-lg">Training Statistics</h3>
                     <p class="text-sm text-gray-600 mt-1">Training batch statistics</p>
                 </div>
                 <i class="fas fa-layer-group text-green-600 text-3xl"></i>
             </div>
         </a>
 
-        <a href="{{ route('reports.candidate-profile') }}" class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
+        <a href="{{ route('candidates.index') }}" class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="font-semibold text-lg">Candidate Profile</h3>
-                    <p class="text-sm text-gray-600 mt-1">Individual candidate records</p>
+                    <h3 class="font-semibold text-lg">Candidate Records</h3>
+                    <p class="text-sm text-gray-600 mt-1">View all candidate records</p>
                 </div>
                 <i class="fas fa-user text-purple-600 text-3xl"></i>
             </div>
