@@ -22,6 +22,7 @@ class CandidateScreening extends Model
     protected $fillable = [
         'candidate_id',
         'screening_type',
+        'screening_stage',
         'status',
         'remarks',
         'screened_by',
@@ -44,6 +45,7 @@ class CandidateScreening extends Model
         'next_call_date' => 'datetime',
         'call_duration' => 'integer',
         'call_count' => 'integer',
+        'screening_stage' => 'integer',
         'created_by' => 'integer',
         'updated_by' => 'integer',
         'deleted_at' => 'datetime',
