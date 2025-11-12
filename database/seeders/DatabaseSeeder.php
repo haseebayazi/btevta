@@ -15,13 +15,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create Admin User
-        User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@btevta.gov.pk',
-            'password' => Hash::make('Admin@123'),
-            'role' => 'admin',
-            'is_active' => true,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@btevta.gov.pk'],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('Admin@123'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
 
         echo "✓ Admin created (admin@btevta.gov.pk / Admin@123)\n";
 
@@ -35,16 +37,18 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($campuses as $campus) {
-            Campus::create([
-                'name' => $campus['name'],
-                'code' => $campus['code'],
-                'address' => '123 Main Street',
-                'city' => explode(' ', $campus['name'])[0],
-                'contact_person' => 'Manager',
-                'phone' => '051-9201596',
-                'email' => strtolower(str_replace(' ', '', $campus['code'])) . '@btevta.gov.pk',
-                'is_active' => true,
-            ]);
+            Campus::updateOrCreate(
+                ['code' => $campus['code']],
+                [
+                    'name' => $campus['name'],
+                    'address' => '123 Main Street',
+                    'city' => explode(' ', $campus['name'])[0],
+                    'contact_person' => 'Manager',
+                    'phone' => '051-9201596',
+                    'email' => strtolower(str_replace(' ', '', $campus['code'])) . '@btevta.gov.pk',
+                    'is_active' => true,
+                ]
+            );
         }
 
         echo "✓ Created 5 campuses\n";
@@ -52,14 +56,16 @@ class DatabaseSeeder extends Seeder
         // Create Campus Admins
         $campusList = Campus::all();
         foreach ($campusList as $index => $campus) {
-            User::create([
-                'name' => $campus->name . ' Admin',
-                'email' => 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk',
-                'password' => Hash::make('Admin@123'),
-                'role' => 'campus_admin',
-                'campus_id' => $campus->id,
-                'is_active' => true,
-            ]);
+            User::updateOrCreate(
+                ['email' => 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk'],
+                [
+                    'name' => $campus->name . ' Admin',
+                    'password' => Hash::make('Admin@123'),
+                    'role' => 'campus_admin',
+                    'campus_id' => $campus->id,
+                    'is_active' => true,
+                ]
+            );
         }
 
         echo "✓ Created 5 campus admin users\n";
@@ -74,14 +80,16 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($trades as $trade) {
-            Trade::create([
-                'code' => $trade['code'],
-                'name' => $trade['name'],
-                'description' => $trade['name'] . ' training program',
-                'category' => $trade['category'],
-                'duration_months' => 12,
-                'is_active' => true,
-            ]);
+            Trade::updateOrCreate(
+                ['code' => $trade['code']],
+                [
+                    'name' => $trade['name'],
+                    'description' => $trade['name'] . ' training program',
+                    'category' => $trade['category'],
+                    'duration_months' => 12,
+                    'is_active' => true,
+                ]
+            );
         }
 
         echo "✓ Created 5 trades\n";
@@ -96,17 +104,19 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($oeps as $oep) {
-            Oep::create([
-                'name' => $oep['name'],
-                'company_name' => $oep['company_name'],
-                'registration_number' => 'REG-' . rand(10000, 99999),
-                'address' => 'Office Address',
-                'phone' => '051-9201596',
-                'email' => strtolower(str_replace(' ', '', $oep['name'])) . '@oep.com',
-                'website' => 'https://oep.com',
-                'contact_person' => 'Manager',
-                'is_active' => true,
-            ]);
+            Oep::updateOrCreate(
+                ['company_name' => $oep['company_name']],
+                [
+                    'name' => $oep['name'],
+                    'registration_number' => 'REG-' . rand(10000, 99999),
+                    'address' => 'Office Address',
+                    'phone' => '051-9201596',
+                    'email' => strtolower(str_replace(' ', '', $oep['name'])) . '@oep.com',
+                    'website' => 'https://oep.com',
+                    'contact_person' => 'Manager',
+                    'is_active' => true,
+                ]
+            );
         }
 
         echo "✓ Created 5 OEPs\n";
@@ -114,43 +124,52 @@ class DatabaseSeeder extends Seeder
         // Create OEP Users
         $oepList = Oep::all();
         foreach ($oepList as $oep) {
-            User::create([
-                'name' => $oep->name . ' User',
-                'email' => 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@btevta.gov.pk',
-                'password' => Hash::make('OEP@123'),
-                'role' => 'oep',
-                'oep_id' => $oep->id,
-                'is_active' => true,
-            ]);
+            User::updateOrCreate(
+                ['email' => 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@btevta.gov.pk'],
+                [
+                    'name' => $oep->name . ' User',
+                    'password' => Hash::make('OEP@123'),
+                    'role' => 'oep',
+                    'oep_id' => $oep->id,
+                    'is_active' => true,
+                ]
+            );
         }
 
         echo "✓ Created 5 OEP users\n";
 
         // Create Batches
-        $tradeList = Trade::all();
-        $campusListForBatch = Campus::all();
-        
-        foreach ($tradeList as $trade) {
-            for ($i = 1; $i <= 3; $i++) {
-                Batch::create([
-                    'name' => $trade->name . ' Batch ' . $i,
-                    'description' => 'Batch for ' . $trade->name,
-                    'trade_id' => $trade->id,
-                    'campus_id' => $campusListForBatch->random()->id,
-                    'start_date' => now()->addDays($i * 10),
-                    'end_date' => now()->addDays($i * 10 + 30),
-                    'capacity' => 30,
-                    'status' => 'planned',
-                ]);
+        if (Batch::count() === 0) {
+            $tradeList = Trade::all();
+            $campusListForBatch = Campus::all();
+
+            foreach ($tradeList as $trade) {
+                for ($i = 1; $i <= 3; $i++) {
+                    Batch::create([
+                        'name' => $trade->name . ' Batch ' . $i,
+                        'description' => 'Batch for ' . $trade->name,
+                        'trade_id' => $trade->id,
+                        'campus_id' => $campusListForBatch->random()->id,
+                        'start_date' => now()->addDays($i * 10),
+                        'end_date' => now()->addDays($i * 10 + 30),
+                        'capacity' => 30,
+                        'status' => 'planned',
+                    ]);
+                }
             }
+            echo "✓ Created 15 batches\n";
+        } else {
+            echo "✓ Batches already exist, skipping...\n";
         }
 
-        echo "✓ Created 15 batches\n";
-
         // Create Sample Candidates using factories
-        echo "Creating sample candidates using factories...\n";
-        \App\Models\Candidate::factory(50)->create();
-        echo "✓ Created 50 sample candidates\n";
+        if (\App\Models\Candidate::count() === 0) {
+            echo "Creating sample candidates using factories...\n";
+            \App\Models\Candidate::factory(50)->create();
+            echo "✓ Created 50 sample candidates\n";
+        } else {
+            echo "✓ Candidates already exist, skipping...\n";
+        }
 
         echo "\n✨ Database seeding completed successfully!\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
