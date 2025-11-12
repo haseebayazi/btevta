@@ -22,7 +22,7 @@
         <div class="col-md-9">
             <div class="card">
                 <div class="card-body">
-                    <form method="POST" action="{{ route('settings.save') }}">
+                    <form method="POST" action="{{ route('settings.update') }}">
                         @csrf
 
                         <div id="general" class="settings-section">
