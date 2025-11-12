@@ -36,8 +36,7 @@ In cPanel Git Version Control:
 ### 3. Configure Branch
 
 1. In the repository management page, select the branch to deploy:
-   - For production: `main` or `master`
-   - For testing: `claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q` (current branch)
+   - For production: `main`
 2. Click **Pull or Deploy** → **Deploy HEAD Commit**
 
 ### 4. Manual Steps After First Deployment

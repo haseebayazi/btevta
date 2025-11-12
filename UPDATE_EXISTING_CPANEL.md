@@ -46,10 +46,10 @@ You have two options:
 git stash
 
 # Checkout the branch you want
-git checkout claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git checkout main
 
 # Pull latest changes
-git pull origin claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git pull origin main
 
 # If you had local changes you want to keep, restore them
 git stash pop
@@ -60,10 +60,10 @@ git stash pop
 ```bash
 # Force checkout the branch (this will overwrite local files)
 git fetch origin
-git checkout -B claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q origin/claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git checkout -B main origin/main
 
 # Or use reset (more aggressive)
-git reset --hard origin/claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git reset --hard origin/main
 ```
 
 ## Step 6: Restore Your .env File
@@ -110,7 +110,7 @@ Now that Git is set up, updating is simple:
 cd ~/oep.jaamiah.com
 
 # Pull latest changes
-git pull origin claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git pull origin main
 
 # Update dependencies and run migrations
 composer install --no-dev --optimize-autoloader
@@ -127,7 +127,7 @@ Create a file `~/update-app.sh`:
 cd ~/oep.jaamiah.com
 
 echo "🔄 Pulling latest changes..."
-git pull origin claude/installation-setup-011CV4WaucKFRbuTUNJkWu8q
+git pull origin main
 
 echo "📦 Installing dependencies..."
 composer install --no-dev --optimize-autoloader
