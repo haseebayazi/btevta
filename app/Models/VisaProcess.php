@@ -13,11 +13,11 @@ class VisaProcess extends Model
     protected $table = 'visa_processes';
 
     protected $fillable = [
-        'candidate_id', 'interview_date', 'interview_status', 'interview_remarks',
-        'trade_test_date', 'trade_test_status', 'trade_test_remarks',
-        'takamol_date', 'takamol_status', 'medical_date', 'medical_status',
-        'biometric_date', 'biometric_status', 'visa_date', 'visa_number',
-        'visa_status', 'ticket_uploaded', 'ticket_date', 'ticket_path', 'ticket_number',
+        'candidate_id', 'interview_date', 'interview_status', 'interview_completed', 'interview_remarks',
+        'trade_test_date', 'trade_test_status', 'trade_test_completed', 'trade_test_remarks',
+        'takamol_date', 'takamol_status', 'medical_date', 'medical_status', 'medical_completed',
+        'biometric_date', 'biometric_status', 'biometric_completed', 'visa_date', 'visa_number',
+        'visa_status', 'visa_issued', 'ticket_uploaded', 'ticket_date', 'ticket_path', 'ticket_number',
         'overall_status', 'remarks', 'created_by', 'updated_by'
     ];
 
@@ -29,6 +29,11 @@ class VisaProcess extends Model
         'biometric_date' => 'date',
         'visa_date' => 'date',
         'ticket_date' => 'date',
+        'interview_completed' => 'boolean',
+        'trade_test_completed' => 'boolean',
+        'medical_completed' => 'boolean',
+        'biometric_completed' => 'boolean',
+        'visa_issued' => 'boolean',
         'ticket_uploaded' => 'boolean',
     ];
 
