@@ -404,6 +404,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings', [UserController::class, 'settings'])->name('settings');
         Route::post('/settings', [UserController::class, 'updateSettings'])->name('settings.update');
 
+        // Audit Logs (from UserController)
+        Route::get('/audit-logs', [UserController::class, 'auditLogs'])->name('audit-logs');
+
         // Activity Logs
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
         Route::get('/activity-logs/statistics', [ActivityLogController::class, 'statistics'])->name('activity-logs.statistics');
