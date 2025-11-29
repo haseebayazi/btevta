@@ -313,7 +313,7 @@
                 </div>
 
                 <!-- Admin Section -->
-                @if(auth()->user()->role === 'admin')
+                @if(auth()->user()->isAdmin())
                 <div class="pt-4 border-t">
                     <p x-show="sidebarOpen" class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                         Administration

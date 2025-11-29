@@ -681,6 +681,20 @@ class Candidate extends Model
     }
 
     /**
+     * Clear dashboard cache when candidate data changes.
+     */
+    private static function clearDashboardCache($candidate)
+    {
+        \Illuminate\Support\Facades\Cache::forget('dashboard_stats_all');
+        \Illuminate\Support\Facades\Cache::forget('dashboard_alerts_all');
+
+        if ($candidate->campus_id) {
+            \Illuminate\Support\Facades\Cache::forget('dashboard_stats_' . $candidate->campus_id);
+            \Illuminate\Support\Facades\Cache::forget('dashboard_alerts_' . $candidate->campus_id);
+        }
+    }
+
+    /**
      * Boot method to handle model events.
      */
     protected static function boot()
@@ -692,7 +706,7 @@ class Candidate extends Model
             if (empty($candidate->application_id)) {
                 $candidate->application_id = self::generateApplicationId();
             }
-            
+
             if (auth()->check()) {
                 $candidate->created_by = auth()->id();
             }
@@ -703,6 +717,19 @@ class Candidate extends Model
             if (auth()->check()) {
                 $candidate->updated_by = auth()->id();
             }
+        });
+
+        // Clear dashboard cache on any candidate changes
+        static::created(function ($candidate) {
+            self::clearDashboardCache($candidate);
+        });
+
+        static::updated(function ($candidate) {
+            self::clearDashboardCache($candidate);
+        });
+
+        static::deleted(function ($candidate) {
+            self::clearDashboardCache($candidate);
         });
     }
 

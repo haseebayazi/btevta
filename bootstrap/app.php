@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\CheckUserActive;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -62,6 +63,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register custom middleware aliases
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'active' => CheckUserActive::class,
+        ]);
+
+        // SECURITY: Add active user check to web middleware group
+        // Ensures deactivated users are logged out automatically
+        $middleware->web(append: [
+            CheckUserActive::class,
         ]);
 
         // PERFORMANCE: Define middleware groups for common patterns

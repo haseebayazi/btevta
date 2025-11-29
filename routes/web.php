@@ -504,10 +504,10 @@ Route::middleware(['auth'])->group(function () {
         // Admin-only actions
         Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
             ->name('generate')
-            ->middleware('can:admin');
+            ->middleware('role:admin');
         Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
             ->name('auto-resolve')
-            ->middleware('can:admin');
+            ->middleware('role:admin');
 
         // AJAX endpoint
         Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
