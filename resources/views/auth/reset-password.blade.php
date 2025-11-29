@@ -61,12 +61,22 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-lock text-gray-400"></i>
                         </div>
-                        <input type="password" 
-                               name="password" 
-                               id="password" 
-                               class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        <input type="password"
+                               name="password"
+                               id="password"
+                               class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                placeholder="Minimum 8 characters"
+                               oninput="checkPasswordStrength()"
                                required>
+                        <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i class="fas fa-eye text-gray-400" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                    <div id="passwordStrength" class="mt-2 hidden">
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="strengthBar" class="h-full transition-all duration-300"></div>
+                        </div>
+                        <p id="strengthText" class="text-xs mt-1"></p>
                     </div>
                 </div>
                 
@@ -104,6 +114,76 @@
             <p>&copy; {{ date('Y') }} BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab</p>
         </div>
     </div>
-    
+
+    <script>
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+            const strengthContainer = document.getElementById('passwordStrength');
+
+            if (password.length === 0) {
+                strengthContainer.classList.add('hidden');
+                return;
+            }
+
+            strengthContainer.classList.remove('hidden');
+
+            let strength = 0;
+            let feedback = [];
+
+            // Length check
+            if (password.length >= 8) strength += 20;
+            if (password.length >= 12) strength += 10;
+            if (password.length >= 16) strength += 10;
+
+            // Character variety checks
+            if (/[a-z]/.test(password)) strength += 15;
+            if (/[A-Z]/.test(password)) strength += 15;
+            if (/[0-9]/.test(password)) strength += 15;
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+
+            // Determine strength level
+            let strengthLevel = 'Weak';
+            let barColor = 'bg-red-500';
+            let textColor = 'text-red-600';
+
+            if (strength >= 80) {
+                strengthLevel = 'Strong';
+                barColor = 'bg-green-500';
+                textColor = 'text-green-600';
+            } else if (strength >= 60) {
+                strengthLevel = 'Good';
+                barColor = 'bg-blue-500';
+                textColor = 'text-blue-600';
+            } else if (strength >= 40) {
+                strengthLevel = 'Fair';
+                barColor = 'bg-yellow-500';
+                textColor = 'text-yellow-600';
+            }
+
+            // Update UI
+            strengthBar.className = `h-full transition-all duration-300 ${barColor}`;
+            strengthBar.style.width = `${strength}%`;
+            strengthText.className = `text-xs mt-1 ${textColor}`;
+            strengthText.textContent = `Password strength: ${strengthLevel}`;
+        }
+
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
+
 </body>
 </html>
