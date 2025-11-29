@@ -161,9 +161,8 @@ class DashboardController extends Controller
         }
 
         // Overdue complaints
-        $overdueComplaints = Complaint::whereIn('status', ['registered', 'under_review', 'assigned', 'in_progress'])
+        $overdueComplaints = Complaint::overdue()
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-            ->whereRaw('DATE_ADD(registered_at, INTERVAL CAST(sla_days AS SIGNED) DAY) < NOW()')
             ->count();
 
         if ($overdueComplaints > 0) {
@@ -244,15 +243,17 @@ class DashboardController extends Controller
             ->count();
         
         $pendingCall2 = CandidateScreening::whereIn('screening_stage', [1, 2])
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
+            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) =>
                 $sq->where('campus_id', $campusFilter)))
-            ->distinct('candidate_id')
+            ->select('candidate_id')
+            ->distinct()
             ->count();
-        
+
         $pendingCall3 = CandidateScreening::where('screening_stage', 2)
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
+            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) =>
                 $sq->where('campus_id', $campusFilter)))
-            ->distinct('candidate_id')
+            ->select('candidate_id')
+            ->distinct()
             ->count();
         
         $screeningQueue = Candidate::where('status', 'screening')
@@ -465,8 +466,7 @@ class DashboardController extends Controller
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
             'resolved' => Complaint::where('status', 'resolved')
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
-            'overdue' => Complaint::whereIn('status', ['registered', 'under_review', 'assigned', 'in_progress'])
-                ->whereRaw('DATE_ADD(registered_at, INTERVAL CAST(sla_days AS SIGNED) DAY) < NOW()')
+            'overdue' => Complaint::overdue()
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
         ];
         
