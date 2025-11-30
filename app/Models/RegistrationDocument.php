@@ -19,8 +19,10 @@ class RegistrationDocument extends Model
         'file_path',
         'issue_date',
         'expiry_date',
+        'status',
         'verification_status',
         'remarks',
+        'uploaded_by',
         'created_by',
         'updated_by'
     ];

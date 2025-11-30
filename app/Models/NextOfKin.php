@@ -19,6 +19,7 @@ class NextOfKin extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'candidate_id',
         'name',
         'relationship',
         'cnic',

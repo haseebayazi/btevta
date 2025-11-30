@@ -94,7 +94,11 @@ return new class extends Migration
             });
         }
 
-        // Create undertakings table if it doesn't exist
+        // DEPRECATED: undertakings table creation moved to 2025_11_30_000001_fix_undertakings_table_schema.php
+        // This was causing schema conflicts with the controller expectations
+        // The undertakings table is now created by migration 2025_11_01_000001_create_missing_tables.php
+        // and then fixed/recreated by 2025_11_30_000001_fix_undertakings_table_schema.php
+        /*
         if (!Schema::hasTable('undertakings')) {
             Schema::create('undertakings', function (Blueprint $table) {
                 $table->id();
@@ -105,10 +109,11 @@ return new class extends Migration
                 $table->boolean('is_signed')->default(false);
                 $table->timestamps();
                 $table->softDeletes();
-                
+
                 $table->foreign('candidate_id')->references('id')->on('candidates')->onDelete('cascade');
             });
         }
+        */
 
         // Create training_certificates table if it doesn't exist
         if (!Schema::hasTable('training_certificates')) {
