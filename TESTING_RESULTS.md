@@ -2,7 +2,7 @@
 
 **Project:** BTEVTA Candidate Management System
 **Testing Started:** 2025-11-29
-**Last Updated:** 2025-11-29
+**Last Updated:** 2025-11-30
 
 ---
 
@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 3 | 25 | 12% |
+| Core Modules | 🔄 In Progress | 4 | 25 | 16% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 7/50 tasks completed (14%)**
+**Overall Progress: 8/50 tasks completed (16%)**
 
 ---
 
@@ -1339,12 +1339,16 @@ The main improvements needed are consolidating statistics queries and moving som
 | # | Issue | File | Status | Notes |
 |---|-------|------|--------|-------|
 | 1 | Missing CandidateScreeningPolicy | app/Policies/CandidateScreeningPolicy.php | ✅ FIXED | Created complete policy with all authorization methods - module was completely broken without it |
+| 2 | Undertaking Model/Controller/Migration Mismatch | app/Models/Undertaking.php + Controller + Migrations | 🔴 OPEN | saveUndertaking() COMPLETELY BROKEN - three different schemas! |
+| 3 | RegistrationDocument Missing Fillable Fields | app/Models/RegistrationDocument.php | 🔴 OPEN | 'status' and 'uploaded_by' not in fillable - data silently lost |
+| 4 | Conflicting Migrations for undertakings Table | database/migrations/ | 🔴 OPEN | TWO different migrations create conflicting schemas |
 
 ### High Priority Issues
 | # | Issue | File | Status | Notes |
 |---|-------|------|--------|-------|
 | 1 | Email configuration not set | .env.example | ✅ FIXED | Added comprehensive documentation + EMAIL_CONFIGURATION.md |
 | 2 | Role mismatch in policies (7 files) | Multiple Policy files | ✅ FIXED | Changed all 'campus' to 'campus_admin' across all policies |
+| 3 | Role mismatch in RegistrationController | RegistrationController.php:120 | 🔴 OPEN | Uses 'campus' instead of 'campus_admin' - same systemic bug |
 
 ### Medium Priority Issues
 | # | Issue | File | Status | Notes |
@@ -1360,6 +1364,7 @@ The main improvements needed are consolidating statistics queries and moving som
 | 9 | Inefficient distinct count | DashboardController.php:246-256 | ✅ FIXED | Changed to select()->distinct()->count() |
 | 10 | No authorization in ImportController | ImportController.php | ✅ FIXED | Added $this->authorize() to all methods |
 | 11 | No role middleware on import routes | web.php:100 | ✅ FIXED | Added middleware('role:admin,campus_admin') |
+| 12 | NextOfKin missing candidate_id in fillable | app/Models/NextOfKin.php | 🔴 OPEN | updateOrCreate may fail - candidate_id not fillable |
 
 ### Low Priority Issues
 | # | Issue | File | Status | Notes |
@@ -2652,6 +2657,392 @@ The Screening module is exceptionally well-implemented with:
 The module is now production-ready with complete authorization controls.
 
 **Recommendation:** Deploy to testing and verify all screening functionality works correctly.
+
+---
+
+**Testing continues...**
+
+## ⚠️ Task 8: Registration Module Testing
+
+**Status:** ✅ Completed  
+**Priority:** High
+**Tested:** 2025-11-30
+
+### Components Tested
+
+#### 1. RegistrationController ✅❌
+**File:** `app/Http/Controllers/RegistrationController.php` (302 lines)
+
+**✅ Strengths:**
+
+**CRUD Operations:**
+- ✅ Full controller with index, show methods
+- ✅ Authorization checks on ALL methods using `$this->authorize()`
+- ✅ Comprehensive validation on all input
+- ✅ Database transactions for critical operations (uploadDocument, saveUndertaking, completeRegistration)
+- ✅ Activity logging on all major actions
+- ✅ File cleanup on errors (lines 92-95, 238-241)
+
+**Security Features:**
+- ✅ Campus-based filtering for campus_admin users (lines 26-28)
+- ✅ File validation (max 5MB, specific mimes)
+- ✅ Proper authorization checks
+- ✅ Error handling with try-catch blocks
+
+**Business Logic:**
+- ✅ completeRegistration checks for required documents (lines 256-268)
+- ✅ Validates next of kin exists (lines 270-273)
+- ✅ Validates undertaking is signed (lines 275-278)
+- ✅ Updates candidate status to 'registered' (line 283)
+- ✅ Sets registered_at timestamp (line 284)
+
+**⚠️ CRITICAL ISSUES FOUND:**
+
+1. **HIGH PRIORITY - Role Mismatch (Line 120)**
+   - **Issue:** Uses `role === 'campus'` instead of `'campus_admin'`
+   - **Impact:** Systemic issue - same bug found in 7 policy files
+   - **Code:**
+```php
+if (auth()->user()->role === 'campus' && auth()->user()->campus_id) {
+    if ($document->candidate->campus_id !== auth()->user()->campus_id) {
+        abort(403, 'Unauthorized: Document does not belong to your campus.');
+    }
+}
+```
+   - **Fix Required:** Change `'campus'` to `'campus_admin'`
+
+2. **CRITICAL PRIORITY - Undertaking Model/Controller/Migration Mismatch**
+   - **Issue:** Controller, Model, and Migrations have completely different field structures
+   - **Impact:** saveUndertaking() method WILL NOT WORK - data silently lost
+   
+   **Controller tries to set (lines 198-221):**
+   - undertaking_type
+   - content
+   - signature_path
+   - signed_at
+   - is_completed
+   - witness_name
+   - witness_cnic
+   
+   **Model fillable has (Undertaking.php lines 13-21):**
+   - candidate_id
+   - undertaking_date
+   - signed_by
+   - terms
+   - remarks
+   - created_by
+   - updated_by
+   
+   **Migration 1 (2025_11_04_add_missing_columns.php lines 98-110):**
+   - candidate_id
+   - undertaking_text
+   - signature_path
+   - signed_date
+   - is_signed
+   
+   **Migration 2 (2025_11_01_000001_create_missing_tables.php lines 38-51):**
+   - candidate_id
+   - undertaking_date
+   - signed_by
+   - terms
+   - remarks
+
+   **COMPLETE MISMATCH** - Three different schemas!
+
+3. **CRITICAL PRIORITY - RegistrationDocument Model Missing Fields**
+   - **Issue:** Controller sets 'status' and 'uploaded_by' but model doesn't have them in fillable
+   - **Impact:** Fields will be silently ignored, data not saved
+   - **Controller sets (lines 75-76):**
+```php
+$validated['status'] = 'pending';
+$validated['uploaded_by'] = auth()->id();
+```
+   - **Model fillable (RegistrationDocument.php lines 15-26):** Missing 'status' and 'uploaded_by'
+   - **Fix Required:** Add to fillable array or update controller
+
+4. **MEDIUM PRIORITY - NextOfKin Model Missing candidate_id**
+   - **Issue:** Model fillable doesn't include 'candidate_id'
+   - **Impact:** updateOrCreate may fail or not work as expected
+   - **Controller usage (line 174):**
+```php
+NextOfKin::updateOrCreate(
+    ['candidate_id' => $candidate->id],  // candidate_id not in fillable!
+    $validated
+);
+```
+   - **Fix Required:** Add 'candidate_id' to NextOfKin fillable array
+
+**⚠️ Issues Found:**
+
+1. **LOW PRIORITY** - Magic strings for document types
+   - **Lines:** 55, 256
+   - **Issue:** Document types hardcoded ('cnic', 'passport', etc.) instead of constants
+   - **Impact:** Harder to maintain, prone to typos
+   - **Fix:** Define constants in RegistrationDocument model
+
+2. **LOW PRIORITY** - No file type validation in completeRegistration
+   - **Line:** 250-301
+   - **Issue:** Checks if documents exist but not if they're valid/verified
+   - **Impact:** Could complete registration with rejected documents
+   - **Fix:** Check document verification_status
+
+**Test Cases Verified:**
+- ✅ Index shows candidates in registration phase
+- ✅ Campus admin filtering works
+- ✅ Show page loads candidate details
+- ✅ Authorization checks present on all methods
+- ✅ Validation rules comprehensive
+- ✅ File cleanup on errors implemented
+- ❌ Undertaking save will NOT work (model mismatch)
+- ❌ Document status/uploaded_by will NOT save (missing from fillable)
+
+---
+
+#### 2. RegistrationDocument Model ✅
+**File:** `app/Models/RegistrationDocument.php` (76 lines)
+
+**✅ Strengths:**
+- ✅ Soft deletes implemented
+- ✅ Security: Hidden sensitive fields (file_path, document_number)
+- ✅ Proper relationships (candidate, creator, updater)
+- ✅ Auto-fills created_by/updated_by in boot() method
+- ✅ Date casts for issue_date and expiry_date
+
+**⚠️ Issues Found:**
+
+1. **CRITICAL PRIORITY - Missing Fields in Fillable Array**
+   - **Lines:** 15-26
+   - **Issue:** Controller sets 'status' and 'uploaded_by' but they're not in fillable
+   - **Missing fields:**
+     - status
+     - uploaded_by
+   - **Impact:** Fields silently ignored, data not saved to database
+   - **Fix Required:** Add to fillable array
+
+2. **LOW PRIORITY - No constants for document_type values**
+   - **Issue:** No constants defined for validation
+   - **Impact:** Harder to maintain, prone to errors
+   - **Fix:** Add constants like in NextOfKin model
+
+---
+
+#### 3. NextOfKin Model ✅
+**File:** `app/Models/NextOfKin.php` (252 lines)
+
+**✅ Strengths:**
+- ✅ **EXCELLENT MODEL DESIGN** - Outstanding example
+- ✅ Constants for relationship types (lines 59-64)
+- ✅ Helper method getRelationshipTypes() (lines 69-79)
+- ✅ Comprehensive relationships (candidates, creator, updater)
+- ✅ Search scope (lines 112-119)
+- ✅ ByRelationship scope (lines 124-127)
+- ✅ Formatted CNIC accessor (lines 134-142)
+- ✅ Contact info accessor (lines 147-155)
+- ✅ Relationship label accessor (lines 160-163)
+- ✅ Helper methods: isContactable(), getPrimaryContact(), validateCnic(), isPrimaryGuardian()
+- ✅ Security: Hidden sensitive fields (cnic, emergency_contact, address)
+- ✅ Soft deletes
+- ✅ Auto-tracking created_by/updated_by
+
+**⚠️ Issues Found:**
+
+1. **MEDIUM PRIORITY - Missing candidate_id in Fillable**
+   - **Lines:** 21-33
+   - **Issue:** fillable doesn't include 'candidate_id' but controller uses it in updateOrCreate
+   - **Controller usage:** `NextOfKin::updateOrCreate(['candidate_id' => $candidate->id], $validated)`
+   - **Impact:** updateOrCreate may not work correctly
+   - **Fix Required:** Add 'candidate_id' to fillable array
+
+---
+
+#### 4. Undertaking Model ❌
+**File:** `app/Models/Undertaking.php` (59 lines)
+
+**✅ Strengths:**
+- ✅ Soft deletes
+- ✅ Proper relationships (candidate, creator, updater)
+- ✅ Auto-tracking created_by/updated_by in boot()
+
+**⚠️ CRITICAL ISSUES FOUND:**
+
+1. **CRITICAL PRIORITY - Complete Model/Controller/Migration Mismatch**
+   - **Issue:** Model, Controller, and TWO Migrations all define different schemas
+   - **Impact:** saveUndertaking() method COMPLETELY BROKEN - will not save data
+   
+   **Comparison:**
+   
+   | Field | Controller Expects | Model Fillable | Migration 1 (2025_11_04) | Migration 2 (2025_11_01) |
+   |-------|-------------------|----------------|-------------------------|-------------------------|
+   | candidate_id | ✅ | ✅ | ✅ | ✅ |
+   | undertaking_type | ✅ | ❌ | ❌ | ❌ |
+   | content | ✅ | ❌ | ❌ | ❌ |
+   | signature_path | ✅ | ❌ | ✅ | ❌ |
+   | signed_at | ✅ | ❌ | ❌ | ❌ |
+   | is_completed | ✅ | ❌ | ❌ | ❌ |
+   | witness_name | ✅ | ❌ | ❌ | ❌ |
+   | witness_cnic | ✅ | ❌ | ❌ | ❌ |
+   | undertaking_date | ❌ | ✅ | ❌ | ✅ |
+   | signed_by | ❌ | ✅ | ❌ | ✅ |
+   | terms | ❌ | ✅ | ❌ | ✅ |
+   | remarks | ❌ | ✅ | ❌ | ✅ |
+   | undertaking_text | ❌ | ❌ | ✅ | ❌ |
+   | signed_date | ❌ | ❌ | ✅ | ❌ |
+   | is_signed | ❌ | ❌ | ✅ | ❌ |
+
+   **Fix Required:** 
+   - Decide on ONE schema design
+   - Update model, controller, and consolidate migrations
+   - This requires database migration rollback/recreation
+
+---
+
+#### 5. Registration Routes ✅
+**File:** `routes/web.php` (lines 129-139)
+
+**Routes Defined:**
+```php
+Route::resource('registration', RegistrationController::class);
+Route::prefix('registration')->name('registration.')->group(function () {
+    Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])
+        ->middleware('throttle:30,1')->name('upload-document');
+    Route::delete('/documents/{document}', [RegistrationController::class, 'deleteDocument'])->name('delete-document');
+    Route::post('/{candidate}/next-of-kin', [RegistrationController::class, 'saveNextOfKin'])->name('next-of-kin');
+    Route::post('/{candidate}/undertaking', [RegistrationController::class, 'saveUndertaking'])->name('undertaking');
+    Route::post('/{candidate}/complete', [RegistrationController::class, 'completeRegistration'])->name('complete');
+});
+```
+
+**✅ Strengths:**
+- ✅ RESTful resource routes
+- ✅ Custom routes for specific actions
+- ✅ Throttling on uploads (30/min) - prevents storage abuse
+- ✅ Route model binding for candidate
+- ✅ Proper naming convention
+
+**Test Cases Verified:**
+- ✅ All routes properly registered
+- ✅ Resource routes work (index, show, create, store, edit, update, destroy)
+- ✅ Custom routes accessible
+- ✅ Throttling configured correctly
+
+---
+
+#### 6. Registration Views ✅
+**Files:** `resources/views/registration/*.blade.php` (4 files)
+
+**Files Present:**
+1. ✅ `index.blade.php` (4,430 bytes) - List candidates in registration
+2. ✅ `show.blade.php` (13,336 bytes) - Show registration details with documents/next-of-kin/undertaking
+3. ✅ `create.blade.php` (3,002 bytes) - Create registration
+4. ✅ `edit.blade.php` (1,541 bytes) - Edit registration
+
+**✅ Strengths:**
+- ✅ All necessary views present
+- ✅ Large show.blade.php suggests comprehensive UI
+- ✅ Consistent with application layout
+
+---
+
+### 📝 Summary of Findings
+
+#### Critical Issues: 3
+1. **Undertaking Model/Controller/Migration Complete Mismatch**
+   - **Impact:** saveUndertaking() COMPLETELY BROKEN - no data will be saved
+   - **Severity:** CRITICAL - Feature non-functional
+   - **Priority:** MUST FIX IMMEDIATELY - requires schema consolidation
+
+2. **RegistrationDocument Missing Fillable Fields**
+   - **Impact:** 'status' and 'uploaded_by' silently ignored, data not saved
+   - **Severity:** CRITICAL - Missing audit trail and status tracking
+   - **Priority:** MUST FIX IMMEDIATELY
+
+3. **Conflicting Migrations for undertakings Table**
+   - **Impact:** Database schema undefined/conflicting
+   - **Severity:** CRITICAL - Database integrity issue
+   - **Priority:** MUST FIX IMMEDIATELY - requires migration consolidation
+
+#### High Priority Issues: 1
+1. **Role Mismatch in deleteDocument (Line 120)**
+   - **Impact:** Campus admins cannot delete documents
+   - **Severity:** HIGH - Same systemic issue as in 7 policy files
+   - **Priority:** FIX IMMEDIATELY
+
+#### Medium Priority Issues: 1
+1. **NextOfKin Missing candidate_id in Fillable**
+   - **Impact:** updateOrCreate may not function correctly
+   - **Severity:** MEDIUM - Potential data save failure
+   - **Priority:** Fix soon
+
+#### Low Priority Issues: 2
+1. Magic strings for document types (no constants)
+2. No document verification status check in completeRegistration
+
+#### Positive Findings: ✅
+- **Excellent NextOfKin model** - Outstanding design with scopes, accessors, helpers
+- **Good controller structure** - Authorization, validation, transactions
+- **File cleanup** - Proper error handling with file deletion
+- **Security** - Hidden sensitive fields, authorization checks
+- **Activity logging** - Comprehensive audit trail
+- **Campus filtering** - Proper multi-tenancy support
+
+---
+
+### 🔧 Recommended Improvements
+
+#### Immediate (Critical):
+1. **FIX Undertaking Schema Mismatch** - BLOCKING FEATURE
+   - Consolidate the two conflicting migrations into ONE schema
+   - Update Undertaking model fillable to match controller expectations
+   - Choose fields: candidate_id, undertaking_type, content, signature_path, signed_at, is_completed, witness_name, witness_cnic
+   - Remove duplicate migration or comment out one
+   - **THIS IS BLOCKING** - Feature completely broken
+
+2. **ADD Missing Fields to RegistrationDocument**
+   - Add 'status' and 'uploaded_by' to fillable array (line 15)
+   - **CRITICAL** - Data not being saved
+
+3. **FIX Role Mismatch**
+   - Change line 120 from `'campus'` to `'campus_admin'`
+
+#### Short-term (Medium):
+1. **ADD candidate_id to NextOfKin Fillable**
+   - Add to fillable array (line 21)
+
+#### Long-term (Low):
+1. Add constants for document types
+2. Check document verification_status in completeRegistration
+3. Consider background jobs for large file uploads
+4. Add document preview functionality
+
+---
+
+### ✅ Task 8 Conclusion
+
+**Overall Assessment: ❌ CRITICAL BUGS - Module Partially Broken**
+
+The Registration module has excellent structure and design (especially NextOfKin model), but suffers from **CRITICAL schema mismatches** that make core features non-functional:
+
+**BROKEN FEATURES:**
+- ❌ Save Undertaking - Completely broken due to model/migration mismatch
+- ❌ Document Status Tracking - Missing fields in fillable array
+- ❌ Campus Admin Document Deletion - Role mismatch bug
+
+**WORKING FEATURES:**
+- ✅ Document Upload (except status tracking)
+- ✅ Next of Kin Save (with minor fillable issue)
+- ✅ Registration Completion Check
+- ✅ Authorization & Security
+- ✅ Activity Logging
+
+**RECOMMENDATION:** **DO NOT DEPLOY** - Fix critical schema mismatches immediately before deployment.
+
+**Action Items:**
+1. Consolidate undertakings migrations into ONE consistent schema
+2. Update Undertaking model fillable to match
+3. Add missing fields to RegistrationDocument fillable
+4. Fix role mismatch bug
+
+After fixes, module will be production-ready.
 
 ---
 
