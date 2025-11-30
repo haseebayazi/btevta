@@ -95,8 +95,9 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // IMPORT/EXPORT
     // Throttle: View 60/min, Import 5/min (database intensive)
+    // SECURITY FIX: Only admin and campus_admin can import
     // ========================================================================
-    Route::prefix('import')->name('import.')->group(function () {
+    Route::prefix('import')->name('import.')->middleware('role:admin,campus_admin')->group(function () {
         Route::get('/candidates', [ImportController::class, 'showCandidateImport'])->name('candidates.form');
 
         // THROTTLE FIX: Import limited to 5/min (database intensive)

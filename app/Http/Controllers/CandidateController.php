@@ -156,9 +156,18 @@ class CandidateController extends Controller
     {
         $this->authorize('update', $candidate);
 
-        $campuses = Campus::where('is_active', true)->get();
-        $trades = Trade::where('is_active', true)->get();
-        $oeps = Oep::where('is_active', true)->get();
+        // PERFORMANCE: Use cached dropdown data (consistent with create method)
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->select('id', 'name')->get();
+        });
+
+        $trades = Cache::remember('active_trades', 86400, function () {
+            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
+
+        $oeps = Cache::remember('active_oeps', 86400, function () {
+            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
+        });
 
         return view('candidates.edit', compact('candidate', 'campuses', 'trades', 'oeps'));
     }

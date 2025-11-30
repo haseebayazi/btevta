@@ -12,16 +12,20 @@ class Undertaking extends Model
 
     protected $fillable = [
         'candidate_id',
-        'undertaking_date',
-        'signed_by',
-        'terms',
-        'remarks',
+        'undertaking_type',
+        'content',
+        'signature_path',
+        'signed_at',
+        'is_completed',
+        'witness_name',
+        'witness_cnic',
         'created_by',
         'updated_by'
     ];
 
     protected $casts = [
-        'undertaking_date' => 'date',
+        'signed_at' => 'datetime',
+        'is_completed' => 'boolean',
     ];
 
     public function candidate()

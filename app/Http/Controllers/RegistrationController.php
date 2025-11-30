@@ -116,8 +116,8 @@ class RegistrationController extends Controller
             // Authorize based on the candidate
             $this->authorize('update', $document->candidate);
 
-            // Additional check: Campus users can only delete documents for their campus candidates
-            if (auth()->user()->role === 'campus' && auth()->user()->campus_id) {
+            // Additional check: Campus admin users can only delete documents for their campus candidates
+            if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
                 if ($document->candidate->campus_id !== auth()->user()->campus_id) {
                     abort(403, 'Unauthorized: Document does not belong to your campus.');
                 }

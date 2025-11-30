@@ -28,7 +28,7 @@ class ComplaintPolicy
         }
 
         // Campus users can view complaints related to their candidates
-        if ($user->role === 'campus' && $user->campus_id && $complaint->candidate) {
+        if ($user->role === 'campus_admin' && $user->campus_id && $complaint->candidate) {
             return $complaint->candidate->campus_id === $user->campus_id;
         }
 

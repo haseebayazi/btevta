@@ -8,6 +8,7 @@ use App\Models\Campus;
 use App\Models\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -18,23 +19,29 @@ class ImportController extends Controller
 {
     public function showCandidateImport()
     {
+        $this->authorize('import', Candidate::class);
+
         return view('import.candidates');
     }
 
     public function downloadTemplate()
     {
+        $this->authorize('import', Candidate::class);
+
         $templatePath = storage_path('app/templates/btevta_candidate_import_template.xlsx');
-        
+
         // Create template if it doesn't exist
         if (!file_exists($templatePath)) {
             $this->createTemplate();
         }
-        
+
         return response()->download($templatePath, 'BTEVTA_Import_Template.xlsx');
     }
 
     public function importCandidates(Request $request)
     {
+        $this->authorize('import', Candidate::class);
+
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls|max:10240',
         ]);
@@ -73,6 +80,7 @@ class ImportController extends Controller
                     'date_of_birth' => 'required|date|before:today',
                     'gender' => 'required|in:male,female,other',
                     'phone' => 'required|string|max:20',
+                    'email' => 'nullable|email|max:255',
                     'district' => 'required|string|max:100',
                     'trade_code' => 'required|exists:trades,code',
                 ]);
@@ -259,7 +267,7 @@ class ImportController extends Controller
             
             return true;
         } catch (\Exception $e) {
-            \Log::error('Failed to create import template: ' . $e->getMessage());
+            Log::error('Failed to create import template: ' . $e->getMessage());
             return false;
         }
     }
