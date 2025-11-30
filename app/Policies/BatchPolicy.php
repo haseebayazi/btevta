@@ -21,7 +21,7 @@ class BatchPolicy
             return true;
         }
 
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $batch->campus_id === $user->campus_id;
         }
 
@@ -30,7 +30,7 @@ class BatchPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     public function update(User $user, Batch $batch): bool
@@ -39,7 +39,7 @@ class BatchPolicy
             return true;
         }
 
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $batch->campus_id === $user->campus_id;
         }
 
@@ -53,6 +53,6 @@ class BatchPolicy
 
     public function changeStatus(User $user, Batch $batch): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 }

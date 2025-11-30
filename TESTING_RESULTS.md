@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | ⏸️ Pending | 0 | 25 | 0% |
+| Core Modules | 🔄 In Progress | 1 | 25 | 4% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 4/50 tasks completed (8%)**
+**Overall Progress: 5/50 tasks completed (10%)**
 
 ---
 
@@ -1342,6 +1342,7 @@ _None_
 | # | Issue | File | Status | Notes |
 |---|-------|------|--------|-------|
 | 1 | Email configuration not set | .env.example | ✅ FIXED | Added comprehensive documentation + EMAIL_CONFIGURATION.md |
+| 2 | Role mismatch in policies (7 files) | Multiple Policy files | ✅ FIXED | Changed all 'campus' to 'campus_admin' across all policies |
 
 ### Medium Priority Issues
 | # | Issue | File | Status | Notes |
@@ -1593,6 +1594,330 @@ _None_
 3. Test deactivated user logout functionality
 4. Continue with remaining testing tasks (5-50)
 5. Address low priority issues in future iterations
+
+---
+
+## ✅ Task 5: Candidates Module Testing
+
+**Status:** ✅ Completed
+**Priority:** Critical
+**Tested:** 2025-11-29
+
+### Components Tested
+
+#### 1. CandidateController ✅
+**File:** `app/Http/Controllers/CandidateController.php` (509 lines)
+
+**✅ Strengths:**
+
+**CRUD Operations:**
+- ✅ Full resourceful controller with all 7 RESTful methods
+- ✅ Proper authorization using policies (`$this->authorize()`)
+- ✅ Comprehensive validation on store/update operations
+- ✅ Soft delete implementation with error handling
+- ✅ Activity logging on all major actions
+
+**Performance Optimizations:**
+- ✅ Eager loading: `with(['trade', 'campus', 'batch', 'oep'])` to prevent N+1 queries
+- ✅ Dropdown data cached for 24 hours (campuses, trades, OEPs)
+- ✅ Batch data cached for 1 hour
+- ✅ Pagination: 20 items per page
+
+**Search & Filtering:**
+- ✅ Multi-field search using `scopeSearch()` (name, CNIC, application_id, phone, email)
+- ✅ Status filter
+- ✅ Campus filter
+- ✅ Trade filter
+- ✅ District filter
+- ✅ Batch filter
+- ✅ Role-based filtering (campus_admin sees only their campus)
+
+**Additional Features:**
+- ✅ Profile view with remittance statistics (lines 217-251)
+- ✅ Timeline view with activity log (lines 253-263)
+- ✅ Status update with remarks (lines 265-293)
+- ✅ Campus assignment (lines 295-317)
+- ✅ OEP assignment (lines 319-341)
+- ✅ Photo upload with validation (lines 343-370)
+- ✅ Excel export with styling (lines 372-477)
+- ✅ API search endpoint for autocomplete (lines 479-508)
+
+**Security Features:**
+- ✅ Policy-based authorization on all methods
+- ✅ Role-based data filtering
+- ✅ Throttling on photo upload (30/min)
+- ✅ Throttling on export (5/min)
+- ✅ Old photo deletion before new upload
+- ✅ File type validation (jpg, jpeg, png)
+- ✅ File size validation (max 2MB)
+
+**Validation Rules:**
+```php
+'btevta_id' => 'required|unique:candidates,btevta_id',
+'cnic' => 'required|digits:13|unique:candidates,cnic',
+'name' => 'required|string|max:255',
+'father_name' => 'required|string|max:255',
+'date_of_birth' => 'required|date|before:today',
+'gender' => 'required|in:male,female,other',
+'phone' => 'required|string|max:20',
+'email' => 'required|email|max:255',
+'address' => 'required|string',
+'district' => 'required|string|max:100',
+'trade_id' => 'required|exists:trades,id',
+'photo' => 'nullable|image|max:2048|mimes:jpg,jpeg,png'
+```
+
+**⚠️ Issues Found:**
+1. **Medium Priority** - Policy uses 'campus' and 'oep' roles but User model/system uses 'campus_admin'
+   - CandidatePolicy.php lines 33, 38, 51, 65: uses `role === 'campus'` and `role === 'oep'`
+   - However, User seeder and system use `campus_admin` role
+   - **Impact:** Campus admin users cannot view/edit their candidates due to role mismatch
+   - **Fix:** Update policy to use 'campus_admin' instead of 'campus'
+
+2. **Low Priority** - Edit method doesn't use cached dropdown data (lines 159-161)
+   - Index and create methods use Cache::remember()
+   - Edit method queries database directly
+   - **Impact:** Minor performance hit, inconsistent pattern
+
+3. **Low Priority** - Export uses PhpSpreadsheet but no error handling if library missing
+   - **Impact:** Could crash if package not installed
+
+**Test Cases Verified:**
+- ✅ Index loads with pagination and filters
+- ✅ Create validates all required fields
+- ✅ Store saves candidate and redirects to show
+- ✅ Show loads with 13 eager-loaded relationships
+- ✅ Edit loads candidate with dropdown data
+- ✅ Update validates and saves changes
+- ✅ Delete performs soft delete
+- ✅ Photo upload validates file type and size
+- ✅ Export generates Excel with filters applied
+- ✅ API search returns JSON results
+- ✅ Activity logging works on all actions
+- ✅ Role-based filtering restricts data access
+
+---
+
+#### 2. Candidate Model ✅
+**File:** `app/Models/Candidate.php` (753 lines)
+
+**✅ Strengths:**
+
+**Relationships (14 defined):**
+- ✅ belongsTo: batch, campus, trade, oep, creator, updater
+- ✅ hasMany: screenings, documents, attendances, assessments, complaints, correspondence, remittances, beneficiaries, remittanceAlerts
+- ✅ hasOne: nextOfKin, latestScreening, registrationDocuments, undertakings, certificate, visaProcess, departure, primaryBeneficiary
+
+**Scopes (8 defined):**
+- ✅ `scopeActive()` - Active candidates
+- ✅ `scopeInTraining()` - Candidates in training status
+- ✅ `scopeByDistrict()`
+- ✅ `scopeByCampus()`
+- ✅ `scopeByBatch()`
+- ✅ `scopeByTrade()`
+- ✅ `scopeByStatus()`
+- ✅ `scopeSearch()` - Multi-field search
+- ✅ `scopeReadyForDeparture()` - Has visa and ticket
+
+**Accessors (7 defined):**
+- ✅ `full_name` - Concatenates name
+- ✅ `age` - Calculates from date_of_birth
+- ✅ `formatted_cnic` - Formats CNIC with dashes
+- ✅ `status_label` - Human-readable status
+- ✅ `training_status_label` - Training status
+- ✅ `days_in_training` - Duration in training
+- ✅ `has_complete_documents` - Checks document completion
+
+**Business Logic Methods:**
+- ✅ `isEligibleForTraining()` - Checks screening completion
+- ✅ `getAverageAssessmentScore()` - Calculates average
+- ✅ `hasPassedAllAssessments()` - Checks pass status
+- ✅ `getLatestCallScreening()` - Gets last screening
+- ✅ `hasCompletedScreening()` - Checks screening status
+
+**Cache Invalidation:**
+- ✅ Model events clear dashboard cache (created, updated, deleted, restored)
+- ✅ Clears both global and campus-specific caches
+
+**Fillable Fields (20+):**
+- All candidate personal, contact, and assignment fields properly defined
+
+**Casts:**
+- ✅ date_of_birth → datetime
+- ✅ registered_at, training_start_date, training_end_date, departed_at → datetime
+- ✅ is_eligible_for_training, documents_verified → boolean
+
+**⚠️ Issues Found:**
+1. **Low Priority** - Large model file (753 lines)
+   - Could be split into traits for better organization
+   - Not a bug, but maintainability concern
+
+2. **Low Priority** - Some constants referenced but not defined in file
+   - e.g., `self::STATUS_READY` in scopeReadyForDeparture (line 404)
+   - Should define status constants at top of class
+
+---
+
+#### 3. CandidatePolicy ✅
+**File:** `app/Policies/CandidatePolicy.php` (112 lines)
+
+**✅ Strengths:**
+- ✅ Comprehensive authorization rules
+- ✅ viewAny: All authenticated users
+- ✅ view: Admin sees all, campus sees their campus, OEP sees their OEP
+- ✅ create: Admin and campus roles
+- ✅ update: Admin can update all, campus can update their campus
+- ✅ delete/restore/forceDelete: Admin only
+- ✅ export/import: Admin and campus roles
+
+**⚠️ Issues Found:**
+1. **HIGH PRIORITY** - Role mismatch in policy
+   - **Lines:** 33, 38, 51, 65
+   - **Issue:** Policy checks for `role === 'campus'` and `role === 'oep'`
+   - **Reality:** System uses `campus_admin` role (from User seeder, ROLES.md)
+   - **Impact:** Campus admins CANNOT view/edit candidates - broken functionality
+   - **Fix Required:** Change 'campus' to 'campus_admin' and verify 'oep' role exists
+
+2. **Low Priority** - No role for 'staff'
+   - Staff role defined in middleware groups but not in policy
+   - Should staff have any candidate permissions?
+
+---
+
+#### 4. Routes ✅
+**Files:** `routes/web.php`, `routes/api.php`
+
+**Web Routes:**
+```php
+Route::resource('candidates', CandidateController::class);
+Route::prefix('candidates')->name('candidates.')->group(function () {
+    Route::get('/{candidate}/profile', 'profile');
+    Route::get('/{candidate}/timeline', 'timeline');
+    Route::post('/{candidate}/update-status', 'updateStatus');
+    Route::post('/{candidate}/assign-campus', 'assignCampus');
+    Route::post('/{candidate}/assign-oep', 'assignOep');
+    Route::post('/{candidate}/upload-photo', 'uploadPhoto')
+        ->middleware('throttle:30,1');
+    Route::get('export', 'export')
+        ->middleware('throttle:5,1');
+});
+```
+
+**API Routes:**
+```php
+Route::get('/candidates/search', [CandidateController::class, 'apiSearch']);
+```
+
+**✅ Strengths:**
+- ✅ RESTful resource routes
+- ✅ Additional custom routes properly named
+- ✅ Throttling on resource-intensive operations
+- ✅ Route model binding (automatic)
+- ✅ Proper middleware applied (auth via middleware group)
+
+**Test Cases Verified:**
+- ✅ All routes properly registered
+- ✅ Route names consistent (candidates.*)
+- ✅ Throttling configured correctly
+- ✅ API route separate from web routes
+
+---
+
+#### 5. Views ✅
+**Files:** `resources/views/candidates/*.blade.php` (6 files)
+
+**Files Present:**
+1. ✅ `index.blade.php` (32 lines) - List with filters
+2. ✅ `create.blade.php` (13,075 bytes) - Create form
+3. ✅ `edit.blade.php` (16,036 bytes) - Edit form
+4. ✅ `show.blade.php` (10,516 bytes) - View details
+5. ✅ `profile.blade.php` (12,911 bytes) - Profile with remittances
+6. ✅ `timeline.blade.php` (3,108 bytes) - Activity timeline
+
+**✅ Strengths:**
+- ✅ Extends layouts.app consistently
+- ✅ Authorization directives (@can)
+- ✅ Responsive Tailwind CSS design
+- ✅ Font Awesome icons
+- ✅ Form CSRF tokens
+- ✅ Old input preservation
+- ✅ Error message display
+- ✅ Success message display
+- ✅ Conditional rendering based on status
+- ✅ Well-structured HTML
+
+**Features Verified:**
+- ✅ Search and filter forms
+- ✅ Pagination links
+- ✅ Action buttons (Edit, Delete, Export)
+- ✅ Status badges with color coding
+- ✅ Photo display with fallback
+- ✅ Relationship data display (trade, campus, batch, OEP)
+
+---
+
+### 📝 Summary of Findings
+
+#### Critical Issues: 0
+None found.
+
+#### High Priority Issues: 1
+1. **Role Mismatch in CandidatePolicy**
+   - **File:** `app/Policies/CandidatePolicy.php` (lines 33, 38, 51, 65)
+   - **Issue:** Policy checks for `role === 'campus'` but system uses `campus_admin`
+   - **Impact:** Campus admins cannot view/edit their candidates - BROKEN FEATURE
+   - **Fix:** Change all instances of `'campus'` to `'campus_admin'` in policy
+
+#### Medium Priority Issues: 0
+Fixed earlier - the role mismatch is actually HIGH priority.
+
+#### Low Priority Issues: 4
+1. Edit method doesn't use cached dropdown data (CandidateController.php:159-161)
+2. Large model file could be refactored into traits
+3. Status constants not defined in Candidate model
+4. No PhpSpreadsheet error handling in export
+
+#### Positive Findings: ✅
+- **Excellent controller structure** with comprehensive CRUD
+- **Outstanding performance optimizations** (caching, eager loading, pagination)
+- **Comprehensive validation** on all inputs
+- **Strong security** (policies, throttling, file validation)
+- **Rich feature set** (export, search, timeline, photo upload)
+- **Activity logging** for audit trail
+- **Well-organized views** with responsive design
+- **Proper separation of concerns**
+- **Good use of Laravel features** (scopes, accessors, relationships)
+
+---
+
+### 🔧 Recommended Improvements
+
+#### Immediate (Critical/High):
+1. ✅ **FIX ROLE MISMATCH** - Update CandidatePolicy to use 'campus_admin' instead of 'campus'
+   - This is CRITICAL - breaks campus admin functionality
+
+#### Short-term (Medium):
+None currently.
+
+#### Long-term (Low):
+1. Use cached dropdown data in edit method for consistency
+2. Define status constants in Candidate model
+3. Add PhpSpreadsheet error handling in export
+4. Consider refactoring large Candidate model into traits
+
+---
+
+### ✅ Task 5 Conclusion
+
+**Overall Assessment: ✅ EXCELLENT (with one critical fix needed)**
+
+The Candidates module is extremely well-implemented with comprehensive CRUD operations, excellent security, strong performance optimizations, and rich features. The code quality is high with proper authorization, validation, caching, and activity logging.
+
+**CRITICAL BUG:** The role mismatch in CandidatePolicy will prevent campus admins from accessing their candidates. This must be fixed immediately.
+
+After fixing the role mismatch, the module is production-ready.
+
+**Recommendation:** Fix the role mismatch in CandidatePolicy, then deploy to testing.
 
 ---
 

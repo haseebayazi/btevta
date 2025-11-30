@@ -23,7 +23,7 @@ class CorrespondencePolicy
         }
 
         // Campus users can view correspondence related to their campus
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $correspondence->campus_id === $user->campus_id;
         }
 
@@ -37,7 +37,7 @@ class CorrespondencePolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     public function update(User $user, Correspondence $correspondence): bool
@@ -48,7 +48,7 @@ class CorrespondencePolicy
         }
 
         // Campus users can update their own correspondence
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $correspondence->campus_id === $user->campus_id;
         }
 

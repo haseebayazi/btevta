@@ -23,7 +23,7 @@ class InstructorPolicy
         }
 
         // Campus users can view instructors from their campus
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $instructor->campus_id === $user->campus_id;
         }
 
@@ -32,7 +32,7 @@ class InstructorPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     public function update(User $user, Instructor $instructor): bool
@@ -43,7 +43,7 @@ class InstructorPolicy
         }
 
         // Campus users can update instructors from their campus
-        if ($user->role === 'campus' && $user->campus_id) {
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $instructor->campus_id === $user->campus_id;
         }
 

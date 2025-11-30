@@ -29,8 +29,8 @@ class CandidatePolicy
             return true;
         }
 
-        // Campus users can only view candidates from their campus
-        if ($user->role === 'campus' && $user->campus_id) {
+        // Campus admin users can only view candidates from their campus
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $candidate->campus_id === $user->campus_id;
         }
 
@@ -47,8 +47,8 @@ class CandidatePolicy
      */
     public function create(User $user): bool
     {
-        // Admin and campus users can create candidates
-        return in_array($user->role, ['admin', 'campus']);
+        // Admin and campus admin users can create candidates
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     /**
@@ -61,8 +61,8 @@ class CandidatePolicy
             return true;
         }
 
-        // Campus users can only update candidates from their campus
-        if ($user->role === 'campus' && $user->campus_id) {
+        // Campus admin users can only update candidates from their campus
+        if ($user->role === 'campus_admin' && $user->campus_id) {
             return $candidate->campus_id === $user->campus_id;
         }
 
@@ -99,7 +99,7 @@ class CandidatePolicy
      */
     public function export(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     /**
@@ -107,6 +107,6 @@ class CandidatePolicy
      */
     public function import(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 }

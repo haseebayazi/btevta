@@ -23,7 +23,7 @@ class DocumentArchivePolicy
         }
 
         // Campus users can view documents from their campus
-        if ($user->role === 'campus' && $user->campus_id && $document->candidate) {
+        if ($user->role === 'campus_admin' && $user->campus_id && $document->candidate) {
             return $document->candidate->campus_id === $user->campus_id;
         }
 
@@ -32,7 +32,7 @@ class DocumentArchivePolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus']);
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     public function update(User $user, DocumentArchive $document): bool
@@ -43,7 +43,7 @@ class DocumentArchivePolicy
         }
 
         // Campus users can update documents from their campus
-        if ($user->role === 'campus' && $user->campus_id && $document->candidate) {
+        if ($user->role === 'campus_admin' && $user->campus_id && $document->candidate) {
             return $document->candidate->campus_id === $user->campus_id;
         }
 
