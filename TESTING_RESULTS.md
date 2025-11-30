@@ -1356,6 +1356,8 @@ _None_
 | 7 | Complex SQL in controller (main) | DashboardController.php:166 | ✅ FIXED | Replaced with Complaint::overdue() scope |
 | 8 | Complex SQL in controller (tabs) | DashboardController.php:469 | ✅ FIXED | Replaced with Complaint::overdue() scope |
 | 9 | Inefficient distinct count | DashboardController.php:246-256 | ✅ FIXED | Changed to select()->distinct()->count() |
+| 10 | No authorization in ImportController | ImportController.php | ✅ FIXED | Added $this->authorize() to all methods |
+| 11 | No role middleware on import routes | web.php:100 | ✅ FIXED | Added middleware('role:admin,campus_admin') |
 
 ### Low Priority Issues
 | # | Issue | File | Status | Notes |
@@ -1365,6 +1367,14 @@ _None_
 | 3 | No password visibility toggle | login/reset views | 🔴 Open | Add toggle icon |
 | 4 | No email verification | User model | 🔴 Open | Optional feature |
 | 5 | No 2FA | Auth system | 🔴 Open | Optional feature |
+| 6 | Edit method doesn't use cached data | CandidateController.php:159 | ✅ FIXED | Now uses Cache::remember() like create/index |
+| 7 | Inconsistent Log facade usage | ImportController.php | ✅ FIXED | Changed \Log to Log with proper use statement |
+| 8 | Email not validated during import | ImportController.php | ✅ FIXED | Added 'email' => 'nullable\|email\|max:255' validation |
+| 9 | Large model file (753 lines) | Candidate.php | 🔴 Open | Could refactor into traits |
+| 10 | Status constants not defined | Candidate.php | 🔴 Open | Should define constants at top |
+| 11 | No PhpSpreadsheet error handling | CandidateController.php export | 🔴 Open | Add try-catch for missing package |
+| 12 | No progress indicator for imports | import view | 🔴 Open | Add JavaScript progress bar |
+| 13 | No client-side file size validation | import view | 🔴 Open | Add JS validation before submit |
 
 ---
 
