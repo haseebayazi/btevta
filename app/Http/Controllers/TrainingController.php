@@ -9,6 +9,7 @@ use App\Models\TrainingAssessment;
 use App\Services\TrainingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class TrainingController extends Controller
@@ -29,6 +30,8 @@ class TrainingController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Candidate::class);
+
         $query = Candidate::with(['trade', 'campus', 'batch', 'attendances'])
             ->where('status', 'training');
 
@@ -61,6 +64,8 @@ class TrainingController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Candidate::class);
+
         $batches = Batch::where('status', 'active')->get();
         $candidates = Candidate::whereIn('status', ['screening_passed', 'registered'])
             ->with(['trade', 'campus'])
@@ -74,6 +79,8 @@ class TrainingController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Candidate::class);
+
         $validated = $request->validate([
             'batch_id' => 'required|exists:batches,id',
             'candidate_ids' => 'required|array|min:1',
@@ -100,7 +107,7 @@ class TrainingController extends Controller
                 ->with('success', count($validated['candidate_ids']) . ' candidates assigned to training successfully!');
         } catch (Exception $e) {
             // SECURITY: Log exception details, show generic message to user
-            \Log::error('Training assignment failed', ['error' => $e->getMessage()]);
+            Log::error('Training assignment failed', ['error' => $e->getMessage()]);
             return back()->withInput()
                 ->with('error', 'Failed to assign candidates. Please try again.');
         }
@@ -111,6 +118,8 @@ class TrainingController extends Controller
      */
     public function show(Candidate $candidate)
     {
+        $this->authorize('view', $candidate);
+
         $candidate->load([
             'trade',
             'campus',
@@ -133,6 +142,8 @@ class TrainingController extends Controller
      */
     public function edit(Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $batches = Batch::where('status', 'active')->get();
         $candidate->load('batch');
 
@@ -144,6 +155,8 @@ class TrainingController extends Controller
      */
     public function update(Request $request, Candidate $candidate)
     {
+        $this->authorize('update', $candidate);
+
         $validated = $request->validate([
             'batch_id' => 'required|exists:batches,id',
         ]);
@@ -167,6 +180,8 @@ class TrainingController extends Controller
      */
     public function attendance(Request $request)
     {
+        $this->authorize('viewAttendance', Candidate::class);
+
         $batches = Batch::where('status', 'active')->with('candidates')->get();
         $selectedBatch = null;
         $date = $request->get('date', now()->toDateString());
@@ -187,6 +202,8 @@ class TrainingController extends Controller
      */
     public function markAttendance(Request $request, Candidate $candidate)
     {
+        $this->authorize('markAttendance', Candidate::class);
+
         $validated = $request->validate([
             'date' => 'required|date',
             'status' => 'required|in:present,absent,leave',
@@ -212,6 +229,8 @@ class TrainingController extends Controller
      */
     public function bulkAttendance(Request $request)
     {
+        $this->authorize('markAttendance', Candidate::class);
+
         $validated = $request->validate([
             'batch_id' => 'required|exists:batches,id',
             'date' => 'required|date',
@@ -239,6 +258,8 @@ class TrainingController extends Controller
      */
     public function assessment(Candidate $candidate)
     {
+        $this->authorize('createAssessment', Candidate::class);
+
         $candidate->load(['assessments', 'trade']);
 
         return view('training.assessment', compact('candidate'));
@@ -249,6 +270,8 @@ class TrainingController extends Controller
      */
     public function storeAssessment(Request $request, Candidate $candidate)
     {
+        $this->authorize('createAssessment', Candidate::class);
+
         $validated = $request->validate([
             'assessment_type' => 'required|in:theory,practical,final',
             'assessment_date' => 'required|date',
@@ -282,6 +305,8 @@ class TrainingController extends Controller
      */
     public function updateAssessment(Request $request, TrainingAssessment $assessment)
     {
+        $this->authorize('updateAssessment', $assessment);
+
         $validated = $request->validate([
             'obtained_marks' => 'required|integer|min:0',
             'grade' => 'required|in:A+,A,B,C,D,F',
@@ -307,6 +332,8 @@ class TrainingController extends Controller
      */
     public function generateCertificate(Request $request, Candidate $candidate)
     {
+        $this->authorize('generateCertificate', Candidate::class);
+
         $validated = $request->validate([
             'certificate_number' => 'required|string|unique:training_certificates,certificate_number',
             'issue_date' => 'required|date',
@@ -338,6 +365,8 @@ class TrainingController extends Controller
      */
     public function downloadCertificate(Candidate $candidate)
     {
+        $this->authorize('downloadCertificate', Candidate::class);
+
         try {
             if (!$candidate->certificate) {
                 throw new Exception('No certificate found for this candidate');
@@ -359,6 +388,8 @@ class TrainingController extends Controller
      */
     public function complete(Candidate $candidate)
     {
+        $this->authorize('completeTraining', Candidate::class);
+
         try {
             $this->trainingService->completeTraining($candidate->id);
 
@@ -378,6 +409,8 @@ class TrainingController extends Controller
      */
     public function attendanceReport(Request $request)
     {
+        $this->authorize('viewAttendanceReport', Candidate::class);
+
         $validated = $request->validate([
             'batch_id' => 'required|exists:batches,id',
             'start_date' => 'required|date',
@@ -404,6 +437,8 @@ class TrainingController extends Controller
      */
     public function assessmentReport(Request $request)
     {
+        $this->authorize('viewAssessmentReport', Candidate::class);
+
         $validated = $request->validate([
             'batch_id' => 'nullable|exists:batches,id',
             'assessment_type' => 'nullable|in:theory,practical,final',
@@ -426,6 +461,8 @@ class TrainingController extends Controller
      */
     public function batchPerformance(Batch $batch)
     {
+        $this->authorize('viewBatchPerformance', Candidate::class);
+
         try {
             $performance = $this->trainingService->getBatchPerformance($batch->id);
 
@@ -440,6 +477,8 @@ class TrainingController extends Controller
      */
     public function destroy(Candidate $candidate)
     {
+        $this->authorize('delete', $candidate);
+
         try {
             $this->trainingService->removeCandidateFromTraining($candidate->id);
 
