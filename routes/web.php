@@ -141,38 +141,41 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // TRAINING ROUTES
     // Throttle: Standard 60/min, Bulk operations 30/min, Reports 5/min
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, and instructor roles
     // ========================================================================
-    Route::resource('training', TrainingController::class);
-    Route::prefix('training')->name('training.')->group(function () {
-        // DEPRECATED ROUTES (Kept for backward compatibility - will be removed in future)
-        // TODO: Update frontend to use new routes and remove these
-        Route::get('/batches', [TrainingController::class, 'batches'])->name('batches'); // DEPRECATED: Use resource routes
-        Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance'); // DEPRECATED: Use mark-attendance
-        Route::post('/assessment', [TrainingController::class, 'recordAssessment'])->name('assessment'); // DEPRECATED: Use store-assessment
-        Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate'); // DEPRECATED: Use download-certificate
-        Route::get('/batch/{batch}/report', [TrainingController::class, 'batchReport'])->name('batch-report'); // DEPRECATED: Use batch-performance
+    Route::middleware('role:admin,campus_admin,instructor')->group(function () {
+        Route::resource('training', TrainingController::class);
+        Route::prefix('training')->name('training.')->group(function () {
+            // DEPRECATED ROUTES (Kept for backward compatibility - will be removed in future)
+            // TODO: Update frontend to use new routes and remove these
+            Route::get('/batches', [TrainingController::class, 'batches'])->name('batches'); // DEPRECATED: Use resource routes
+            Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance'); // DEPRECATED: Use mark-attendance
+            Route::post('/assessment', [TrainingController::class, 'recordAssessment'])->name('assessment'); // DEPRECATED: Use store-assessment
+            Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate'); // DEPRECATED: Use download-certificate
+            Route::get('/batch/{batch}/report', [TrainingController::class, 'batchReport'])->name('batch-report'); // DEPRECATED: Use batch-performance
 
-        // RECOMMENDED ROUTES (Use these in new code)
-        Route::get('/attendance/form', [TrainingController::class, 'attendance'])->name('attendance-form');
-        Route::post('/{candidate}/mark-attendance', [TrainingController::class, 'markAttendance'])->name('mark-attendance');
+            // RECOMMENDED ROUTES (Use these in new code)
+            Route::get('/attendance/form', [TrainingController::class, 'attendance'])->name('attendance-form');
+            Route::post('/{candidate}/mark-attendance', [TrainingController::class, 'markAttendance'])->name('mark-attendance');
 
-        // THROTTLE FIX: Bulk attendance limited to 30/min (database intensive)
-        Route::post('/attendance/bulk', [TrainingController::class, 'bulkAttendance'])
-            ->middleware('throttle:30,1')->name('bulk-attendance');
+            // THROTTLE FIX: Bulk attendance limited to 30/min (database intensive)
+            Route::post('/attendance/bulk', [TrainingController::class, 'bulkAttendance'])
+                ->middleware('throttle:30,1')->name('bulk-attendance');
 
-        Route::get('/{candidate}/assessment', [TrainingController::class, 'assessment'])->name('assessment-view');
-        Route::post('/{candidate}/store-assessment', [TrainingController::class, 'storeAssessment'])->name('store-assessment');
-        Route::put('/assessment/{assessment}', [TrainingController::class, 'updateAssessment'])->name('update-assessment');
-        Route::get('/{candidate}/certificate/download', [TrainingController::class, 'downloadCertificate'])->name('download-certificate');
-        Route::post('/{candidate}/complete', [TrainingController::class, 'complete'])->name('complete');
+            Route::get('/{candidate}/assessment', [TrainingController::class, 'assessment'])->name('assessment-view');
+            Route::post('/{candidate}/store-assessment', [TrainingController::class, 'storeAssessment'])->name('store-assessment');
+            Route::put('/assessment/{assessment}', [TrainingController::class, 'updateAssessment'])->name('update-assessment');
+            Route::get('/{candidate}/certificate/download', [TrainingController::class, 'downloadCertificate'])->name('download-certificate');
+            Route::post('/{candidate}/complete', [TrainingController::class, 'complete'])->name('complete');
 
-        // THROTTLE FIX: Reports limited to 5/min (resource intensive)
-        Route::post('/reports/attendance', [TrainingController::class, 'attendanceReport'])
-            ->middleware('throttle:5,1')->name('attendance-report');
-        Route::post('/reports/assessment', [TrainingController::class, 'assessmentReport'])
-            ->middleware('throttle:5,1')->name('assessment-report');
+            // THROTTLE FIX: Reports limited to 5/min (resource intensive)
+            Route::post('/reports/attendance', [TrainingController::class, 'attendanceReport'])
+                ->middleware('throttle:5,1')->name('attendance-report');
+            Route::post('/reports/assessment', [TrainingController::class, 'assessmentReport'])
+                ->middleware('throttle:5,1')->name('assessment-report');
 
-        Route::get('/batch/{batch}/performance', [TrainingController::class, 'batchPerformance'])->name('batch-performance');
+            Route::get('/batch/{batch}/performance', [TrainingController::class, 'batchPerformance'])->name('batch-performance');
+        });
     });
 
     // ========================================================================
