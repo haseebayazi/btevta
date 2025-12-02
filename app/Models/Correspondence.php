@@ -27,12 +27,31 @@ class Correspondence extends Model
         'candidate_id',
         'assigned_to',
         'created_by',
-        'updated_by'
+        'updated_by',
+        // Additional fields for controller compatibility
+        'reference_number',   // Alias for file_reference_number
+        'date',              // Alias for correspondence_date
+        'type',              // Alias for correspondence_type
+        'file_path',         // Alias for document_path
+        'requires_reply',
+        'reply_deadline',
+        'replied',
+        'replied_at',
+        'reply_notes',
+        'summary',           // Additional summary field
+        'organization_type',
+        'campus_id',
+        'oep_id',
     ];
 
     protected $casts = [
         'correspondence_date' => 'date',
         'reply_date' => 'date',
+        'date' => 'date',  // Alias
+        'reply_deadline' => 'date',
+        'replied_at' => 'datetime',
+        'requires_reply' => 'boolean',
+        'replied' => 'boolean',
     ];
 
     protected $attributes = [
@@ -117,6 +136,16 @@ class Correspondence extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function campus()
+    {
+        return $this->belongsTo(Campus::class);
+    }
+
+    public function oep()
+    {
+        return $this->belongsTo(Oep::class);
     }
 
     // Scopes

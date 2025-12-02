@@ -277,11 +277,13 @@ Route::middleware(['auth'])->group(function () {
     // Throttle: Standard 60/min (inherited from auth middleware)
     // Purpose: Track official communications with candidates and stakeholders
     // ========================================================================
-    Route::resource('correspondence', CorrespondenceController::class);
-    Route::prefix('correspondence')->name('correspondence.')->group(function () {
-        Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
-        Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
-        Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('correspondence', CorrespondenceController::class);
+        Route::prefix('correspondence')->name('correspondence.')->group(function () {
+            Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
+            Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
+            Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+        });
     });
 
     // ========================================================================
