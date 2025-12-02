@@ -425,9 +425,12 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // INSTRUCTORS ROUTES - SECURITY FIX: Moved inside auth middleware
+    // INSTRUCTORS ROUTES
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, instructor, and viewer roles
     // ========================================================================
-    Route::resource('instructors', InstructorController::class);
+    Route::middleware('role:admin,campus_admin,instructor,viewer')->group(function () {
+        Route::resource('instructors', InstructorController::class);
+    });
 
     // ========================================================================
     // TRAINING CLASSES ROUTES - SECURITY FIX: Moved inside auth middleware
