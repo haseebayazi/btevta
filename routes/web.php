@@ -181,46 +181,51 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // VISA PROCESSING ROUTES
     // Throttle: Standard 60/min, Upload 30/min, Reports 5/min
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, and instructor roles
     // ========================================================================
-    Route::resource('visa-processing', VisaProcessingController::class);
-    Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
-        // INITIAL RECORD ROUTES (Use these to create new records)
-        Route::post('/{candidate}/interview', [VisaProcessingController::class, 'recordInterview'])->name('interview');
-        Route::post('/{candidate}/trade-test', [VisaProcessingController::class, 'recordTradeTest'])->name('trade-test');
-        Route::post('/{candidate}/takamol', [VisaProcessingController::class, 'recordTakamol'])->name('takamol');
-        Route::post('/{candidate}/medical', [VisaProcessingController::class, 'recordMedical'])->name('medical');
-        Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber');
-        Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
-        Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
+    Route::middleware('role:admin,campus_admin,instructor')->group(function () {
+        Route::resource('visa-processing', VisaProcessingController::class);
+        Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
+            // DEPRECATED ROUTES: These methods don't exist in VisaProcessingController
+            // TODO: Implement these methods or remove from frontend if not used
+            // Route::post('/{candidate}/interview', [VisaProcessingController::class, 'recordInterview'])->name('interview');
+            // Route::post('/{candidate}/trade-test', [VisaProcessingController::class, 'recordTradeTest'])->name('trade-test');
+            // Route::post('/{candidate}/takamol', [VisaProcessingController::class, 'recordTakamol'])->name('takamol');
+            // Route::post('/{candidate}/medical', [VisaProcessingController::class, 'recordMedical'])->name('medical');
+            // Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber');
+            // Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
+            // Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
 
-        // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
-        Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
-            ->middleware('throttle:30,1')->name('ticket');
+            // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
+            Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
+                ->middleware('throttle:30,1')->name('ticket');
 
-        // THROTTLE FIX: Timeline report limited to 5/min (resource intensive)
-        Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
-            ->middleware('throttle:5,1')->name('timeline-report');
+            // DEPRECATED ROUTE: timelineReport method doesn't exist
+            // TODO: Implement or use 'timeline' route instead
+            // Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
+            //     ->middleware('throttle:5,1')->name('timeline-report');
 
-        // UPDATE ROUTES (Use these to modify existing records)
-        Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
-        Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
-        Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
-        Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
-        Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
-        Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
+            // UPDATE ROUTES (Use these to modify existing records)
+            Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
+            Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
+            Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
+            Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
+            Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
+            Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
 
-        // VIEW & REPORTING ROUTES
-        Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
+            // VIEW & REPORTING ROUTES
+            Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
 
-        // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
-        Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
-            ->middleware('throttle:5,1')->name('overdue');
+            // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
+            Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
+                ->middleware('throttle:5,1')->name('overdue');
 
-        Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete'); // NEW
+            Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete');
 
-        // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
-        Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
-            ->middleware('throttle:5,1')->name('report');
+            // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
+            Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
+                ->middleware('throttle:5,1')->name('report');
+        });
     });
 
     // ========================================================================

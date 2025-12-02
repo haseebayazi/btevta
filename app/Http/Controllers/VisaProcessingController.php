@@ -8,6 +8,7 @@ use App\Services\VisaProcessingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class VisaProcessingController extends Controller
@@ -399,7 +400,7 @@ class VisaProcessingController extends Controller
             return view('visa-processing.timeline', compact('candidate', 'timeline'));
         } catch (Exception $e) {
             // SECURITY: Log exception details, show generic message to user
-            \Log::error('Failed to fetch visa timeline', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
+            Log::error('Failed to fetch visa timeline', ['candidate_id' => $candidate->id, 'error' => $e->getMessage()]);
             return back()->with('error', 'Failed to fetch timeline. Please try again.');
         }
     }

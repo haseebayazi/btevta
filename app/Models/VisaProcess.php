@@ -15,10 +15,10 @@ class VisaProcess extends Model
     protected $fillable = [
         'candidate_id', 'interview_date', 'interview_status', 'interview_completed', 'interview_remarks',
         'trade_test_date', 'trade_test_status', 'trade_test_completed', 'trade_test_remarks',
-        'takamol_date', 'takamol_status', 'medical_date', 'medical_status', 'medical_completed',
-        'biometric_date', 'biometric_status', 'biometric_completed', 'visa_date', 'visa_number',
-        'visa_status', 'visa_issued', 'ticket_uploaded', 'ticket_date', 'ticket_path', 'ticket_number',
-        'overall_status', 'remarks', 'created_by', 'updated_by'
+        'takamol_date', 'takamol_status', 'takamol_remarks', 'medical_date', 'medical_status', 'medical_completed',
+        'medical_remarks', 'biometric_date', 'biometric_status', 'biometric_completed', 'biometric_remarks',
+        'visa_date', 'visa_number', 'visa_status', 'visa_issued', 'visa_remarks', 'ticket_uploaded',
+        'ticket_date', 'ticket_path', 'ticket_number', 'overall_status', 'remarks', 'created_by', 'updated_by'
     ];
 
     protected $casts = [
