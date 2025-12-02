@@ -232,8 +232,9 @@ Route::middleware(['auth'])->group(function () {
     // DEPARTURE ROUTES
     // Throttle: Standard 60/min, Reports 5/min
     // ========================================================================
-    Route::resource('departure', DepartureController::class);
-    Route::prefix('departure')->name('departure.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('departure', DepartureController::class);
+        Route::prefix('departure')->name('departure.')->group(function () {
         // RECORD ROUTES (Core departure tracking)
         Route::post('/{candidate}/record-departure', [DepartureController::class, 'recordDeparture'])->name('record-departure');
         Route::post('/{candidate}/briefing', [DepartureController::class, 'recordBriefing'])->name('briefing');
@@ -242,11 +243,14 @@ Route::middleware(['auth'])->group(function () {
 
         // EMPLOYMENT & COMPLIANCE ROUTES
         Route::post('/{candidate}/wps', [DepartureController::class, 'recordWps'])->name('wps'); // Preferred
-        Route::post('/{candidate}/qiwa', [DepartureController::class, 'recordQiwa'])->name('qiwa'); // DEPRECATED: Use 'wps' instead
+        // TODO: BROKEN ROUTE - recordQiwa method doesn't exist in controller (use recordWps instead)
+        // Route::post('/{candidate}/qiwa', [DepartureController::class, 'recordQiwa'])->name('qiwa'); // DEPRECATED: Use 'wps' instead
         Route::post('/{candidate}/first-salary', [DepartureController::class, 'recordFirstSalary'])->name('first-salary'); // Preferred
-        Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // DEPRECATED: Use 'first-salary' instead
+        // TODO: BROKEN ROUTE - recordSalary method doesn't exist in controller (use recordFirstSalary instead)
+        // Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // DEPRECATED: Use 'first-salary' instead
         Route::post('/{candidate}/90-day-compliance', [DepartureController::class, 'record90DayCompliance'])->name('90-day-compliance');
-        Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Legacy
+        // TODO: BROKEN ROUTE - submitNinetyDayReport method doesn't exist in controller (use record90DayCompliance instead)
+        // Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Legacy
 
         // ISSUE TRACKING ROUTES
         Route::post('/{candidate}/issue', [DepartureController::class, 'reportIssue'])->name('report-issue');
@@ -255,15 +259,17 @@ Route::middleware(['auth'])->group(function () {
 
         // VIEW & MONITORING ROUTES
         Route::get('/{candidate}/timeline', [DepartureController::class, 'timeline'])->name('timeline');
-        Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
+        // TODO: BROKEN ROUTE - pendingCompliance method doesn't exist in controller
+        // Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
 
         Route::get('/tracking/90-days', [DepartureController::class, 'tracking90Days'])->name('tracking-90-days');
         Route::get('/non-compliant', [DepartureController::class, 'nonCompliant'])->name('non-compliant');
         Route::get('/active-issues', [DepartureController::class, 'activeIssues'])->name('active-issues');
 
-        // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
-        Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
-            ->middleware('throttle:5,1')->name('compliance-report');
+            // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
+            Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
+                ->middleware('throttle:5,1')->name('compliance-report');
+        });
     });
 
     // ========================================================================
