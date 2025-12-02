@@ -433,12 +433,15 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // TRAINING CLASSES ROUTES - SECURITY FIX: Moved inside auth middleware
+    // TRAINING CLASSES ROUTES
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, instructor, and viewer roles
     // ========================================================================
-    Route::resource('classes', TrainingClassController::class);
-    Route::prefix('classes')->name('classes.')->group(function () {
-        Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
-        Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+    Route::middleware('role:admin,campus_admin,instructor,viewer')->group(function () {
+        Route::resource('classes', TrainingClassController::class);
+        Route::prefix('classes')->name('classes.')->group(function () {
+            Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
+            Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+        });
     });
 
     // ========================================================================
