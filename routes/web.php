@@ -181,54 +181,60 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // VISA PROCESSING ROUTES
     // Throttle: Standard 60/min, Upload 30/min, Reports 5/min
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, and instructor roles
     // ========================================================================
-    Route::resource('visa-processing', VisaProcessingController::class);
-    Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
-        // INITIAL RECORD ROUTES (Use these to create new records)
-        Route::post('/{candidate}/interview', [VisaProcessingController::class, 'recordInterview'])->name('interview');
-        Route::post('/{candidate}/trade-test', [VisaProcessingController::class, 'recordTradeTest'])->name('trade-test');
-        Route::post('/{candidate}/takamol', [VisaProcessingController::class, 'recordTakamol'])->name('takamol');
-        Route::post('/{candidate}/medical', [VisaProcessingController::class, 'recordMedical'])->name('medical');
-        Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber');
-        Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
-        Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
+    Route::middleware('role:admin,campus_admin,instructor')->group(function () {
+        Route::resource('visa-processing', VisaProcessingController::class);
+        Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
+            // DEPRECATED ROUTES: These methods don't exist in VisaProcessingController
+            // TODO: Implement these methods or remove from frontend if not used
+            // Route::post('/{candidate}/interview', [VisaProcessingController::class, 'recordInterview'])->name('interview');
+            // Route::post('/{candidate}/trade-test', [VisaProcessingController::class, 'recordTradeTest'])->name('trade-test');
+            // Route::post('/{candidate}/takamol', [VisaProcessingController::class, 'recordTakamol'])->name('takamol');
+            // Route::post('/{candidate}/medical', [VisaProcessingController::class, 'recordMedical'])->name('medical');
+            // Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber');
+            // Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
+            // Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
 
-        // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
-        Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
-            ->middleware('throttle:30,1')->name('ticket');
+            // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
+            Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
+                ->middleware('throttle:30,1')->name('ticket');
 
-        // THROTTLE FIX: Timeline report limited to 5/min (resource intensive)
-        Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
-            ->middleware('throttle:5,1')->name('timeline-report');
+            // DEPRECATED ROUTE: timelineReport method doesn't exist
+            // TODO: Implement or use 'timeline' route instead
+            // Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
+            //     ->middleware('throttle:5,1')->name('timeline-report');
 
-        // UPDATE ROUTES (Use these to modify existing records)
-        Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
-        Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
-        Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
-        Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
-        Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
-        Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
+            // UPDATE ROUTES (Use these to modify existing records)
+            Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
+            Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
+            Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
+            Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
+            Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
+            Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
 
-        // VIEW & REPORTING ROUTES
-        Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
+            // VIEW & REPORTING ROUTES
+            Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
 
-        // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
-        Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
-            ->middleware('throttle:5,1')->name('overdue');
+            // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
+            Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
+                ->middleware('throttle:5,1')->name('overdue');
 
-        Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete'); // NEW
+            Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete');
 
-        // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
-        Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
-            ->middleware('throttle:5,1')->name('report');
+            // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
+            Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
+                ->middleware('throttle:5,1')->name('report');
+        });
     });
 
     // ========================================================================
     // DEPARTURE ROUTES
     // Throttle: Standard 60/min, Reports 5/min
     // ========================================================================
-    Route::resource('departure', DepartureController::class);
-    Route::prefix('departure')->name('departure.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('departure', DepartureController::class);
+        Route::prefix('departure')->name('departure.')->group(function () {
         // RECORD ROUTES (Core departure tracking)
         Route::post('/{candidate}/record-departure', [DepartureController::class, 'recordDeparture'])->name('record-departure');
         Route::post('/{candidate}/briefing', [DepartureController::class, 'recordBriefing'])->name('briefing');
@@ -237,11 +243,14 @@ Route::middleware(['auth'])->group(function () {
 
         // EMPLOYMENT & COMPLIANCE ROUTES
         Route::post('/{candidate}/wps', [DepartureController::class, 'recordWps'])->name('wps'); // Preferred
-        Route::post('/{candidate}/qiwa', [DepartureController::class, 'recordQiwa'])->name('qiwa'); // DEPRECATED: Use 'wps' instead
+        // TODO: BROKEN ROUTE - recordQiwa method doesn't exist in controller (use recordWps instead)
+        // Route::post('/{candidate}/qiwa', [DepartureController::class, 'recordQiwa'])->name('qiwa'); // DEPRECATED: Use 'wps' instead
         Route::post('/{candidate}/first-salary', [DepartureController::class, 'recordFirstSalary'])->name('first-salary'); // Preferred
-        Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // DEPRECATED: Use 'first-salary' instead
+        // TODO: BROKEN ROUTE - recordSalary method doesn't exist in controller (use recordFirstSalary instead)
+        // Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // DEPRECATED: Use 'first-salary' instead
         Route::post('/{candidate}/90-day-compliance', [DepartureController::class, 'record90DayCompliance'])->name('90-day-compliance');
-        Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Legacy
+        // TODO: BROKEN ROUTE - submitNinetyDayReport method doesn't exist in controller (use record90DayCompliance instead)
+        // Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Legacy
 
         // ISSUE TRACKING ROUTES
         Route::post('/{candidate}/issue', [DepartureController::class, 'reportIssue'])->name('report-issue');
@@ -250,15 +259,17 @@ Route::middleware(['auth'])->group(function () {
 
         // VIEW & MONITORING ROUTES
         Route::get('/{candidate}/timeline', [DepartureController::class, 'timeline'])->name('timeline');
-        Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
+        // TODO: BROKEN ROUTE - pendingCompliance method doesn't exist in controller
+        // Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
 
         Route::get('/tracking/90-days', [DepartureController::class, 'tracking90Days'])->name('tracking-90-days');
         Route::get('/non-compliant', [DepartureController::class, 'nonCompliant'])->name('non-compliant');
         Route::get('/active-issues', [DepartureController::class, 'activeIssues'])->name('active-issues');
 
-        // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
-        Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
-            ->middleware('throttle:5,1')->name('compliance-report');
+            // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
+            Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
+                ->middleware('throttle:5,1')->name('compliance-report');
+        });
     });
 
     // ========================================================================
@@ -266,11 +277,13 @@ Route::middleware(['auth'])->group(function () {
     // Throttle: Standard 60/min (inherited from auth middleware)
     // Purpose: Track official communications with candidates and stakeholders
     // ========================================================================
-    Route::resource('correspondence', CorrespondenceController::class);
-    Route::prefix('correspondence')->name('correspondence.')->group(function () {
-        Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
-        Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
-        Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('correspondence', CorrespondenceController::class);
+        Route::prefix('correspondence')->name('correspondence.')->group(function () {
+            Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
+            Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
+            Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+        });
     });
 
     // ========================================================================
@@ -420,17 +433,23 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // INSTRUCTORS ROUTES - SECURITY FIX: Moved inside auth middleware
+    // INSTRUCTORS ROUTES
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, instructor, and viewer roles
     // ========================================================================
-    Route::resource('instructors', InstructorController::class);
+    Route::middleware('role:admin,campus_admin,instructor,viewer')->group(function () {
+        Route::resource('instructors', InstructorController::class);
+    });
 
     // ========================================================================
-    // TRAINING CLASSES ROUTES - SECURITY FIX: Moved inside auth middleware
+    // TRAINING CLASSES ROUTES
+    // AUTHORIZATION FIX: Restricted to admin, campus_admin, instructor, and viewer roles
     // ========================================================================
-    Route::resource('classes', TrainingClassController::class);
-    Route::prefix('classes')->name('classes.')->group(function () {
-        Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
-        Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+    Route::middleware('role:admin,campus_admin,instructor,viewer')->group(function () {
+        Route::resource('classes', TrainingClassController::class);
+        Route::prefix('classes')->name('classes.')->group(function () {
+            Route::post('/{class}/assign-candidates', [TrainingClassController::class, 'assignCandidates'])->name('assign-candidates');
+            Route::post('/{class}/remove-candidate/{candidate}', [TrainingClassController::class, 'removeCandidate'])->name('remove-candidate');
+        });
     });
 
     // ========================================================================

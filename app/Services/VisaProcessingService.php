@@ -354,19 +354,6 @@ class VisaProcessingService
     }
 
     /**
-     * Complete visa process
-     */
-    private function completeVisaProcess($visaProcess)
-    {
-        $visaProcess->update([
-            'status' => 'completed',
-            'completion_date' => now(),
-        ]);
-
-        $visaProcess->candidate->update(['status' => 'visa_completed']);
-    }
-
-    /**
      * Calculate visa processing timeline
      */
     public function calculateTimeline($visaProcessId)
@@ -480,71 +467,6 @@ class VisaProcessingService
     }
 
     /**
-     * Generate visa processing report
-     */
-    public function generateReport($filters = [])
-    {
-        $query = VisaProcess::with(['candidate.oep', 'candidate.trade', 'candidate.campus']);
-
-        // Apply filters
-        if (!empty($filters['from_date'])) {
-            $query->whereDate('created_at', '>=', $filters['from_date']);
-        }
-
-        if (!empty($filters['to_date'])) {
-            $query->whereDate('created_at', '<=', $filters['to_date']);
-        }
-
-        if (!empty($filters['oep_id'])) {
-            $query->whereHas('candidate', function($q) use ($filters) {
-                $q->where('oep_id', $filters['oep_id']);
-            });
-        }
-
-        if (!empty($filters['stage'])) {
-            $query->where('current_stage', $filters['stage']);
-        }
-
-        $processes = $query->get();
-
-        return [
-            'data' => $processes,
-            'statistics' => $this->getStatistics($filters),
-            'by_oep' => $this->groupByOEP($processes),
-            'by_stage' => $this->groupByStage($processes),
-        ];
-    }
-
-    /**
-     * Group processes by OEP
-     */
-    private function groupByOEP($processes)
-    {
-        return $processes->groupBy('candidate.oep.name')->map(function($group) {
-            return [
-                'count' => $group->count(),
-                'completed' => $group->where('status', 'completed')->count(),
-                'in_progress' => $group->where('status', '!=', 'completed')->count(),
-            ];
-        });
-    }
-
-    /**
-     * Group processes by stage
-     */
-    private function groupByStage($processes)
-    {
-        return $processes->groupBy('current_stage')->map(function($group) {
-            return [
-                'count' => $group->count(),
-                'average_days' => $group->avg(function($process) {
-                    return Carbon::parse($process->created_at)->diffInDays(now());
-                }),
-            ];
-        });
-    }
-
-    /**
      * Check document expiry alerts
      */
     public function getExpiringDocuments($days = 30)
@@ -557,5 +479,455 @@ class VisaProcessingService
                       ->orWhere('passport_expiry_date', '<=', $alertDate);
             })
             ->get();
+    }
+
+    /**
+     * Create new visa process for candidate
+     * CRITICAL FIX: This method was missing, causing store() to fail
+     */
+    public function createVisaProcess($candidateId, $data)
+    {
+        DB::beginTransaction();
+        try {
+            // Create visa process record
+            $visaProcess = VisaProcess::create([
+                'candidate_id' => $candidateId,
+                'interview_date' => $data['interview_date'] ?? null,
+                'interview_status' => $data['interview_status'] ?? 'pending',
+                'interview_remarks' => $data['interview_remarks'] ?? null,
+                'overall_status' => 'initiated',
+            ]);
+
+            // Update candidate status
+            $candidate = Candidate::findOrFail($candidateId);
+            $candidate->update(['status' => 'visa_processing']);
+
+            // Log activity
+            activity()
+                ->performedOn($visaProcess)
+                ->causedBy(auth()->user())
+                ->log('Visa process initiated');
+
+            DB::commit();
+            return $visaProcess;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Update visa process
+     * CRITICAL FIX: This method was missing, causing update() to fail
+     */
+    public function updateVisaProcess($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update($data);
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Visa process updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update interview stage
+     * CRITICAL FIX: This method was missing, causing updateInterview() to fail
+     */
+    public function updateInterview($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'interview_date' => $data['interview_date'],
+            'interview_status' => $data['interview_status'],
+            'interview_remarks' => $data['interview_remarks'] ?? null,
+            'interview_completed' => $data['interview_status'] === 'passed',
+        ]);
+
+        // Update overall status if interview passed
+        if ($data['interview_status'] === 'passed') {
+            $visaProcess->update(['overall_status' => 'interview_completed']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Interview details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update trade test stage
+     * CRITICAL FIX: This method was missing, causing updateTradeTest() to fail
+     */
+    public function updateTradeTest($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'trade_test_date' => $data['trade_test_date'],
+            'trade_test_status' => $data['trade_test_status'],
+            'trade_test_remarks' => $data['trade_test_remarks'] ?? null,
+            'trade_test_completed' => $data['trade_test_status'] === 'passed',
+        ]);
+
+        // Update overall status if trade test passed
+        if ($data['trade_test_status'] === 'passed') {
+            $visaProcess->update(['overall_status' => 'trade_test_completed']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Trade test details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update Takamol stage
+     * CRITICAL FIX: This method was missing, causing updateTakamol() to fail
+     */
+    public function updateTakamol($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'takamol_date' => $data['takamol_date'],
+            'takamol_status' => $data['takamol_status'],
+            'takamol_remarks' => $data['takamol_remarks'] ?? null,
+        ]);
+
+        // Update overall status if Takamol completed
+        if ($data['takamol_status'] === 'completed') {
+            $visaProcess->update(['overall_status' => 'takamol_completed']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Takamol details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update medical stage
+     * CRITICAL FIX: This method was missing, causing updateMedical() to fail
+     */
+    public function updateMedical($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'medical_date' => $data['medical_date'],
+            'medical_status' => $data['medical_status'],
+            'medical_remarks' => $data['medical_remarks'] ?? null,
+            'medical_completed' => $data['medical_status'] === 'fit',
+        ]);
+
+        // Update overall status if medical fit
+        if ($data['medical_status'] === 'fit') {
+            $visaProcess->update(['overall_status' => 'medical_completed']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Medical details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update biometric stage
+     * CRITICAL FIX: This method was missing, causing updateBiometric() to fail
+     */
+    public function updateBiometric($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'biometric_date' => $data['biometric_date'],
+            'biometric_status' => $data['biometric_status'],
+            'biometric_remarks' => $data['biometric_remarks'] ?? null,
+            'biometric_completed' => $data['biometric_status'] === 'completed',
+        ]);
+
+        // Update overall status if biometric completed
+        if ($data['biometric_status'] === 'completed') {
+            $visaProcess->update(['overall_status' => 'biometric_completed']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Biometric details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Update visa issuance
+     * CRITICAL FIX: This method was missing, causing updateVisa() to fail
+     */
+    public function updateVisaIssuance($visaProcessId, $data)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'visa_date' => $data['visa_date'],
+            'visa_number' => $data['visa_number'],
+            'visa_status' => $data['visa_status'],
+            'visa_remarks' => $data['visa_remarks'] ?? null,
+            'visa_issued' => $data['visa_status'] === 'issued',
+        ]);
+
+        // Update overall status if visa issued
+        if ($data['visa_status'] === 'issued') {
+            $visaProcess->update(['overall_status' => 'visa_issued']);
+        }
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Visa issuance details updated');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Upload ticket
+     * CRITICAL FIX: This method was missing, causing uploadTicket() to fail
+     */
+    public function uploadTicket($visaProcessId, $file, $ticketDate)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        // Store ticket file
+        $path = $file->store('visa/tickets', 'public');
+
+        $visaProcess->update([
+            'ticket_path' => $path,
+            'ticket_date' => $ticketDate,
+            'ticket_uploaded' => true,
+        ]);
+
+        // Update overall status
+        $visaProcess->update(['overall_status' => 'ticket_uploaded']);
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Ticket uploaded');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Get visa processing timeline
+     * CRITICAL FIX: This method was missing, causing timeline() to fail
+     */
+    public function getTimeline($visaProcessId)
+    {
+        $visaProcess = VisaProcess::with('candidate')->findOrFail($visaProcessId);
+
+        $timeline = [];
+
+        // Interview stage
+        if ($visaProcess->interview_date) {
+            $timeline[] = [
+                'stage' => 'Interview',
+                'date' => $visaProcess->interview_date,
+                'status' => $visaProcess->interview_status,
+                'completed' => $visaProcess->interview_completed,
+                'remarks' => $visaProcess->interview_remarks,
+            ];
+        }
+
+        // Trade test stage
+        if ($visaProcess->trade_test_date) {
+            $timeline[] = [
+                'stage' => 'Trade Test',
+                'date' => $visaProcess->trade_test_date,
+                'status' => $visaProcess->trade_test_status,
+                'completed' => $visaProcess->trade_test_completed,
+                'remarks' => $visaProcess->trade_test_remarks,
+            ];
+        }
+
+        // Takamol stage
+        if ($visaProcess->takamol_date) {
+            $timeline[] = [
+                'stage' => 'Takamol',
+                'date' => $visaProcess->takamol_date,
+                'status' => $visaProcess->takamol_status,
+                'completed' => $visaProcess->takamol_status === 'completed',
+                'remarks' => $visaProcess->takamol_remarks ?? null,
+            ];
+        }
+
+        // Medical stage
+        if ($visaProcess->medical_date) {
+            $timeline[] = [
+                'stage' => 'Medical (GAMCA)',
+                'date' => $visaProcess->medical_date,
+                'status' => $visaProcess->medical_status,
+                'completed' => $visaProcess->medical_completed,
+                'remarks' => $visaProcess->medical_remarks ?? null,
+            ];
+        }
+
+        // Biometric stage
+        if ($visaProcess->biometric_date) {
+            $timeline[] = [
+                'stage' => 'Biometric',
+                'date' => $visaProcess->biometric_date,
+                'status' => $visaProcess->biometric_status,
+                'completed' => $visaProcess->biometric_completed,
+                'remarks' => $visaProcess->biometric_remarks ?? null,
+            ];
+        }
+
+        // Visa issuance
+        if ($visaProcess->visa_date) {
+            $timeline[] = [
+                'stage' => 'Visa Issuance',
+                'date' => $visaProcess->visa_date,
+                'status' => $visaProcess->visa_status,
+                'completed' => $visaProcess->visa_issued,
+                'remarks' => $visaProcess->visa_remarks ?? null,
+                'visa_number' => $visaProcess->visa_number,
+            ];
+        }
+
+        // Ticket upload
+        if ($visaProcess->ticket_date) {
+            $timeline[] = [
+                'stage' => 'Ticket',
+                'date' => $visaProcess->ticket_date,
+                'status' => 'uploaded',
+                'completed' => $visaProcess->ticket_uploaded,
+                'remarks' => null,
+            ];
+        }
+
+        return $timeline;
+    }
+
+    /**
+     * Get overdue visa processes
+     * CRITICAL FIX: This method was missing, causing overdue() to fail
+     */
+    public function getOverdueProcesses()
+    {
+        $thresholdDays = 90; // Consider process overdue after 90 days
+        $thresholdDate = Carbon::now()->subDays($thresholdDays);
+
+        return Candidate::with(['visaProcess', 'trade', 'campus', 'oep'])
+            ->whereHas('visaProcess', function($query) use ($thresholdDate) {
+                $query->where('created_at', '<', $thresholdDate)
+                      ->where('overall_status', '!=', 'completed')
+                      ->whereNull('deleted_at');
+            })
+            ->where('status', 'visa_processing')
+            ->get();
+    }
+
+    /**
+     * Complete visa process - make public
+     * CRITICAL FIX: Changed from private to public, was being called from controller
+     */
+    public function completeVisaProcess($visaProcessId)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        $visaProcess->update([
+            'overall_status' => 'completed',
+        ]);
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Visa process completed');
+
+        return $visaProcess;
+    }
+
+    /**
+     * Delete visa process
+     * CRITICAL FIX: This method was missing, causing destroy() to fail
+     */
+    public function deleteVisaProcess($visaProcessId)
+    {
+        $visaProcess = VisaProcess::findOrFail($visaProcessId);
+
+        // Soft delete
+        $visaProcess->delete();
+
+        // Log activity
+        activity()
+            ->performedOn($visaProcess)
+            ->causedBy(auth()->user())
+            ->log('Visa process deleted');
+
+        return true;
+    }
+
+    /**
+     * Generate visa processing report (updated signature)
+     * CRITICAL FIX: Updated to match controller usage
+     */
+    public function generateReport($startDate, $endDate, $campusId = null)
+    {
+        $query = VisaProcess::with(['candidate.trade', 'candidate.campus', 'candidate.oep'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Filter by campus if specified
+        if ($campusId) {
+            $query->whereHas('candidate', function($q) use ($campusId) {
+                $q->where('campus_id', $campusId);
+            });
+        }
+
+        $processes = $query->get();
+
+        // Calculate statistics
+        $stats = [
+            'total' => $processes->count(),
+            'completed' => $processes->where('overall_status', 'completed')->count(),
+            'in_progress' => $processes->where('overall_status', '!=', 'completed')->count(),
+            'interview_stage' => $processes->where('overall_status', 'interview_completed')->count(),
+            'trade_test_stage' => $processes->where('overall_status', 'trade_test_completed')->count(),
+            'takamol_stage' => $processes->where('overall_status', 'takamol_completed')->count(),
+            'medical_stage' => $processes->where('overall_status', 'medical_completed')->count(),
+            'biometric_stage' => $processes->where('overall_status', 'biometric_completed')->count(),
+            'visa_issued' => $processes->where('visa_issued', true)->count(),
+            'ticket_uploaded' => $processes->where('ticket_uploaded', true)->count(),
+        ];
+
+        return [
+            'processes' => $processes,
+            'statistics' => $stats,
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+        ];
     }
 }

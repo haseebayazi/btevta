@@ -619,4 +619,387 @@ class DepartureService
             'compliance' => $compliance,
         ];
     }
+
+    /**
+     * Record Iqama details (controller compatibility wrapper)
+     */
+    public function recordIqamaDetails($candidateId, $iqamaNumber, $issueDate, $expiryDate, $medicalPath = null)
+    {
+        $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
+
+        $departure->update([
+            'iqama_number' => $iqamaNumber,
+            'iqama_issue_date' => $issueDate,
+            'iqama_expiry_date' => $expiryDate,
+            'post_arrival_medical_path' => $medicalPath,
+            'current_stage' => 'iqama_issued',
+        ]);
+
+        if ($departure->candidate) {
+            $departure->candidate->update(['status' => 'iqama_issued']);
+        }
+
+        activity()
+            ->performedOn($departure)
+            ->causedBy(auth()->user())
+            ->log("Iqama details recorded: {$iqamaNumber}");
+
+        return $departure;
+    }
+
+    /**
+     * Record WPS/QIWA registration (alias for recordQiwaActivation)
+     */
+    public function recordWPSRegistration($candidateId, $registrationDate, $wpsId, $remarks = null)
+    {
+        $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
+
+        return $this->recordQiwaActivation($departure->id, [
+            'qiwa_id' => $wpsId,
+            'activation_date' => $registrationDate,
+            'status' => 'active',
+        ]);
+    }
+
+    /**
+     * Record first salary (controller compatibility wrapper)
+     */
+    public function recordFirstSalary($candidateId, $salaryDate, $amount, $proofPath = null)
+    {
+        $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
+
+        $data = [
+            'salary_amount' => $amount,
+            'first_salary_date' => $salaryDate,
+            'salary_currency' => 'SAR',
+        ];
+
+        if ($proofPath) {
+            $departure->update(['salary_proof_path' => $proofPath]);
+        }
+
+        return $this->recordSalaryConfirmation($departure->id, $data);
+    }
+
+    /**
+     * Record 90-day compliance
+     */
+    public function record90DayCompliance($candidateId, $complianceDate, $isCompliant, $remarks = null)
+    {
+        $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
+
+        $departure->update([
+            'ninety_day_report_submitted' => $isCompliant,
+            'compliance_verified_date' => $complianceDate,
+            'compliance_remarks' => $remarks,
+            'current_stage' => $isCompliant ? 'compliance_verified' : $departure->current_stage,
+        ]);
+
+        if ($departure->candidate) {
+            $status = $isCompliant ? 'compliant' : 'non_compliant';
+            $departure->candidate->update(['compliance_status' => $status]);
+        }
+
+        activity()
+            ->performedOn($departure)
+            ->causedBy(auth()->user())
+            ->log("90-day compliance recorded: " . ($isCompliant ? 'Compliant' : 'Non-compliant'));
+
+        return $departure;
+    }
+
+    /**
+     * Report post-departure issue
+     */
+    public function reportIssue($candidateId, $issueType, $issueDate, $description, $severity, $evidencePath = null)
+    {
+        DB::beginTransaction();
+        try {
+            // This would typically be a separate DepartureIssue model
+            // For now, log it in the departure record
+            $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
+
+            $issues = $departure->issues ? json_decode($departure->issues, true) : [];
+
+            $issue = [
+                'id' => uniqid('issue_'),
+                'type' => $issueType,
+                'date' => $issueDate,
+                'description' => $description,
+                'severity' => $severity,
+                'evidence_path' => $evidencePath,
+                'status' => 'open',
+                'reported_by' => auth()->id(),
+                'reported_at' => now()->toDateTimeString(),
+            ];
+
+            $issues[] = $issue;
+
+            $departure->update(['issues' => json_encode($issues)]);
+
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log("Issue reported: {$issueType} - {$severity}");
+
+            DB::commit();
+            return $issue;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Update issue status
+     */
+    public function updateIssueStatus($issueId, $status, $resolutionNotes = null)
+    {
+        // Find departure record containing this issue
+        $departures = Departure::whereNotNull('issues')->get();
+
+        foreach ($departures as $departure) {
+            $issues = json_decode($departure->issues, true);
+
+            foreach ($issues as $key => $issue) {
+                if ($issue['id'] === $issueId) {
+                    $issues[$key]['status'] = $status;
+                    $issues[$key]['resolution_notes'] = $resolutionNotes;
+                    $issues[$key]['resolved_by'] = auth()->id();
+                    $issues[$key]['resolved_at'] = now()->toDateTimeString();
+
+                    $departure->update(['issues' => json_encode($issues)]);
+
+                    activity()
+                        ->performedOn($departure)
+                        ->causedBy(auth()->user())
+                        ->log("Issue {$issueId} updated to: {$status}");
+
+                    return $issues[$key];
+                }
+            }
+        }
+
+        throw new \Exception("Issue not found: {$issueId}");
+    }
+
+    /**
+     * Get departure timeline
+     */
+    public function getDepartureTimeline($candidateId)
+    {
+        $departure = Departure::with('candidate')->where('candidate_id', $candidateId)->firstOrFail();
+
+        $timeline = [];
+
+        if ($departure->pre_briefing_date) {
+            $timeline[] = [
+                'stage' => 'Pre-Departure Briefing',
+                'date' => $departure->pre_briefing_date,
+                'status' => 'completed',
+            ];
+        }
+
+        if ($departure->departure_date) {
+            $timeline[] = [
+                'stage' => 'Departure',
+                'date' => $departure->departure_date,
+                'status' => 'completed',
+                'details' => $departure->flight_number,
+            ];
+        }
+
+        if ($departure->iqama_issue_date) {
+            $timeline[] = [
+                'stage' => 'Iqama Issued',
+                'date' => $departure->iqama_issue_date,
+                'status' => 'completed',
+            ];
+        }
+
+        if ($departure->absher_registration_date) {
+            $timeline[] = [
+                'stage' => 'Absher Registered',
+                'date' => $departure->absher_registration_date,
+                'status' => 'completed',
+            ];
+        }
+
+        if ($departure->qiwa_activation_date) {
+            $timeline[] = [
+                'stage' => 'Qiwa/WPS Activated',
+                'date' => $departure->qiwa_activation_date,
+                'status' => 'completed',
+            ];
+        }
+
+        if ($departure->first_salary_date) {
+            $timeline[] = [
+                'stage' => 'First Salary',
+                'date' => $departure->first_salary_date,
+                'status' => 'completed',
+            ];
+        }
+
+        if ($departure->compliance_verified_date) {
+            $timeline[] = [
+                'stage' => '90-Day Compliance',
+                'date' => $departure->compliance_verified_date,
+                'status' => 'completed',
+            ];
+        }
+
+        return collect($timeline)->sortBy('date')->values()->all();
+    }
+
+    /**
+     * Generate compliance report (wrapper for get90DayComplianceReport)
+     */
+    public function generateComplianceReport($startDate, $endDate, $oepId = null)
+    {
+        $filters = [
+            'from_date' => $startDate,
+            'to_date' => $endDate,
+        ];
+
+        if ($oepId) {
+            $filters['oep_id'] = $oepId;
+        }
+
+        return $this->get90DayComplianceReport($filters);
+    }
+
+    /**
+     * Get 90-day tracking (wrapper for get90DayComplianceReport)
+     */
+    public function get90DayTracking()
+    {
+        $filters = [
+            'from_date' => now()->subDays(90)->toDateString(),
+            'to_date' => now()->toDateString(),
+        ];
+
+        return $this->get90DayComplianceReport($filters);
+    }
+
+    /**
+     * Get non-compliant candidates
+     */
+    public function getNonCompliantCandidates()
+    {
+        $departures = Departure::with(['candidate.oep', 'candidate.trade'])
+            ->whereNotNull('departure_date')
+            ->get();
+
+        $nonCompliant = [];
+
+        foreach ($departures as $departure) {
+            $departureDate = Carbon::parse($departure->departure_date);
+            $daysSinceDeparture = $departureDate->diffInDays(now());
+
+            if ($daysSinceDeparture > 90) {
+                $compliance = $this->check90DayCompliance($departure->id);
+
+                if ($compliance['status'] === 'non_compliant') {
+                    $nonCompliant[] = [
+                        'departure' => $departure,
+                        'candidate' => $departure->candidate,
+                        'compliance' => $compliance,
+                    ];
+                }
+            }
+        }
+
+        return collect($nonCompliant);
+    }
+
+    /**
+     * Get active issues
+     */
+    public function getActiveIssues()
+    {
+        $departures = Departure::whereNotNull('issues')->get();
+
+        $activeIssues = [];
+
+        foreach ($departures as $departure) {
+            $issues = json_decode($departure->issues, true);
+
+            foreach ($issues as $issue) {
+                if (in_array($issue['status'], ['open', 'investigating'])) {
+                    $activeIssues[] = [
+                        'issue' => $issue,
+                        'departure' => $departure,
+                        'candidate' => $departure->candidate,
+                    ];
+                }
+            }
+        }
+
+        return collect($activeIssues)->sortByDesc('issue.date')->values();
+    }
+
+    /**
+     * Mark candidate as returned
+     */
+    public function markAsReturned($candidateId, $returnDate, $returnReason, $remarks = null)
+    {
+        DB::beginTransaction();
+        try {
+            $departure = Departure::where('candidate_id', $candidateId)->firstOrFail();
+
+            $departure->update([
+                'return_date' => $returnDate,
+                'return_reason' => $returnReason,
+                'return_remarks' => $remarks,
+                'current_stage' => 'returned',
+            ]);
+
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log("Candidate marked as returned: {$returnReason}");
+
+            DB::commit();
+            return $departure;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Get compliance checklist
+     */
+    public function getComplianceChecklist($candidateId)
+    {
+        $departure = Departure::where('candidate_id', $candidateId)->first();
+
+        if (!$departure) {
+            return [
+                'items' => [],
+                'completed' => 0,
+                'total' => 0,
+                'percentage' => 0,
+            ];
+        }
+
+        $items = [
+            ['name' => 'Iqama Issued', 'completed' => !empty($departure->iqama_number)],
+            ['name' => 'Absher Registered', 'completed' => $departure->absher_registered ?? false],
+            ['name' => 'Qiwa/WPS Activated', 'completed' => !empty($departure->qiwa_id)],
+            ['name' => 'First Salary Confirmed', 'completed' => $departure->salary_confirmed ?? false],
+            ['name' => 'Accommodation Verified', 'completed' => $departure->accommodation_status === 'verified'],
+        ];
+
+        $completed = count(array_filter($items, fn($item) => $item['completed']));
+        $total = count($items);
+
+        return [
+            'items' => $items,
+            'completed' => $completed,
+            'total' => $total,
+            'percentage' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
+        ];
+    }
 }

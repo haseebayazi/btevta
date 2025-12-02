@@ -27,6 +27,8 @@ class DepartureController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Departure::class);
+
         $query = Candidate::with(['trade', 'oep', 'departure'])
             ->where('status', 'departed');
 
@@ -61,6 +63,8 @@ class DepartureController extends Controller
      */
     public function show(Candidate $candidate)
     {
+        $this->authorize('view', $candidate->departure ?? new Departure());
+
         $candidate->load(['departure', 'trade', 'oep', 'campus']);
 
         if (!$candidate->departure) {
@@ -79,6 +83,8 @@ class DepartureController extends Controller
      */
     public function recordBriefing(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordBriefing', Departure::class);
+
         $validated = $request->validate([
             'departure_date' => 'required|date',
             'flight_number' => 'required|string|max:50',
@@ -90,11 +96,13 @@ class DepartureController extends Controller
         try {
             $departure = $this->departureService->recordPreDepartureBriefing(
                 $candidate->id,
-                $validated['briefing_date'],
-                $validated['departure_date'],
-                $validated['flight_number'],
-                $validated['destination'],
-                $validated['briefing_remarks'] ?? null
+                [
+                    'briefing_date' => $validated['briefing_date'],
+                    'departure_date' => $validated['departure_date'],
+                    'flight_number' => $validated['flight_number'],
+                    'destination' => $validated['destination'],
+                    'remarks' => $validated['briefing_remarks'] ?? null,
+                ]
             );
 
             $this->notificationService->sendBriefingCompleted($candidate);
@@ -111,6 +119,8 @@ class DepartureController extends Controller
      */
     public function recordDeparture(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordDeparture', Departure::class);
+
         $validated = $request->validate([
             'actual_departure_date' => 'required|date',
             'departure_remarks' => 'nullable|string|max:1000',
@@ -119,8 +129,10 @@ class DepartureController extends Controller
         try {
             $departure = $this->departureService->recordDeparture(
                 $candidate->id,
-                $validated['actual_departure_date'],
-                $validated['departure_remarks'] ?? null
+                [
+                    'departure_date' => $validated['actual_departure_date'],
+                    'remarks' => $validated['departure_remarks'] ?? null,
+                ]
             );
 
             $candidate->update(['status' => 'departed']);
@@ -139,6 +151,8 @@ class DepartureController extends Controller
      */
     public function recordIqama(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordIqama', Departure::class);
+
         $validated = $request->validate([
             'iqama_number' => 'required|string|max:50',
             'iqama_issue_date' => 'required|date',
@@ -175,6 +189,8 @@ class DepartureController extends Controller
      */
     public function recordAbsher(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordAbsher', Departure::class);
+
         $validated = $request->validate([
             'absher_registration_date' => 'required|date',
             'absher_id' => 'nullable|string|max:50',
@@ -201,6 +217,8 @@ class DepartureController extends Controller
      */
     public function recordWps(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordWps', Departure::class);
+
         $validated = $request->validate([
             'wps_registration_date' => 'required|date',
             'wps_id' => 'nullable|string|max:50',
@@ -227,6 +245,8 @@ class DepartureController extends Controller
      */
     public function recordFirstSalary(Request $request, Candidate $candidate)
     {
+        $this->authorize('recordFirstSalary', Departure::class);
+
         $validated = $request->validate([
             'first_salary_date' => 'required|date',
             'salary_amount' => 'required|numeric|min:0',
@@ -261,6 +281,8 @@ class DepartureController extends Controller
      */
     public function record90DayCompliance(Request $request, Candidate $candidate)
     {
+        $this->authorize('record90DayCompliance', Departure::class);
+
         $validated = $request->validate([
             'compliance_date' => 'required|date',
             'is_compliant' => 'required|boolean',
@@ -291,6 +313,8 @@ class DepartureController extends Controller
      */
     public function reportIssue(Request $request, Candidate $candidate)
     {
+        $this->authorize('reportIssue', Departure::class);
+
         $validated = $request->validate([
             'issue_type' => 'required|in:salary_delay,contract_violation,work_condition,accommodation,medical,other',
             'issue_date' => 'required|date',
@@ -329,6 +353,8 @@ class DepartureController extends Controller
      */
     public function updateIssue(Request $request, $issueId)
     {
+        $this->authorize('updateIssue', Departure::class);
+
         $validated = $request->validate([
             'status' => 'required|in:open,investigating,resolved,closed',
             'resolution_notes' => 'nullable|string|max:2000',
@@ -352,6 +378,8 @@ class DepartureController extends Controller
      */
     public function timeline(Candidate $candidate)
     {
+        $this->authorize('viewTimeline', Departure::class);
+
         try {
             $timeline = $this->departureService->getDepartureTimeline($candidate->id);
 
@@ -366,6 +394,8 @@ class DepartureController extends Controller
      */
     public function complianceReport(Request $request)
     {
+        $this->authorize('viewComplianceReport', Departure::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -390,6 +420,8 @@ class DepartureController extends Controller
      */
     public function tracking90Days()
     {
+        $this->authorize('viewTrackingReports', Departure::class);
+
         try {
             $tracking = $this->departureService->get90DayTracking();
 
@@ -404,6 +436,8 @@ class DepartureController extends Controller
      */
     public function nonCompliant()
     {
+        $this->authorize('viewTrackingReports', Departure::class);
+
         try {
             $nonCompliantCandidates = $this->departureService->getNonCompliantCandidates();
 
@@ -418,6 +452,8 @@ class DepartureController extends Controller
      */
     public function activeIssues()
     {
+        $this->authorize('viewTrackingReports', Departure::class);
+
         try {
             $activeIssues = $this->departureService->getActiveIssues();
 
@@ -432,6 +468,8 @@ class DepartureController extends Controller
      */
     public function markReturned(Request $request, Candidate $candidate)
     {
+        $this->authorize('markReturned', Departure::class);
+
         $validated = $request->validate([
             'return_date' => 'required|date',
             'return_reason' => 'required|string',

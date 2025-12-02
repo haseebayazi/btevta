@@ -12,7 +12,8 @@ class CorrespondencePolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 
     public function view(User $user, Correspondence $correspondence): bool
