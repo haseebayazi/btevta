@@ -485,17 +485,20 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Beneficiary Management Routes
-    Route::prefix('candidates/{candidateId}/beneficiaries')->name('beneficiaries.')->group(function () {
-        Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
-        Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
-        Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
-    });
+    // SECURITY: Role middleware added for defense in depth
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('candidates/{candidateId}/beneficiaries')->name('beneficiaries.')->group(function () {
+            Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
+            Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
+            Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
+        });
 
-    Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
-        Route::get('/{id}/edit', [RemittanceBeneficiaryController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
-        Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
+        Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
+            Route::get('/{id}/edit', [RemittanceBeneficiaryController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
+            Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
+        });
     });
 
     // ========================================================================
