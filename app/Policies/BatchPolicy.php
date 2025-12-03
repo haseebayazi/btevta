@@ -12,7 +12,8 @@ class BatchPolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 
     public function view(User $user, Batch $batch): bool
@@ -54,5 +55,17 @@ class BatchPolicy
     public function changeStatus(User $user, Batch $batch): bool
     {
         return in_array($user->role, ['admin', 'campus_admin']);
+    }
+
+    public function apiList(User $user): bool
+    {
+        // API list can be accessed by authenticated users who need dropdown data
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+    }
+
+    public function byCampus(User $user): bool
+    {
+        // API endpoint for batches by campus - needed for dropdown filtering
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 }

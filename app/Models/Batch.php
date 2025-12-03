@@ -25,6 +25,7 @@ class Batch extends Model
         'name',
         'campus_id',
         'trade_id',
+        'oep_id',  // FIXED: Missing field causing silent data loss
         'capacity',
         'start_date',
         'end_date',

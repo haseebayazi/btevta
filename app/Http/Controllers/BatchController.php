@@ -237,6 +237,8 @@ class BatchController extends Controller
      */
     public function apiList()
     {
+        $this->authorize('apiList', Batch::class);
+
         try {
             $batches = Batch::where('status', 'active')
                 ->with(['campus:id,name', 'trade:id,name'])
@@ -252,6 +254,33 @@ class BatchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch batches'
+            ], 500);
+        }
+    }
+
+    /**
+     * API endpoint to get batches by campus.
+     */
+    public function byCampus(Campus $campus)
+    {
+        $this->authorize('byCampus', Batch::class);
+
+        try {
+            $batches = Batch::where('campus_id', $campus->id)
+                ->where('status', 'active')
+                ->with(['trade:id,name'])
+                ->select('id', 'batch_code', 'name', 'trade_id', 'capacity', 'start_date', 'end_date')
+                ->orderBy('start_date', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $batches
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch batches for campus'
             ], 500);
         }
     }

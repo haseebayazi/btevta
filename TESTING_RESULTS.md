@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 20 | 25 | 80% |
+| Core Modules | 🔄 In Progress | 21 | 25 | 84% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 24/50 tasks completed (48%)**
+**Overall Progress: 25/50 tasks completed (50%)**
 
 ---
 
@@ -5931,6 +5931,229 @@ public function apiList(User $user): bool
 9. Task 24 - Trade Module ← CURRENT
 
 **CRITICAL ALERT:** 9 out of 9 admin/master data modules tested have had the EXACT SAME viewAny() = true bug! This represents a 100% systematic failure rate for this specific security pattern!
+
+---
+
+## ✅ Task 25: Admin - Batches Module Testing
+
+**Status:** ✅ Completed
+**Priority:** High
+**Tested:** 2025-12-03
+
+### Components Tested
+
+#### 1. BatchController Authorization ✅
+**File:** `app/Http/Controllers/BatchController.php`
+
+**Controller Methods with Authorization:**
+1. index() - Line 18 ✅
+2. create() - Line 33 ✅
+3. store() - Line 56 ✅
+4. show() - Line 101 ✅
+5. edit() - Line 115 ✅
+6. update() - Line 129 ✅
+7. destroy() - Line 173 ✅
+8. changeStatus() - Line 213 ✅
+9. apiList() - Line 238 ❌ **NO AUTH BEFORE FIX**
+10. byCampus() - **METHOD MISSING!** ❌ **FATAL ERROR**
+
+---
+
+### 🚨 CRITICAL ISSUES FOUND
+
+#### 1. BatchPolicy viewAny() = true Bug (TENTH OCCURRENCE!) 🚨
+**File:** `app/Policies/BatchPolicy.php:13-16`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view all batches
+
+**Before:**
+```php
+public function viewAny(User $user): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function viewAny(User $user): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 2. Missing fillable Field Causing Silent Data Loss 🚨
+**File:** `app/Models/Batch.php:22-39`
+**Severity:** HIGH
+**Impact:** Controller validation passes but data is silently discarded
+
+**Problem:**
+Controller's store() and update() methods validate this field:
+- oep_id ✅ validated (lines 63, 136)
+
+BUT it was NOT in the $fillable array, causing silent data loss!
+
+**Fix:** Added missing field to $fillable:
+```php
+protected $fillable = [
+    'uuid',
+    'batch_code',
+    'name',
+    'campus_id',
+    'trade_id',
+    'oep_id',  // FIXED: Missing field causing silent data loss
+    // ... rest of fields
+];
+```
+
+---
+
+#### 3. API Method Missing Authorization 🚨
+**File:** `app/Http/Controllers/BatchController.php:238-259`
+**Severity:** HIGH
+**Impact:** API endpoint exposed without authorization
+
+**Before:**
+```php
+public function apiList()
+{
+    // NO AUTHORIZATION CHECK!
+    try {
+        $batches = Batch::where('status', 'active')
+            ->with(['campus:id,name', 'trade:id,name'])
+            // ...
+    }
+}
+```
+
+**After:**
+```php
+public function apiList()
+{
+    $this->authorize('apiList', Batch::class);  // FIXED!
+
+    try {
+        $batches = Batch::where('status', 'active')
+            ->with(['campus:id,name', 'trade:id,name'])
+            // ...
+    }
+}
+```
+
+---
+
+#### 4. Missing Controller Method - FATAL ERROR! 🚨🚨🚨
+**File:** `routes/api.php:58-59`
+**Severity:** CRITICAL - FATAL ERROR
+**Impact:** Route exists but method missing - would cause 500 error!
+
+**Problem:**
+API route defined but controller method doesn't exist:
+```php
+// routes/api.php
+Route::get('/batches/by-campus/{campus}', [BatchController::class, 'byCampus'])
+    ->name('batches.by-campus');
+```
+
+**But `BatchController::byCampus()` method was MISSING!**
+
+**Fix:** Created the missing method with proper authorization:
+```php
+public function byCampus(Campus $campus)
+{
+    $this->authorize('byCampus', Batch::class);
+
+    try {
+        $batches = Batch::where('campus_id', $campus->id)
+            ->where('status', 'active')
+            ->with(['trade:id,name'])
+            ->select('id', 'batch_code', 'name', 'trade_id', 'capacity', 'start_date', 'end_date')
+            ->orderBy('start_date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $batches
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch batches for campus'
+        ], 500);
+    }
+}
+```
+
+---
+
+#### 5. Missing Policy Methods 🚨
+**File:** `app/Policies/BatchPolicy.php`
+**Severity:** HIGH
+**Impact:** No policy methods existed for API endpoints
+
+**Fix:** Added two new policy methods:
+```php
+public function apiList(User $user): bool
+{
+    // API list can be accessed by authenticated users who need dropdown data
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+
+public function byCampus(User $user): bool
+{
+    // API endpoint for batches by campus - needed for dropdown filtering
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+### ✅ Task 25 Conclusion
+
+**Overall Assessment: ✅ FIXED - Tenth Occurrence + FATAL ERROR Prevented**
+
+**Before Fixes:**
+- ❌ viewAny() = true (TENTH occurrence!)
+- ❌ 1 missing fillable field (oep_id)
+- ❌ apiList() method with NO authorization
+- ❌ byCampus() method MISSING entirely (would cause fatal error!)
+- ❌ Missing apiList() and byCampus() policy methods
+
+**After Fixes:**
+- ✅ viewAny() restricted to admin, campus_admin, viewer
+- ✅ Missing fillable field added
+- ✅ apiList() now has proper authorization
+- ✅ byCampus() method created with authorization
+- ✅ Both policy methods implemented
+
+**Statistics:**
+- **Policy:** 58 → 71 lines (+13 lines)
+- **Controller:** 258 → 287 lines (+29 lines - created byCampus method)
+- **Model:** Missing 1 fillable field added
+
+**Files Modified:**
+1. app/Policies/BatchPolicy.php - Fixed viewAny() bug + added 2 policy methods
+2. app/Http/Controllers/BatchController.php - Added authorization to apiList() + created byCampus() method
+3. app/Models/Batch.php - Added missing oep_id fillable field
+
+**Impact:** Batches module secured - TENTH occurrence of systematic viewAny() = true bug fixed + prevented fatal error from missing controller method!
+
+**Pattern Confirmation:** This is the TENTH occurrence of the viewAny() = true bug:
+1. Task 3 - Candidate Module
+2. Task 4 - Screening Module
+3. Task 5 - Training Module
+4. Task 10 - Complaint Module
+5. Task 14 - Job Placement Module
+6. Task 16 - Document Archive Module
+7. Task 22 - Campus Module
+8. Task 23 - OEP Module
+9. Task 24 - Trade Module
+10. Task 25 - Batch Module ← CURRENT
+
+**NEW CRITICAL PATTERN:** Routes defined for methods that don't exist, causing fatal errors when called!
 
 ---
 
