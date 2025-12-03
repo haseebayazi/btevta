@@ -377,8 +377,9 @@ Route::middleware(['auth'])->group(function () {
     // REPORTS
     // Throttle: Standard 60/min, Generate custom 3/min (very CPU intensive)
     // Purpose: Comprehensive reporting and analytics across all modules
+    // FIXED: Added role middleware - was completely open to ANY authenticated user!
     // ========================================================================
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:admin,campus_admin,viewer')->group(function () {
         // MAIN REPORTS INDEX
         Route::get('/', [ReportController::class, 'index'])->name('index');
 
