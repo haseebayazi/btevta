@@ -219,6 +219,8 @@ class OepController extends Controller
      */
     public function apiList()
     {
+        $this->authorize('apiList', Oep::class);
+
         try {
             $oeps = Oep::where('is_active', true)
                 ->select('id', 'name', 'code', 'country', 'city')

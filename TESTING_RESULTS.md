@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 18 | 25 | 72% |
+| Core Modules | 🔄 In Progress | 19 | 25 | 76% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 22/50 tasks completed (44%)**
+**Overall Progress: 23/50 tasks completed (46%)**
 
 ---
 
@@ -5552,6 +5552,185 @@ public function apiList(User $user): bool
 **Impact:** Campuses module secured - multiple authorization bypasses fixed
 
 **Note:** This task revealed the SEVENTH occurrence of the `viewAny() = true` bug pattern, confirming this is a systematic issue across the codebase requiring comprehensive review.
+
+---
+
+## ✅ Task 23: Admin - OEPs Module Testing
+
+**Status:** ✅ Completed
+**Priority:** Medium
+**Tested:** 2025-12-03
+
+### Components Tested
+
+#### 1. OepController Authorization ✅
+**File:** `app/Http/Controllers/OepController.php`
+
+**Controller Methods with Authorization:**
+1. index() - Line 15 ✅
+2. create() - Line 29 ✅
+3. store() - Line 39 ✅
+4. show() - Line 81 ✅
+5. edit() - Line 97 ✅
+6. update() - Line 107 ✅
+7. destroy() - Line 148 ✅
+8. toggleStatus() - Line 197 ✅
+9. apiList() - Line 220 ❌ **NO AUTH BEFORE FIX**
+
+---
+
+### 🚨 CRITICAL ISSUES FOUND
+
+#### 1. OepPolicy viewAny() = true Bug (EIGHTH OCCURRENCE!) 🚨
+**File:** `app/Policies/OepPolicy.php:13-16`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view all OEPs
+
+**Before:**
+```php
+public function viewAny(User $user): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function viewAny(User $user): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 2. OepPolicy view() = true Bug 🚨
+**File:** `app/Policies/OepPolicy.php:18-21`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view any OEP details
+
+**Before:**
+```php
+public function view(User $user, Oep $oep): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function view(User $user, Oep $oep): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 3. API Method Missing Authorization 🚨
+**File:** `app/Http/Controllers/OepController.php:220-238`
+**Severity:** HIGH
+**Impact:** API endpoint exposed without authorization
+
+**Before:**
+```php
+public function apiList()
+{
+    // NO AUTHORIZATION CHECK!
+    try {
+        $oeps = Oep::where('is_active', true)
+            ->select('id', 'name', 'code', 'country', 'city')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+**After:**
+```php
+public function apiList()
+{
+    $this->authorize('apiList', Oep::class);  // FIXED!
+
+    try {
+        $oeps = Oep::where('is_active', true)
+            ->select('id', 'name', 'code', 'country', 'city')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+---
+
+#### 4. Missing Policy Method for API Endpoint 🚨
+**File:** `app/Policies/OepPolicy.php`
+**Severity:** HIGH
+**Impact:** No policy method existed for apiList()
+
+**Fix:** Added new policy method:
+```php
+public function apiList(User $user): bool
+{
+    // API list can be accessed by authenticated users who need dropdown data
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+### ✅ GOOD FINDINGS
+
+#### Oep Model Fillable Fields ✅
+**File:** `app/Models/Oep.php:13-28`
+**Status:** ✅ ALL VALIDATED FIELDS IN FILLABLE
+
+All fields validated in controller (license_number, company_name, registration_number, website, etc.) ARE present in the $fillable array. No silent data loss issues!
+
+---
+
+### ✅ Task 23 Conclusion
+
+**Overall Assessment: ✅ FIXED - Eighth Occurrence of viewAny() = true Bug**
+
+**Before Fixes:**
+- ❌ viewAny() = true (EIGHTH occurrence!)
+- ❌ view() = true (ANY user could view any OEP)
+- ❌ apiList() method with NO authorization
+- ❌ Missing apiList() policy method
+
+**After Fixes:**
+- ✅ viewAny() restricted to admin, campus_admin, viewer
+- ✅ view() restricted to admin, campus_admin, viewer
+- ✅ apiList() now has proper authorization
+- ✅ apiList() policy method implemented
+
+**Statistics:**
+- **Policy:** 42 → 50 lines (+8 lines)
+- **Controller:** 239 → 241 lines (+2 lines for authorization)
+- **Model:** ✅ No issues found (all fillable fields correct)
+
+**Files Modified:**
+1. app/Policies/OepPolicy.php - Fixed viewAny() and view() bugs + added apiList() method
+2. app/Http/Controllers/OepController.php - Added authorization to apiList()
+
+**Impact:** OEPs module secured - EIGHTH occurrence of systematic viewAny() = true bug fixed
+
+**Pattern Confirmation:** This is the EIGHTH occurrence of the viewAny() = true bug:
+1. Task 3 - Candidate Module
+2. Task 4 - Screening Module
+3. Task 5 - Training Module
+4. Task 10 - Complaint Module
+5. Task 14 - Job Placement Module
+6. Task 16 - Document Archive Module
+7. Task 22 - Campus Module
+8. Task 23 - OEP Module ← CURRENT
+
+**Recommendation:** Urgent comprehensive security audit required for ALL remaining modules to identify and fix this systematic pattern!
 
 ---
 
