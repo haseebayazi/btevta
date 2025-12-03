@@ -327,9 +327,11 @@ Route::middleware(['auth'])->group(function () {
     // DOCUMENT ARCHIVE
     // Throttle: Standard 60/min, Download 60/min, Bulk upload 10/min, Reports 5/min
     // Purpose: Centralized document storage with version control and expiry tracking
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']);
-    Route::prefix('document-archive')->name('document-archive.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']);
+        Route::prefix('document-archive')->name('document-archive.')->group(function () {
         // DOCUMENT MANAGEMENT ROUTES
         Route::get('/create', [DocumentArchiveController::class, 'create'])->name('create');
         Route::get('/{document}/edit', [DocumentArchiveController::class, 'edit'])->name('edit');
@@ -368,6 +370,7 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Bulk upload limited to 10/min (storage abuse prevention)
         Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
             ->middleware('throttle:10,1')->name('bulk-upload');
+        });
     });
 
     // ========================================================================
