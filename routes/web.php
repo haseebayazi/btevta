@@ -526,29 +526,32 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // REMITTANCE ALERTS ROUTES
     // Throttle: Standard 60/min
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
-        // Alert listing and viewing
-        Route::get('/', [RemittanceAlertController::class, 'index'])->name('index');
-        Route::get('/{id}', [RemittanceAlertController::class, 'show'])->name('show');
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
+            // Alert listing and viewing
+            Route::get('/', [RemittanceAlertController::class, 'index'])->name('index');
+            Route::get('/{id}', [RemittanceAlertController::class, 'show'])->name('show');
 
-        // Alert actions
-        Route::post('/{id}/read', [RemittanceAlertController::class, 'markAsRead'])->name('read');
-        Route::post('/read-all', [RemittanceAlertController::class, 'markAllAsRead'])->name('read-all');
-        Route::post('/{id}/resolve', [RemittanceAlertController::class, 'resolve'])->name('resolve');
-        Route::post('/{id}/dismiss', [RemittanceAlertController::class, 'dismiss'])->name('dismiss');
-        Route::post('/bulk-action', [RemittanceAlertController::class, 'bulkAction'])->name('bulk-action');
+            // Alert actions
+            Route::post('/{id}/read', [RemittanceAlertController::class, 'markAsRead'])->name('read');
+            Route::post('/read-all', [RemittanceAlertController::class, 'markAllAsRead'])->name('read-all');
+            Route::post('/{id}/resolve', [RemittanceAlertController::class, 'resolve'])->name('resolve');
+            Route::post('/{id}/dismiss', [RemittanceAlertController::class, 'dismiss'])->name('dismiss');
+            Route::post('/bulk-action', [RemittanceAlertController::class, 'bulkAction'])->name('bulk-action');
 
-        // Admin-only actions
-        Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
-            ->name('generate')
-            ->middleware('role:admin');
-        Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
-            ->name('auto-resolve')
-            ->middleware('role:admin');
+            // Admin-only actions
+            Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
+                ->name('generate')
+                ->middleware('role:admin');
+            Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
+                ->name('auto-resolve')
+                ->middleware('role:admin');
 
-        // AJAX endpoint
-        Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
+            // AJAX endpoint
+            Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
+        });
     });
 });
 
