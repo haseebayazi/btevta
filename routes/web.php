@@ -291,8 +291,9 @@ Route::middleware(['auth'])->group(function () {
     // Throttle: Standard 60/min, Escalate 30/min, Reports/Export 5/min
     // Purpose: Track and resolve candidate complaints with SLA monitoring
     // ========================================================================
-    Route::resource('complaints', ComplaintController::class);
-    Route::prefix('complaints')->name('complaints.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('complaints', ComplaintController::class);
+        Route::prefix('complaints')->name('complaints.')->group(function () {
         // WORKFLOW ROUTES (Complaint lifecycle management)
         Route::post('/{complaint}/assign', [ComplaintController::class, 'assign'])->name('assign');
         Route::post('/{complaint}/update', [ComplaintController::class, 'addUpdate'])->name('add-update');
@@ -319,6 +320,7 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+        });
     });
 
     // ========================================================================

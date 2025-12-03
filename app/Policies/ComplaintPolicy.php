@@ -12,7 +12,8 @@ class ComplaintPolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 
     public function view(User $user, Complaint $complaint): bool
@@ -37,7 +38,9 @@ class ComplaintPolicy
 
     public function create(User $user): bool
     {
-        return true; // All authenticated users can create complaints
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        // Only admin and campus_admin can create complaints, not viewers or instructors
+        return in_array($user->role, ['admin', 'campus_admin']);
     }
 
     public function update(User $user, Complaint $complaint): bool

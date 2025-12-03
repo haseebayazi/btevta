@@ -114,19 +114,20 @@ class ComplaintController extends Controller
                     ->store('complaints/evidence', 'public');
             }
 
-            $complaint = $this->complaintService->registerComplaint(
-                $validated['complainant_name'],
-                $validated['complainant_contact'],
-                $validated['category'],
-                $validated['subject'],
-                $validated['description'],
-                $validated['priority'],
-                $validated['candidate_id'] ?? null,
-                $validated['campus_id'] ?? null,
-                $validated['oep_id'] ?? null,
-                $validated['complainant_email'] ?? null,
-                $evidencePath
-            );
+            // FIXED: Service expects single $data array, not individual parameters
+            $complaint = $this->complaintService->registerComplaint([
+                'complainant_name' => $validated['complainant_name'],
+                'complainant_contact' => $validated['complainant_contact'],
+                'complaint_category' => $validated['category'],
+                'subject' => $validated['subject'],
+                'description' => $validated['description'],
+                'priority' => $validated['priority'],
+                'candidate_id' => $validated['candidate_id'] ?? null,
+                'campus_id' => $validated['campus_id'] ?? null,
+                'oep_id' => $validated['oep_id'] ?? null,
+                'complainant_email' => $validated['complainant_email'] ?? null,
+                'evidence' => $evidencePath,
+            ]);
 
             $this->notificationService->sendComplaintRegistered($complaint);
 
