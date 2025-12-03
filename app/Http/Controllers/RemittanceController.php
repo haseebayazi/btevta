@@ -19,6 +19,8 @@ class RemittanceController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Remittance::class);
+
         $query = Remittance::with(['candidate', 'departure', 'recordedBy'])
             ->orderBy('transfer_date', 'desc');
 
@@ -88,6 +90,8 @@ class RemittanceController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Remittance::class);
+
         $candidates = Candidate::whereHas('departure')
             ->with('departure')
             ->orderBy('full_name')
@@ -103,6 +107,8 @@ class RemittanceController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Remittance::class);
+
         $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
             'departure_id' => 'nullable|exists:departures,id',
@@ -149,6 +155,8 @@ class RemittanceController extends Controller
      */
     public function show(Remittance $remittance)
     {
+        $this->authorize('view', $remittance);
+
         $remittance->load(['candidate', 'departure', 'recordedBy', 'verifiedBy', 'receipts.uploadedBy', 'usageBreakdown']);
 
         return view('remittances.show', compact('remittance'));
@@ -159,6 +167,8 @@ class RemittanceController extends Controller
      */
     public function edit(Remittance $remittance)
     {
+        $this->authorize('update', $remittance);
+
         $candidates = Candidate::whereHas('departure')
             ->with('departure')
             ->orderBy('full_name')
@@ -176,6 +186,8 @@ class RemittanceController extends Controller
      */
     public function update(Request $request, Remittance $remittance)
     {
+        $this->authorize('update', $remittance);
+
         $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
             'departure_id' => 'nullable|exists:departures,id',
@@ -215,6 +227,8 @@ class RemittanceController extends Controller
      */
     public function destroy(Remittance $remittance)
     {
+        $this->authorize('delete', $remittance);
+
         $remittance->delete();
 
         return redirect()
@@ -228,6 +242,7 @@ class RemittanceController extends Controller
     public function verify(Request $request, $id)
     {
         $remittance = Remittance::findOrFail($id);
+        $this->authorize('verify', $remittance);
 
         $remittance->markAsVerified(Auth::id());
 
@@ -240,6 +255,7 @@ class RemittanceController extends Controller
     public function uploadReceipt(Request $request, $id)
     {
         $remittance = Remittance::findOrFail($id);
+        $this->authorize('uploadReceipt', $remittance);
 
         $request->validate([
             'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -270,6 +286,8 @@ class RemittanceController extends Controller
      */
     public function deleteReceipt($id)
     {
+        $this->authorize('deleteReceipt', Remittance::class);
+
         $receipt = RemittanceReceipt::findOrFail($id);
         $receipt->delete();
 
@@ -281,6 +299,8 @@ class RemittanceController extends Controller
      */
     public function export(Request $request, $format = 'excel')
     {
+        $this->authorize('export', Remittance::class);
+
         // Implementation for export will be added in Phase 2
         return back()->with('info', 'Export functionality coming soon.');
     }

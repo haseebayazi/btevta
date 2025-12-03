@@ -463,21 +463,25 @@ Route::middleware(['auth'])->group(function () {
     // Features: Multi-currency, purpose tagging, receipt upload, beneficiary management
     // Throttle: Standard 60/min, Upload 30/min
     // ========================================================================
-    Route::resource('remittances', RemittanceController::class);
-    Route::prefix('remittances')->name('remittances.')->group(function () {
-        // Verification
-        Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
+    // SECURITY: Role middleware added for defense in depth
+    // ========================================================================
+    Route::middleware('role:admin,campus_admin,oep,viewer')->group(function () {
+        Route::resource('remittances', RemittanceController::class);
+        Route::prefix('remittances')->name('remittances.')->group(function () {
+            // Verification
+            Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
 
-        // Receipt Management
-        Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])
-            ->name('upload-receipt')
-            ->middleware('throttle:30,1');
-        Route::delete('/receipts/{id}', [RemittanceController::class, 'deleteReceipt'])->name('delete-receipt');
+            // Receipt Management
+            Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])
+                ->name('upload-receipt')
+                ->middleware('throttle:30,1');
+            Route::delete('/receipts/{id}', [RemittanceController::class, 'deleteReceipt'])->name('delete-receipt');
 
-        // Export
-        Route::get('/export/{format}', [RemittanceController::class, 'export'])
-            ->name('export')
-            ->middleware('throttle:5,1');
+            // Export
+            Route::get('/export/{format}', [RemittanceController::class, 'export'])
+                ->name('export')
+                ->middleware('throttle:5,1');
+        });
     });
 
     // Beneficiary Management Routes
