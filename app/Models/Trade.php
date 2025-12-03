@@ -15,6 +15,8 @@ class Trade extends Model
     protected $fillable = [
         'name',
         'code',
+        'category',  // FIXED: Missing field causing silent data loss
+        'duration_weeks',  // FIXED: Missing field causing silent data loss
         'description',
         'duration_months',
         'is_active',

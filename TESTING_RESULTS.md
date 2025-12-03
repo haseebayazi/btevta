@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 19 | 25 | 76% |
+| Core Modules | 🔄 In Progress | 20 | 25 | 80% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 23/50 tasks completed (46%)**
+**Overall Progress: 24/50 tasks completed (48%)**
 
 ---
 
@@ -5731,6 +5731,206 @@ All fields validated in controller (license_number, company_name, registration_n
 8. Task 23 - OEP Module ← CURRENT
 
 **Recommendation:** Urgent comprehensive security audit required for ALL remaining modules to identify and fix this systematic pattern!
+
+---
+
+## ✅ Task 24: Admin - Trades Module Testing
+
+**Status:** ✅ Completed
+**Priority:** Medium
+**Tested:** 2025-12-03
+
+### Components Tested
+
+#### 1. TradeController Authorization ✅
+**File:** `app/Http/Controllers/TradeController.php`
+
+**Controller Methods with Authorization:**
+1. index() - Line 15 ✅
+2. create() - Line 29 ✅
+3. store() - Line 39 ✅
+4. show() - Line 73 ✅
+5. edit() - Line 89 ✅
+6. update() - Line 99 ✅
+7. destroy() - Line 132 ✅
+8. toggleStatus() - Line 172 ✅
+9. apiList() - Line 195 ❌ **NO AUTH BEFORE FIX**
+
+---
+
+### 🚨 CRITICAL ISSUES FOUND
+
+#### 1. TradePolicy viewAny() = true Bug (NINTH OCCURRENCE!) 🚨
+**File:** `app/Policies/TradePolicy.php:13-16`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view all trades
+
+**Before:**
+```php
+public function viewAny(User $user): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function viewAny(User $user): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 2. TradePolicy view() = true Bug 🚨
+**File:** `app/Policies/TradePolicy.php:18-21`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view any trade details
+
+**Before:**
+```php
+public function view(User $user, Trade $trade): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function view(User $user, Trade $trade): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 3. Missing fillable Fields Causing Silent Data Loss 🚨
+**File:** `app/Models/Trade.php:15-23`
+**Severity:** HIGH
+**Impact:** Controller validation passes but data is silently discarded
+
+**Problem:**
+Controller's store() and update() methods validate these fields:
+- category ✅ validated
+- duration_weeks ✅ validated
+
+BUT they were NOT in the $fillable array, causing silent data loss!
+
+**Fix:** Added missing fields to $fillable:
+```php
+protected $fillable = [
+    'name',
+    'code',
+    'category',  // FIXED: Missing field causing silent data loss
+    'duration_weeks',  // FIXED: Missing field causing silent data loss
+    'description',
+    'duration_months',
+    // ... rest of fields
+];
+```
+
+---
+
+#### 4. API Method Missing Authorization 🚨
+**File:** `app/Http/Controllers/TradeController.php:195-213`
+**Severity:** HIGH
+**Impact:** API endpoint exposed without authorization
+
+**Before:**
+```php
+public function apiList()
+{
+    // NO AUTHORIZATION CHECK!
+    try {
+        $trades = Trade::where('is_active', true)
+            ->select('id', 'name', 'code', 'category', 'duration_months')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+**After:**
+```php
+public function apiList()
+{
+    $this->authorize('apiList', Trade::class);  // FIXED!
+
+    try {
+        $trades = Trade::where('is_active', true)
+            ->select('id', 'name', 'code', 'category', 'duration_months')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+---
+
+#### 5. Missing Policy Method for API Endpoint 🚨
+**File:** `app/Policies/TradePolicy.php`
+**Severity:** HIGH
+**Impact:** No policy method existed for apiList()
+
+**Fix:** Added new policy method:
+```php
+public function apiList(User $user): bool
+{
+    // API list can be accessed by authenticated users who need dropdown data
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+### ✅ Task 24 Conclusion
+
+**Overall Assessment: ✅ FIXED - Ninth Occurrence of viewAny() = true Bug**
+
+**Before Fixes:**
+- ❌ viewAny() = true (NINTH occurrence!)
+- ❌ view() = true (ANY user could view any trade)
+- ❌ 2 missing fillable fields (category, duration_weeks)
+- ❌ apiList() method with NO authorization
+- ❌ Missing apiList() policy method
+
+**After Fixes:**
+- ✅ viewAny() restricted to admin, campus_admin, viewer
+- ✅ view() restricted to admin, campus_admin, viewer
+- ✅ Both missing fillable fields added
+- ✅ apiList() now has proper authorization
+- ✅ apiList() policy method implemented
+
+**Statistics:**
+- **Policy:** 42 → 50 lines (+8 lines)
+- **Controller:** 214 → 216 lines (+2 lines for authorization)
+- **Model:** Missing 2 fillable fields added
+
+**Files Modified:**
+1. app/Policies/TradePolicy.php - Fixed viewAny() and view() bugs + added apiList() method
+2. app/Http/Controllers/TradeController.php - Added authorization to apiList()
+3. app/Models/Trade.php - Added 2 missing fillable fields
+
+**Impact:** Trades module secured - NINTH occurrence of systematic viewAny() = true bug fixed
+
+**Pattern Confirmation:** This is the NINTH occurrence of the viewAny() = true bug:
+1. Task 3 - Candidate Module
+2. Task 4 - Screening Module
+3. Task 5 - Training Module
+4. Task 10 - Complaint Module
+5. Task 14 - Job Placement Module
+6. Task 16 - Document Archive Module
+7. Task 22 - Campus Module
+8. Task 23 - OEP Module
+9. Task 24 - Trade Module ← CURRENT
+
+**CRITICAL ALERT:** 9 out of 9 admin/master data modules tested have had the EXACT SAME viewAny() = true bug! This represents a 100% systematic failure rate for this specific security pattern!
 
 ---
 
