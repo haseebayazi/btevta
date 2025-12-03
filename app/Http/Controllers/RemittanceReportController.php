@@ -21,6 +21,8 @@ class RemittanceReportController extends Controller
      */
     public function dashboard()
     {
+        $this->authorize('viewDashboard', \App\Policies\RemittanceReportPolicy::class);
+
         $stats = $this->analyticsService->getDashboardStats();
         $monthlyTrends = $this->analyticsService->getMonthlyTrends();
         $purposeAnalysis = $this->analyticsService->getPurposeAnalysis();
@@ -43,6 +45,8 @@ class RemittanceReportController extends Controller
      */
     public function monthlyReport(Request $request)
     {
+        $this->authorize('viewMonthly', \App\Policies\RemittanceReportPolicy::class);
+
         $year = $request->get('year', date('Y'));
         $monthlyTrends = $this->analyticsService->getMonthlyTrends($year);
 
@@ -59,6 +63,8 @@ class RemittanceReportController extends Controller
      */
     public function purposeAnalysis()
     {
+        $this->authorize('viewPurposeAnalysis', \App\Policies\RemittanceReportPolicy::class);
+
         $purposeAnalysis = $this->analyticsService->getPurposeAnalysis();
 
         return view('remittances.reports.purpose-analysis', compact('purposeAnalysis'));
@@ -69,6 +75,8 @@ class RemittanceReportController extends Controller
      */
     public function beneficiaryReport()
     {
+        $this->authorize('viewBeneficiary', \App\Policies\RemittanceReportPolicy::class);
+
         $beneficiaryReport = $this->analyticsService->getBeneficiaryReport();
 
         return view('remittances.reports.beneficiary', compact('beneficiaryReport'));
@@ -79,6 +87,8 @@ class RemittanceReportController extends Controller
      */
     public function proofComplianceReport()
     {
+        $this->authorize('viewCompliance', \App\Policies\RemittanceReportPolicy::class);
+
         $complianceReport = $this->analyticsService->getProofComplianceReport();
 
         return view('remittances.reports.proof-compliance', compact('complianceReport'));
@@ -89,6 +99,8 @@ class RemittanceReportController extends Controller
      */
     public function impactAnalytics()
     {
+        $this->authorize('viewImpact', \App\Policies\RemittanceReportPolicy::class);
+
         $impactData = $this->analyticsService->getImpactAnalytics();
 
         return view('remittances.reports.impact', compact('impactData'));
@@ -99,6 +111,8 @@ class RemittanceReportController extends Controller
      */
     public function export(Request $request, $type)
     {
+        $this->authorize('export', \App\Policies\RemittanceReportPolicy::class);
+
         $format = $request->get('format', 'excel'); // excel or pdf
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to', date('Y-m-d'));

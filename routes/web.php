@@ -504,20 +504,23 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // REMITTANCE REPORTS & ANALYTICS ROUTES
     // Throttle: Standard 60/min, Export 5/min
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
-        // Dashboard & Analytics
-        Route::get('/dashboard', [RemittanceReportController::class, 'dashboard'])->name('dashboard');
-        Route::get('/monthly', [RemittanceReportController::class, 'monthlyReport'])->name('monthly');
-        Route::get('/purpose-analysis', [RemittanceReportController::class, 'purposeAnalysis'])->name('purpose');
-        Route::get('/beneficiary', [RemittanceReportController::class, 'beneficiaryReport'])->name('beneficiary');
-        Route::get('/proof-compliance', [RemittanceReportController::class, 'proofComplianceReport'])->name('proof');
-        Route::get('/impact', [RemittanceReportController::class, 'impactAnalytics'])->name('impact');
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
+            // Dashboard & Analytics
+            Route::get('/dashboard', [RemittanceReportController::class, 'dashboard'])->name('dashboard');
+            Route::get('/monthly', [RemittanceReportController::class, 'monthlyReport'])->name('monthly');
+            Route::get('/purpose-analysis', [RemittanceReportController::class, 'purposeAnalysis'])->name('purpose');
+            Route::get('/beneficiary', [RemittanceReportController::class, 'beneficiaryReport'])->name('beneficiary');
+            Route::get('/proof-compliance', [RemittanceReportController::class, 'proofComplianceReport'])->name('proof');
+            Route::get('/impact', [RemittanceReportController::class, 'impactAnalytics'])->name('impact');
 
-        // Export functionality
-        Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
-            ->name('export')
-            ->middleware('throttle:5,1');
+            // Export functionality
+            Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
+                ->name('export')
+                ->middleware('throttle:5,1');
+        });
     });
 
     // ========================================================================
