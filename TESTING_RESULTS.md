@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 17 | 25 | 68% |
+| Core Modules | 🔄 In Progress | 18 | 25 | 72% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 21/50 tasks completed (42%)**
+**Overall Progress: 22/50 tasks completed (44%)**
 
 ---
 
@@ -5362,6 +5362,196 @@ Route::prefix('reports')->name('reports.')->middleware('role:admin,campus_admin,
 **Impact:** Reports module secured - was completely exposed to ANY authenticated user before, despite having a comprehensive policy file!
 
 **Note:** This is different from Tasks 17-20 where policy files were missing entirely. Here, the policy existed but was simply never used - a case of "security theater" where authorization infrastructure exists but is not enforced.
+
+---
+
+## ✅ Task 22: Admin - Campuses Module Testing
+
+**Status:** ✅ Completed
+**Priority:** Medium
+**Tested:** 2025-12-03
+
+### Components Tested
+
+#### 1. CampusController Authorization ✅
+**File:** `app/Http/Controllers/CampusController.php`
+
+**Controller Methods with Authorization:**
+1. index() - Line 15 ✅
+2. create() - Line 29 ✅
+3. store() - Line 39 ✅
+4. show() - Line 75 ✅
+5. edit() - Line 91 ✅
+6. update() - Line 101 ✅
+7. destroy() - Line 136 ✅
+8. toggleStatus() - Line 185 ✅
+9. apiList() - Line 208 ❌ **NO AUTH BEFORE FIX**
+
+---
+
+### 🚨 CRITICAL ISSUES FOUND
+
+#### 1. CampusPolicy viewAny() = true Bug (SEVENTH OCCURRENCE!) 🚨
+**File:** `app/Policies/CampusPolicy.php:13-16`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view all campuses
+
+**Before:**
+```php
+public function viewAny(User $user): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function viewAny(User $user): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 2. CampusPolicy view() = true Bug 🚨
+**File:** `app/Policies/CampusPolicy.php:18-21`
+**Severity:** CRITICAL
+**Impact:** ANY authenticated user could view any campus details
+
+**Before:**
+```php
+public function view(User $user, Campus $campus): bool
+{
+    return true;  // ❌ ANY user could view!
+}
+```
+
+**After:**
+```php
+public function view(User $user, Campus $campus): bool
+{
+    // FIXED: Was allowing ALL users - should restrict to specific roles
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+#### 3. Missing fillable Fields Causing Silent Data Loss 🚨
+**File:** `app/Models/Campus.php:13-23`
+**Severity:** HIGH
+**Impact:** Controller validation passes but data is silently discarded
+
+**Problem:**
+Controller's store() and update() methods validate these fields:
+- location ✅ validated
+- province ✅ validated
+- district ✅ validated
+
+BUT they were NOT in the $fillable array, causing silent data loss!
+
+**Fix:** Added missing fields to $fillable:
+```php
+protected $fillable = [
+    'name',
+    'code',
+    'location',  // FIXED: Missing field causing silent data loss
+    'province',  // FIXED: Missing field causing silent data loss
+    'district',  // FIXED: Missing field causing silent data loss
+    'address',
+    // ... rest of fields
+];
+```
+
+---
+
+#### 4. API Method Missing Authorization 🚨
+**File:** `app/Http/Controllers/CampusController.php:208-226`
+**Severity:** HIGH
+**Impact:** API endpoint exposed without authorization
+
+**Before:**
+```php
+public function apiList()
+{
+    // NO AUTHORIZATION CHECK!
+    try {
+        $campuses = Campus::where('is_active', true)
+            ->select('id', 'name', 'location', 'province', 'district')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+**After:**
+```php
+public function apiList()
+{
+    $this->authorize('apiList', Campus::class);  // FIXED!
+
+    try {
+        $campuses = Campus::where('is_active', true)
+            ->select('id', 'name', 'location', 'province', 'district')
+            ->orderBy('name')
+            ->get();
+        // ...
+    }
+}
+```
+
+---
+
+#### 5. Missing Policy Method for API Endpoint 🚨
+**File:** `app/Policies/CampusPolicy.php`
+**Severity:** HIGH
+**Impact:** No policy method existed for apiList()
+
+**Fix:** Added new policy method:
+```php
+public function apiList(User $user): bool
+{
+    // API list can be accessed by authenticated users who need dropdown data
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+### ✅ Task 22 Conclusion
+
+**Overall Assessment: ✅ FIXED - Multiple Security Issues Resolved**
+
+**Before Fixes:**
+- ❌ viewAny() = true (SEVENTH occurrence of this bug!)
+- ❌ view() = true (ANY user could view any campus)
+- ❌ 3 missing fillable fields (location, province, district)
+- ❌ apiList() method with NO authorization
+- ❌ Missing apiList() policy method
+
+**After Fixes:**
+- ✅ viewAny() restricted to admin, campus_admin, viewer
+- ✅ view() restricted to admin, campus_admin, viewer
+- ✅ All 3 missing fillable fields added
+- ✅ apiList() now has proper authorization
+- ✅ apiList() policy method implemented
+
+**Statistics:**
+- **Policy:** 42 → 50 lines (+8 lines)
+- **Controller:** 227 → 229 lines (+2 lines for authorization)
+- **Model:** Missing 3 fillable fields added
+
+**Files Modified:**
+1. app/Policies/CampusPolicy.php - Fixed viewAny() and view() bugs + added apiList() method
+2. app/Http/Controllers/CampusController.php - Added authorization to apiList()
+3. app/Models/Campus.php - Added 3 missing fillable fields
+
+**Impact:** Campuses module secured - multiple authorization bypasses fixed
+
+**Note:** This task revealed the SEVENTH occurrence of the `viewAny() = true` bug pattern, confirming this is a systematic issue across the codebase requiring comprehensive review.
 
 ---
 
