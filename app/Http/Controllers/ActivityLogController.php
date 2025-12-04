@@ -20,10 +20,11 @@ class ActivityLogController extends Controller
 
         // Search by description
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('log_name', 'like', "%{$search}%");
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+            $query->where(function($q) use ($escapedSearch) {
+                $q->where('description', 'like', "%{$escapedSearch}%")
+                  ->orWhere('log_name', 'like', "%{$escapedSearch}%");
             });
         }
 

@@ -66,13 +66,15 @@ class GlobalSearchService
 
         // Remittances
         if (in_array('remittances', $types)) {
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedTerm = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
             $query = Remittance::with('candidate')
-                ->where(function($q) use ($term) {
-                    $q->where('transaction_reference', 'like', "%{$term}%")
-                      ->orWhere('sender_name', 'like', "%{$term}%")
-                      ->orWhereHas('candidate', function($subQ) use ($term) {
-                          $subQ->where('name', 'like', "%{$term}%")
-                               ->orWhere('btevta_id', 'like', "%{$term}%");
+                ->where(function($q) use ($escapedTerm) {
+                    $q->where('transaction_reference', 'like', "%{$escapedTerm}%")
+                      ->orWhere('sender_name', 'like', "%{$escapedTerm}%")
+                      ->orWhereHas('candidate', function($subQ) use ($escapedTerm) {
+                          $subQ->where('name', 'like', "%{$escapedTerm}%")
+                               ->orWhere('btevta_id', 'like', "%{$escapedTerm}%");
                       });
                 });
 

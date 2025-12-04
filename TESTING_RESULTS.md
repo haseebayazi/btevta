@@ -9146,22 +9146,22 @@ public function byCandidate($candidateId)
 
 ## Medium Priority Fixes
 
-### 7. Task 30-33: Escape LIKE Special Characters in Search Queries
-**Files:** 
+### 7. Task 30-33: Escape LIKE Special Characters in Search Queries ✅ COMPLETED
+**Status:** FIXED - All 4 locations updated
+**Files Modified:**
 - `app/Http/Controllers/CandidateController.php` (line 503)
 - `app/Services/GlobalSearchService.php` (lines 71-76)
-- `app/Http/Controllers/Api/RemittanceApiController.php` (lines 245, 251-252)
-- `app/Http/Controllers/ActivityLogController.php` (lines 25-26)
+- `app/Http/Controllers/Api/RemittanceApiController.php` (lines 259, 267)
+- `app/Http/Controllers/ActivityLogController.php` (lines 24)
 
-**Fix Pattern:**
+**Fix Applied:**
 ```php
-// BEFORE:
-$query->where('name', 'like', "%{$searchTerm}%");
-
-// AFTER:
-$escapedTerm = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $searchTerm);
+// Escapes backslash first (important!), then % and _
+$escapedTerm = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm);
 $query->where('name', 'like', "%{$escapedTerm}%");
 ```
+
+**Impact:** Prevents SQL LIKE injection attacks where special characters could cause unexpected query behavior
 
 ---
 

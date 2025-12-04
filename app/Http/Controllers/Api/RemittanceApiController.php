@@ -256,14 +256,18 @@ class RemittanceApiController extends Controller
 
         // Search by transaction reference
         if ($request->filled('transaction_reference')) {
-            $query->where('transaction_reference', 'like', '%' . $request->transaction_reference . '%');
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedRef = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->transaction_reference);
+            $query->where('transaction_reference', 'like', '%' . $escapedRef . '%');
         }
 
         // Search by candidate name or CNIC
         if ($request->filled('candidate')) {
-            $query->whereHas('candidate', function($q) use ($request) {
-                $q->where('full_name', 'like', '%' . $request->candidate . '%')
-                  ->orWhere('cnic', 'like', '%' . $request->candidate . '%');
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedCandidate = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->candidate);
+            $query->whereHas('candidate', function($q) use ($escapedCandidate) {
+                $q->where('full_name', 'like', '%' . $escapedCandidate . '%')
+                  ->orWhere('cnic', 'like', '%' . $escapedCandidate . '%');
             });
         }
 
