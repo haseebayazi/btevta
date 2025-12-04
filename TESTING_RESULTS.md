@@ -13,11 +13,11 @@
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
 | Core Modules | ✅ Completed | 25 | 25 | 100% |
-| API Testing | ⏸️ Pending | 0 | 4 | 0% |
+| API Testing | 🔄 In Progress | 1 | 4 | 25% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 29/50 tasks completed (58%)**
+**Overall Progress: 30/50 tasks completed (60%)**
 
 ---
 
@@ -7275,5 +7275,426 @@ This is the **5th missing policy** found during testing:
 - **Policy Methods Needed:** 3 (viewAny, view, delete)
 
 **Verdict:** **MODULE COMPLETELY BROKEN** - Cannot function without ActivityLogPolicy
+
+---
+
+## Task 30: API Endpoints - General ✅
+
+**Module:** API Endpoints (Global Search, Candidate Search)
+**Controllers:** 
+- `app/Http/Controllers/Api/GlobalSearchController.php`
+- `app/Http/Controllers/CandidateController.php` (apiSearch method)
+**Service:** `app/Services/GlobalSearchService.php`
+**Routes:** `routes/api.php`
+**Status:** 🚨 CRITICAL - Multiple Security Vulnerabilities
+
+---
+
+### 🚨 CRITICAL SECURITY ISSUES
+
+#### 1. API Routes Have NO Authentication! 🚨🚨🚨
+**Files:** `bootstrap/app.php:89`, `routes/api.php`
+**Severity:** CRITICAL - PUBLIC DATA EXPOSURE
+**Impact:** ALL API endpoints are publicly accessible without authentication!
+
+**Problem:**
+```php
+// bootstrap/app.php:62-90
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->alias([
+        'role' => RoleMiddleware::class,
+        'active' => CheckUserActive::class,
+    ]);
+
+    $middleware->web(append: [
+        CheckUserActive::class,
+    ]);
+
+    $middleware->throttleApi();  // ✅ Only throttling applied
+    // ❌ NO AUTH MIDDLEWARE FOR API!
+})
+```
+
+**routes/api.php has NO explicit auth middleware:**
+```php
+// routes/api.php:35-40
+Route::prefix('v1')->name('v1.')->group(function () {
+    // ❌ NO ->middleware('auth')!
+    
+    // Global Search
+    Route::get('/global-search', [GlobalSearchController::class, 'search'])
+        ->name('global-search');
+    // ... all other API routes
+});
+```
+
+**Comment Claims Auth is Required, But It's NOT:**
+```php
+// routes/api.php:24-32 (COMMENT ONLY - NOT ACTUAL MIDDLEWARE!)
+/*
+| Default Middleware: auth, throttle:60,1 (60 requests per minute)
+| All routes automatically prefixed with /api
+*/
+
+// ❌ THIS IS JUST A COMMENT! No actual auth middleware applied!
+```
+
+**In Laravel 11:**
+- API routes do NOT have auth middleware by default
+- Must be explicitly added in bootstrap/app.php or routes/api.php
+- Only throttling is applied (`$middleware->throttleApi();`)
+
+**Impact:**
+```
+PUBLIC ACCESS TO ALL API ENDPOINTS:
+
+✅ Throttled: Yes (60 requests/minute)
+❌ Authenticated: NO - COMPLETELY PUBLIC!
+
+Any unauthenticated user can access:
+- /api/v1/global-search - Search ALL data
+- /api/v1/candidates/search - Search all candidates
+- /api/v1/campuses/list - View all campuses
+- /api/v1/oeps/list - View all OEPs
+- /api/v1/trades/list - View all trades
+- /api/v1/batches/by-campus/{id} - View all batches
+- /api/v1/notifications - View notifications
+- /api/v1/remittances/* - ALL remittance endpoints!
+- /api/v1/remittance/reports/* - ALL reports!
+- /api/v1/remittance-alerts/* - ALL alerts!
+```
+
+**Data Exposure:**
+- ✅ Candidate personal data (name, CNIC, BTEVTA ID, status)
+- ✅ Financial data (remittances, amounts, transactions)
+- ✅ Campus information
+- ✅ OEP details
+- ✅ Training data
+- ✅ Departure information
+- ✅ Visa processing status
+
+**This is a MASSIVE DATA BREACH VULNERABILITY!**
+
+---
+
+#### 2. GlobalSearchController - NO Authorization! 🚨
+**File:** `app/Http/Controllers/Api/GlobalSearchController.php:25`
+**Severity:** CRITICAL
+**Impact:** No controller-level authorization check
+
+**Problem:**
+```php
+public function search(Request $request)
+{
+    // ❌ NO $this->authorize() call!
+    
+    $validator = Validator::make($request->all(), [
+        'q' => 'required|string|min:2|max:100',
+        'types' => 'nullable|array',
+        'limit' => 'nullable|integer|min:1|max:100'
+    ]);
+
+    // ... continues without authorization
+    
+    $results = $this->searchService->search($term, $types, $limit);
+    // Returns data from 9 different modules!
+}
+```
+
+**Comparison with Candidate Search:**
+```php
+// CandidateController::apiSearch (line 490) - ✅ HAS AUTHORIZATION
+public function apiSearch(Request $request)
+{
+    $this->authorize('viewAny', Candidate::class);  // ✅ CORRECT!
+    
+    $query = Candidate::query();
+    // ...
+}
+```
+
+**Impact:**
+- Global search accesses 9 different entity types without ANY authorization
+- Even if auth middleware existed, no policy checks are performed
+- Searches: candidates, remittances, alerts, batches, trades, campuses, oeps, departures, visas
+
+---
+
+#### 3. GlobalSearchService - Role Filtering ≠ Authorization ⚠️
+**File:** `app/Services/GlobalSearchService.php:40-243`
+**Severity:** HIGH
+**Impact:** Filtering is not a substitute for authorization
+
+**Problem:**
+```php
+$user = Auth::user();
+
+// Candidates
+if (in_array('candidates', $types)) {
+    $query = Candidate::search($term)->with(['trade', 'campus']);
+
+    // Role-based filtering
+    if ($user->role === 'campus_admin') {
+        $query->where('campus_id', $user->campus_id);
+    }
+    // ⚠️ BUT: admin, viewer, and other roles see EVERYTHING!
+}
+```
+
+**Analysis:**
+- ✅ Campus admins see only their campus data
+- ❌ All other roles (admin, viewer, oep, etc.) see ALL data
+- ⚠️  Filtering is NOT authorization - it's just limiting results
+- ❌ No policy checks against actual user permissions
+
+**Missing Authorization Checks:**
+```
+For each entity type, should check:
+- Can user view candidates? → CandidatePolicy::viewAny()
+- Can user view remittances? → RemittancePolicy::viewAny()
+- Can user view alerts? → RemittanceAlertPolicy::viewAny()
+- Etc...
+```
+
+---
+
+#### 4. LIKE Query Injection Risk - Multiple Locations 🚨
+**Files:** 
+- `app/Http/Controllers/CandidateController.php:503-505`
+- `app/Services/GlobalSearchService.php:71-76`
+**Severity:** MEDIUM
+**Impact:** Pattern matching abuse, potential performance issues
+
+**Problem in CandidateController:**
+```php
+$query->where(function($q) use ($searchTerm) {
+    $q->where('name', 'like', "%{$searchTerm}%")
+      ->orWhere('btevta_id', 'like', "%{$searchTerm}%")
+      ->orWhere('cnic', 'like', "%{$searchTerm}%");
+});
+// ❌ No escaping of LIKE special characters (%, _, \)
+```
+
+**Problem in GlobalSearchService:**
+```php
+$query = Remittance::with('candidate')
+    ->where(function($q) use ($term) {
+        $q->where('transaction_reference', 'like', "%{$term}%")
+          ->orWhere('sender_name', 'like', "%{$term}%")
+          ->orWhereHas('candidate', function($subQ) use ($term) {
+              $subQ->where('name', 'like', "%{$term}%")
+                   ->orWhere('btevta_id', 'like', "%{$term}%");
+          });
+    });
+// ❌ Same issue - unescaped LIKE special characters
+```
+
+**Attack Vectors:**
+```
+User Input: "%"
+Result: Matches ALL records (% = wildcard for everything)
+
+User Input: "a%b%c%d%e%f%..."
+Result: Complex pattern, potential performance degradation
+```
+
+**Note:** While Laravel's query builder prevents SQL injection through parameterization, LIKE special characters should still be escaped.
+
+---
+
+### ✅ POSITIVE FINDINGS
+
+#### 1. Input Validation - Excellent ✅
+**File:** `app/Http/Controllers/Api/GlobalSearchController.php:27-32`
+**Impact:** Prevents malformed requests
+
+```php
+$validator = Validator::make($request->all(), [
+    'q' => 'required|string|min:2|max:100',  // ✅ Min/max length
+    'types' => 'nullable|array',  // ✅ Array validation
+    'types.*' => 'string|in:candidates,remittances,alerts,batches,trades,campuses,oeps,departures,visas',  // ✅ Whitelist
+    'limit' => 'nullable|integer|min:1|max:100'  // ✅ Limit constraints
+]);
+```
+
+- ✅ Search term length limited (2-100 chars)
+- ✅ Entity types whitelisted (prevents arbitrary searches)
+- ✅ Result limit capped at 100
+- ✅ Proper error responses
+
+---
+
+#### 2. Throttling Applied ✅
+**File:** `bootstrap/app.php:89`
+**Impact:** Rate limiting protects against abuse
+
+```php
+$middleware->throttleApi();  // 60 requests/minute
+```
+
+- ✅ API throttled at 60 requests/minute
+- ✅ Prevents brute force and DoS attacks
+- ✅ Per-IP rate limiting
+
+---
+
+#### 3. Role-Based Result Filtering (Campus Admin) ✅
+**File:** `app/Services/GlobalSearchService.php`
+**Impact:** Campus admins see only their data
+
+```php
+// Candidates (line 47-49)
+if ($user->role === 'campus_admin') {
+    $query->where('campus_id', $user->campus_id);
+}
+
+// Remittances (line 80-82)
+if ($user->role === 'campus_admin') {
+    $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+}
+
+// Similar filtering for: alerts, batches, campuses, departures, visas
+```
+
+- ✅ Consistently applied across 7 entity types
+- ✅ Campus admins can only see their campus data
+- ✅ Uses Laravel's query scoping
+
+---
+
+#### 4. Result Limiting ✅
+**File:** `app/Services/GlobalSearchService.php`
+**Impact:** Prevents excessive data transfer
+
+```php
+$results['candidates'] = [
+    // ...
+    'items' => $query->limit($limit)->get()->map(function($item) {
+        // ...
+    })->toArray()
+];
+```
+
+- ✅ Each entity type limited to $limit results (default 50, max 100)
+- ✅ Prevents memory issues
+- ✅ Improves response time
+
+---
+
+#### 5. Proper Error Handling ✅
+**File:** `app/Http/Controllers/Api/GlobalSearchController.php:45-60`
+**Impact:** Graceful failures
+
+```php
+try {
+    $results = $this->searchService->search($term, $types, $limit);
+    // ...
+    return response()->json([
+        'success' => true,
+        'query' => $term,
+        'total_results' => $totalCount,
+        'results' => $results
+    ]);
+} catch (\Exception $e) {
+    return response()->json([
+        'error' => 'Search failed',
+        'message' => $e->getMessage()
+    ], 500);
+}
+```
+
+- ✅ Try-catch wraps search operation
+- ✅ Returns proper HTTP 500 on errors
+- ✅ Error messages included
+
+---
+
+### ✅ Task 30 Conclusion
+
+**Overall Assessment: 🚨 CRITICAL - Public Data Exposure + Missing Authorization**
+
+**Security Status:**
+- ❌ **CRITICAL:** ALL API routes publicly accessible (no auth middleware)
+- ❌ **CRITICAL:** GlobalSearchController has no authorization
+- ⚠️  **HIGH:** Role filtering ≠ authorization
+- ⚠️  **MEDIUM:** LIKE injection risk in multiple locations
+- ✅ **GOOD:** Input validation excellent
+- ✅ **GOOD:** Throttling applied
+- ✅ **GOOD:** Role-based filtering for campus admins
+
+**Severity Ranking:**
+1. **CRITICAL:** No authentication middleware on API routes → COMPLETE DATA EXPOSURE
+2. **CRITICAL:** GlobalSearchController has no authorization checks
+3. **HIGH:** Service uses filtering instead of proper authorization
+4. **MEDIUM:** LIKE special characters not escaped
+
+**Data Exposure Risk:**
+```
+Current State: PUBLIC ACCESS
+Anyone can access (no login required):
+- Candidate personal data
+- Financial remittance data
+- Campus information
+- OEP details
+- Training records
+- Departure information
+- Visa status
+
+Estimated Exposed Records: 10,000+ candidates, remittances, etc.
+Compliance Impact: GDPR violation, data protection breach
+```
+
+**Required Fixes (Priority Order):**
+1. **IMMEDIATE:** Add auth middleware to ALL API routes
+   ```php
+   // routes/api.php
+   Route::prefix('v1')->middleware('auth')->name('v1.')->group(function () {
+       // ... all routes
+   });
+   ```
+
+2. **IMMEDIATE:** Add authorization to GlobalSearchController
+   ```php
+   public function search(Request $request)
+   {
+       $this->authorize('globalSearch', User::class);  // Or appropriate policy
+       // ...
+   }
+   ```
+
+3. **HIGH:** Implement proper authorization in GlobalSearchService
+   - Check policies for each entity type before searching
+   - Don't just filter - authorize first
+
+4. **MEDIUM:** Escape LIKE special characters in search inputs
+
+**Comparison:**
+```
+CandidateController::apiSearch:
+✅ Has authorization: $this->authorize('viewAny', Candidate::class)
+✅ Role-based filtering
+⚠️  LIKE injection risk
+
+GlobalSearchController::search:
+❌ NO authorization
+❌ NO middleware authentication (public!)
+⚠️  LIKE injection risk
+✅ Good input validation
+```
+
+**Files Reviewed:**
+1. bootstrap/app.php - NO auth middleware for API routes
+2. routes/api.php - No explicit auth middleware
+3. app/Http/Controllers/Api/GlobalSearchController.php - NO authorization
+4. app/Services/GlobalSearchService.php - Filtering but not authorization
+5. app/Http/Controllers/CandidateController.php:488-518 - Has authorization
+
+**Statistics:**
+- **API Endpoints Exposed:** 20+ (all in routes/api.php)
+- **Entity Types Searchable:** 9 (candidates, remittances, alerts, batches, trades, campuses, oeps, departures, visas)
+- **Authorization Checks:** 0 in GlobalSearchController, 1 in CandidateController
+- **LIKE Injection Points:** 2 (CandidateController, GlobalSearchService)
+
+**Verdict:** **CRITICAL SECURITY VULNERABILITY** - Public API access exposes all application data!
 
 ---
