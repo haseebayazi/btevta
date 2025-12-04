@@ -211,12 +211,15 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedSearch = $request->search ? str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search) : null;
+
         $candidates = Candidate::with(['batch', 'campus', 'trade'])
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-            ->when($request->search, fn($q) => 
-                $q->where('name', 'like', '%'.$request->search.'%')
-                  ->orWhere('btevta_id', 'like', '%'.$request->search.'%')
-                  ->orWhere('cnic', 'like', '%'.$request->search.'%')
+            ->when($escapedSearch, fn($q) =>
+                $q->where('name', 'like', '%'.$escapedSearch.'%')
+                  ->orWhere('btevta_id', 'like', '%'.$escapedSearch.'%')
+                  ->orWhere('cnic', 'like', '%'.$escapedSearch.'%')
             )
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->trade_id, fn($q) => $q->where('trade_id', $request->trade_id))
@@ -421,11 +424,14 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedCorrespondenceSearch = $request->search ? str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search) : null;
+
         $correspondences = Correspondence::with(['createdBy', 'campus'])
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-            ->when($request->search, fn($q) => 
-                $q->where('reference_number', 'like', '%'.$request->search.'%')
-                  ->orWhere('subject', 'like', '%'.$request->search.'%')
+            ->when($escapedCorrespondenceSearch, fn($q) =>
+                $q->where('reference_number', 'like', '%'.$escapedCorrespondenceSearch.'%')
+                  ->orWhere('subject', 'like', '%'.$escapedCorrespondenceSearch.'%')
             )
             ->when($request->type, fn($q) => $q->where('correspondence_type', $request->type))
             ->latest()
@@ -481,12 +487,15 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedDocSearch = $request->search ? str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search) : null;
+
         $documents = DocumentArchive::with(['candidate', 'candidate.campus', 'uploadedBy'])
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
+            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) =>
                 $sq->where('campus_id', $campusFilter)))
-            ->when($request->search, fn($q) => 
-                $q->where('document_name', 'like', '%'.$request->search.'%')
-                  ->orWhere('document_type', 'like', '%'.$request->search.'%')
+            ->when($escapedDocSearch, fn($q) =>
+                $q->where('document_name', 'like', '%'.$escapedDocSearch.'%')
+                  ->orWhere('document_type', 'like', '%'.$escapedDocSearch.'%')
             )
             ->when($request->document_type, fn($q) => $q->where('document_type', $request->document_type))
             ->latest()

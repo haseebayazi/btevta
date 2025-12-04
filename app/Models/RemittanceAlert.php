@@ -65,14 +65,17 @@ class RemittanceAlert extends Model
 
     public function scopeSearch($query, $term)
     {
-        return $query->where(function($q) use ($term) {
-            $q->where('title', 'like', "%{$term}%")
-              ->orWhere('message', 'like', "%{$term}%")
-              ->orWhere('alert_type', 'like', "%{$term}%")
-              ->orWhereHas('candidate', function($subQ) use ($term) {
-                  $subQ->where('name', 'like', "%{$term}%")
-                       ->orWhere('cnic', 'like', "%{$term}%")
-                       ->orWhere('btevta_id', 'like', "%{$term}%");
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedTerm = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
+
+        return $query->where(function($q) use ($escapedTerm) {
+            $q->where('title', 'like', "%{$escapedTerm}%")
+              ->orWhere('message', 'like', "%{$escapedTerm}%")
+              ->orWhere('alert_type', 'like', "%{$escapedTerm}%")
+              ->orWhereHas('candidate', function($subQ) use ($escapedTerm) {
+                  $subQ->where('name', 'like', "%{$escapedTerm}%")
+                       ->orWhere('cnic', 'like', "%{$escapedTerm}%")
+                       ->orWhere('btevta_id', 'like', "%{$escapedTerm}%");
               });
         });
     }

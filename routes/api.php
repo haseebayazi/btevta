@@ -32,7 +32,7 @@ use App\Http\Controllers\Api\GlobalSearchController;
 // Throttle: 60 requests/minute
 // ========================================================================
 
-Route::prefix('v1')->name('v1.')->group(function () {
+Route::prefix('v1')->middleware('auth')->name('v1.')->group(function () {
 
     // Global Search
     Route::get('/global-search', [GlobalSearchController::class, 'search'])

@@ -261,6 +261,8 @@ class UserController extends Controller
 
     public function settings()
     {
+        $this->authorize('manageSettings', User::class);
+
         // Get current system settings
         $settings = [
             'app_name' => config('app.name'),
@@ -275,6 +277,8 @@ class UserController extends Controller
 
     public function updateSettings(Request $request)
     {
+        $this->authorize('manageSettings', User::class);
+
         $validated = $request->validate([
             'app_name' => 'nullable|string|max:255',
             'support_email' => 'nullable|email|max:255',
@@ -292,6 +296,8 @@ class UserController extends Controller
 
     public function auditLogs(Request $request)
     {
+        $this->authorize('viewAuditLogs', User::class);
+
         // Get audit logs with filters
         $query = \Spatie\Activitylog\Models\Activity::with(['causer', 'subject'])
             ->latest();

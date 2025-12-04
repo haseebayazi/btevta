@@ -25,6 +25,8 @@ class RemittanceAlertApiController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', RemittanceAlert::class);
+
         $query = RemittanceAlert::with(['candidate', 'remittance'])
             ->orderBy('created_at', 'desc');
 
@@ -76,10 +78,10 @@ class RemittanceAlertApiController extends Controller
             return response()->json(['error' => 'Alert not found'], 404);
         }
 
-        // Mark as read
-        if (!$alert->is_read) {
-            $alert->markAsRead();
-        }
+        $this->authorize('view', $alert);
+
+        // Removed auto-mark as read (violates HTTP GET semantics)
+        // Use the dedicated markAsRead() endpoint instead
 
         return response()->json($alert);
     }
@@ -92,6 +94,8 @@ class RemittanceAlertApiController extends Controller
      */
     public function unreadCount(Request $request)
     {
+        $this->authorize('viewAny', RemittanceAlert::class);
+
         $candidateId = $request->input('candidate_id');
         $count = $this->alertService->getUnresolvedAlertsCount($candidateId);
 
@@ -105,6 +109,8 @@ class RemittanceAlertApiController extends Controller
      */
     public function statistics()
     {
+        $this->authorize('viewAny', RemittanceAlert::class);
+
         $stats = $this->alertService->getAlertStatistics();
 
         return response()->json($stats);
@@ -123,6 +129,8 @@ class RemittanceAlertApiController extends Controller
         if (!$alert) {
             return response()->json(['error' => 'Alert not found'], 404);
         }
+
+        $this->authorize('view', $alert);
 
         $alert->markAsRead();
 
@@ -147,6 +155,8 @@ class RemittanceAlertApiController extends Controller
             return response()->json(['error' => 'Alert not found'], 404);
         }
 
+        $this->authorize('resolve', $alert);
+
         $notes = $request->input('resolution_notes');
         $alert->resolve(Auth::id(), $notes);
 
@@ -170,6 +180,8 @@ class RemittanceAlertApiController extends Controller
             return response()->json(['error' => 'Alert not found'], 404);
         }
 
+        $this->authorize('resolve', $alert);
+
         $alert->resolve(Auth::id(), 'Dismissed via API');
 
         return response()->json([
@@ -186,6 +198,8 @@ class RemittanceAlertApiController extends Controller
      */
     public function byCandidate($candidateId)
     {
+        $this->authorize('viewAny', RemittanceAlert::class);
+
         $alerts = RemittanceAlert::where('candidate_id', $candidateId)
             ->with(['remittance'])
             ->orderBy('created_at', 'desc')

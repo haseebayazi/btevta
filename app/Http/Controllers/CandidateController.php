@@ -499,10 +499,12 @@ class CandidateController extends Controller
             if (method_exists(Candidate::class, 'scopeSearch')) {
                 $query->search($searchTerm);
             } else {
-                $query->where(function($q) use ($searchTerm) {
-                    $q->where('name', 'like', "%{$searchTerm}%")
-                      ->orWhere('btevta_id', 'like', "%{$searchTerm}%")
-                      ->orWhere('cnic', 'like', "%{$searchTerm}%");
+                // Escape special LIKE characters to prevent SQL LIKE injection
+                $escapedTerm = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm);
+                $query->where(function($q) use ($escapedTerm) {
+                    $q->where('name', 'like', "%{$escapedTerm}%")
+                      ->orWhere('btevta_id', 'like', "%{$escapedTerm}%")
+                      ->orWhere('cnic', 'like', "%{$escapedTerm}%");
                 });
             }
         }

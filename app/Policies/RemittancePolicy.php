@@ -100,4 +100,10 @@ class RemittancePolicy
         // Only admin and campus_admin can export
         return in_array($user->role, ['admin', 'campus_admin']);
     }
+
+    public function viewReports(User $user): bool
+    {
+        // Admin, campus_admin, and viewer can view reports
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+    }
 }

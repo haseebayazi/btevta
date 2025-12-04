@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Remittance;
 use App\Services\RemittanceAnalyticsService;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,8 @@ class RemittanceReportApiController extends Controller
      */
     public function dashboard()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $stats = $this->analyticsService->getDashboardStats();
         $monthlyTrends = $this->analyticsService->getMonthlyTrends();
         $purposeAnalysis = $this->analyticsService->getPurposeAnalysis();
@@ -41,6 +44,8 @@ class RemittanceReportApiController extends Controller
      */
     public function monthlyTrends(Request $request)
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $year = $request->input('year', date('Y'));
         $trends = $this->analyticsService->getMonthlyTrends($year);
 
@@ -57,6 +62,8 @@ class RemittanceReportApiController extends Controller
      */
     public function purposeAnalysis()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $analysis = $this->analyticsService->getPurposeAnalysis();
 
         return response()->json($analysis);
@@ -69,6 +76,8 @@ class RemittanceReportApiController extends Controller
      */
     public function transferMethods()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $methods = $this->analyticsService->getTransferMethodAnalysis();
 
         return response()->json($methods);
@@ -81,6 +90,8 @@ class RemittanceReportApiController extends Controller
      */
     public function countryAnalysis()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $countries = $this->analyticsService->getCountryAnalysis();
 
         return response()->json($countries);
@@ -93,6 +104,8 @@ class RemittanceReportApiController extends Controller
      */
     public function proofCompliance()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $report = $this->analyticsService->getProofComplianceReport();
 
         return response()->json($report);
@@ -105,6 +118,8 @@ class RemittanceReportApiController extends Controller
      */
     public function beneficiaryReport()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $report = $this->analyticsService->getBeneficiaryReport();
 
         return response()->json($report);
@@ -117,6 +132,8 @@ class RemittanceReportApiController extends Controller
      */
     public function impactAnalytics()
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $impact = $this->analyticsService->getImpactAnalytics();
 
         return response()->json($impact);
@@ -130,6 +147,8 @@ class RemittanceReportApiController extends Controller
      */
     public function topCandidates(Request $request)
     {
+        $this->authorize('viewReports', Remittance::class);
+
         $limit = $request->input('limit', 10);
         $candidates = $this->analyticsService->getTopRemittingCandidates($limit);
 

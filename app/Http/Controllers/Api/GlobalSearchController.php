@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\GlobalSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -24,6 +25,8 @@ class GlobalSearchController extends Controller
      */
     public function search(Request $request)
     {
+        $this->authorize('globalSearch', User::class);
+
         $validator = Validator::make($request->all(), [
             'q' => 'required|string|min:2|max:100',
             'types' => 'nullable|array',

@@ -203,10 +203,13 @@ class Batch extends Model
      */
     public function scopeSearch($query, $search)
     {
-        return $query->where(function ($q) use ($search) {
-            $q->where('batch_code', 'like', "%{$search}%")
-              ->orWhere('name', 'like', "%{$search}%")
-              ->orWhere('specialization', 'like', "%{$search}%");
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+
+        return $query->where(function ($q) use ($escapedSearch) {
+            $q->where('batch_code', 'like', "%{$escapedSearch}%")
+              ->orWhere('name', 'like', "%{$escapedSearch}%")
+              ->orWhere('specialization', 'like', "%{$escapedSearch}%");
         });
     }
 
