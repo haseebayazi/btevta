@@ -9203,52 +9203,46 @@ elseif ($user->role === 'campus_admin') {
 
 ---
 
-### 10. Task 29: Add Chunking to ActivityLogController export()
-**File:** `app/Http/Controllers/ActivityLogController.php` (line 176)
+### 10. Task 29: Add Chunking to ActivityLogController export() ✅ COMPLETED
+**Status:** FIXED - Chunking added + LIKE escaping added as bonus
+**File Modified:** `app/Http/Controllers/ActivityLogController.php` (lines 155, 192)
 
-**Fix:**
+**Fix Applied:**
 ```php
-public function export(Request $request)
-{
-    $this->authorize('viewAny', Activity::class);
-
-    $query = Activity::with(['causer', 'subject']);
-
-    // ... apply filters ...
-
-    // FIX: Use chunking instead of get()
-    $callback = function() use ($query) {
-        $file = fopen('php://output', 'w');
-        
-        fputcsv($file, ['ID', 'Log Name', 'Description', 'Causer', 'Subject Type', 'Subject ID', 'Created At']);
-        
-        // Use chunk to prevent memory issues
-        $query->chunk(1000, function($activities) use ($file) {
-            foreach ($activities as $activity) {
-                fputcsv($file, [
-                    $activity->id,
-                    $activity->log_name,
-                    $activity->description,
-                    $activity->causer ? $activity->causer->name : 'System',
-                    class_basename($activity->subject_type),
-                    $activity->subject_id,
-                    $activity->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
-        });
-        
-        fclose($file);
-    };
-
-    $filename = 'activity_logs_' . date('Y-m-d_His') . '.csv';
-    $headers = [
-        'Content-Type' => 'text/csv',
-        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-    ];
-
-    return response()->stream($callback, 200, $headers);
+// 1. Added LIKE character escaping (was missing in export method)
+if ($request->filled('search')) {
+    $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+    $query->where(function($q) use ($escapedSearch) {
+        $q->where('description', 'like', "%{$escapedSearch}%")
+          ->orWhere('log_name', 'like', "%{$escapedSearch}%");
+    });
 }
+
+// 2. Replaced get() with chunk(1000) to prevent memory exhaustion
+$callback = function() use ($query) {
+    $file = fopen('php://output', 'w');
+    fputcsv($file, ['ID', 'Log Name', 'Description', 'Causer', 'Subject Type', 'Subject ID', 'Created At']);
+
+    // Use chunking to process records in batches of 1000
+    $query->chunk(1000, function($activities) use ($file) {
+        foreach ($activities as $activity) {
+            fputcsv($file, [
+                $activity->id,
+                $activity->log_name,
+                $activity->description,
+                $activity->causer ? $activity->causer->name : 'System',
+                class_basename($activity->subject_type),
+                $activity->subject_id,
+                $activity->created_at->format('Y-m-d H:i:s'),
+            ]);
+        }
+    });
+
+    fclose($file);
+};
 ```
+
+**Impact:** Prevents memory exhaustion when exporting large activity log datasets (potentially 100,000+ records)
 
 ---
 

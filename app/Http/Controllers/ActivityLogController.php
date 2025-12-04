@@ -151,10 +151,11 @@ class ActivityLogController extends Controller
 
         // Apply same filters as index
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('log_name', 'like', "%{$search}%");
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+            $query->where(function($q) use ($escapedSearch) {
+                $q->where('description', 'like', "%{$escapedSearch}%")
+                  ->orWhere('log_name', 'like', "%{$escapedSearch}%");
             });
         }
 
@@ -174,8 +175,6 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $activities = $query->get();
-
         // Create CSV
         $filename = 'activity_logs_' . date('Y-m-d_His') . '.csv';
         $headers = [
@@ -183,24 +182,26 @@ class ActivityLogController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($activities) {
+        $callback = function() use ($query) {
             $file = fopen('php://output', 'w');
 
             // Headers
             fputcsv($file, ['ID', 'Log Name', 'Description', 'Causer', 'Subject Type', 'Subject ID', 'Created At']);
 
-            // Data
-            foreach ($activities as $activity) {
-                fputcsv($file, [
-                    $activity->id,
-                    $activity->log_name,
-                    $activity->description,
-                    $activity->causer ? $activity->causer->name : 'System',
-                    class_basename($activity->subject_type),
-                    $activity->subject_id,
-                    $activity->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
+            // Use chunking to prevent memory exhaustion on large exports
+            $query->chunk(1000, function($activities) use ($file) {
+                foreach ($activities as $activity) {
+                    fputcsv($file, [
+                        $activity->id,
+                        $activity->log_name,
+                        $activity->description,
+                        $activity->causer ? $activity->causer->name : 'System',
+                        class_basename($activity->subject_type),
+                        $activity->subject_id,
+                        $activity->created_at->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
 
             fclose($file);
         };
