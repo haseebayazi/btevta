@@ -9185,25 +9185,21 @@ if ($remittance->status === 'verified') {
 
 ---
 
-### 9. Task 31: Add Campus Admin Filtering
-**File:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 46)
+### 9. Task 31: Add Campus Admin Filtering ✅ COMPLETED
+**Status:** FIXED - Campus admin role-based filtering added
+**File Modified:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 53-58)
 
-**Fix:**
+**Fix Applied:**
 ```php
-// Role-based filtering
-$user = Auth::user();
-if ($user->role === 'candidate') {
+elseif ($user->role === 'campus_admin') {
+    // Campus admins can only see remittances for candidates at their campus
     $query->whereHas('candidate', function($q) use ($user) {
-        $q->where('user_id', $user->id);
+        $q->where('campus_id', $user->campus_id);
     });
 }
-// ADD THIS:
-elseif ($user->role === 'campus_admin') {
-    $query->whereHas('candidate', fn($q) => 
-        $q->where('campus_id', $user->campus_id)
-    );
-}
 ```
+
+**Impact:** Ensures campus administrators can only access remittance data for candidates at their assigned campus, maintaining proper data isolation
 
 ---
 

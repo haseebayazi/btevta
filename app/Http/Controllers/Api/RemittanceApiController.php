@@ -50,6 +50,11 @@ class RemittanceApiController extends Controller
             $query->whereHas('candidate', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             });
+        } elseif ($user->role === 'campus_admin') {
+            // Campus admins can only see remittances for candidates at their campus
+            $query->whereHas('candidate', function($q) use ($user) {
+                $q->where('campus_id', $user->campus_id);
+            });
         }
 
         $perPage = $request->input('per_page', 20);
