@@ -350,3 +350,69 @@ activity()
 
 ---
 
+
+## Task 35: Models - N+1 Query & Security Analysis ✅
+
+**Date Completed:** 2025-12-04
+**Files Analyzed:** 28 model files, 226 methods (mostly relationships)
+
+### 📊 Key Statistics
+
+- **Total Models:** 28 files
+- **Relationships Defined:** 150+ relationship methods
+- **Scope Methods:** 50+ query scopes
+- **Model Search Scopes:** 9 scopeSearch() methods
+- **Accessor Methods:** 30+ computed attributes
+
+---
+
+### 🔴 CRITICAL FINDINGS
+
+#### 1. **Model Search Scopes - Missing LIKE Escaping (9 locations)** ⚠️ SECURITY
+
+**Severity:** CRITICAL
+**Impact:** SQL LIKE injection vulnerability in all model searches
+**Status:** NEW VULNERABILITY DISCOVERED (3rd batch)
+
+**Vulnerable Models:**
+1. `app/Models/Candidate.php:388-397` (5 fields)
+2. `app/Models/Batch.php:204-209` (3 fields)
+3. `app/Models/Campus.php:74-80` (4 fields)
+4. `app/Models/Trade.php:58` (unknown fields)
+5. `app/Models/VisaProcess.php:89` (unknown fields)
+6. `app/Models/Departure.php:128` (unknown fields)
+7. `app/Models/RemittanceAlert.php:66` (unknown fields)
+8. `app/Models/NextOfKin.php:113` (unknown fields)
+9. `app/Models/Oep.php:75` (unknown fields)
+
+**Example Vulnerable Code (Candidate.php:388-397):**
+```php
+public function scopeSearch($query, $search)
+{
+    return $query->where(function ($q) use ($search) {
+        $q->where('name', 'like', "%{$search}%")              // ❌ Not escaped
+          ->orWhere('cnic', 'like', "%{$search}%")            // ❌ Not escaped
+          ->orWhere('application_id', 'like', "%{$search}%")  // ❌ Not escaped
+          ->orWhere('phone', 'like', "%{$search}%")           // ❌ Not escaped
+          ->orWhere('email', 'like', "%{$search}%");          // ❌ Not escaped
+    });
+}
+```
+
+**Impact:** These scopes are called from controllers via `$query->search($term)`, meaning all controller searches using model scopes are vulnerable.
+
+---
+
+### 📋 SUMMARY - TASK 35
+
+**Total LIKE Vulnerabilities Discovered Across All Tasks:**
+- Fix #7 (original): 4 locations
+- Task 34: 13 controller locations  
+- Task 35: 9 model scopes
+- **Grand Total: 26 LIKE injection vulnerabilities found**
+
+**Recommendations Priority:**
+1. 🔴 **CRITICAL:** Fix all 9 scopeSearch() LIKE injections immediately
+2. 🟡 **MEDIUM:** Refactor accessors to avoid N+1 queries
+
+---

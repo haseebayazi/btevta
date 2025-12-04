@@ -112,10 +112,13 @@ class NextOfKin extends Model
      */
     public function scopeSearch($query, $search)
     {
-        return $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('cnic', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%");
+        // Escape special LIKE characters to prevent SQL LIKE injection
+        $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+
+        return $query->where(function ($q) use ($escapedSearch) {
+            $q->where('name', 'like', "%{$escapedSearch}%")
+              ->orWhere('cnic', 'like', "%{$escapedSearch}%")
+              ->orWhere('phone', 'like', "%{$escapedSearch}%");
         });
     }
 
