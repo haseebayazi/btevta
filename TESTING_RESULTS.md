@@ -8813,3 +8813,491 @@ public function resolve(Request $request, $id)
 **Verdict:** **CRITICAL SECURITY MONITORING BREACH** - Alert system completely exposed!
 
 ---
+
+---
+
+# 🔧 PENDING FIXES SUMMARY
+
+## Critical Fixes Required (Must Fix Immediately)
+
+### 1. Task 29: Create Missing ActivityLogPolicy ⚠️ CRITICAL
+**Status:** MODULE BROKEN - 100% non-functional
+**File to Create:** `app/Policies/ActivityLogPolicy.php`
+**Impact:** All 5 ActivityLogController methods throw 403 Forbidden
+
+**Required Policy Methods:**
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use Spatie\Activitylog\Models\Activity;
+
+class ActivityLogPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    public function view(User $user, Activity $activity): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->role === 'admin';
+    }
+}
+```
+
+**Also Register in:** `bootstrap/app.php` or `AuthServiceProvider` if it exists
+
+---
+
+### 2. Task 30: Add Authentication Middleware to ALL API Routes ⚠️ CRITICAL
+**Status:** COMPLETE DATA BREACH - All API routes publicly accessible
+**Files to Modify:** 
+- `routes/api.php` (line 35)
+- OR `bootstrap/app.php` (line 89)
+
+**Fix Option 1 - routes/api.php (RECOMMENDED):**
+```php
+// Add ->middleware('auth:sanctum') or ->middleware('auth')
+Route::prefix('v1')->middleware('auth')->name('v1.')->group(function () {
+    // ... all routes
+});
+```
+
+**Fix Option 2 - bootstrap/app.php:**
+```php
+->withMiddleware(function (Middleware $middleware) {
+    // Add auth middleware to API
+    $middleware->api(prepend: [
+        \Illuminate\Auth\Middleware\Authenticate::class,
+    ]);
+    
+    $middleware->throttleApi();
+})
+```
+
+---
+
+### 3. Task 30: Add Authorization to GlobalSearchController ⚠️ CRITICAL
+**File:** `app/Http/Controllers/Api/GlobalSearchController.php`
+**Method:** `search()` (line 25)
+
+**Fix:**
+```php
+public function search(Request $request)
+{
+    // Add authorization check
+    $this->authorize('globalSearch', User::class);
+    
+    // Or use a general permission check
+    // abort_unless(auth()->user()->can('use-global-search'), 403);
+    
+    // ... rest of method
+}
+```
+
+**Also Create Policy Method in UserPolicy or create GlobalSearchPolicy**
+
+---
+
+### 4. Task 31: Add Authorization to ALL RemittanceApiController Methods ⚠️ CRITICAL
+**File:** `app/Http/Controllers/Api/RemittanceApiController.php`
+**Impact:** Financial data completely exposed
+
+**Fix ALL 9 methods:**
+```php
+public function index(Request $request)
+{
+    $this->authorize('viewAny', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function show($id)
+{
+    $remittance = Remittance::find($id);
+    if (!$remittance) {
+        return response()->json(['error' => 'Remittance not found'], 404);
+    }
+    $this->authorize('view', $remittance);  // ADD THIS
+    // ... rest
+}
+
+public function store(Request $request)
+{
+    $this->authorize('create', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function update(Request $request, $id)
+{
+    $remittance = Remittance::find($id);
+    if (!$remittance) {
+        return response()->json(['error' => 'Remittance not found'], 404);
+    }
+    $this->authorize('update', $remittance);  // ADD THIS
+    
+    // ... validation ...
+    
+    // FIX MASS ASSIGNMENT:
+    $remittance->update($validator->validated());  // Use validated() not all()!
+    
+    // ... rest
+}
+
+public function destroy($id)
+{
+    $remittance = Remittance::find($id);
+    if (!$remittance) {
+        return response()->json(['error' => 'Remittance not found'], 404);
+    }
+    $this->authorize('delete', $remittance);  // ADD THIS
+    // ... rest
+}
+
+public function byCandidate($candidateId)
+{
+    $this->authorize('viewAny', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function search(Request $request)
+{
+    $this->authorize('viewAny', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function statistics()
+{
+    $this->authorize('viewAny', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function verify($id)
+{
+    $remittance = Remittance::find($id);
+    if (!$remittance) {
+        return response()->json(['error' => 'Remittance not found'], 404);
+    }
+    $this->authorize('verify', $remittance);  // ADD THIS
+    // ... rest
+}
+```
+
+**Note:** RemittancePolicy already exists with these methods! Just need to call them.
+
+---
+
+### 5. Task 32: Add Authorization to ALL RemittanceReportApiController Methods ⚠️ CRITICAL
+**File:** `app/Http/Controllers/Api/RemittanceReportApiController.php`
+**Impact:** Business intelligence completely exposed
+
+**Fix ALL 9 methods:**
+```php
+public function dashboard()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function monthlyTrends(Request $request)
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function purposeAnalysis()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function transferMethods()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function countryAnalysis()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function proofCompliance()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function beneficiaryReport()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function impactAnalytics()
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+
+public function topCandidates(Request $request)
+{
+    $this->authorize('viewReports', Remittance::class);  // ADD THIS
+    // ... rest
+}
+```
+
+**Also Add to RemittancePolicy:**
+```php
+public function viewReports(User $user): bool
+{
+    return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+}
+```
+
+---
+
+### 6. Task 33: Add Authorization to ALL RemittanceAlertApiController Methods ⚠️ CRITICAL
+**File:** `app/Http/Controllers/Api/RemittanceAlertApiController.php`
+**Impact:** Security monitoring system exposed
+
+**Fix ALL 8 methods:**
+```php
+public function index(Request $request)
+{
+    $this->authorize('viewAny', RemittanceAlert::class);  // ADD THIS
+    // ... rest
+}
+
+public function show($id)
+{
+    $alert = RemittanceAlert::find($id);
+    if (!$alert) {
+        return response()->json(['error' => 'Alert not found'], 404);
+    }
+    $this->authorize('view', $alert);  // ADD THIS
+    
+    // REMOVE auto-mark as read (violates HTTP semantics)
+    // Use separate markAsRead() endpoint instead
+    
+    return response()->json($alert);
+}
+
+public function unreadCount(Request $request)
+{
+    $this->authorize('viewAny', RemittanceAlert::class);  // ADD THIS
+    // ... rest
+}
+
+public function statistics()
+{
+    $this->authorize('viewAny', RemittanceAlert::class);  // ADD THIS
+    // ... rest
+}
+
+public function markAsRead($id)
+{
+    $alert = RemittanceAlert::find($id);
+    if (!$alert) {
+        return response()->json(['error' => 'Alert not found'], 404);
+    }
+    $this->authorize('view', $alert);  // ADD THIS
+    // ... rest
+}
+
+public function resolve(Request $request, $id)
+{
+    $alert = RemittanceAlert::find($id);
+    if (!$alert) {
+        return response()->json(['error' => 'Alert not found'], 404);
+    }
+    $this->authorize('resolve', $alert);  // ADD THIS
+    // ... rest
+}
+
+public function dismiss($id)
+{
+    $alert = RemittanceAlert::find($id);
+    if (!$alert) {
+        return response()->json(['error' => 'Alert not found'], 404);
+    }
+    $this->authorize('resolve', $alert);  // ADD THIS (use resolve permission)
+    // ... rest
+}
+
+public function byCandidate($candidateId)
+{
+    $this->authorize('viewAny', RemittanceAlert::class);  // ADD THIS
+    // ... rest
+}
+```
+
+**Note:** RemittanceAlertPolicy already exists from Task 20 fixes! Just need to call it.
+
+---
+
+## Medium Priority Fixes
+
+### 7. Task 30-33: Escape LIKE Special Characters in Search Queries
+**Files:** 
+- `app/Http/Controllers/CandidateController.php` (line 503)
+- `app/Services/GlobalSearchService.php` (lines 71-76)
+- `app/Http/Controllers/Api/RemittanceApiController.php` (lines 245, 251-252)
+- `app/Http/Controllers/ActivityLogController.php` (lines 25-26)
+
+**Fix Pattern:**
+```php
+// BEFORE:
+$query->where('name', 'like', "%{$searchTerm}%");
+
+// AFTER:
+$escapedTerm = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $searchTerm);
+$query->where('name', 'like', "%{$escapedTerm}%");
+```
+
+---
+
+### 8. Task 31: Add Validation to verify() Method
+**File:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 313)
+
+**Fix:**
+```php
+public function verify($id)
+{
+    $remittance = Remittance::find($id);
+    
+    if (!$remittance) {
+        return response()->json(['error' => 'Remittance not found'], 404);
+    }
+    
+    $this->authorize('verify', $remittance);
+    
+    // ADD VALIDATION:
+    if ($remittance->status === 'verified') {
+        return response()->json(['error' => 'Already verified'], 400);
+    }
+    
+    $remittance->markAsVerified(Auth::id());
+    
+    return response()->json([
+        'message' => 'Remittance verified successfully',
+        'remittance' => $remittance,
+    ]);
+}
+```
+
+---
+
+### 9. Task 31: Add Campus Admin Filtering
+**File:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 46)
+
+**Fix:**
+```php
+// Role-based filtering
+$user = Auth::user();
+if ($user->role === 'candidate') {
+    $query->whereHas('candidate', function($q) use ($user) {
+        $q->where('user_id', $user->id);
+    });
+}
+// ADD THIS:
+elseif ($user->role === 'campus_admin') {
+    $query->whereHas('candidate', fn($q) => 
+        $q->where('campus_id', $user->campus_id)
+    );
+}
+```
+
+---
+
+### 10. Task 29: Add Chunking to ActivityLogController export()
+**File:** `app/Http/Controllers/ActivityLogController.php` (line 176)
+
+**Fix:**
+```php
+public function export(Request $request)
+{
+    $this->authorize('viewAny', Activity::class);
+
+    $query = Activity::with(['causer', 'subject']);
+
+    // ... apply filters ...
+
+    // FIX: Use chunking instead of get()
+    $callback = function() use ($query) {
+        $file = fopen('php://output', 'w');
+        
+        fputcsv($file, ['ID', 'Log Name', 'Description', 'Causer', 'Subject Type', 'Subject ID', 'Created At']);
+        
+        // Use chunk to prevent memory issues
+        $query->chunk(1000, function($activities) use ($file) {
+            foreach ($activities as $activity) {
+                fputcsv($file, [
+                    $activity->id,
+                    $activity->log_name,
+                    $activity->description,
+                    $activity->causer ? $activity->causer->name : 'System',
+                    class_basename($activity->subject_type),
+                    $activity->subject_id,
+                    $activity->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+        });
+        
+        fclose($file);
+    };
+
+    $filename = 'activity_logs_' . date('Y-m-d_His') . '.csv';
+    $headers = [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+    ];
+
+    return response()->stream($callback, 200, $headers);
+}
+```
+
+---
+
+## Informational (No Code Fix Required)
+
+### 11. Task 27: Settings Module is Stub Implementation
+**Status:** Secure but non-functional
+**Impact:** Feature appears to work but doesn't save settings
+**Note:** Authorization is correct. Either complete implementation or mark as "Coming Soon"
+
+### 12. Task 28: Audit Logs View is Non-Functional Mock
+**Status:** Secure but non-functional  
+**Impact:** View shows hardcoded data, filters don't work (parameter mismatch)
+**Note:** Backend is secure and well-implemented. Frontend needs complete rewrite to use actual data.
+
+---
+
+## Summary Statistics
+
+**Critical Fixes:** 6 (Tasks 29-33 - API security)
+**Medium Priority:** 4 (LIKE escaping, validation, filtering, chunking)
+**Informational:** 2 (stub implementations)
+
+**Total Methods Needing Authorization:** 35
+- ActivityLogController: 3 methods
+- GlobalSearchController: 1 method
+- RemittanceApiController: 9 methods
+- RemittanceReportApiController: 9 methods
+- RemittanceAlertApiController: 8 methods
+- CandidateController::apiSearch: ✅ Already has authorization
+
+**Estimated Fix Time:**
+- Critical API fixes: 2-4 hours (mostly copy-paste authorization checks)
+- Medium priority: 1-2 hours
+- **Total: 3-6 hours of development time**
+
+---
