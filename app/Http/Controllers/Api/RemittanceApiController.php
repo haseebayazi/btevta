@@ -340,6 +340,15 @@ class RemittanceApiController extends Controller
 
         $this->authorize('verify', $remittance);
 
+        // Prevent duplicate verification
+        if ($remittance->status === 'verified') {
+            return response()->json([
+                'error' => 'Remittance is already verified',
+                'verified_by' => $remittance->verifiedBy?->name,
+                'verified_date' => $remittance->proof_verified_date,
+            ], 400);
+        }
+
         $remittance->markAsVerified(Auth::id());
 
         return response()->json([

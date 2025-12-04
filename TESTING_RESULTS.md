@@ -9165,34 +9165,23 @@ $query->where('name', 'like', "%{$escapedTerm}%");
 
 ---
 
-### 8. Task 31: Add Validation to verify() Method
-**File:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 313)
+### 8. Task 31: Add Validation to verify() Method ✅ COMPLETED
+**Status:** FIXED - Duplicate verification prevention added
+**File Modified:** `app/Http/Controllers/Api/RemittanceApiController.php` (line 343-350)
 
-**Fix:**
+**Fix Applied:**
 ```php
-public function verify($id)
-{
-    $remittance = Remittance::find($id);
-    
-    if (!$remittance) {
-        return response()->json(['error' => 'Remittance not found'], 404);
-    }
-    
-    $this->authorize('verify', $remittance);
-    
-    // ADD VALIDATION:
-    if ($remittance->status === 'verified') {
-        return response()->json(['error' => 'Already verified'], 400);
-    }
-    
-    $remittance->markAsVerified(Auth::id());
-    
+// Prevent duplicate verification
+if ($remittance->status === 'verified') {
     return response()->json([
-        'message' => 'Remittance verified successfully',
-        'remittance' => $remittance,
-    ]);
+        'error' => 'Remittance is already verified',
+        'verified_by' => $remittance->verifiedBy?->name,
+        'verified_date' => $remittance->proof_verified_date,
+    ], 400);
 }
 ```
+
+**Impact:** Prevents duplicate verifications and protects verification audit trail integrity
 
 ---
 
