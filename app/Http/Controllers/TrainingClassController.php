@@ -22,8 +22,10 @@ class TrainingClassController extends Controller
 
         $classes = TrainingClass::with(['campus', 'trade', 'instructor', 'batch'])
             ->when($request->search, function ($query) use ($request) {
-                $query->where('class_name', 'like', '%' . $request->search . '%')
-                    ->orWhere('class_code', 'like', '%' . $request->search . '%');
+                // Escape special LIKE characters to prevent SQL LIKE injection
+                $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+                $query->where('class_name', 'like', '%' . $escapedSearch . '%')
+                    ->orWhere('class_code', 'like', '%' . $escapedSearch . '%');
             })
             ->when($request->campus_id, function ($query) use ($request) {
                 $query->where('campus_id', $request->campus_id);

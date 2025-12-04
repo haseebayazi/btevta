@@ -16,10 +16,12 @@ class ScreeningController extends Controller
         // FIXED: Optimized N+1 query by using join instead of nested whereHas
         $screenings = CandidateScreening::with('candidate')
             ->when($request->search, function($q) use ($request) {
+                // Escape special LIKE characters to prevent SQL LIKE injection
+                $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
                 $q->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
-                  ->where(function($sq) use ($request) {
-                      $sq->where('candidates.name', 'like', '%'.$request->search.'%')
-                         ->orWhere('candidates.btevta_id', 'like', '%'.$request->search.'%');
+                  ->where(function($sq) use ($escapedSearch) {
+                      $sq->where('candidates.name', 'like', '%'.$escapedSearch.'%')
+                         ->orWhere('candidates.btevta_id', 'like', '%'.$escapedSearch.'%');
                   })
                   ->select('candidate_screenings.*');
             })
@@ -222,12 +224,15 @@ class ScreeningController extends Controller
         ]);
 
         try {
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = $request->search ? str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search) : null;
+
             $screenings = CandidateScreening::with('candidate')
-                ->when($request->search, function($q) use ($request) {
+                ->when($escapedSearch, function($q) use ($escapedSearch) {
                     $q->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
-                      ->where(function($sq) use ($request) {
-                          $sq->where('candidates.name', 'like', '%'.$request->search.'%')
-                             ->orWhere('candidates.btevta_id', 'like', '%'.$request->search.'%');
+                      ->where(function($sq) use ($escapedSearch) {
+                          $sq->where('candidates.name', 'like', '%'.$escapedSearch.'%')
+                             ->orWhere('candidates.btevta_id', 'like', '%'.$escapedSearch.'%');
                       })
                       ->select('candidate_screenings.*');
                 })

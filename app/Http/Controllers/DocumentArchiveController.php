@@ -47,10 +47,11 @@ class DocumentArchiveController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('document_name', 'like', "%{$search}%")
-                    ->orWhere('document_number', 'like', "%{$search}%");
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('document_name', 'like', "%{$escapedSearch}%")
+                    ->orWhere('document_number', 'like', "%{$escapedSearch}%");
             });
         }
 

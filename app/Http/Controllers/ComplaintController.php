@@ -52,11 +52,12 @@ class ComplaintController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('complaint_number', 'like', "%{$search}%")
-                    ->orWhere('complainant_name', 'like', "%{$search}%")
-                    ->orWhere('subject', 'like', "%{$search}%");
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('complaint_number', 'like', "%{$escapedSearch}%")
+                    ->orWhere('complainant_name', 'like', "%{$escapedSearch}%")
+                    ->orWhere('subject', 'like', "%{$escapedSearch}%");
             });
         }
 

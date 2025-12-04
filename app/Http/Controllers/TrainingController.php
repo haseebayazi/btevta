@@ -46,10 +46,11 @@ class TrainingController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('cnic', 'like', "%{$search}%");
+            // Escape special LIKE characters to prevent SQL LIKE injection
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+            $query->where(function ($q) use ($escapedSearch) {
+                $q->where('name', 'like', "%{$escapedSearch}%")
+                    ->orWhere('cnic', 'like', "%{$escapedSearch}%");
             });
         }
 

@@ -18,9 +18,11 @@ class InstructorController extends Controller
 
         $instructors = Instructor::with(['campus', 'trade'])
             ->when($request->search, function ($query) use ($request) {
-                $query->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('cnic', 'like', '%' . $request->search . '%')
-                    ->orWhere('email', 'like', '%' . $request->search . '%');
+                // Escape special LIKE characters to prevent SQL LIKE injection
+                $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
+                $query->where('name', 'like', '%' . $escapedSearch . '%')
+                    ->orWhere('cnic', 'like', '%' . $escapedSearch . '%')
+                    ->orWhere('email', 'like', '%' . $escapedSearch . '%');
             })
             ->when($request->campus_id, function ($query) use ($request) {
                 $query->where('campus_id', $request->campus_id);
