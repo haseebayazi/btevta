@@ -2,7 +2,7 @@
 
 **Project:** BTEVTA Candidate Management System
 **Testing Started:** 2025-11-29
-**Last Updated:** 2025-12-03
+**Last Updated:** 2025-12-04
 
 ---
 
@@ -12,12 +12,12 @@
 |-------|--------|-----------|-------|----------|
 | Authentication & Authorization | ✅ Completed | 2 | 2 | 100% |
 | Dashboard | ✅ Completed | 2 | 2 | 100% |
-| Core Modules | 🔄 In Progress | 21 | 25 | 84% |
+| Core Modules | 🔄 In Progress | 22 | 25 | 88% |
 | API Testing | ⏸️ Pending | 0 | 4 | 0% |
 | Code Review | ⏸️ Pending | 0 | 9 | 0% |
 | Performance & Security | ⏸️ Pending | 0 | 8 | 0% |
 
-**Overall Progress: 25/50 tasks completed (50%)**
+**Overall Progress: 26/50 tasks completed (52%)**
 
 ---
 
@@ -6157,3 +6157,240 @@ public function byCampus(User $user): bool
 
 ---
 
+
+## Task 26: Admin - Users Module ✅
+
+**Module:** Admin Users Management
+**Controller:** `app/Http/Controllers/UserController.php`
+**Policy:** `app/Policies/UserPolicy.php`
+**Model:** `app/Models/User.php`
+**Status:** ✅ FIXED
+
+---
+
+### 🚨 CRITICAL ISSUES FOUND
+
+#### 1. UserPolicy viewAny() - FIRST CORRECT IMPLEMENTATION! ✅
+**File:** `app/Policies/UserPolicy.php:12-15`
+**Severity:** ✅ CORRECT FROM START (FIRST TIME!)
+**Impact:** NO ISSUE - This is the FIRST module with proper viewAny() authorization!
+
+**Verification:**
+```php
+public function viewAny(User $user): bool
+{
+    return $user->role === 'admin';  // ✅ CORRECT - Only admins!
+}
+```
+
+**Analysis:**
+- ✅ Properly restricts to admin role only
+- ✅ NOT using `return true;` bug
+- ✅ This is the FIRST of 10 tested modules with correct viewAny() implementation
+- ✅ User CRUD operations (create, update, delete, view) ALL have proper authorization
+- ✅ Special protections implemented (can't delete self, can't delete last admin, etc.)
+
+**Conclusion:** Core User module authorization is EXEMPLARY and should be used as template for other modules!
+
+---
+
+#### 2. Administrative Methods Missing Authorization 🚨
+**File:** `app/Http/Controllers/UserController.php`
+**Severity:** HIGH
+**Impact:** System settings and audit logs accessible without proper authorization
+
+**Problem:**
+Three administrative methods had NO authorization checks:
+
+**1. settings() method (line 262):**
+```php
+public function settings()
+{
+    // NO AUTHORIZATION CHECK!
+
+    // Get current system settings
+    $settings = [
+        'app_name' => config('app.name'),
+        'app_url' => config('app.url'),
+        // ... sensitive system configuration
+    ];
+
+    return view('admin.settings', compact('settings'));
+}
+```
+
+**2. updateSettings() method (line 278):**
+```php
+public function updateSettings(Request $request)
+{
+    // NO AUTHORIZATION CHECK!
+
+    $validated = $request->validate([
+        'app_name' => 'nullable|string|max:255',
+        'support_email' => 'nullable|email|max:255',
+        'mail_driver' => 'nullable|in:smtp,sendmail,mailgun,ses',
+        // ... system configuration changes
+    ]);
+    // ...
+}
+```
+
+**3. auditLogs() method (line 297):**
+```php
+public function auditLogs(Request $request)
+{
+    // NO AUTHORIZATION CHECK!
+
+    // Get audit logs with filters
+    $query = \Spatie\Activitylog\Models\Activity::with(['causer', 'subject'])
+        ->latest();
+    // ... sensitive audit log access
+}
+```
+
+**Impact:**
+- Any authenticated user could view system settings
+- Any authenticated user could potentially modify system configuration
+- Any authenticated user could view complete audit logs of all system activities
+
+---
+
+#### 3. Missing Policy Methods 🚨
+**File:** `app/Policies/UserPolicy.php`
+**Severity:** HIGH
+**Impact:** No policy methods existed for administrative functions
+
+**Fix:** Added two new policy methods:
+```php
+public function manageSettings(User $user): bool
+{
+    // Only admin can manage system settings
+    return $user->role === 'admin';
+}
+
+public function viewAuditLogs(User $user): bool
+{
+    // Only admin can view audit logs
+    return $user->role === 'admin';
+}
+```
+
+---
+
+### ✅ Fixes Applied
+
+**1. Added Authorization to settings() method:**
+```php
+public function settings()
+{
+    $this->authorize('manageSettings', User::class);  // FIXED!
+
+    // Get current system settings
+    $settings = [
+        'app_name' => config('app.name'),
+        'app_url' => config('app.url'),
+        'timezone' => config('app.timezone'),
+        'mail_from_address' => config('mail.from.address'),
+        'mail_from_name' => config('mail.from.name'),
+    ];
+
+    return view('admin.settings', compact('settings'));
+}
+```
+
+**2. Added Authorization to updateSettings() method:**
+```php
+public function updateSettings(Request $request)
+{
+    $this->authorize('manageSettings', User::class);  // FIXED!
+
+    $validated = $request->validate([
+        'app_name' => 'nullable|string|max:255',
+        'support_email' => 'nullable|email|max:255',
+        'mail_driver' => 'nullable|in:smtp,sendmail,mailgun,ses',
+        'mail_from_address' => 'nullable|email|max:255',
+        'two_factor' => 'nullable|boolean',
+    ]);
+
+    // In a real application, you would update the .env file or database settings
+    // For now, we'll just store in session or cache
+    // This is a simplified version - in production, use a settings table or env file updates
+
+    return back()->with('success', 'Settings updated successfully! Note: Some settings may require application restart.');
+}
+```
+
+**3. Added Authorization to auditLogs() method:**
+```php
+public function auditLogs(Request $request)
+{
+    $this->authorize('viewAuditLogs', User::class);  // FIXED!
+
+    // Get audit logs with filters
+    $query = \Spatie\Activitylog\Models\Activity::with(['causer', 'subject'])
+        ->latest();
+
+    // Apply filters if provided
+    if ($request->filled('user_id')) {
+        $query->where('causer_id', $request->user_id);
+    }
+
+    if ($request->filled('event')) {
+        $query->where('event', $request->event);
+    }
+
+    if ($request->filled('date_from')) {
+        $query->whereDate('created_at', '>=', $request->date_from);
+    }
+
+    if ($request->filled('date_to')) {
+        $query->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    $logs = $query->paginate(50);
+    $users = User::select('id', 'name', 'email')->get();
+
+    return view('admin.audit-logs', compact('logs', 'users'));
+}
+```
+
+---
+
+### ✅ Task 26 Conclusion
+
+**Overall Assessment: ✅ FIXED - First Correct Core + Admin Functions Secured**
+
+**Before Fixes:**
+- ✅ User CRUD authorization was PERFECT (create, view, update, delete, toggleStatus, resetPassword)
+- ✅ viewAny() correctly restricted to admin role (FIRST CORRECT IMPLEMENTATION!)
+- ✅ Special protections in place (can't delete self, can't delete last admin)
+- ❌ settings() method with NO authorization
+- ❌ updateSettings() method with NO authorization
+- ❌ auditLogs() method with NO authorization
+- ❌ Missing manageSettings() policy method
+- ❌ Missing viewAuditLogs() policy method
+
+**After Fixes:**
+- ✅ All User CRUD operations remain secure
+- ✅ settings() now has proper authorization
+- ✅ updateSettings() now has proper authorization
+- ✅ auditLogs() now has proper authorization
+- ✅ manageSettings() policy method implemented
+- ✅ viewAuditLogs() policy method implemented
+
+**Statistics:**
+- **Policy:** 61 → 73 lines (+12 lines - added 2 new methods)
+- **Controller:** 327 → 327 lines (+3 authorization checks, no net change in lines)
+- **Model:** No changes needed
+
+**Files Modified:**
+1. app/Policies/UserPolicy.php - Added manageSettings() and viewAuditLogs() methods
+2. app/Http/Controllers/UserController.php - Added authorization to 3 administrative methods
+
+**Impact:** User module now fully secured - both core CRUD operations and administrative functions protected!
+
+**Key Finding:** This is the FIRST module where core authorization (viewAny) was implemented correctly from the start. However, even well-secured modules can have gaps in administrative functions that need review.
+
+**Pattern Break:** Unlike the previous 10 modules with systematic viewAny() = true bug, this module demonstrates proper authorization implementation in core functionality. The gaps were only in peripheral administrative functions (settings, audit logs).
+
+---

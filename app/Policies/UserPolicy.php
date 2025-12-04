@@ -47,4 +47,16 @@ class UserPolicy
     {
         return $user->role === 'admin' && $user->id !== $model->id;
     }
+
+    public function manageSettings(User $user): bool
+    {
+        // Only admin can manage system settings
+        return $user->role === 'admin';
+    }
+
+    public function viewAuditLogs(User $user): bool
+    {
+        // Only admin can view audit logs
+        return $user->role === 'admin';
+    }
 }
