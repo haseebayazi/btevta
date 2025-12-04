@@ -30,12 +30,28 @@ class Complaint extends Model
         'resolved_at',
         'user_id',
         'created_by',
-        'updated_by'
+        'updated_by',
+        // Additional fields for controller/service compatibility
+        'complainant_name',
+        'complainant_contact',
+        'complainant_email',
+        'complaint_reference',
+        'registered_at',
+        'registered_by',
+        'evidence_files',
+        'category',  // Alias for complaint_category
+        'closed_at',
+        'closed_by',
+        'reopened_at',
+        'reopened_by',
     ];
 
     protected $casts = [
         'sla_due_date' => 'datetime',
         'resolved_at' => 'datetime',
+        'registered_at' => 'datetime',
+        'closed_at' => 'datetime',
+        'reopened_at' => 'datetime',
         'escalation_level' => 'integer',
         'sla_days' => 'integer',
     ];

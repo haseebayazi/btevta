@@ -207,6 +207,8 @@ class CampusController extends Controller
      */
     public function apiList()
     {
+        $this->authorize('apiList', Campus::class);
+
         try {
             $campuses = Campus::where('is_active', true)
                 ->select('id', 'name', 'location', 'province', 'district')

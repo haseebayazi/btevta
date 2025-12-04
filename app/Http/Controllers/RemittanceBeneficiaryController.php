@@ -13,6 +13,8 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function index($candidateId)
     {
+        $this->authorize('viewAny', RemittanceBeneficiary::class);
+
         $candidate = Candidate::findOrFail($candidateId);
         $beneficiaries = RemittanceBeneficiary::where('candidate_id', $candidateId)
             ->orderBy('is_primary', 'desc')
@@ -27,6 +29,8 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function create($candidateId)
     {
+        $this->authorize('create', RemittanceBeneficiary::class);
+
         $candidate = Candidate::findOrFail($candidateId);
 
         return view('remittances.beneficiaries.create', compact('candidate'));
@@ -37,6 +41,8 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function store(Request $request, $candidateId)
     {
+        $this->authorize('create', RemittanceBeneficiary::class);
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'relationship' => 'required|string',
@@ -75,6 +81,8 @@ class RemittanceBeneficiaryController extends Controller
     public function edit($id)
     {
         $beneficiary = RemittanceBeneficiary::findOrFail($id);
+        $this->authorize('update', $beneficiary);
+
         $candidate = $beneficiary->candidate;
 
         return view('remittances.beneficiaries.edit', compact('beneficiary', 'candidate'));
@@ -86,6 +94,7 @@ class RemittanceBeneficiaryController extends Controller
     public function update(Request $request, $id)
     {
         $beneficiary = RemittanceBeneficiary::findOrFail($id);
+        $this->authorize('update', $beneficiary);
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
@@ -126,6 +135,8 @@ class RemittanceBeneficiaryController extends Controller
     public function destroy($id)
     {
         $beneficiary = RemittanceBeneficiary::findOrFail($id);
+        $this->authorize('delete', $beneficiary);
+
         $candidateId = $beneficiary->candidate_id;
 
         $beneficiary->delete();
@@ -141,6 +152,8 @@ class RemittanceBeneficiaryController extends Controller
     public function setPrimary($id)
     {
         $beneficiary = RemittanceBeneficiary::findOrFail($id);
+        $this->authorize('setPrimary', $beneficiary);
+
         $beneficiary->setPrimary();
 
         return back()->with('success', 'Primary beneficiary updated successfully.');

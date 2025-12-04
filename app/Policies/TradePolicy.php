@@ -12,12 +12,14 @@ class TradePolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 
     public function view(User $user, Trade $trade): bool
     {
-        return true;
+        // FIXED: Was allowing ALL users - should restrict to specific roles
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 
     public function create(User $user): bool
@@ -38,5 +40,11 @@ class TradePolicy
     public function toggleStatus(User $user, Trade $trade): bool
     {
         return $user->role === 'admin';
+    }
+
+    public function apiList(User $user): bool
+    {
+        // API list can be accessed by authenticated users who need dropdown data
+        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
     }
 }

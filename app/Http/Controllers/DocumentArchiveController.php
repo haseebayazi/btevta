@@ -77,6 +77,8 @@ class DocumentArchiveController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', DocumentArchive::class);
+
         $validated = $request->validate([
             'candidate_id' => 'nullable|exists:candidates,id',
             'document_category' => 'required|in:candidate,campus,oep,contract,legal,certificate,other',
@@ -91,18 +93,18 @@ class DocumentArchiveController extends Controller
         ]);
 
         try {
-            $document = $this->documentService->uploadDocument(
-                $request->file('file'),
-                $validated['document_category'],
-                $validated['document_type'],
-                $validated['document_name'],
-                $validated['candidate_id'] ?? null,
-                $validated['document_number'] ?? null,
-                $validated['issue_date'] ?? null,
-                $validated['expiry_date'] ?? null,
-                $validated['description'] ?? null,
-                $validated['tags'] ?? null
-            );
+            // FIXED: Service expects ($data, $file) not individual parameters
+            $document = $this->documentService->uploadDocument([
+                'candidate_id' => $validated['candidate_id'] ?? null,
+                'document_category' => $validated['document_category'],
+                'document_type' => $validated['document_type'],
+                'document_name' => $validated['document_name'],
+                'document_number' => $validated['document_number'] ?? null,
+                'issue_date' => $validated['issue_date'] ?? null,
+                'expiry_date' => $validated['expiry_date'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'tags' => $validated['tags'] ?? null,
+            ], $request->file('file'));
 
             // Send notification if expiry date is set
             if ($validated['expiry_date']) {
@@ -122,6 +124,8 @@ class DocumentArchiveController extends Controller
      */
     public function show(DocumentArchive $document)
     {
+        $this->authorize('view', $document);
+
         $document->load(['candidate', 'uploader', 'accessLogs' => function ($query) {
             $query->orderBy('accessed_at', 'desc')->limit(10);
         }]);
@@ -137,6 +141,8 @@ class DocumentArchiveController extends Controller
      */
     public function edit(DocumentArchive $document)
     {
+        $this->authorize('update', $document);
+
         $candidates = Candidate::select('id', 'name', 'cnic')->get();
 
         return view('document-archive.edit', compact('document', 'candidates'));
@@ -147,6 +153,8 @@ class DocumentArchiveController extends Controller
      */
     public function update(Request $request, DocumentArchive $document)
     {
+        $this->authorize('update', $document);
+
         $validated = $request->validate([
             'document_name' => 'nullable|string|max:255',
             'document_number' => 'nullable|string|max:100',
@@ -175,6 +183,8 @@ class DocumentArchiveController extends Controller
      */
     public function uploadVersion(Request $request, DocumentArchive $document)
     {
+        $this->authorize('update', $document);
+
         $validated = $request->validate([
             'file' => 'required|file|max:20480',
             'version_notes' => 'nullable|string|max:1000',
@@ -202,8 +212,8 @@ class DocumentArchiveController extends Controller
         $this->authorize('view', $document);
 
         try {
-            // Log the access
-            $this->documentService->logAccess($document->id, 'download');
+            // Log the access - FIXED: Pass $document object, not ID
+            $this->documentService->logAccess($document, 'download');
 
             return Storage::disk('public')->download(
                 $document->file_path,
@@ -222,8 +232,8 @@ class DocumentArchiveController extends Controller
         $this->authorize('view', $document);
 
         try {
-            // Log the access
-            $this->documentService->logAccess($document->id, 'view');
+            // Log the access - FIXED: Pass $document object, not ID
+            $this->documentService->logAccess($document, 'view');
 
             $filePath = storage_path('app/public/' . $document->file_path);
 
@@ -242,6 +252,8 @@ class DocumentArchiveController extends Controller
      */
     public function versions(DocumentArchive $document)
     {
+        $this->authorize('view', $document);
+
         try {
             $versions = $this->documentService->getVersionHistory($document->id);
 
@@ -256,6 +268,8 @@ class DocumentArchiveController extends Controller
      */
     public function restoreVersion(Request $request, DocumentArchive $document)
     {
+        $this->authorize('restore', $document);
+
         $validated = $request->validate([
             'version_id' => 'required|exists:document_archives,id',
         ]);
@@ -277,6 +291,8 @@ class DocumentArchiveController extends Controller
      */
     public function expiring(Request $request)
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         $days = $request->get('days', 30);
 
         try {
@@ -293,6 +309,8 @@ class DocumentArchiveController extends Controller
      */
     public function expired()
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         try {
             $expiredDocuments = $this->documentService->getExpiredDocuments();
 
@@ -307,6 +325,8 @@ class DocumentArchiveController extends Controller
      */
     public function search(Request $request)
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         $validated = $request->validate([
             'term' => 'required|string|min:2',
             'category' => 'nullable|string',
@@ -314,11 +334,12 @@ class DocumentArchiveController extends Controller
         ]);
 
         try {
-            $documents = $this->documentService->searchDocuments(
-                $validated['term'],
-                $validated['category'] ?? null,
-                $validated['type'] ?? null
-            );
+            // FIXED: Service expects single $filters array, not individual parameters
+            $documents = $this->documentService->searchDocuments([
+                'search' => $validated['term'],
+                'document_category' => $validated['category'] ?? null,
+                'document_type' => $validated['type'] ?? null,
+            ]);
 
             if ($request->expectsJson()) {
                 return response()->json($documents);
@@ -339,6 +360,8 @@ class DocumentArchiveController extends Controller
      */
     public function candidateDocuments(Candidate $candidate)
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         try {
             $documents = $this->documentService->getCandidateDocuments($candidate->id);
 
@@ -353,6 +376,8 @@ class DocumentArchiveController extends Controller
      */
     public function accessLogs(DocumentArchive $document)
     {
+        $this->authorize('view', $document);
+
         try {
             $accessLogs = $this->documentService->getAccessLogs($document->id);
 
@@ -367,6 +392,8 @@ class DocumentArchiveController extends Controller
      */
     public function statistics()
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         try {
             $statistics = $this->documentService->getStorageStatistics();
 
@@ -381,6 +408,8 @@ class DocumentArchiveController extends Controller
      */
     public function bulkUpload(Request $request)
     {
+        $this->authorize('create', DocumentArchive::class);
+
         $validated = $request->validate([
             'files' => 'required|array|min:1',
             'files.*' => 'file|max:20480',
@@ -395,12 +424,12 @@ class DocumentArchiveController extends Controller
 
             foreach ($request->file('files') as $file) {
                 try {
-                    $this->documentService->uploadDocument(
-                        $file,
-                        $validated['document_category'],
-                        $validated['document_type'],
-                        $file->getClientOriginalName()
-                    );
+                    // FIXED: Service expects ($data, $file) not individual parameters
+                    $this->documentService->uploadDocument([
+                        'document_category' => $validated['document_category'],
+                        'document_type' => $validated['document_type'],
+                        'document_name' => $file->getClientOriginalName(),
+                    ], $file);
                     $uploadedCount++;
                 } catch (Exception $e) {
                     $failedCount++;
@@ -425,6 +454,8 @@ class DocumentArchiveController extends Controller
      */
     public function archive(DocumentArchive $document)
     {
+        $this->authorize('archive', $document);
+
         try {
             $this->documentService->archiveDocument($document->id);
 
@@ -439,6 +470,10 @@ class DocumentArchiveController extends Controller
      */
     public function restore($documentId)
     {
+        // FIXED: Need to find document first to authorize
+        $document = DocumentArchive::withTrashed()->findOrFail($documentId);
+        $this->authorize('restore', $document);
+
         try {
             $document = $this->documentService->restoreDocument($documentId);
 
@@ -454,6 +489,8 @@ class DocumentArchiveController extends Controller
      */
     public function destroy(DocumentArchive $document)
     {
+        $this->authorize('delete', $document);
+
         try {
             $this->documentService->deleteDocument($document->id);
 
@@ -469,6 +506,8 @@ class DocumentArchiveController extends Controller
      */
     public function report(Request $request)
     {
+        $this->authorize('viewAny', DocumentArchive::class);
+
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -493,6 +532,8 @@ class DocumentArchiveController extends Controller
      */
     public function sendExpiryReminders()
     {
+        $this->authorize('create', DocumentArchive::class);
+
         try {
             $count = $this->documentService->sendExpiryReminders();
 

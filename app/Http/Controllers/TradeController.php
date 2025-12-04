@@ -194,6 +194,8 @@ class TradeController extends Controller
      */
     public function apiList()
     {
+        $this->authorize('apiList', Trade::class);
+
         try {
             $trades = Trade::where('is_active', true)
                 ->select('id', 'name', 'code', 'category', 'duration_months')

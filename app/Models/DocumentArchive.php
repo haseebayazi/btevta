@@ -19,6 +19,7 @@ class DocumentArchive extends Model
         'document_category',
         'document_type',
         'document_name',
+        'document_number',        // ADDED - Used in controller validation
         'file_path',
         'file_type',
         'file_size',
@@ -27,6 +28,10 @@ class DocumentArchive extends Model
         'uploaded_at',
         'is_current_version',
         'replaces_document_id',
+        'issue_date',             // ADDED - Used in controller validation
+        'expiry_date',            // ADDED - Used in controller validation
+        'description',            // ADDED - Used in controller validation
+        'tags',                   // ADDED - Used in controller validation
         'created_by',
         'updated_by'
     ];
@@ -34,6 +39,8 @@ class DocumentArchive extends Model
     protected $casts = [
         'uploaded_at' => 'datetime',
         'is_current_version' => 'boolean',
+        'issue_date' => 'date',         // ADDED - Cast for date field
+        'expiry_date' => 'date',        // ADDED - Cast for date field
     ];
 
     /**
@@ -73,6 +80,16 @@ class DocumentArchive extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Get access logs from Spatie activity log
+     * ADDED - Used by controller to show access history
+     */
+    public function accessLogs()
+    {
+        return $this->morphMany(\Spatie\Activitylog\Models\Activity::class, 'subject')
+                    ->orderBy('created_at', 'desc');
     }
 
     protected static function boot()

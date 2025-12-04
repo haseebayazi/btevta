@@ -21,6 +21,8 @@ class RemittanceAlertController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', RemittanceAlert::class);
+
         $query = RemittanceAlert::with(['candidate', 'remittance', 'resolvedBy'])
             ->orderBy('created_at', 'desc');
 
@@ -67,6 +69,8 @@ class RemittanceAlertController extends Controller
         $alert = RemittanceAlert::with(['candidate', 'remittance', 'resolvedBy'])
             ->findOrFail($id);
 
+        $this->authorize('view', $alert);
+
         // Mark as read when viewed
         if (!$alert->is_read) {
             $alert->markAsRead();
@@ -81,6 +85,8 @@ class RemittanceAlertController extends Controller
     public function markAsRead($id)
     {
         $alert = RemittanceAlert::findOrFail($id);
+        $this->authorize('markAsRead', $alert);
+
         $alert->markAsRead();
 
         return back()->with('success', 'Alert marked as read.');
@@ -91,6 +97,8 @@ class RemittanceAlertController extends Controller
      */
     public function markAllAsRead()
     {
+        $this->authorize('markAllAsRead', RemittanceAlert::class);
+
         RemittanceAlert::where('is_read', false)->update(['is_read' => true]);
 
         return back()->with('success', 'All alerts marked as read.');
@@ -102,6 +110,7 @@ class RemittanceAlertController extends Controller
     public function resolve(Request $request, $id)
     {
         $alert = RemittanceAlert::findOrFail($id);
+        $this->authorize('resolve', $alert);
 
         $request->validate([
             'resolution_notes' => 'nullable|string|max:1000',
@@ -117,10 +126,8 @@ class RemittanceAlertController extends Controller
      */
     public function generateAlerts()
     {
-        // Only allow admins to manually generate alerts
-        if (Auth::user()->role !== 'admin') {
-            return back()->with('error', 'Unauthorized action.');
-        }
+        // FIXED: Use proper authorization instead of manual role check
+        $this->authorize('generateAlerts', RemittanceAlert::class);
 
         $result = $this->alertService->generateAllAlerts();
 
@@ -132,10 +139,8 @@ class RemittanceAlertController extends Controller
      */
     public function autoResolve()
     {
-        // Only allow admins to auto-resolve alerts
-        if (Auth::user()->role !== 'admin') {
-            return back()->with('error', 'Unauthorized action.');
-        }
+        // FIXED: Use proper authorization instead of manual role check
+        $this->authorize('autoResolve', RemittanceAlert::class);
 
         $resolved = $this->alertService->autoResolveAlerts();
 
@@ -147,6 +152,8 @@ class RemittanceAlertController extends Controller
      */
     public function unreadCount()
     {
+        $this->authorize('getUnreadCount', RemittanceAlert::class);
+
         $count = $this->alertService->getUnresolvedAlertsCount();
 
         return response()->json(['count' => $count]);
@@ -158,6 +165,8 @@ class RemittanceAlertController extends Controller
     public function dismiss($id)
     {
         $alert = RemittanceAlert::findOrFail($id);
+        $this->authorize('dismiss', $alert);
+
         $alert->resolve(Auth::id(), 'Dismissed by user');
 
         return back()->with('success', 'Alert dismissed.');
@@ -168,6 +177,8 @@ class RemittanceAlertController extends Controller
      */
     public function bulkAction(Request $request)
     {
+        $this->authorize('bulkAction', RemittanceAlert::class);
+
         $request->validate([
             'alert_ids' => 'required|array',
             'alert_ids.*' => 'exists:remittance_alerts,id',

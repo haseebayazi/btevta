@@ -291,8 +291,9 @@ Route::middleware(['auth'])->group(function () {
     // Throttle: Standard 60/min, Escalate 30/min, Reports/Export 5/min
     // Purpose: Track and resolve candidate complaints with SLA monitoring
     // ========================================================================
-    Route::resource('complaints', ComplaintController::class);
-    Route::prefix('complaints')->name('complaints.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('complaints', ComplaintController::class);
+        Route::prefix('complaints')->name('complaints.')->group(function () {
         // WORKFLOW ROUTES (Complaint lifecycle management)
         Route::post('/{complaint}/assign', [ComplaintController::class, 'assign'])->name('assign');
         Route::post('/{complaint}/update', [ComplaintController::class, 'addUpdate'])->name('add-update');
@@ -319,15 +320,18 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+        });
     });
 
     // ========================================================================
     // DOCUMENT ARCHIVE
     // Throttle: Standard 60/min, Download 60/min, Bulk upload 10/min, Reports 5/min
     // Purpose: Centralized document storage with version control and expiry tracking
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']);
-    Route::prefix('document-archive')->name('document-archive.')->group(function () {
+    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        Route::resource('document-archive', DocumentArchiveController::class)->except(['create', 'edit']);
+        Route::prefix('document-archive')->name('document-archive.')->group(function () {
         // DOCUMENT MANAGEMENT ROUTES
         Route::get('/create', [DocumentArchiveController::class, 'create'])->name('create');
         Route::get('/{document}/edit', [DocumentArchiveController::class, 'edit'])->name('edit');
@@ -366,14 +370,16 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Bulk upload limited to 10/min (storage abuse prevention)
         Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
             ->middleware('throttle:10,1')->name('bulk-upload');
+        });
     });
 
     // ========================================================================
     // REPORTS
     // Throttle: Standard 60/min, Generate custom 3/min (very CPU intensive)
     // Purpose: Comprehensive reporting and analytics across all modules
+    // FIXED: Added role middleware - was completely open to ANY authenticated user!
     // ========================================================================
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:admin,campus_admin,viewer')->group(function () {
         // MAIN REPORTS INDEX
         Route::get('/', [ReportController::class, 'index'])->name('index');
 
@@ -458,82 +464,95 @@ Route::middleware(['auth'])->group(function () {
     // Features: Multi-currency, purpose tagging, receipt upload, beneficiary management
     // Throttle: Standard 60/min, Upload 30/min
     // ========================================================================
-    Route::resource('remittances', RemittanceController::class);
-    Route::prefix('remittances')->name('remittances.')->group(function () {
-        // Verification
-        Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
+    // SECURITY: Role middleware added for defense in depth
+    // ========================================================================
+    Route::middleware('role:admin,campus_admin,oep,viewer')->group(function () {
+        Route::resource('remittances', RemittanceController::class);
+        Route::prefix('remittances')->name('remittances.')->group(function () {
+            // Verification
+            Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
 
-        // Receipt Management
-        Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])
-            ->name('upload-receipt')
-            ->middleware('throttle:30,1');
-        Route::delete('/receipts/{id}', [RemittanceController::class, 'deleteReceipt'])->name('delete-receipt');
+            // Receipt Management
+            Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])
+                ->name('upload-receipt')
+                ->middleware('throttle:30,1');
+            Route::delete('/receipts/{id}', [RemittanceController::class, 'deleteReceipt'])->name('delete-receipt');
 
-        // Export
-        Route::get('/export/{format}', [RemittanceController::class, 'export'])
-            ->name('export')
-            ->middleware('throttle:5,1');
+            // Export
+            Route::get('/export/{format}', [RemittanceController::class, 'export'])
+                ->name('export')
+                ->middleware('throttle:5,1');
+        });
     });
 
     // Beneficiary Management Routes
-    Route::prefix('candidates/{candidateId}/beneficiaries')->name('beneficiaries.')->group(function () {
-        Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
-        Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
-        Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
-    });
+    // SECURITY: Role middleware added for defense in depth
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('candidates/{candidateId}/beneficiaries')->name('beneficiaries.')->group(function () {
+            Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
+            Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
+            Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
+        });
 
-    Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
-        Route::get('/{id}/edit', [RemittanceBeneficiaryController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
-        Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
+        Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
+            Route::get('/{id}/edit', [RemittanceBeneficiaryController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [RemittanceBeneficiaryController::class, 'update'])->name('update');
+            Route::delete('/{id}', [RemittanceBeneficiaryController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/set-primary', [RemittanceBeneficiaryController::class, 'setPrimary'])->name('set-primary');
+        });
     });
 
     // ========================================================================
     // REMITTANCE REPORTS & ANALYTICS ROUTES
     // Throttle: Standard 60/min, Export 5/min
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
-        // Dashboard & Analytics
-        Route::get('/dashboard', [RemittanceReportController::class, 'dashboard'])->name('dashboard');
-        Route::get('/monthly', [RemittanceReportController::class, 'monthlyReport'])->name('monthly');
-        Route::get('/purpose-analysis', [RemittanceReportController::class, 'purposeAnalysis'])->name('purpose');
-        Route::get('/beneficiary', [RemittanceReportController::class, 'beneficiaryReport'])->name('beneficiary');
-        Route::get('/proof-compliance', [RemittanceReportController::class, 'proofComplianceReport'])->name('proof');
-        Route::get('/impact', [RemittanceReportController::class, 'impactAnalytics'])->name('impact');
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('remittance/reports')->name('remittance.reports.')->group(function () {
+            // Dashboard & Analytics
+            Route::get('/dashboard', [RemittanceReportController::class, 'dashboard'])->name('dashboard');
+            Route::get('/monthly', [RemittanceReportController::class, 'monthlyReport'])->name('monthly');
+            Route::get('/purpose-analysis', [RemittanceReportController::class, 'purposeAnalysis'])->name('purpose');
+            Route::get('/beneficiary', [RemittanceReportController::class, 'beneficiaryReport'])->name('beneficiary');
+            Route::get('/proof-compliance', [RemittanceReportController::class, 'proofComplianceReport'])->name('proof');
+            Route::get('/impact', [RemittanceReportController::class, 'impactAnalytics'])->name('impact');
 
-        // Export functionality
-        Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
-            ->name('export')
-            ->middleware('throttle:5,1');
+            // Export functionality
+            Route::get('/export/{type}', [RemittanceReportController::class, 'export'])
+                ->name('export')
+                ->middleware('throttle:5,1');
+        });
     });
 
     // ========================================================================
     // REMITTANCE ALERTS ROUTES
     // Throttle: Standard 60/min
+    // SECURITY: Role middleware added for defense in depth
     // ========================================================================
-    Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
-        // Alert listing and viewing
-        Route::get('/', [RemittanceAlertController::class, 'index'])->name('index');
-        Route::get('/{id}', [RemittanceAlertController::class, 'show'])->name('show');
+    Route::middleware('role:admin,campus_admin,oep')->group(function () {
+        Route::prefix('remittance/alerts')->name('remittance.alerts.')->group(function () {
+            // Alert listing and viewing
+            Route::get('/', [RemittanceAlertController::class, 'index'])->name('index');
+            Route::get('/{id}', [RemittanceAlertController::class, 'show'])->name('show');
 
-        // Alert actions
-        Route::post('/{id}/read', [RemittanceAlertController::class, 'markAsRead'])->name('read');
-        Route::post('/read-all', [RemittanceAlertController::class, 'markAllAsRead'])->name('read-all');
-        Route::post('/{id}/resolve', [RemittanceAlertController::class, 'resolve'])->name('resolve');
-        Route::post('/{id}/dismiss', [RemittanceAlertController::class, 'dismiss'])->name('dismiss');
-        Route::post('/bulk-action', [RemittanceAlertController::class, 'bulkAction'])->name('bulk-action');
+            // Alert actions
+            Route::post('/{id}/read', [RemittanceAlertController::class, 'markAsRead'])->name('read');
+            Route::post('/read-all', [RemittanceAlertController::class, 'markAllAsRead'])->name('read-all');
+            Route::post('/{id}/resolve', [RemittanceAlertController::class, 'resolve'])->name('resolve');
+            Route::post('/{id}/dismiss', [RemittanceAlertController::class, 'dismiss'])->name('dismiss');
+            Route::post('/bulk-action', [RemittanceAlertController::class, 'bulkAction'])->name('bulk-action');
 
-        // Admin-only actions
-        Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
-            ->name('generate')
-            ->middleware('role:admin');
-        Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
-            ->name('auto-resolve')
-            ->middleware('role:admin');
+            // Admin-only actions
+            Route::post('/generate', [RemittanceAlertController::class, 'generateAlerts'])
+                ->name('generate')
+                ->middleware('role:admin');
+            Route::post('/auto-resolve', [RemittanceAlertController::class, 'autoResolve'])
+                ->name('auto-resolve')
+                ->middleware('role:admin');
 
-        // AJAX endpoint
-        Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
+            // AJAX endpoint
+            Route::get('/api/unread-count', [RemittanceAlertController::class, 'unreadCount'])->name('unread-count');
+        });
     });
 });
 

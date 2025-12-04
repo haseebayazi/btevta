@@ -670,4 +670,186 @@ class ComplaintService
 
         return $query->get();
     }
+
+    /**
+     * Check SLA status for a complaint
+     */
+    public function checkSLAStatus($complaintId): array
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+
+        $now = Carbon::now();
+        $dueDate = $complaint->sla_due_date ? Carbon::parse($complaint->sla_due_date) : null;
+
+        if (!$dueDate) {
+            return [
+                'status' => 'unknown',
+                'message' => 'SLA due date not set',
+                'is_overdue' => false,
+            ];
+        }
+
+        $hoursRemaining = $now->diffInHours($dueDate, false);
+
+        return [
+            'status' => $hoursRemaining < 0 ? 'overdue' : ($hoursRemaining < 24 ? 'critical' : 'on_track'),
+            'due_date' => $dueDate,
+            'hours_remaining' => max(0, $hoursRemaining),
+            'is_overdue' => $hoursRemaining < 0,
+        ];
+    }
+
+    /**
+     * Update complaint priority
+     */
+    public function updatePriority($complaintId, $newPriority): Complaint
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+        $oldPriority = $complaint->priority;
+
+        $complaint->update(['priority' => $newPriority]);
+
+        activity()
+            ->performedOn($complaint)
+            ->causedBy(auth()->user())
+            ->log("Priority changed from {$oldPriority} to {$newPriority}");
+
+        return $complaint->fresh();
+    }
+
+    /**
+     * Add complaint update/note
+     */
+    public function addUpdate($complaintId, $updateText, $isInternal = false)
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+
+        // This would typically create a ComplaintUpdate record
+        // For now, use the existing addInvestigationNote method
+        return $this->addInvestigationNote($complaintId, $updateText);
+    }
+
+    /**
+     * Add evidence to complaint
+     */
+    public function addEvidence($complaintId, $file, $description = null)
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+
+        $path = $this->uploadEvidence($complaintId, $file);
+
+        activity()
+            ->performedOn($complaint)
+            ->causedBy(auth()->user())
+            ->log("Evidence added: {$description}");
+
+        return ['path' => $path, 'description' => $description];
+    }
+
+    /**
+     * Reopen a closed complaint
+     */
+    public function reopenComplaint($complaintId, $reason = null): Complaint
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+
+        if (!in_array($complaint->status, ['resolved', 'closed'])) {
+            throw new \Exception("Can only reopen resolved or closed complaints");
+        }
+
+        $complaint->update([
+            'status' => 'open',
+            'reopened_at' => now(),
+            'reopened_by' => auth()->id(),
+        ]);
+
+        activity()
+            ->performedOn($complaint)
+            ->causedBy(auth()->user())
+            ->log("Complaint reopened: {$reason}");
+
+        return $complaint->fresh();
+    }
+
+    /**
+     * Get complaints by category
+     */
+    public function getComplaintsByCategory($category)
+    {
+        return Complaint::where('complaint_category', $category)
+            ->with(['candidate', 'assignedTo', 'campus', 'oep'])
+            ->latest()
+            ->paginate(20);
+    }
+
+    /**
+     * Get complaints assigned to a user
+     */
+    public function getAssignedComplaints($userId)
+    {
+        return Complaint::where('assigned_to', $userId)
+            ->with(['candidate', 'campus', 'oep'])
+            ->whereNotIn('status', ['closed'])
+            ->latest()
+            ->paginate(20);
+    }
+
+    /**
+     * Generate analytics report
+     */
+    public function generateAnalytics($startDate, $endDate, $filters = []): array
+    {
+        $filters['from_date'] = $startDate;
+        $filters['to_date'] = $endDate;
+
+        return $this->generateAnalysisReport($filters);
+    }
+
+    /**
+     * Get SLA performance metrics
+     */
+    public function getSLAPerformance($startDate, $endDate, $filters = []): array
+    {
+        $query = Complaint::whereBetween('registered_at', [$startDate, $endDate]);
+
+        if (!empty($filters['campus_id'])) {
+            $query->where('campus_id', $filters['campus_id']);
+        }
+
+        $complaints = $query->get();
+        $total = $complaints->count();
+
+        $slaCompliant = $complaints->filter(function ($complaint) {
+            return !$complaint->isOverdue() || in_array($complaint->status, ['resolved', 'closed']);
+        })->count();
+
+        $avgResolutionTime = $complaints->filter(function ($complaint) {
+            return $complaint->resolved_at;
+        })->map(function ($complaint) {
+            return Carbon::parse($complaint->registered_at)->diffInHours($complaint->resolved_at);
+        })->avg();
+
+        return [
+            'total_complaints' => $total,
+            'sla_compliant' => $slaCompliant,
+            'sla_compliance_rate' => $total > 0 ? round(($slaCompliant / $total) * 100, 2) : 0,
+            'avg_resolution_hours' => round($avgResolutionTime ?? 0, 2),
+            'overdue' => $complaints->filter(fn($c) => $c->isOverdue())->count(),
+        ];
+    }
+
+    /**
+     * Delete a complaint
+     */
+    public function deleteComplaint($complaintId): bool
+    {
+        $complaint = Complaint::findOrFail($complaintId);
+
+        activity()
+            ->performedOn($complaint)
+            ->causedBy(auth()->user())
+            ->log("Complaint deleted: {$complaint->complaint_number}");
+
+        return $complaint->delete();
+    }
 }

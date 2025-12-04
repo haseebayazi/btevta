@@ -17,11 +17,15 @@ class ReportController extends Controller
 {
     public function index()
     {
+        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+
         return view('reports.index');
     }
 
     public function candidateProfile(Candidate $candidate)
     {
+        $this->authorize('viewCandidateReport', \App\Policies\ReportPolicy::class);
+
         $candidate->load([
             'trade',
             'campus',
@@ -43,6 +47,8 @@ class ReportController extends Controller
 
     public function batchSummary(Batch $batch)
     {
+        $this->authorize('viewCandidateReport', \App\Policies\ReportPolicy::class);
+
         $batch->load([
             'candidates',
             'candidates.assessments',
@@ -67,6 +73,8 @@ class ReportController extends Controller
 
     public function campusPerformance()
     {
+        $this->authorize('viewCampusWiseReport', \App\Policies\ReportPolicy::class);
+
         $campuses = Campus::withCount([
             'candidates',
             'candidates as registered_count' => fn($q) => $q->where('status', 'registered'),
@@ -79,6 +87,8 @@ class ReportController extends Controller
 
     public function oepPerformance()
     {
+        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+
         $oeps = Oep::withCount([
             'candidates',
             'candidates as departed_count' => fn($q) => $q->where('status', 'departed'),
@@ -89,6 +99,8 @@ class ReportController extends Controller
 
     public function visaTimeline()
     {
+        $this->authorize('viewVisaReport', \App\Policies\ReportPolicy::class);
+
         $visaData = DB::table('visa_processes')
             ->selectRaw('
                 COUNT(*) as total,
@@ -108,6 +120,8 @@ class ReportController extends Controller
 
     public function trainingStatistics()
     {
+        $this->authorize('viewTrainingReport', \App\Policies\ReportPolicy::class);
+
         $totalInTraining = Candidate::where('status', 'training')->count();
         $totalCompleted = Candidate::where('status', 'departed')->count();
 
@@ -135,6 +149,8 @@ class ReportController extends Controller
 
     public function complaintAnalysis()
     {
+        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+
         $complaintsByStatus = Complaint::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->get();
@@ -162,6 +178,8 @@ class ReportController extends Controller
 
     public function customReport()
     {
+        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+
         $campuses = Campus::where('is_active', true)->get();
         $statuses = [
             'listed' => 'Listed',
@@ -178,6 +196,8 @@ class ReportController extends Controller
 
     public function generateCustomReport(Request $request)
     {
+        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',
             'status' => 'nullable|in:listed,screening,registered,training,visa_processing,departed,rejected',
@@ -220,6 +240,8 @@ class ReportController extends Controller
 
     public function export(Request $request, $type)
     {
+        $this->authorize('exportReport', \App\Policies\ReportPolicy::class);
+
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',
             'status' => 'nullable|string',

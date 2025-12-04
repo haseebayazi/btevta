@@ -152,8 +152,9 @@ class DocumentArchiveService
 
     /**
      * Log document access
+     * FIXED: Changed from private to public so controller can call it
      */
-    private function logAccess($document, $action): void
+    public function logAccess($document, $action): void
     {
         activity()
             ->performedOn($document)
@@ -626,5 +627,261 @@ class DocumentArchiveService
             'by_urgency' => $grouped->map->count(),
             'documents' => $expiringDocs,
         ];
+    }
+
+    /**
+     * Get version history for a document
+     * ADDED - Called by controller line 130, 258
+     */
+    public function getVersionHistory($documentId): \Illuminate\Database\Eloquent\Collection
+    {
+        $document = DocumentArchive::findOrFail($documentId);
+
+        return DocumentArchive::withTrashed()
+            ->where('candidate_id', $document->candidate_id)
+            ->where('document_type', $document->document_type)
+            ->orderBy('version', 'desc')
+            ->get();
+    }
+
+    /**
+     * Update document metadata
+     * ADDED - Called by controller line 160-163
+     */
+    public function updateDocumentMetadata($documentId, array $metadata): DocumentArchive
+    {
+        $document = DocumentArchive::findOrFail($documentId);
+
+        $document->update($metadata);
+
+        // Log activity
+        activity()
+            ->performedOn($document)
+            ->causedBy(auth()->user())
+            ->log('Document metadata updated');
+
+        return $document->fresh();
+    }
+
+    /**
+     * Upload new version of existing document
+     * ADDED - Called by controller line 184-188
+     */
+    public function uploadNewVersion($documentId, $file, $versionNotes = null): DocumentArchive
+    {
+        $oldDocument = DocumentArchive::findOrFail($documentId);
+
+        // Archive the old version
+        $oldDocument->update([
+            'is_current_version' => false,
+        ]);
+
+        // Store new file
+        $path = $file->store("archive/{$oldDocument->document_type}", 'public');
+
+        // Create new version
+        $newVersion = DocumentArchive::create([
+            'candidate_id' => $oldDocument->candidate_id,
+            'campus_id' => $oldDocument->campus_id,
+            'oep_id' => $oldDocument->oep_id,
+            'document_category' => $oldDocument->document_category,
+            'document_type' => $oldDocument->document_type,
+            'document_name' => $oldDocument->document_name,
+            'document_number' => $oldDocument->document_number,
+            'file_path' => $path,
+            'file_type' => $file->getClientOriginalExtension(),
+            'file_size' => $file->getSize(),
+            'version' => $oldDocument->version + 1,
+            'uploaded_by' => auth()->id(),
+            'is_current_version' => true,
+            'replaces_document_id' => $oldDocument->id,
+            'issue_date' => $oldDocument->issue_date,
+            'expiry_date' => $oldDocument->expiry_date,
+            'description' => $versionNotes ?? $oldDocument->description,
+        ]);
+
+        // Log activity
+        activity()
+            ->performedOn($newVersion)
+            ->causedBy(auth()->user())
+            ->withProperties(['old_version' => $oldDocument->version, 'new_version' => $newVersion->version])
+            ->log("New version uploaded: v{$newVersion->version}");
+
+        return $newVersion;
+    }
+
+    /**
+     * Get all documents for a candidate
+     * ADDED - Called by controller line 343
+     */
+    public function getCandidateDocuments($candidateId): \Illuminate\Database\Eloquent\Collection
+    {
+        return DocumentArchive::with(['uploader'])
+            ->where('candidate_id', $candidateId)
+            ->where('is_current_version', true)
+            ->orderBy('document_type')
+            ->get();
+    }
+
+    /**
+     * Get access logs for a document
+     * ADDED - Called by controller line 357
+     */
+    public function getAccessLogs($documentId): \Illuminate\Database\Eloquent\Collection
+    {
+        $document = DocumentArchive::findOrFail($documentId);
+
+        return activity()
+            ->forSubject($document)
+            ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get();
+    }
+
+    /**
+     * Get storage statistics
+     * ADDED - Called by controller line 371
+     */
+    public function getStorageStatistics(): array
+    {
+        return $this->getStatistics();
+    }
+
+    /**
+     * Archive a document (soft delete)
+     * ADDED - Called by controller line 429
+     */
+    public function archiveDocument($documentId): bool
+    {
+        $document = DocumentArchive::findOrFail($documentId);
+
+        $document->update(['is_current_version' => false]);
+        $document->delete();
+
+        // Log activity
+        activity()
+            ->performedOn($document)
+            ->causedBy(auth()->user())
+            ->log('Document archived');
+
+        return true;
+    }
+
+    /**
+     * Restore an archived document
+     * ADDED - Called by controller line 443
+     */
+    public function restoreDocument($documentId): DocumentArchive
+    {
+        $document = DocumentArchive::withTrashed()->findOrFail($documentId);
+
+        $document->restore();
+        $document->update(['is_current_version' => true]);
+
+        // Log activity
+        activity()
+            ->performedOn($document)
+            ->causedBy(auth()->user())
+            ->log('Document restored from archive');
+
+        return $document;
+    }
+
+    /**
+     * Permanently delete a document
+     * ADDED - Called by controller line 458
+     */
+    public function deleteDocument($documentId): bool
+    {
+        $document = DocumentArchive::withTrashed()->findOrFail($documentId);
+
+        // Delete physical file
+        if (Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+
+        // Log activity before deletion
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'document_name' => $document->document_name,
+                'document_type' => $document->document_type,
+                'candidate_id' => $document->candidate_id,
+            ])
+            ->log('Document permanently deleted');
+
+        // Force delete from database
+        $document->forceDelete();
+
+        return true;
+    }
+
+    /**
+     * Generate document report
+     * ADDED - Called by controller line 479-483
+     */
+    public function generateReport($startDate, $endDate, $category = null): array
+    {
+        $query = DocumentArchive::with(['candidate', 'campus', 'uploader'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($category) {
+            $query->where('document_category', $category);
+        }
+
+        $documents = $query->get();
+
+        return [
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ],
+            'total_documents' => $documents->count(),
+            'by_category' => $documents->groupBy('document_category')->map->count(),
+            'by_type' => $documents->groupBy('document_type')->map->count(),
+            'by_campus' => $documents->filter(fn($d) => !is_null($d->campus_id))
+                                     ->groupBy(fn($d) => $d->campus?->name ?? 'Unknown')
+                                     ->map->count(),
+            'total_size' => $this->formatBytes($documents->sum('file_size')),
+            'uploaded_by_user' => $documents->groupBy('uploaded_by')
+                                            ->map(function($group) {
+                                                return [
+                                                    'count' => $group->count(),
+                                                    'user' => $group->first()->uploader?->name ?? 'Unknown',
+                                                ];
+                                            }),
+            'documents' => $documents,
+        ];
+    }
+
+    /**
+     * Send expiry reminders to relevant users
+     * ADDED - Called by controller line 497
+     */
+    public function sendExpiryReminders(): int
+    {
+        $expiringDocs = $this->getExpiringDocuments(30);
+
+        $count = 0;
+
+        foreach ($expiringDocs as $item) {
+            $document = $item['document'];
+            $urgency = $item['urgency'];
+
+            // Send notification (would integrate with NotificationService)
+            // For now, just log the activity
+            activity()
+                ->performedOn($document)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'urgency' => $urgency,
+                    'days_until_expiry' => $item['days_until_expiry'],
+                ])
+                ->log('Expiry reminder sent');
+
+            $count++;
+        }
+
+        return $count;
     }
 }
