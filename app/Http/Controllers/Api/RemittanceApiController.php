@@ -19,6 +19,8 @@ class RemittanceApiController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Remittance::class);
+
         $query = Remittance::with(['candidate', 'departure', 'recordedBy']);
 
         // Apply filters
@@ -77,6 +79,8 @@ class RemittanceApiController extends Controller
             return response()->json(['error' => 'Remittance not found'], 404);
         }
 
+        $this->authorize('view', $remittance);
+
         return response()->json($remittance);
     }
 
@@ -88,6 +92,8 @@ class RemittanceApiController extends Controller
      */
     public function byCandidate($candidateId)
     {
+        $this->authorize('viewAny', Remittance::class);
+
         $candidate = Candidate::find($candidateId);
 
         if (!$candidate) {
@@ -119,6 +125,8 @@ class RemittanceApiController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Remittance::class);
+
         $validator = Validator::make($request->all(), [
             'candidate_id' => 'required|exists:candidates,id',
             'departure_id' => 'nullable|exists:departures,id',
@@ -181,6 +189,8 @@ class RemittanceApiController extends Controller
             return response()->json(['error' => 'Remittance not found'], 404);
         }
 
+        $this->authorize('update', $remittance);
+
         $validator = Validator::make($request->all(), [
             'candidate_id' => 'sometimes|required|exists:candidates,id',
             'departure_id' => 'nullable|exists:departures,id',
@@ -197,7 +207,7 @@ class RemittanceApiController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $remittance->update($request->all());
+        $remittance->update($validator->validated());
 
         // Recalculate month number if departure changed
         if ($remittance->departure_id) {
@@ -225,6 +235,8 @@ class RemittanceApiController extends Controller
             return response()->json(['error' => 'Remittance not found'], 404);
         }
 
+        $this->authorize('delete', $remittance);
+
         $remittance->delete();
 
         return response()->json(['message' => 'Remittance deleted successfully']);
@@ -238,6 +250,8 @@ class RemittanceApiController extends Controller
      */
     public function search(Request $request)
     {
+        $this->authorize('viewAny', Remittance::class);
+
         $query = Remittance::with(['candidate', 'departure']);
 
         // Search by transaction reference
@@ -277,6 +291,8 @@ class RemittanceApiController extends Controller
      */
     public function statistics()
     {
+        $this->authorize('viewAny', Remittance::class);
+
         $stats = [
             'total_remittances' => Remittance::count(),
             'total_amount' => Remittance::sum('amount'),
@@ -317,6 +333,8 @@ class RemittanceApiController extends Controller
         if (!$remittance) {
             return response()->json(['error' => 'Remittance not found'], 404);
         }
+
+        $this->authorize('verify', $remittance);
 
         $remittance->markAsVerified(Auth::id());
 

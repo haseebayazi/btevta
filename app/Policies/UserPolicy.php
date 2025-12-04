@@ -59,4 +59,11 @@ class UserPolicy
         // Only admin can view audit logs
         return $user->role === 'admin';
     }
+
+    public function globalSearch(User $user): bool
+    {
+        // All authenticated users can use global search
+        // Authorization is then applied per entity type in the service
+        return true;
+    }
 }
