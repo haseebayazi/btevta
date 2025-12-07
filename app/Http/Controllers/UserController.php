@@ -118,15 +118,41 @@ class UserController extends Controller
                 unset($validated['password']);
             }
 
-            // Prevent changing own role if admin
-            if ($user->id === auth()->id() && $user->role === 'admin' && $validated['role'] !== 'admin') {
-                $adminCount = User::where('role', 'admin')->where('id', '!=', $user->id)->count();
-                if ($adminCount === 0) {
-                    return back()->with('error', 'Cannot change role: You are the last admin user!');
-                }
+            // SECURITY FIX: Prevent role escalation vulnerabilities
+
+            // 1. Non-admins cannot change ANY roles (including their own)
+            if (auth()->user()->role !== 'admin' && isset($validated['role'])) {
+                unset($validated['role']);  // Strip role from validated data
             }
 
-            $user->update($validated);
+            // 2. Admins cannot change their own role (prevents accidental lockout)
+            if (auth()->user()->role === 'admin' && $user->id === auth()->id() && isset($validated['role']) && $validated['role'] !== $user->role) {
+                return back()->with('error', 'You cannot change your own role!');
+            }
+
+            // 3. Prevent removing the last admin (when admin edits another admin)
+            // Use database transaction with locking to prevent race conditions
+            if (auth()->user()->role === 'admin' && isset($validated['role']) && $user->role === 'admin' && $validated['role'] !== 'admin') {
+                try {
+                    \DB::transaction(function() use ($user, $validated) {
+                        // Lock users table for counting admins (prevents race condition)
+                        $adminCount = User::where('role', 'admin')
+                            ->where('id', '!=', $user->id)
+                            ->lockForUpdate()
+                            ->count();
+
+                        if ($adminCount === 0) {
+                            throw new \Exception('Cannot change role: You are the last admin user!');
+                        }
+
+                        $user->update($validated);
+                    });
+                } catch (\Exception $e) {
+                    return back()->with('error', $e->getMessage());
+                }
+            } else {
+                $user->update($validated);
+            }
 
             // Log activity
             activity()
