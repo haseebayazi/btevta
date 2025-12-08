@@ -36,8 +36,10 @@ class RoleMiddleware
 
         $user = auth()->user();
 
-        // Check if user has any of the required roles
-        if (!in_array($user->role, $roles)) {
+        // Check if user has any of the required roles (case-insensitive comparison)
+        $userRoleLower = strtolower($user->role);
+        $rolesLower = array_map('strtolower', $roles);
+        if (!in_array($userRoleLower, $rolesLower)) {
             Log::warning('RoleMiddleware: Unauthorized role access attempt', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,

@@ -324,4 +324,56 @@ class UserController extends Controller
 
         return view('admin.audit-logs', compact('logs', 'users'));
     }
+
+    /**
+     * Get user notifications (API endpoint).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function notifications(Request $request)
+    {
+        $user = auth()->user();
+
+        $notifications = $user->notifications()
+            ->when($request->filled('unread_only'), function ($query) {
+                $query->whereNull('read_at');
+            })
+            ->latest()
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $notifications,
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * Mark a notification as read (API endpoint).
+     *
+     * @param  string  $notification
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function markNotificationRead(string $notification)
+    {
+        $user = auth()->user();
+
+        $notificationRecord = $user->notifications()->find($notification);
+
+        if (!$notificationRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Notification not found',
+            ], 404);
+        }
+
+        $notificationRecord->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read',
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
 }
