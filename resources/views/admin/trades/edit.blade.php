@@ -6,7 +6,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('trades.update', $trade->id) }}" method="POST">
+            <form action="{{ route('admin.trades.update', $trade->id) }}" method="POST">
                 @csrf @method('PUT')
                 
                 <div class="form-group">
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="form-group">
-                    <a href="{{ route('trades.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.trades.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Update Trade</button>
                 </div>
             </form>

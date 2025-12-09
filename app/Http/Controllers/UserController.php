@@ -350,4 +350,117 @@ class UserController extends Controller
 
         return view('admin.audit-logs', compact('logs', 'users'));
     }
+
+    /**
+     * Get user notifications (API endpoint).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function notifications(Request $request)
+    {
+        $user = auth()->user();
+
+        $notifications = $user->notifications()
+            ->when($request->filled('unread_only'), function ($query) {
+                $query->whereNull('read_at');
+            })
+            ->latest()
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $notifications,
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * Mark a notification as read (API endpoint).
+     *
+     * @param  string  $notification
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function markNotificationRead(string $notification)
+    {
+        $user = auth()->user();
+
+        $notificationRecord = $user->notifications()->find($notification);
+
+        if (!$notificationRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Notification not found',
+            ], 404);
+        }
+
+        $notificationRecord->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read',
+            'unread_count' => $user->unreadNotifications()->count(),
+        ]);
+    }
+
+    /**
+     * Mark all notifications as read.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function markAllNotificationsRead()
+    {
+        $user = auth()->user();
+        $user->unreadNotifications->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All notifications marked as read',
+        ]);
+    }
+
+    /**
+     * Show user profile page.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('profile.index', compact('user'));
+    }
+
+    /**
+     * Update user profile.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'current_password' => 'nullable|required_with:new_password|string',
+            'new_password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        // Update basic info
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+
+        // Update password if provided
+        if ($request->filled('new_password')) {
+            if (!\Hash::check($request->current_password, $user->password)) {
+                return back()->with('error', 'Current password is incorrect!');
+            }
+            $user->password = \Hash::make($request->new_password);
+        }
+
+        $user->save();
+
+        return back()->with('success', 'Profile updated successfully!');
+    }
 }

@@ -7,10 +7,10 @@
             <h2>{{ $trade->name }}</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('trades.edit', $trade->id) }}" class="btn btn-warning">
+            <a href="{{ route('admin.trades.edit', $trade->id) }}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit
             </a>
-            <a href="{{ route('trades.index') }}" class="btn btn-secondary">
+            <a href="{{ route('admin.trades.index') }}" class="btn btn-secondary">
                 Back
             </a>
         </div>

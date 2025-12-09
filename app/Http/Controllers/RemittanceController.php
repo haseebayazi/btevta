@@ -94,7 +94,7 @@ class RemittanceController extends Controller
 
         $candidates = Candidate::whereHas('departure')
             ->with('departure')
-            ->orderBy('full_name')
+            ->orderBy('name')
             ->get();
 
         $beneficiaries = [];
@@ -171,7 +171,7 @@ class RemittanceController extends Controller
 
         $candidates = Candidate::whereHas('departure')
             ->with('departure')
-            ->orderBy('full_name')
+            ->orderBy('name')
             ->get();
 
         $beneficiaries = RemittanceBeneficiary::where('candidate_id', $remittance->candidate_id)

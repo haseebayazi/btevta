@@ -6,7 +6,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('users.update', $user->id) }}" method="POST">
+            <form action="{{ route('admin.users.update', $user->id) }}" method="POST">
                 @csrf @method('PUT')
                 
                 <div class="form-group">
@@ -56,7 +56,7 @@
                 </div>
 
                 <div class="form-group">
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Update User</button>
                 </div>
             </form>

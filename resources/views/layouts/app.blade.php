@@ -174,7 +174,7 @@
                                 @endforelse
                             </div>
                             <div class="px-4 py-2 border-t">
-                                <a href="#" class="text-sm text-blue-600 hover:text-blue-800">View all notifications</a>
+                                <a href="{{ route('notifications.index') }}" class="text-sm text-blue-600 hover:text-blue-800">View all notifications</a>
                             </div>
                         </div>
                     </div>
@@ -195,12 +195,14 @@
                                 <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
                                 <p class="text-xs text-gray-600">{{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }}</p>
                             </div>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            <a href="{{ route('profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                 <i class="fas fa-user mr-2"></i> My Profile
                             </a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                            @if(auth()->user()->role === 'admin')
+                            <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                 <i class="fas fa-cog mr-2"></i> Settings
                             </a>
+                            @endif
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">

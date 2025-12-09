@@ -6,7 +6,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('users.store') }}" method="POST">
+            <form action="{{ route('admin.users.store') }}" method="POST">
                 @csrf
                 
                 <div class="form-group">
@@ -55,7 +55,7 @@
                 </div>
 
                 <div class="form-group">
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create User</button>
                 </div>
             </form>

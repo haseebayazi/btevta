@@ -80,7 +80,7 @@ class ComplaintController extends Controller
     {
         $this->authorize('create', Complaint::class);
 
-        $candidates = Candidate::select('id', 'name', 'cnic', 'passport_number')->get();
+        $candidates = Candidate::select('id', 'name', 'cnic', 'application_id')->get();
         $campuses = Campus::where('is_active', true)->get();
         $oeps = Oep::where('is_active', true)->get();
 

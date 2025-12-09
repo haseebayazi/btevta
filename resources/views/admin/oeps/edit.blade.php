@@ -7,13 +7,13 @@
             <h2>Edit OEP</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('oeps.index') }}" class="btn btn-secondary">← Back</a>
+            <a href="{{ route('admin.oeps.index') }}" class="btn btn-secondary">← Back</a>
         </div>
     </div>
 
     <div class="card mt-3">
         <div class="card-body">
-            <form method="POST" action="{{ route('oeps.update', $oep->id) }}">
+            <form method="POST" action="{{ route('admin.oeps.update', $oep->id) }}">
                 @csrf
                 @method('PUT')
 
@@ -75,7 +75,7 @@
 
                 <div class="form-group">
                     <button type="submit" class="btn btn-success">Update OEP</button>
-                    <a href="{{ route('oeps.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.oeps.index') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>

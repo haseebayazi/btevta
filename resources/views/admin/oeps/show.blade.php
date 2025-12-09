@@ -7,10 +7,10 @@
             <h2>{{ $oep->name }}</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('oeps.edit', $oep->id) }}" class="btn btn-warning">
+            <a href="{{ route('admin.oeps.edit', $oep->id) }}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit
             </a>
-            <a href="{{ route('oeps.index') }}" class="btn btn-secondary">
+            <a href="{{ route('admin.oeps.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
         </div>
@@ -116,7 +116,7 @@
             <div class="card mt-3">
                 <div class="card-header bg-danger text-white">Actions</div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('oeps.destroy', $oep->id) }}">
+                    <form method="POST" action="{{ route('admin.oeps.destroy', $oep->id) }}">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('Are you sure you want to delete this OEP?')">
