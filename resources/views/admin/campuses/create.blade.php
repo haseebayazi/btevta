@@ -6,7 +6,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('campuses.store') }}" method="POST">
+            <form action="{{ route('admin.campuses.store') }}" method="POST">
                 @csrf
                 
                 <div class="row">
@@ -63,7 +63,7 @@
                 </div>
 
                 <div class="form-group">
-                    <a href="{{ route('campuses.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.campuses.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Campus</button>
                 </div>
             </form>
