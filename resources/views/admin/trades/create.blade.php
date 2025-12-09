@@ -6,7 +6,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('trades.store') }}" method="POST">
+            <form action="{{ route('admin.trades.store') }}" method="POST">
                 @csrf
                 
                 <div class="form-group">
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="form-group">
-                    <a href="{{ route('trades.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.trades.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Trade</button>
                 </div>
             </form>

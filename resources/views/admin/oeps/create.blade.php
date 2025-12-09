@@ -7,13 +7,13 @@
             <h2>Create New OEP</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('oeps.index') }}" class="btn btn-secondary">← Back</a>
+            <a href="{{ route('admin.oeps.index') }}" class="btn btn-secondary">← Back</a>
         </div>
     </div>
 
     <div class="card mt-3">
         <div class="card-body">
-            <form method="POST" action="{{ route('oeps.store') }}">
+            <form method="POST" action="{{ route('admin.oeps.store') }}">
                 @csrf
 
                 <div class="form-group">
@@ -74,7 +74,7 @@
 
                 <div class="form-group">
                     <button type="submit" class="btn btn-success">Save OEP</button>
-                    <a href="{{ route('oeps.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.oeps.index') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>

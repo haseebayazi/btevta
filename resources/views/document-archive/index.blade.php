@@ -3,16 +3,21 @@
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <h2>Document Archive</h2>
             <p class="text-muted">Central repository for all archived documents</p>
         </div>
-        <div class="col-md-4 text-right">
+        <div class="col-md-6 text-right">
+            @can('create', App\Models\DocumentArchive::class)
+            <a href="{{ route('document-archive.create') }}" class="btn btn-success">
+                <i class="fas fa-upload"></i> Upload Document
+            </a>
+            @endcan
             <a href="{{ route('document-archive.expiring') }}" class="btn btn-warning">
-                <i class="fas fa-exclamation-triangle"></i> Expiring Documents
+                <i class="fas fa-exclamation-triangle"></i> Expiring
             </a>
             <a href="{{ route('document-archive.search') }}" class="btn btn-info">
-                <i class="fas fa-search"></i> Advanced Search
+                <i class="fas fa-search"></i> Search
             </a>
         </div>
     </div>
