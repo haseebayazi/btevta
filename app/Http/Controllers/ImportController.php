@@ -21,7 +21,13 @@ class ImportController extends Controller
     {
         $this->authorize('import', Candidate::class);
 
-        return view('import.candidates');
+        // Get all active trades with their codes for reference
+        $trades = Trade::where('is_active', true)
+            ->select('code', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return view('import.candidates', compact('trades'));
     }
 
     public function downloadTemplate()
@@ -83,6 +89,9 @@ class ImportController extends Controller
                     'email' => 'nullable|email|max:255',
                     'district' => 'required|string|max:100',
                     'trade_code' => 'required|exists:trades,code',
+                ], [
+                    'trade_code.required' => 'Trade Code is required',
+                    'trade_code.exists' => 'Trade Code does not exist in the system. Please use a valid trade code from the trades list.',
                 ]);
 
                 if ($validator->fails()) {

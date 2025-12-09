@@ -17,14 +17,14 @@ class ReportController extends Controller
 {
     public function index()
     {
-        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
 
         return view('reports.index');
     }
 
     public function candidateProfile(Candidate $candidate)
     {
-        $this->authorize('viewCandidateReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewCandidateReport(auth()->user())) { abort(403); }
 
         $candidate->load([
             'trade',
@@ -47,7 +47,7 @@ class ReportController extends Controller
 
     public function batchSummary(Batch $batch)
     {
-        $this->authorize('viewCandidateReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewCandidateReport(auth()->user())) { abort(403); }
 
         $batch->load([
             'candidates',
@@ -73,7 +73,7 @@ class ReportController extends Controller
 
     public function campusPerformance()
     {
-        $this->authorize('viewCampusWiseReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewCampusWiseReport(auth()->user())) { abort(403); }
 
         $campuses = Campus::withCount([
             'candidates',
@@ -87,7 +87,7 @@ class ReportController extends Controller
 
     public function oepPerformance()
     {
-        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
 
         $oeps = Oep::withCount([
             'candidates',
@@ -99,7 +99,7 @@ class ReportController extends Controller
 
     public function visaTimeline()
     {
-        $this->authorize('viewVisaReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewVisaReport(auth()->user())) { abort(403); }
 
         $visaData = DB::table('visa_processes')
             ->selectRaw('
@@ -120,7 +120,7 @@ class ReportController extends Controller
 
     public function trainingStatistics()
     {
-        $this->authorize('viewTrainingReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewTrainingReport(auth()->user())) { abort(403); }
 
         $totalInTraining = Candidate::where('status', 'training')->count();
         $totalCompleted = Candidate::where('status', 'departed')->count();
@@ -149,7 +149,7 @@ class ReportController extends Controller
 
     public function complaintAnalysis()
     {
-        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
 
         $complaintsByStatus = Complaint::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
@@ -178,7 +178,7 @@ class ReportController extends Controller
 
     public function customReport()
     {
-        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
 
         $campuses = Campus::where('is_active', true)->get();
         $statuses = [
@@ -196,7 +196,7 @@ class ReportController extends Controller
 
     public function generateCustomReport(Request $request)
     {
-        $this->authorize('viewAny', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
 
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',
@@ -240,7 +240,7 @@ class ReportController extends Controller
 
     public function export(Request $request, $type)
     {
-        $this->authorize('exportReport', \App\Policies\ReportPolicy::class);
+        if (! (new \App\Policies\ReportPolicy())->exportReport(auth()->user())) { abort(403); }
 
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',

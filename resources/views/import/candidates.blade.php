@@ -76,6 +76,22 @@
     </div>
     @endif
 
+    <!-- Available Trade Codes -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h3 class="font-semibold mb-4">Available Trade Codes</h3>
+        <p class="text-sm text-gray-600 mb-3">Use these codes in the "Trade Code" column of your import file:</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+            @forelse($trades as $trade)
+            <div class="border border-gray-200 rounded px-3 py-2">
+                <span class="font-mono text-sm font-semibold text-blue-600">{{ $trade->code }}</span>
+                <span class="text-sm text-gray-600">- {{ $trade->name }}</span>
+            </div>
+            @empty
+            <p class="text-sm text-red-600 col-span-full">No active trades found. Please add trades in Admin panel first.</p>
+            @endforelse
+        </div>
+    </div>
+
     <!-- Template Format Guide -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="font-semibold mb-4">Template Format Guide</h3>

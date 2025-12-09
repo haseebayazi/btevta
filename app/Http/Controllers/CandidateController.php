@@ -107,6 +107,7 @@ class CandidateController extends Controller
             'tehsil' => 'nullable|string|max:100',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'nullable|exists:campuses,id',
+            'batch_id' => 'nullable|exists:batches,id',
             'oep_id' => 'nullable|exists:oeps,id',
             'photo' => 'nullable|image|max:2048',
         ]);
