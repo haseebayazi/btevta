@@ -111,4 +111,81 @@
         </div>
     </div>
 </div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Upload Document</h3>
+            <button onclick="document.getElementById('uploadModal').classList.add('hidden')"
+                    class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('document-archive.store') }}" enctype="multipart/form-data">
+            @csrf
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Candidate *</label>
+                    <select name="candidate_id" class="w-full px-3 py-2 border rounded-lg" required>
+                        <option value="">Select Candidate</option>
+                        @foreach(\App\Models\Candidate::select('id', 'name', 'btevta_id')->orderBy('name')->get() as $candidate)
+                            <option value="{{ $candidate->id }}">{{ $candidate->btevta_id }} - {{ $candidate->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+                    <select name="document_type" class="w-full px-3 py-2 border rounded-lg" required>
+                        <option value="">Select Type</option>
+                        <option value="cnic">CNIC</option>
+                        <option value="passport">Passport</option>
+                        <option value="medical">Medical Certificate</option>
+                        <option value="clearance">Police Clearance</option>
+                        <option value="certificate">Training Certificate</option>
+                        <option value="visa">Visa</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
+                    <input type="text" name="document_name" class="w-full px-3 py-2 border rounded-lg"
+                           placeholder="e.g., Training Certificate 2024" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date (if applicable)</label>
+                    <input type="date" name="expiry_date" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Upload File *</label>
+                    <input type="file" name="file" class="w-full px-3 py-2 border rounded-lg"
+                           accept=".pdf,.jpg,.jpeg,.png" required>
+                    <p class="text-xs text-gray-500 mt-1">Max 5MB. Supported: PDF, JPG, PNG</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                    <textarea name="notes" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button"
+                        onclick="document.getElementById('uploadModal').classList.add('hidden')"
+                        class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-upload mr-2"></i>Upload
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

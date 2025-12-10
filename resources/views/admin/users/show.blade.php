@@ -7,10 +7,10 @@
             <h2>{{ $user->name }}</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('users.edit', $user->id) }}" class="btn btn-warning">
+            <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit
             </a>
-            <a href="{{ route('users.index') }}" class="btn btn-secondary">
+            <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
                 Back
             </a>
         </div>

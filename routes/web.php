@@ -78,6 +78,15 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
+    // USER PROFILE & NOTIFICATIONS
+    // ========================================================================
+    Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+    Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/notifications', [UserController::class, 'notifications'])->name('notifications.index');
+    Route::post('/notifications/{notification}/mark-read', [UserController::class, 'markNotificationRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [UserController::class, 'markAllNotificationsRead'])->name('notifications.mark-all-read');
+
+    // ========================================================================
     // CANDIDATES MANAGEMENT
     // Throttle: Standard 60/min, Export 5/min, Upload 30/min
     // ========================================================================
