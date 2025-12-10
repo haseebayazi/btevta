@@ -148,28 +148,35 @@
                 <div class="flex items-center space-x-4">
                     <!-- Notifications -->
                     <div class="relative" x-data="{ open: false }">
+                        @php
+                            $unreadCount = auth()->user()->unreadNotifications()->count();
+                            $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
+                        @endphp
                         <button @click="open = !open" class="relative text-gray-600 hover:text-gray-900">
                             <i class="fas fa-bell text-xl"></i>
-                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                            @if($unreadCount > 0)
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{{ $unreadCount > 9 ? '9+' : $unreadCount }}</span>
+                            @endif
                         </button>
-                        
+
                         <div x-show="open" @click.away="open = false" x-cloak
                              class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <div class="px-4 py-2 border-b">
+                            <div class="px-4 py-2 border-b flex justify-between items-center">
                                 <h3 class="font-semibold text-gray-900">Notifications</h3>
+                                @if($unreadCount > 0)
+                                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">{{ $unreadCount }} unread</span>
+                                @endif
                             </div>
                             <div class="max-h-96 overflow-y-auto">
-                                @php
-                                    $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
-                                @endphp
                                 @forelse($notifications as $notification)
-                                    <a href="#" class="block px-4 py-3 hover:bg-gray-50 border-b">
+                                    <div class="block px-4 py-3 hover:bg-gray-50 border-b {{ $notification->read_at ? '' : 'bg-blue-50' }}">
                                         <p class="text-sm font-medium text-gray-900">{{ $notification->data['message'] ?? 'New notification' }}</p>
                                         <p class="text-xs text-gray-600">{{ $notification->created_at->diffForHumans() }}</p>
-                                    </a>
+                                    </div>
                                 @empty
                                     <div class="px-4 py-3 text-center text-gray-500">
-                                        <p class="text-sm">No notifications</p>
+                                        <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                                        <p class="text-sm">No notifications yet</p>
                                     </div>
                                 @endforelse
                             </div>
@@ -190,25 +197,39 @@
                         </button>
                         
                         <div x-show="open" @click.away="open = false" x-cloak
-                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <div class="px-4 py-2 border-b">
+                             class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50">
+                            <div class="px-4 py-3 border-b">
                                 <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
                                 <p class="text-xs text-gray-600">{{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }}</p>
+                                @if(auth()->user()->campus)
+                                <p class="text-xs text-gray-500 mt-1"><i class="fas fa-building mr-1"></i>{{ auth()->user()->campus->name }}</p>
+                                @endif
                             </div>
-                            <a href="{{ route('profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <i class="fas fa-user mr-2"></i> My Profile
-                            </a>
-                            @if(auth()->user()->role === 'admin')
-                            <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <i class="fas fa-cog mr-2"></i> Settings
-                            </a>
-                            @endif
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
-                                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                                </button>
-                            </form>
+                            <div class="py-1">
+                                <div class="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">Account</div>
+                                <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-home mr-2 w-4"></i> Dashboard
+                                </a>
+                                <a href="{{ route('profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-user mr-2 w-4"></i> My Profile
+                                </a>
+                                @if(auth()->user()->isAdmin())
+                                <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-cog mr-2 w-4"></i> System Settings
+                                </a>
+                                <a href="{{ route('admin.activity-logs') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-history mr-2 w-4"></i> Activity Logs
+                                </a>
+                                @endif
+                            </div>
+                            <div class="border-t pt-1">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                        <i class="fas fa-sign-out-alt mr-2 w-4"></i> Sign Out
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

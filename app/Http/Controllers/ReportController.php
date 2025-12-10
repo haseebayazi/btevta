@@ -10,21 +10,50 @@ use App\Models\TrainingAssessment;
 use App\Models\Complaint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ReportController extends Controller
 {
+    /**
+     * Check if user can view reports based on role
+     */
+    private function canViewReports(): bool
+    {
+        return in_array(auth()->user()->role, ['admin', 'campus_admin', 'viewer']);
+    }
+
+    /**
+     * Check if user can view campus-wise reports
+     */
+    private function canViewCampusReports(): bool
+    {
+        return in_array(auth()->user()->role, ['admin', 'viewer']);
+    }
+
+    /**
+     * Check if user can export reports
+     */
+    private function canExportReports(): bool
+    {
+        return in_array(auth()->user()->role, ['admin', 'campus_admin']);
+    }
+
     public function index()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         return view('reports.index');
     }
 
     public function candidateProfile(Candidate $candidate)
     {
-        if (! (new \App\Policies\ReportPolicy())->viewCandidateReport(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $candidate->load([
             'trade',
@@ -34,9 +63,9 @@ class ReportController extends Controller
             'documents',
             'nextOfKin',
             'undertakings',
-            'attendances',
-            'assessments',
-            'certificate',
+            'trainingAttendances',
+            'trainingAssessments',
+            'trainingCertificates',
             'visaProcess',
             'departure',
             'complaints'
@@ -47,7 +76,9 @@ class ReportController extends Controller
 
     public function batchSummary(Batch $batch)
     {
-        if (! (new \App\Policies\ReportPolicy())->viewCandidateReport(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $batch->load([
             'candidates',
@@ -73,7 +104,9 @@ class ReportController extends Controller
 
     public function campusPerformance()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewCampusWiseReport(auth()->user())) { abort(403); }
+        if (!$this->canViewCampusReports()) {
+            abort(403, 'You do not have permission to view campus performance reports.');
+        }
 
         $campuses = Campus::withCount([
             'candidates',
@@ -87,7 +120,9 @@ class ReportController extends Controller
 
     public function oepPerformance()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $oeps = Oep::withCount([
             'candidates',
@@ -99,7 +134,9 @@ class ReportController extends Controller
 
     public function visaTimeline()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewVisaReport(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $visaData = DB::table('visa_processes')
             ->selectRaw('
@@ -120,7 +157,9 @@ class ReportController extends Controller
 
     public function trainingStatistics()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewTrainingReport(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $totalInTraining = Candidate::where('status', 'training')->count();
         $totalCompleted = Candidate::where('status', 'departed')->count();
@@ -149,7 +188,9 @@ class ReportController extends Controller
 
     public function complaintAnalysis()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $complaintsByStatus = Complaint::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
@@ -178,7 +219,9 @@ class ReportController extends Controller
 
     public function customReport()
     {
-        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $campuses = Campus::where('is_active', true)->get();
         $statuses = [
@@ -196,7 +239,9 @@ class ReportController extends Controller
 
     public function generateCustomReport(Request $request)
     {
-        if (! (new \App\Policies\ReportPolicy())->viewAny(auth()->user())) { abort(403); }
+        if (!$this->canViewReports()) {
+            abort(403, 'You do not have permission to view reports.');
+        }
 
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',
@@ -240,7 +285,9 @@ class ReportController extends Controller
 
     public function export(Request $request, $type)
     {
-        if (! (new \App\Policies\ReportPolicy())->exportReport(auth()->user())) { abort(403); }
+        if (!$this->canExportReports()) {
+            abort(403, 'You do not have permission to export reports.');
+        }
 
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',

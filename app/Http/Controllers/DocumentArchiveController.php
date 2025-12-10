@@ -68,7 +68,7 @@ class DocumentArchiveController extends Controller
     {
         $this->authorize('create', DocumentArchive::class);
 
-        $candidates = Candidate::select('id', 'name', 'cnic', 'passport_number')->get();
+        $candidates = Candidate::select('id', 'name', 'cnic')->get();
 
         return view('document-archive.create', compact('candidates'));
     }
