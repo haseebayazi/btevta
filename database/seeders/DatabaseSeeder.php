@@ -177,5 +177,8 @@ class DatabaseSeeder extends Seeder
         echo "   Email: admin@btevta.gov.pk\n";
         echo "   Password: Admin@123\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        echo "\n💡 TIP: To populate comprehensive test data for all modules, run:\n";
+        echo "   php artisan db:seed --class=TestDataSeeder\n";
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
     }
 }
