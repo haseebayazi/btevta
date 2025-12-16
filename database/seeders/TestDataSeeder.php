@@ -570,21 +570,17 @@ class TestDataSeeder extends Seeder
 
         foreach ($allCandidates as $index => $candidate) {
             if ($candidate && $index < 8) { // Create 8 sample complaints
+                $isResolved = rand(0, 1);
                 Complaint::create([
-                    'complaint_number' => 'COMP-' . date('Y') . '-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT),
                     'candidate_id' => $candidate->id,
                     'campus_id' => $candidate->campus_id,
                     'oep_id' => $candidate->oep_id,
-                    'complainant_name' => $candidate->name,
-                    'complainant_phone' => $candidate->phone,
-                    'complainant_email' => $candidate->email,
-                    'category' => ['contract_violation', 'salary_delay', 'accommodation', 'working_conditions'][rand(0, 3)],
                     'subject' => 'Complaint regarding ' . ['salary payment', 'contract terms', 'accommodation', 'working hours'][rand(0, 3)],
-                    'description' => 'Detailed complaint description regarding the issue faced by the candidate.',
-                    'priority' => ['low', 'medium', 'high', 'urgent'][rand(0, 3)],
-                    'status' => ['open', 'investigating', 'resolved', 'closed'][rand(0, 3)],
-                    'filed_date' => now()->subDays(rand(1, 60)),
-                    'assigned_to' => $index % 2 == 0 ? $users['admin']->id : null,
+                    'description' => 'Detailed complaint description regarding the issue faced by the candidate. Contact: ' . $candidate->name . ', Phone: ' . $candidate->phone,
+                    'status' => $isResolved ? 'resolved' : ['open', 'investigating'][rand(0, 1)],
+                    'complaint_date' => now()->subDays(rand(1, 60)),
+                    'resolution_date' => $isResolved ? now()->subDays(rand(1, 30)) : null,
+                    'resolution_notes' => $isResolved ? 'Complaint has been resolved successfully. All necessary actions have been taken.' : null,
                 ]);
             }
         }
@@ -594,16 +590,13 @@ class TestDataSeeder extends Seeder
     {
         for ($i = 0; $i < 10; $i++) {
             Correspondence::create([
-                'reference_number' => 'CORR-' . date('Y') . '-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
-                'correspondence_date' => now()->subDays(rand(1, 90)),
-                'correspondence_type' => ['incoming', 'outgoing'][rand(0, 1)],
-                'from_entity' => $i % 2 == 0 ? 'BTEVTA Headquarters' : ($oeps[array_rand($oeps)]->name ?? 'External Agency'),
-                'to_entity' => $i % 2 == 0 ? ($oeps[array_rand($oeps)]->name ?? 'External Agency') : 'BTEVTA Headquarters',
+                'campus_id' => $i % 2 == 0 ? $campuses[array_rand($campuses)]->id : null,
+                'oep_id' => $i % 2 != 0 ? $oeps[array_rand($oeps)]->id : null,
                 'subject' => 'Subject of correspondence ' . ($i + 1),
-                'summary' => 'Brief summary of the correspondence content and main points discussed.',
-                'category' => ['administrative', 'operational', 'financial', 'legal'][rand(0, 3)],
-                'priority' => ['normal', 'high', 'urgent'][rand(0, 2)],
-                'status' => ['pending', 'in_progress', 'completed', 'archived'][rand(0, 3)],
+                'content' => 'Brief summary of the correspondence content and main points discussed for correspondence number ' . ($i + 1) . '.',
+                'correspondence_date' => now()->subDays(rand(1, 90)),
+                'reply_date' => rand(0, 1) ? now()->subDays(rand(1, 30)) : null,
+                'reply_content' => rand(0, 1) ? 'Reply to the correspondence with relevant information and updates.' : null,
             ]);
         }
     }
