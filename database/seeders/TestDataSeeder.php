@@ -9,12 +9,11 @@ use App\Models\Oep;
 use App\Models\Trade;
 use App\Models\Batch;
 use App\Models\Candidate;
-use App\Models\CandidateTraining;
 use App\Models\CandidateScreening;
 use App\Models\RegistrationDocument;
 use App\Models\NextOfKin;
 use App\Models\Undertaking;
-use App\Models\VisaProcessing;
+use App\Models\VisaProcess;
 use App\Models\Departure;
 use App\Models\Complaint;
 use App\Models\Correspondence;
@@ -59,9 +58,9 @@ class TestDataSeeder extends Seeder
         $candidates = $this->seedCandidates($campuses, $trades, $oeps);
         $this->command->info('✓ Candidates created');
 
-        // 7. Create Training records
-        $this->seedTraining($candidates, $batches);
-        $this->command->info('✓ Training records created');
+        // 7. Create Training records - SKIPPED (CandidateTraining model doesn't exist)
+        // $this->seedTraining($candidates, $batches);
+        // $this->command->info('✓ Training records created');
 
         // 8. Create Screening records
         $this->seedScreening($candidates);
@@ -338,13 +337,15 @@ class TestDataSeeder extends Seeder
             $batches[] = Batch::firstOrCreate(
                 ['name' => $data['name']],
                 [
+                    'description' => 'Training batch for ' . $trades[$data['trade']]->name,
                     'trade_id' => $trades[$data['trade']]->id,
                     'campus_id' => $campuses[$data['campus']]->id,
+                    'oep_id' => null,
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'capacity' => 30,
                     'status' => $data['status'],
-                    'instructor_name' => 'Instructor ' . Str::random(5),
+                    'trainer_name' => 'Instructor ' . Str::random(5),
                 ]
             );
         }
@@ -519,18 +520,23 @@ class TestDataSeeder extends Seeder
                 foreach ($candidates[$status] as $candidate) {
                     $isApproved = in_array($status, ['visa_approved', 'departed']);
 
-                    VisaProcessing::create([
+                    VisaProcess::create([
                         'candidate_id' => $candidate->id,
-                        'oep_id' => $candidate->oep_id,
-                        'visa_type' => 'work',
-                        'application_date' => now()->subDays(rand(30, 90)),
+                        'interview_date' => $isApproved ? now()->subDays(rand(60, 90)) : null,
+                        'interview_status' => $isApproved ? 'passed' : 'pending',
+                        'trade_test_date' => $isApproved ? now()->subDays(rand(50, 70)) : null,
+                        'trade_test_status' => $isApproved ? 'passed' : null,
+                        'medical_date' => $isApproved ? now()->subDays(rand(40, 60)) : null,
+                        'medical_status' => $isApproved ? 'fit' : null,
+                        'biometric_date' => $isApproved ? now()->subDays(rand(30, 50)) : null,
+                        'biometric_status' => $isApproved ? 'completed' : null,
+                        'visa_date' => $isApproved ? now()->subDays(rand(10, 30)) : null,
                         'visa_number' => $isApproved ? 'VISA-' . strtoupper(Str::random(8)) : null,
-                        'issue_date' => $isApproved ? now()->subDays(rand(5, 20)) : null,
-                        'expiry_date' => $isApproved ? now()->addYears(2) : null,
-                        'destination_country' => 'Saudi Arabia',
-                        'destination_city' => ['Riyadh', 'Jeddah', 'Dammam', 'Mecca'][rand(0, 3)],
-                        'status' => $isApproved ? 'approved' : 'processing',
-                        'remarks' => $isApproved ? 'Visa approved successfully' : 'Application under review',
+                        'visa_status' => $isApproved ? 'approved' : 'pending',
+                        'ticket_uploaded' => $status === 'departed',
+                        'ticket_date' => $status === 'departed' ? now()->subDays(rand(1, 10)) : null,
+                        'overall_status' => $isApproved ? ($status === 'departed' ? 'completed' : 'approved') : 'in_progress',
+                        'remarks' => $isApproved ? 'All processes completed successfully' : 'Visa processing in progress',
                     ]);
                 }
             }
@@ -542,23 +548,25 @@ class TestDataSeeder extends Seeder
         if (isset($candidates['departed'])) {
             foreach ($candidates['departed'] as $candidate) {
                 $departureDate = now()->subDays(rand(10, 80));
+                $is90DaysPlus = $departureDate->diffInDays(now()) > 90;
 
                 Departure::create([
                     'candidate_id' => $candidate->id,
                     'departure_date' => $departureDate,
                     'flight_number' => 'PK-' . rand(100, 999),
                     'destination' => ['Riyadh', 'Jeddah', 'Dammam'][rand(0, 2)],
+                    'pre_departure_briefing' => true,
                     'briefing_date' => $departureDate->copy()->subDays(3),
                     'iqama_number' => 'IQ-' . rand(10000000, 99999999),
                     'iqama_issue_date' => $departureDate->copy()->addDays(rand(7, 15)),
-                    'iqama_expiry_date' => $departureDate->copy()->addYears(2),
+                    'absher_registered' => true,
                     'absher_registration_date' => $departureDate->copy()->addDays(rand(10, 20)),
-                    'wps_registration_date' => $departureDate->copy()->addDays(rand(15, 25)),
-                    'first_salary_date' => $departureDate->copy()->addDays(rand(30, 45)),
+                    'qiwa_id' => 'QW-' . rand(100000, 999999),
+                    'qiwa_activated' => true,
                     'salary_amount' => rand(1500, 3000),
-                    'compliance_stage' => $departureDate->diffInDays(now()) > 90 ? 'completed' : 'in_progress',
-                    'is_90_day_compliant' => $departureDate->diffInDays(now()) > 90,
-                    'compliance_date' => $departureDate->diffInDays(now()) > 90 ? $departureDate->copy()->addDays(90) : null,
+                    'first_salary_date' => $departureDate->copy()->addDays(rand(30, 45)),
+                    'ninety_day_report_submitted' => $is90DaysPlus,
+                    'remarks' => $is90DaysPlus ? '90-day compliance report submitted' : 'Candidate settled successfully',
                 ]);
             }
         }
