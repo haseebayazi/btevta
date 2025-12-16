@@ -606,16 +606,28 @@ class TestDataSeeder extends Seeder
         if (isset($candidates['departed'])) {
             foreach ($candidates['departed'] as $candidate) {
                 for ($i = 0; $i < rand(1, 3); $i++) {
+                    $amountPKR = rand(50000, 200000);
+                    $exchangeRate = rand(4, 5) + (rand(0, 99) / 100);
+                    $amountSAR = round($amountPKR / $exchangeRate, 2);
+
                     Remittance::create([
                         'candidate_id' => $candidate->id,
-                        'remittance_date' => now()->subDays(rand(30, 180)),
-                        'amount' => rand(50000, 200000),
-                        'currency' => 'PKR',
-                        'exchange_rate' => rand(4, 5) + (rand(0, 99) / 100),
-                        'amount_in_sar' => rand(500, 2000),
-                        'payment_method' => ['bank_transfer', 'money_exchange', 'digital_wallet'][rand(0, 2)],
+                        'departure_id' => null,
+                        'recorded_by' => null,
                         'transaction_reference' => 'TXN-' . strtoupper(Str::random(10)),
-                        'status' => ['pending', 'completed', 'failed'][rand(0, 2)],
+                        'amount' => $amountPKR,
+                        'currency' => 'PKR',
+                        'amount_foreign' => $amountSAR,
+                        'foreign_currency' => 'SAR',
+                        'exchange_rate' => $exchangeRate,
+                        'transfer_date' => now()->subDays(rand(30, 180)),
+                        'transfer_method' => ['Bank Transfer', 'Money Exchange', 'Digital Wallet'][rand(0, 2)],
+                        'sender_name' => $candidate->name,
+                        'sender_location' => ['Riyadh', 'Jeddah', 'Dammam'][rand(0, 2)],
+                        'receiver_name' => $candidate->father_name,
+                        'receiver_account' => rand(1000000000, 9999999999),
+                        'bank_name' => ['HBL', 'MCB', 'UBL', 'Allied Bank'][rand(0, 3)],
+                        'primary_purpose' => ['education', 'health', 'food', 'rent'][rand(0, 3)],
                     ]);
                 }
             }
