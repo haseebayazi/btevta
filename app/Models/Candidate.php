@@ -20,6 +20,7 @@ class Candidate extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'btevta_id',
         'name',
         'cnic',
         'phone',
@@ -28,7 +29,9 @@ class Candidate extends Model
         'batch_id',
         'campus_id',
         'trade_id',
+        'oep_id',
         'district',
+        'tehsil',
         'province',
         'date_of_birth',
         'gender',
@@ -47,6 +50,7 @@ class Candidate extends Model
         'training_end_date',
         'training_status',
         'status',
+        'photo_path',
         'remarks',
         'created_by',
         'updated_by'
@@ -83,7 +87,7 @@ class Candidate extends Model
      */
     protected $attributes = [
         'status' => 'new',
-        'training_status' => 'not_started',
+        'training_status' => 'pending',
     ];
 
     /**
