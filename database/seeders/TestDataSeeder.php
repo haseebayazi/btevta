@@ -386,15 +386,12 @@ class TestDataSeeder extends Seeder
                     'phone' => '+92-3' . rand(10, 99) . '-' . rand(1000000, 9999999),
                     'email' => 'candidate' . $counter . '@example.com',
                     'address' => $this->generateAddress(),
-                    'city' => $campuses[$campusIndex]->city,
-                    'province' => $this->getProvinceForCity($campuses[$campusIndex]->city),
+                    'district' => $campuses[$campusIndex]->city,
                     'campus_id' => $campuses[$campusIndex]->id,
                     'trade_id' => $trades[$tradeIndex]->id,
                     'oep_id' => $oeps[$oepIndex]->id,
                     'status' => $status,
                     'application_id' => 'APP-' . date('Y') . '-' . str_pad($counter, 6, '0', STR_PAD_LEFT),
-                    'education_level' => $this->getRandomEducation(),
-                    'marital_status' => rand(0, 1) ? 'single' : 'married',
                 ]);
             }
         }
