@@ -35,13 +35,13 @@ class TestDataSeeder extends Seeder
 
         $this->command->info('Starting to seed test data...');
 
-        // 1. Create Users
-        $users = $this->seedUsers();
-        $this->command->info('✓ Users created');
-
-        // 2. Create Campuses
+        // 1. Create Campuses FIRST (needed for user campus_id references)
         $campuses = $this->seedCampuses();
         $this->command->info('✓ Campuses created');
+
+        // 2. Create Users (after campuses exist)
+        $users = $this->seedUsers($campuses);
+        $this->command->info('✓ Users created');
 
         // 3. Create OEPs
         $oeps = $this->seedOeps();
@@ -98,7 +98,7 @@ class TestDataSeeder extends Seeder
         $this->command->info('🎉 All test data seeded successfully!');
     }
 
-    private function seedUsers()
+    private function seedUsers($campuses)
     {
         $users = [];
 
@@ -114,11 +114,11 @@ class TestDataSeeder extends Seeder
             ]
         );
 
-        // Campus admins (one for each campus we'll create)
+        // Campus admins (one for each major campus)
         $campusAdmins = [
-            ['name' => 'Lahore Campus Admin', 'email' => 'lahore@btevta.gov.pk', 'campus_id' => 1],
-            ['name' => 'Karachi Campus Admin', 'email' => 'karachi@btevta.gov.pk', 'campus_id' => 2],
-            ['name' => 'Islamabad Campus Admin', 'email' => 'islamabad@btevta.gov.pk', 'campus_id' => 3],
+            ['name' => 'Lahore Campus Admin', 'email' => 'lahore@btevta.gov.pk', 'campus_index' => 0],
+            ['name' => 'Karachi Campus Admin', 'email' => 'karachi@btevta.gov.pk', 'campus_index' => 1],
+            ['name' => 'Islamabad Campus Admin', 'email' => 'islamabad@btevta.gov.pk', 'campus_index' => 2],
         ];
 
         foreach ($campusAdmins as $index => $admin) {
@@ -128,7 +128,7 @@ class TestDataSeeder extends Seeder
                     'name' => $admin['name'],
                     'password' => Hash::make('password'),
                     'role' => 'campus_admin',
-                    'campus_id' => $admin['campus_id'],
+                    'campus_id' => $campuses[$admin['campus_index']]->id,
                     'is_active' => true,
                     'email_verified_at' => now(),
                 ]
@@ -142,7 +142,7 @@ class TestDataSeeder extends Seeder
                 'name' => 'Muhammad Ahmed',
                 'password' => Hash::make('password'),
                 'role' => 'user',
-                'campus_id' => 1,
+                'campus_id' => $campuses[0]->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
@@ -154,7 +154,19 @@ class TestDataSeeder extends Seeder
                 'name' => 'Fatima Khan',
                 'password' => Hash::make('password'),
                 'role' => 'user',
-                'campus_id' => 2,
+                'campus_id' => $campuses[1]->id,
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $users['user3'] = User::firstOrCreate(
+            ['email' => 'ali@btevta.gov.pk'],
+            [
+                'name' => 'Ali Raza',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'campus_id' => $campuses[2]->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
