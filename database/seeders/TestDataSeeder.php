@@ -239,54 +239,46 @@ class TestDataSeeder extends Seeder
     {
         $oeps = [];
 
+        // Use name as unique identifier (name is unique in DB schema)
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2023-001'],
+            ['name' => 'Al-Khawarizmi Recruitment Services'],
             [
-                'name' => 'Al-Khawarizmi Recruitment Services',
-                'company_type' => 'private',
+                'company_name' => 'Al-Khawarizmi Pvt. Ltd.',
                 'registration_number' => 'REG-AK-2023-001',
                 'contact_person' => 'Abdullah Mahmood',
                 'phone' => '+92-300-1234567',
                 'email' => 'info@alkhawarizmi.com.pk',
                 'address' => 'Blue Area, Islamabad',
-                'city' => 'Islamabad',
+                'website' => 'https://alkhawarizmi.com.pk',
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(2),
-                'license_expiry_date' => now()->addYear(),
             ]
         );
 
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2023-002'],
+            ['name' => 'Gulf Manpower Solutions'],
             [
-                'name' => 'Gulf Manpower Solutions',
-                'company_type' => 'private',
+                'company_name' => 'Gulf Manpower Solutions Ltd.',
                 'registration_number' => 'REG-GMS-2023-002',
                 'contact_person' => 'Hamza Qureshi',
                 'phone' => '+92-42-37000000',
                 'email' => 'contact@gulfmanpower.pk',
                 'address' => 'Main Boulevard, Lahore',
-                'city' => 'Lahore',
+                'website' => 'https://gulfmanpower.pk',
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(3),
-                'license_expiry_date' => now()->addMonths(6),
             ]
         );
 
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2022-015'],
+            ['name' => 'Saudi Arabia Employment Agency'],
             [
-                'name' => 'Saudi Arabia Employment Agency',
-                'company_type' => 'government',
+                'company_name' => 'SAEA (Pvt) Ltd.',
                 'registration_number' => 'REG-SAEA-2022-015',
                 'contact_person' => 'Bilal Ahmed',
                 'phone' => '+92-21-34500000',
                 'email' => 'info@saeapk.gov.pk',
                 'address' => 'I.I. Chundrigar Road, Karachi',
-                'city' => 'Karachi',
+                'website' => null,
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(4),
-                'license_expiry_date' => now()->addYears(2),
             ]
         );
 
