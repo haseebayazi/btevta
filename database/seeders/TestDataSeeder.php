@@ -673,7 +673,8 @@ class TestDataSeeder extends Seeder
 
     private function generateCNIC()
     {
-        return rand(10000, 99999) . '-' . rand(1000000, 9999999) . '-' . rand(1, 9);
+        // Generate 13-digit CNIC without dashes (database stores as varchar(13))
+        return rand(10000, 99999) . str_pad(rand(0, 9999999), 7, '0', STR_PAD_LEFT) . rand(1, 9);
     }
 
     private function generateAddress()
