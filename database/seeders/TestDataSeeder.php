@@ -102,15 +102,17 @@ class TestDataSeeder extends Seeder
     {
         $users = [];
 
-        // Admin user
-        $users['admin'] = User::create([
-            'name' => 'System Administrator',
-            'email' => 'admin@btevta.gov.pk',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        // Admin user - use firstOrCreate to avoid duplicate errors
+        $users['admin'] = User::firstOrCreate(
+            ['email' => 'admin@btevta.gov.pk'],
+            [
+                'name' => 'System Administrator',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         // Campus admins (one for each campus we'll create)
         $campusAdmins = [
@@ -120,37 +122,43 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($campusAdmins as $index => $admin) {
-            $users["campus_admin_$index"] = User::create([
-                'name' => $admin['name'],
-                'email' => $admin['email'],
-                'password' => Hash::make('password'),
-                'role' => 'campus_admin',
-                'campus_id' => $admin['campus_id'],
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]);
+            $users["campus_admin_$index"] = User::firstOrCreate(
+                ['email' => $admin['email']],
+                [
+                    'name' => $admin['name'],
+                    'password' => Hash::make('password'),
+                    'role' => 'campus_admin',
+                    'campus_id' => $admin['campus_id'],
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
+            );
         }
 
         // Regular users
-        $users['user1'] = User::create([
-            'name' => 'Muhammad Ahmed',
-            'email' => 'ahmed@btevta.gov.pk',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'campus_id' => 1,
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        $users['user1'] = User::firstOrCreate(
+            ['email' => 'ahmed@btevta.gov.pk'],
+            [
+                'name' => 'Muhammad Ahmed',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'campus_id' => 1,
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $users['user2'] = User::create([
-            'name' => 'Fatima Khan',
-            'email' => 'fatima@btevta.gov.pk',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'campus_id' => 2,
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        $users['user2'] = User::firstOrCreate(
+            ['email' => 'fatima@btevta.gov.pk'],
+            [
+                'name' => 'Fatima Khan',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'campus_id' => 2,
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
         return $users;
     }
@@ -159,53 +167,61 @@ class TestDataSeeder extends Seeder
     {
         $campuses = [];
 
-        $campuses[] = Campus::create([
-            'name' => 'BTEVTA Lahore Campus',
-            'location' => 'Gulberg, Lahore',
-            'province' => 'Punjab',
-            'district' => 'Lahore',
-            'contact_person' => 'Muhammad Rizwan',
-            'phone' => '+92-42-35714567',
-            'email' => 'lahore.campus@btevta.gov.pk',
-            'address' => 'Main Boulevard, Gulberg III, Lahore, Punjab',
-            'is_active' => true,
-        ]);
+        $campuses[] = Campus::firstOrCreate(
+            ['email' => 'lahore.campus@btevta.gov.pk'],
+            [
+                'name' => 'BTEVTA Lahore Campus',
+                'location' => 'Gulberg, Lahore',
+                'province' => 'Punjab',
+                'district' => 'Lahore',
+                'contact_person' => 'Muhammad Rizwan',
+                'phone' => '+92-42-35714567',
+                'address' => 'Main Boulevard, Gulberg III, Lahore, Punjab',
+                'is_active' => true,
+            ]
+        );
 
-        $campuses[] = Campus::create([
-            'name' => 'BTEVTA Karachi Campus',
-            'location' => 'Clifton, Karachi',
-            'province' => 'Sindh',
-            'district' => 'Karachi',
-            'contact_person' => 'Ali Hassan',
-            'phone' => '+92-21-35301234',
-            'email' => 'karachi.campus@btevta.gov.pk',
-            'address' => 'Block 5, Clifton, Karachi, Sindh',
-            'is_active' => true,
-        ]);
+        $campuses[] = Campus::firstOrCreate(
+            ['email' => 'karachi.campus@btevta.gov.pk'],
+            [
+                'name' => 'BTEVTA Karachi Campus',
+                'location' => 'Clifton, Karachi',
+                'province' => 'Sindh',
+                'district' => 'Karachi',
+                'contact_person' => 'Ali Hassan',
+                'phone' => '+92-21-35301234',
+                'address' => 'Block 5, Clifton, Karachi, Sindh',
+                'is_active' => true,
+            ]
+        );
 
-        $campuses[] = Campus::create([
-            'name' => 'BTEVTA Islamabad Campus',
-            'location' => 'G-11, Islamabad',
-            'province' => 'Islamabad Capital Territory',
-            'district' => 'Islamabad',
-            'contact_person' => 'Sana Malik',
-            'phone' => '+92-51-2261234',
-            'email' => 'islamabad.campus@btevta.gov.pk',
-            'address' => 'G-11 Markaz, Islamabad',
-            'is_active' => true,
-        ]);
+        $campuses[] = Campus::firstOrCreate(
+            ['email' => 'islamabad.campus@btevta.gov.pk'],
+            [
+                'name' => 'BTEVTA Islamabad Campus',
+                'location' => 'G-11, Islamabad',
+                'province' => 'Islamabad Capital Territory',
+                'district' => 'Islamabad',
+                'contact_person' => 'Sana Malik',
+                'phone' => '+92-51-2261234',
+                'address' => 'G-11 Markaz, Islamabad',
+                'is_active' => true,
+            ]
+        );
 
-        $campuses[] = Campus::create([
-            'name' => 'BTEVTA Peshawar Campus',
-            'location' => 'University Town, Peshawar',
-            'province' => 'Khyber Pakhtunkhwa',
-            'district' => 'Peshawar',
-            'contact_person' => 'Asad Khan',
-            'phone' => '+92-91-5701234',
-            'email' => 'peshawar.campus@btevta.gov.pk',
-            'address' => 'University Town, Peshawar, KP',
-            'is_active' => true,
-        ]);
+        $campuses[] = Campus::firstOrCreate(
+            ['email' => 'peshawar.campus@btevta.gov.pk'],
+            [
+                'name' => 'BTEVTA Peshawar Campus',
+                'location' => 'University Town, Peshawar',
+                'province' => 'Khyber Pakhtunkhwa',
+                'district' => 'Peshawar',
+                'contact_person' => 'Asad Khan',
+                'phone' => '+92-91-5701234',
+                'address' => 'University Town, Peshawar, KP',
+                'is_active' => true,
+            ]
+        );
 
         return $campuses;
     }
@@ -214,50 +230,56 @@ class TestDataSeeder extends Seeder
     {
         $oeps = [];
 
-        $oeps[] = Oep::create([
-            'name' => 'Al-Khawarizmi Recruitment Services',
-            'license_number' => 'OEP-2023-001',
-            'company_type' => 'private',
-            'registration_number' => 'REG-AK-2023-001',
-            'contact_person' => 'Abdullah Mahmood',
-            'phone' => '+92-300-1234567',
-            'email' => 'info@alkhawarizmi.com.pk',
-            'address' => 'Blue Area, Islamabad',
-            'city' => 'Islamabad',
-            'is_active' => true,
-            'license_issue_date' => now()->subYears(2),
-            'license_expiry_date' => now()->addYear(),
-        ]);
+        $oeps[] = Oep::firstOrCreate(
+            ['license_number' => 'OEP-2023-001'],
+            [
+                'name' => 'Al-Khawarizmi Recruitment Services',
+                'company_type' => 'private',
+                'registration_number' => 'REG-AK-2023-001',
+                'contact_person' => 'Abdullah Mahmood',
+                'phone' => '+92-300-1234567',
+                'email' => 'info@alkhawarizmi.com.pk',
+                'address' => 'Blue Area, Islamabad',
+                'city' => 'Islamabad',
+                'is_active' => true,
+                'license_issue_date' => now()->subYears(2),
+                'license_expiry_date' => now()->addYear(),
+            ]
+        );
 
-        $oeps[] = Oep::create([
-            'name' => 'Gulf Manpower Solutions',
-            'license_number' => 'OEP-2023-002',
-            'company_type' => 'private',
-            'registration_number' => 'REG-GMS-2023-002',
-            'contact_person' => 'Hamza Qureshi',
-            'phone' => '+92-42-37000000',
-            'email' => 'contact@gulfmanpower.pk',
-            'address' => 'Main Boulevard, Lahore',
-            'city' => 'Lahore',
-            'is_active' => true,
-            'license_issue_date' => now()->subYears(3),
-            'license_expiry_date' => now()->addMonths(6),
-        ]);
+        $oeps[] = Oep::firstOrCreate(
+            ['license_number' => 'OEP-2023-002'],
+            [
+                'name' => 'Gulf Manpower Solutions',
+                'company_type' => 'private',
+                'registration_number' => 'REG-GMS-2023-002',
+                'contact_person' => 'Hamza Qureshi',
+                'phone' => '+92-42-37000000',
+                'email' => 'contact@gulfmanpower.pk',
+                'address' => 'Main Boulevard, Lahore',
+                'city' => 'Lahore',
+                'is_active' => true,
+                'license_issue_date' => now()->subYears(3),
+                'license_expiry_date' => now()->addMonths(6),
+            ]
+        );
 
-        $oeps[] = Oep::create([
-            'name' => 'Saudi Arabia Employment Agency',
-            'license_number' => 'OEP-2022-015',
-            'company_type' => 'government',
-            'registration_number' => 'REG-SAEA-2022-015',
-            'contact_person' => 'Bilal Ahmed',
-            'phone' => '+92-21-34500000',
-            'email' => 'info@saeapk.gov.pk',
-            'address' => 'I.I. Chundrigar Road, Karachi',
-            'city' => 'Karachi',
-            'is_active' => true,
-            'license_issue_date' => now()->subYears(4),
-            'license_expiry_date' => now()->addYears(2),
-        ]);
+        $oeps[] = Oep::firstOrCreate(
+            ['license_number' => 'OEP-2022-015'],
+            [
+                'name' => 'Saudi Arabia Employment Agency',
+                'company_type' => 'government',
+                'registration_number' => 'REG-SAEA-2022-015',
+                'contact_person' => 'Bilal Ahmed',
+                'phone' => '+92-21-34500000',
+                'email' => 'info@saeapk.gov.pk',
+                'address' => 'I.I. Chundrigar Road, Karachi',
+                'city' => 'Karachi',
+                'is_active' => true,
+                'license_issue_date' => now()->subYears(4),
+                'license_expiry_date' => now()->addYears(2),
+            ]
+        );
 
         return $oeps;
     }
@@ -280,13 +302,15 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($tradesList as $trade) {
-            $trades[] = Trade::create([
-                'code' => $trade['code'],
-                'name' => $trade['name'],
-                'duration_months' => $trade['duration_months'],
-                'description' => "Professional training in {$trade['name']} for overseas employment",
-                'is_active' => true,
-            ]);
+            $trades[] = Trade::firstOrCreate(
+                ['code' => $trade['code']],
+                [
+                    'name' => $trade['name'],
+                    'duration_months' => $trade['duration_months'],
+                    'description' => "Professional training in {$trade['name']} for overseas employment",
+                    'is_active' => true,
+                ]
+            );
         }
 
         return $trades;
@@ -310,16 +334,18 @@ class TestDataSeeder extends Seeder
             $startDate = now()->modify($data['start']);
             $endDate = (clone $startDate)->addMonths($trades[$data['trade']]->duration_months);
 
-            $batches[] = Batch::create([
-                'name' => $data['name'],
-                'trade_id' => $trades[$data['trade']]->id,
-                'campus_id' => $campuses[$data['campus']]->id,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'capacity' => 30,
-                'status' => $data['status'],
-                'instructor_name' => 'Instructor ' . Str::random(5),
-            ]);
+            $batches[] = Batch::firstOrCreate(
+                ['name' => $data['name']],
+                [
+                    'trade_id' => $trades[$data['trade']]->id,
+                    'campus_id' => $campuses[$data['campus']]->id,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'capacity' => 30,
+                    'status' => $data['status'],
+                    'instructor_name' => 'Instructor ' . Str::random(5),
+                ]
+            );
         }
 
         return $batches;
