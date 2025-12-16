@@ -179,58 +179,55 @@ class TestDataSeeder extends Seeder
     {
         $campuses = [];
 
+        // Use code as unique identifier (code is unique in DB schema)
         $campuses[] = Campus::firstOrCreate(
-            ['email' => 'lahore.campus@btevta.gov.pk'],
+            ['code' => 'LHR-01'],
             [
                 'name' => 'BTEVTA Lahore Campus',
-                'location' => 'Gulberg, Lahore',
-                'province' => 'Punjab',
-                'district' => 'Lahore',
+                'address' => 'Main Boulevard, Gulberg III, Lahore, Punjab',
+                'city' => 'Lahore',
                 'contact_person' => 'Muhammad Rizwan',
                 'phone' => '+92-42-35714567',
-                'address' => 'Main Boulevard, Gulberg III, Lahore, Punjab',
+                'email' => 'lahore.campus@btevta.gov.pk',
                 'is_active' => true,
             ]
         );
 
         $campuses[] = Campus::firstOrCreate(
-            ['email' => 'karachi.campus@btevta.gov.pk'],
+            ['code' => 'KHI-01'],
             [
                 'name' => 'BTEVTA Karachi Campus',
-                'location' => 'Clifton, Karachi',
-                'province' => 'Sindh',
-                'district' => 'Karachi',
+                'address' => 'Block 5, Clifton, Karachi, Sindh',
+                'city' => 'Karachi',
                 'contact_person' => 'Ali Hassan',
                 'phone' => '+92-21-35301234',
-                'address' => 'Block 5, Clifton, Karachi, Sindh',
+                'email' => 'karachi.campus@btevta.gov.pk',
                 'is_active' => true,
             ]
         );
 
         $campuses[] = Campus::firstOrCreate(
-            ['email' => 'islamabad.campus@btevta.gov.pk'],
+            ['code' => 'ISB-01'],
             [
                 'name' => 'BTEVTA Islamabad Campus',
-                'location' => 'G-11, Islamabad',
-                'province' => 'Islamabad Capital Territory',
-                'district' => 'Islamabad',
+                'address' => 'G-11 Markaz, Islamabad',
+                'city' => 'Islamabad',
                 'contact_person' => 'Sana Malik',
                 'phone' => '+92-51-2261234',
-                'address' => 'G-11 Markaz, Islamabad',
+                'email' => 'islamabad.campus@btevta.gov.pk',
                 'is_active' => true,
             ]
         );
 
         $campuses[] = Campus::firstOrCreate(
-            ['email' => 'peshawar.campus@btevta.gov.pk'],
+            ['code' => 'PSH-01'],
             [
                 'name' => 'BTEVTA Peshawar Campus',
-                'location' => 'University Town, Peshawar',
-                'province' => 'Khyber Pakhtunkhwa',
-                'district' => 'Peshawar',
+                'address' => 'University Town, Peshawar, KP',
+                'city' => 'Peshawar',
                 'contact_person' => 'Asad Khan',
                 'phone' => '+92-91-5701234',
-                'address' => 'University Town, Peshawar, KP',
+                'email' => 'peshawar.campus@btevta.gov.pk',
                 'is_active' => true,
             ]
         );
@@ -397,8 +394,8 @@ class TestDataSeeder extends Seeder
                     'phone' => '+92-3' . rand(10, 99) . '-' . rand(1000000, 9999999),
                     'email' => 'candidate' . $counter . '@example.com',
                     'address' => $this->generateAddress(),
-                    'city' => $campuses[$campusIndex]->district,
-                    'province' => $campuses[$campusIndex]->province,
+                    'city' => $campuses[$campusIndex]->city,
+                    'province' => $this->getProvinceForCity($campuses[$campusIndex]->city),
                     'campus_id' => $campuses[$campusIndex]->id,
                     'trade_id' => $trades[$tradeIndex]->id,
                     'oep_id' => $oeps[$oepIndex]->id,
@@ -687,6 +684,22 @@ class TestDataSeeder extends Seeder
     private function getRandomEducation()
     {
         return ['primary', 'middle', 'matric', 'intermediate', 'bachelor', 'master'][rand(0, 5)];
+    }
+
+    private function getProvinceForCity($city)
+    {
+        $cityToProvince = [
+            'Lahore' => 'Punjab',
+            'Karachi' => 'Sindh',
+            'Islamabad' => 'Islamabad Capital Territory',
+            'Peshawar' => 'Khyber Pakhtunkhwa',
+            'Rawalpindi' => 'Punjab',
+            'Faisalabad' => 'Punjab',
+            'Multan' => 'Punjab',
+            'Quetta' => 'Balochistan',
+        ];
+
+        return $cityToProvince[$city] ?? 'Punjab';
     }
 
     private function clearExistingData()
