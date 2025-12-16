@@ -447,12 +447,15 @@ class TestDataSeeder extends Seeder
                 foreach ($candidates[$status] as $candidate) {
                     CandidateScreening::create([
                         'candidate_id' => $candidate->id,
-                        'screening_date' => now()->subDays(rand(10, 60)),
-                        'screening_type' => 'phone',
-                        'screening_stage' => 'final',
-                        'outcome' => 'pass',
+                        'screening_type' => ['call', 'physical', 'document'][rand(0, 2)],
+                        'screening_stage' => 3, // Stage 3 = Confirmation (tinyInteger: 1, 2, or 3)
+                        'status' => 'passed',
                         'remarks' => 'Candidate qualified for training program',
-                        'conducted_by' => 1,
+                        'screened_by' => 1,
+                        'screened_at' => now()->subDays(rand(10, 60)),
+                        'call_count' => rand(1, 3),
+                        'call_duration' => rand(300, 900),
+                        'verification_status' => 'verified',
                     ]);
                 }
             }
@@ -477,8 +480,8 @@ class TestDataSeeder extends Seeder
                             'file_path' => 'candidates/documents/sample_' . $type . '.pdf',
                             'issue_date' => now()->subMonths(rand(6, 24)),
                             'expiry_date' => $type === 'passport' ? now()->addYears(5) : null,
-                            'status' => 'verified',
-                            'uploaded_by' => 1,
+                            'status' => 'valid',
+                            'remarks' => 'Document verified and approved',
                         ]);
                     }
 
@@ -496,16 +499,11 @@ class TestDataSeeder extends Seeder
                     // Undertaking
                     Undertaking::create([
                         'candidate_id' => $candidate->id,
-                        'undertaking_type' => 'employment',
-                        'content' => 'I, ' . $candidate->name . ', hereby undertake to complete the training program and work in Saudi Arabia for the contracted period.',
-                        'signed_at' => now()->subDays(rand(5, 30)),
-                        'is_completed' => true,
-                        'witness_name' => $this->generateName(),
-                        'witness_cnic' => $this->generateCNIC(),
+                        'undertaking_date' => now()->subDays(rand(5, 30)),
+                        'signed_by' => $candidate->name,
+                        'terms' => 'I, ' . $candidate->name . ', hereby undertake to complete the training program and work in Saudi Arabia for the contracted period.',
+                        'remarks' => 'Undertaking signed and verified',
                     ]);
-
-                    // Update registered_at timestamp
-                    $candidate->update(['registered_at' => now()->subDays(rand(5, 30))]);
                 }
             }
         }
@@ -652,11 +650,11 @@ class TestDataSeeder extends Seeder
                     DocumentArchive::create([
                         'candidate_id' => $candidate->id,
                         'document_type' => ['contract', 'certificate', 'letter', 'report', 'other'][rand(0, 4)],
-                        'document_name' => 'Document ' . Str::random(5),
+                        'document_name' => 'Document_' . Str::random(5) . '.pdf',
                         'file_path' => 'archive/documents/sample_' . Str::random(8) . '.pdf',
                         'upload_date' => now()->subDays(rand(1, 180)),
-                        'uploaded_by' => 1,
                         'expiry_date' => rand(0, 1) ? now()->addMonths(rand(6, 24)) : null,
+                        'version' => '1',
                     ]);
                 }
             }
