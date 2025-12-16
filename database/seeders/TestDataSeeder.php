@@ -239,54 +239,46 @@ class TestDataSeeder extends Seeder
     {
         $oeps = [];
 
+        // Use name as unique identifier (name is unique in DB schema)
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2023-001'],
+            ['name' => 'Al-Khawarizmi Recruitment Services'],
             [
-                'name' => 'Al-Khawarizmi Recruitment Services',
-                'company_type' => 'private',
+                'company_name' => 'Al-Khawarizmi Pvt. Ltd.',
                 'registration_number' => 'REG-AK-2023-001',
                 'contact_person' => 'Abdullah Mahmood',
                 'phone' => '+92-300-1234567',
                 'email' => 'info@alkhawarizmi.com.pk',
                 'address' => 'Blue Area, Islamabad',
-                'city' => 'Islamabad',
+                'website' => 'https://alkhawarizmi.com.pk',
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(2),
-                'license_expiry_date' => now()->addYear(),
             ]
         );
 
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2023-002'],
+            ['name' => 'Gulf Manpower Solutions'],
             [
-                'name' => 'Gulf Manpower Solutions',
-                'company_type' => 'private',
+                'company_name' => 'Gulf Manpower Solutions Ltd.',
                 'registration_number' => 'REG-GMS-2023-002',
                 'contact_person' => 'Hamza Qureshi',
                 'phone' => '+92-42-37000000',
                 'email' => 'contact@gulfmanpower.pk',
                 'address' => 'Main Boulevard, Lahore',
-                'city' => 'Lahore',
+                'website' => 'https://gulfmanpower.pk',
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(3),
-                'license_expiry_date' => now()->addMonths(6),
             ]
         );
 
         $oeps[] = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2022-015'],
+            ['name' => 'Saudi Arabia Employment Agency'],
             [
-                'name' => 'Saudi Arabia Employment Agency',
-                'company_type' => 'government',
+                'company_name' => 'SAEA (Pvt) Ltd.',
                 'registration_number' => 'REG-SAEA-2022-015',
                 'contact_person' => 'Bilal Ahmed',
                 'phone' => '+92-21-34500000',
                 'email' => 'info@saeapk.gov.pk',
                 'address' => 'I.I. Chundrigar Road, Karachi',
-                'city' => 'Karachi',
+                'website' => null,
                 'is_active' => true,
-                'license_issue_date' => now()->subYears(4),
-                'license_expiry_date' => now()->addYears(2),
             ]
         );
 
@@ -394,15 +386,12 @@ class TestDataSeeder extends Seeder
                     'phone' => '+92-3' . rand(10, 99) . '-' . rand(1000000, 9999999),
                     'email' => 'candidate' . $counter . '@example.com',
                     'address' => $this->generateAddress(),
-                    'city' => $campuses[$campusIndex]->city,
-                    'province' => $this->getProvinceForCity($campuses[$campusIndex]->city),
+                    'district' => $campuses[$campusIndex]->city,
                     'campus_id' => $campuses[$campusIndex]->id,
                     'trade_id' => $trades[$tradeIndex]->id,
                     'oep_id' => $oeps[$oepIndex]->id,
                     'status' => $status,
                     'application_id' => 'APP-' . date('Y') . '-' . str_pad($counter, 6, '0', STR_PAD_LEFT),
-                    'education_level' => $this->getRandomEducation(),
-                    'marital_status' => rand(0, 1) ? 'single' : 'married',
                 ]);
             }
         }
@@ -581,21 +570,17 @@ class TestDataSeeder extends Seeder
 
         foreach ($allCandidates as $index => $candidate) {
             if ($candidate && $index < 8) { // Create 8 sample complaints
+                $isResolved = rand(0, 1);
                 Complaint::create([
-                    'complaint_number' => 'COMP-' . date('Y') . '-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT),
                     'candidate_id' => $candidate->id,
                     'campus_id' => $candidate->campus_id,
                     'oep_id' => $candidate->oep_id,
-                    'complainant_name' => $candidate->name,
-                    'complainant_phone' => $candidate->phone,
-                    'complainant_email' => $candidate->email,
-                    'category' => ['contract_violation', 'salary_delay', 'accommodation', 'working_conditions'][rand(0, 3)],
                     'subject' => 'Complaint regarding ' . ['salary payment', 'contract terms', 'accommodation', 'working hours'][rand(0, 3)],
-                    'description' => 'Detailed complaint description regarding the issue faced by the candidate.',
-                    'priority' => ['low', 'medium', 'high', 'urgent'][rand(0, 3)],
-                    'status' => ['open', 'investigating', 'resolved', 'closed'][rand(0, 3)],
-                    'filed_date' => now()->subDays(rand(1, 60)),
-                    'assigned_to' => $index % 2 == 0 ? $users['admin']->id : null,
+                    'description' => 'Detailed complaint description regarding the issue faced by the candidate. Contact: ' . $candidate->name . ', Phone: ' . $candidate->phone,
+                    'status' => $isResolved ? 'resolved' : ['open', 'investigating'][rand(0, 1)],
+                    'complaint_date' => now()->subDays(rand(1, 60)),
+                    'resolution_date' => $isResolved ? now()->subDays(rand(1, 30)) : null,
+                    'resolution_notes' => $isResolved ? 'Complaint has been resolved successfully. All necessary actions have been taken.' : null,
                 ]);
             }
         }
@@ -605,16 +590,13 @@ class TestDataSeeder extends Seeder
     {
         for ($i = 0; $i < 10; $i++) {
             Correspondence::create([
-                'reference_number' => 'CORR-' . date('Y') . '-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
-                'correspondence_date' => now()->subDays(rand(1, 90)),
-                'correspondence_type' => ['incoming', 'outgoing'][rand(0, 1)],
-                'from_entity' => $i % 2 == 0 ? 'BTEVTA Headquarters' : ($oeps[array_rand($oeps)]->name ?? 'External Agency'),
-                'to_entity' => $i % 2 == 0 ? ($oeps[array_rand($oeps)]->name ?? 'External Agency') : 'BTEVTA Headquarters',
+                'campus_id' => $i % 2 == 0 ? $campuses[array_rand($campuses)]->id : null,
+                'oep_id' => $i % 2 != 0 ? $oeps[array_rand($oeps)]->id : null,
                 'subject' => 'Subject of correspondence ' . ($i + 1),
-                'summary' => 'Brief summary of the correspondence content and main points discussed.',
-                'category' => ['administrative', 'operational', 'financial', 'legal'][rand(0, 3)],
-                'priority' => ['normal', 'high', 'urgent'][rand(0, 2)],
-                'status' => ['pending', 'in_progress', 'completed', 'archived'][rand(0, 3)],
+                'content' => 'Brief summary of the correspondence content and main points discussed for correspondence number ' . ($i + 1) . '.',
+                'correspondence_date' => now()->subDays(rand(1, 90)),
+                'reply_date' => rand(0, 1) ? now()->subDays(rand(1, 30)) : null,
+                'reply_content' => rand(0, 1) ? 'Reply to the correspondence with relevant information and updates.' : null,
             ]);
         }
     }
@@ -624,16 +606,28 @@ class TestDataSeeder extends Seeder
         if (isset($candidates['departed'])) {
             foreach ($candidates['departed'] as $candidate) {
                 for ($i = 0; $i < rand(1, 3); $i++) {
+                    $amountPKR = rand(50000, 200000);
+                    $exchangeRate = rand(4, 5) + (rand(0, 99) / 100);
+                    $amountSAR = round($amountPKR / $exchangeRate, 2);
+
                     Remittance::create([
                         'candidate_id' => $candidate->id,
-                        'remittance_date' => now()->subDays(rand(30, 180)),
-                        'amount' => rand(50000, 200000),
-                        'currency' => 'PKR',
-                        'exchange_rate' => rand(4, 5) + (rand(0, 99) / 100),
-                        'amount_in_sar' => rand(500, 2000),
-                        'payment_method' => ['bank_transfer', 'money_exchange', 'digital_wallet'][rand(0, 2)],
+                        'departure_id' => null,
+                        'recorded_by' => null,
                         'transaction_reference' => 'TXN-' . strtoupper(Str::random(10)),
-                        'status' => ['pending', 'completed', 'failed'][rand(0, 2)],
+                        'amount' => $amountPKR,
+                        'currency' => 'PKR',
+                        'amount_foreign' => $amountSAR,
+                        'foreign_currency' => 'SAR',
+                        'exchange_rate' => $exchangeRate,
+                        'transfer_date' => now()->subDays(rand(30, 180)),
+                        'transfer_method' => ['Bank Transfer', 'Money Exchange', 'Digital Wallet'][rand(0, 2)],
+                        'sender_name' => $candidate->name,
+                        'sender_location' => ['Riyadh', 'Jeddah', 'Dammam'][rand(0, 2)],
+                        'receiver_name' => $candidate->father_name,
+                        'receiver_account' => rand(1000000000, 9999999999),
+                        'bank_name' => ['HBL', 'MCB', 'UBL', 'Allied Bank'][rand(0, 3)],
+                        'primary_purpose' => ['education', 'health', 'food', 'rent'][rand(0, 3)],
                     ]);
                 }
             }
