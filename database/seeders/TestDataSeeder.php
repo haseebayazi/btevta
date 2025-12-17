@@ -499,10 +499,12 @@ class TestDataSeeder extends Seeder
                     // Undertaking
                     Undertaking::create([
                         'candidate_id' => $candidate->id,
-                        'undertaking_date' => now()->subDays(rand(5, 30)),
-                        'signed_by' => $candidate->name,
-                        'terms' => 'I, ' . $candidate->name . ', hereby undertake to complete the training program and work in Saudi Arabia for the contracted period.',
-                        'remarks' => 'Undertaking signed and verified',
+                        'undertaking_type' => 'employment',
+                        'content' => 'I, ' . $candidate->name . ', hereby undertake to complete the training program and work in Saudi Arabia for the contracted period as per the terms and conditions.',
+                        'signed_at' => now()->subDays(rand(5, 30)),
+                        'is_completed' => 1,
+                        'witness_name' => $this->generateName(),
+                        'witness_cnic' => $this->generateCNIC(),
                     ]);
                 }
             }
