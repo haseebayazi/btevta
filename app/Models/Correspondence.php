@@ -55,9 +55,10 @@ class Correspondence extends Model
     ];
 
     protected $attributes = [
-        'status' => 'pending',
-        'priority_level' => 'normal',
-        'correspondence_type' => 'letter',
+        // Disabled - these columns don't exist in current schema
+        // 'status' => 'pending',
+        // 'priority_level' => 'normal',
+        // 'correspondence_type' => 'letter',
     ];
 
     /**
@@ -184,9 +185,10 @@ class Correspondence extends Model
         parent::boot();
 
         static::creating(function ($correspondence) {
-            if (empty($correspondence->file_reference_number)) {
-                $correspondence->file_reference_number = self::generateFileReferenceNumber();
-            }
+            // Disabled - file_reference_number column doesn't exist in current schema
+            // if (empty($correspondence->file_reference_number)) {
+            //     $correspondence->file_reference_number = self::generateFileReferenceNumber();
+            // }
             
             if (empty($correspondence->correspondence_date)) {
                 $correspondence->correspondence_date = now();
