@@ -271,19 +271,25 @@ class Complaint extends Model
 
     public static function generateComplaintNumber()
     {
+        // Complaint number column doesn't exist in current schema
+        // Return null to skip auto-generation
+        return null;
+
+        /* Original code commented out - requires complaint_number column
         $year = date('Y');
         $lastComplaint = self::whereYear('created_at', $year)
                              ->orderBy('complaint_number', 'desc')
                              ->first();
-        
+
         if ($lastComplaint && $lastComplaint->complaint_number) {
             $lastNumber = intval(substr($lastComplaint->complaint_number, -6));
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
-        
+
         return 'COMP' . $year . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+        */
     }
 
     protected static function boot()
@@ -291,14 +297,15 @@ class Complaint extends Model
         parent::boot();
 
         static::creating(function ($complaint) {
-            if (empty($complaint->complaint_number)) {
-                $complaint->complaint_number = self::generateComplaintNumber();
-            }
-            
+            // Skip complaint_number generation - column doesn't exist
+            // if (empty($complaint->complaint_number)) {
+            //     $complaint->complaint_number = self::generateComplaintNumber();
+            // }
+
             if (empty($complaint->sla_due_date)) {
                 $complaint->calculateSLADueDate();
             }
-            
+
             if (auth()->check()) {
                 $complaint->created_by = auth()->id();
                 $complaint->user_id = $complaint->user_id ?? auth()->id();
