@@ -94,7 +94,7 @@ class CandidateController extends Controller
         $this->authorize('create', Candidate::class);
 
         $validated = $request->validate([
-            'btevta_id' => 'required|unique:candidates,btevta_id',
+            'btevta_id' => 'nullable|unique:candidates,btevta_id',
             'cnic' => 'required|digits:13|unique:candidates,cnic',
             'name' => 'required|string|max:255',
             'father_name' => 'required|string|max:255',

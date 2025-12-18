@@ -7,8 +7,8 @@
             <h2>{{ $batch->batch_code }}</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('batches.edit', $batch->id) }}" class="btn btn-warning">Edit</a>
-            <a href="{{ route('batches.index') }}" class="btn btn-secondary">← Back</a>
+            <a href="{{ route('admin.batches.edit', $batch->id) }}" class="btn btn-warning">Edit</a>
+            <a href="{{ route('admin.batches.index') }}" class="btn btn-secondary">← Back</a>
         </div>
     </div>
 
@@ -135,7 +135,7 @@
             <h5 class="mb-0">Danger Zone</h5>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('batches.destroy', $batch->id) }}" style="display:inline;">
+            <form method="POST" action="{{ route('admin.batches.destroy', $batch->id) }}" style="display:inline;">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this batch? This cannot be undone.')">

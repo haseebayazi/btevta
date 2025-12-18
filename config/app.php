@@ -32,7 +32,7 @@ return [
 
     'product_credits' => [
         'conceived_by' => 'AMAN Innovatia',
-        'developed_by' => 'The LEAP @ ZAFNM',
+        'developed_by' => 'The LEAP',
     ],
 
     'contact' => [

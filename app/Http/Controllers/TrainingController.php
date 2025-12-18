@@ -67,8 +67,8 @@ class TrainingController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        $batches = Batch::where('status', 'active')->get();
-        $candidates = Candidate::whereIn('status', ['screening_passed', 'registered'])
+        $batches = Batch::whereIn('status', ['active', 'pending'])->get();
+        $candidates = Candidate::whereIn('status', ['registered', 'screening'])
             ->with(['trade', 'campus'])
             ->get();
 
