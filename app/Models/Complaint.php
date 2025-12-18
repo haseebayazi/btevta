@@ -176,6 +176,7 @@ class Complaint extends Model
     public function scopeOverdue($query)
     {
         return $query->whereNotIn('status', [self::STATUS_RESOLVED, self::STATUS_CLOSED])
+                     ->whereNotNull('sla_due_date')
                      ->where('sla_due_date', '<', now());
     }
 
