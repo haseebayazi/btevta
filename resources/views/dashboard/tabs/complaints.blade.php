@@ -48,7 +48,11 @@
                     <tbody>
                         @foreach($complaintsList as $complaint)
                             @php
-                                $daysRemaining = $complaint->registered_at->addDays($complaint->sla_days)->diffInDays(now());
+                                // Calculate SLA deadline and days remaining
+                                $slaDueDate = $complaint->sla_due_date ??
+                                              ($complaint->registered_at ? $complaint->registered_at->addDays($complaint->sla_days ?? 7) :
+                                              ($complaint->created_at ? $complaint->created_at->addDays($complaint->sla_days ?? 7) : now()->addDays(7)));
+                                $daysRemaining = now()->diffInDays($slaDueDate, false);
                                 $isOverdue = $daysRemaining < 0;
                             @endphp
                             <tr class="border-b hover:bg-gray-50 {{ $isOverdue ? 'bg-red-50' : '' }}">
