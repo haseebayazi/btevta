@@ -114,6 +114,11 @@ class Departure extends Model
         return $this->belongsTo(Candidate::class);
     }
 
+    public function oep()
+    {
+        return $this->hasOneThrough(Oep::class, Candidate::class, 'id', 'id', 'candidate_id', 'oep_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

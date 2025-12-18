@@ -677,14 +677,33 @@ class Candidate extends Model
         $year = date('Y');
         $lastId = self::whereYear('created_at', $year)
                       ->max('application_id');
-        
+
         if ($lastId) {
             $number = intval(substr($lastId, -6)) + 1;
         } else {
             $number = 1;
         }
-        
+
         return 'APP' . $year . str_pad($number, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate a unique BTEVTA ID for the candidate.
+     */
+    public static function generateBtevtaId()
+    {
+        $year = date('Y');
+        $lastId = self::whereYear('created_at', $year)
+                      ->where('btevta_id', 'like', 'BTV-' . $year . '-%')
+                      ->max('btevta_id');
+
+        if ($lastId) {
+            $number = intval(substr($lastId, -5)) + 1;
+        } else {
+            $number = 1;
+        }
+
+        return 'BTV-' . $year . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -708,8 +727,12 @@ class Candidate extends Model
     {
         parent::boot();
 
-        // Auto-generate application ID on creation
+        // Auto-generate IDs on creation
         static::creating(function ($candidate) {
+            if (empty($candidate->btevta_id)) {
+                $candidate->btevta_id = self::generateBtevtaId();
+            }
+
             if (empty($candidate->application_id)) {
                 $candidate->application_id = self::generateApplicationId();
             }

@@ -48,11 +48,11 @@ class ScreeningController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
-        $candidates = Candidate::where('status', 'listed')
+        $candidates = Candidate::whereIn('status', ['new', 'screening'])
             ->select('id', 'name', 'btevta_id')
             ->orderBy('name')
             ->get();
-        
+
         return view('screening.create', compact('candidates'));
     }
 

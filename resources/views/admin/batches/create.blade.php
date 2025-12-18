@@ -7,13 +7,13 @@
             <h2>Create New Batch</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a href="{{ route('batches.index') }}" class="btn btn-secondary">← Back</a>
+            <a href="{{ route('admin.batches.index') }}" class="btn btn-secondary">← Back</a>
         </div>
     </div>
 
     <div class="card mt-3">
         <div class="card-body">
-            <form method="POST" action="{{ route('batches.store') }}">
+            <form method="POST" action="{{ route('admin.batches.store') }}">
                 @csrf
 
                 <div class="form-group">
@@ -93,7 +93,7 @@
 
                 <div class="form-group">
                     <button type="submit" class="btn btn-success">Create Batch</button>
-                    <a href="{{ route('batches.index') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('admin.batches.index') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
