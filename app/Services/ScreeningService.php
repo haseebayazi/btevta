@@ -236,4 +236,319 @@ class ScreeningService
 
         return ['eligible' => true];
     }
+
+    // =========================================================================
+    // 3-CALL WORKFLOW METHODS
+    // =========================================================================
+
+    /**
+     * Call stage labels for display
+     */
+    const CALL_STAGES = [
+        'pending' => 'Pending First Call',
+        'call_1_document' => 'Call 1: Document Verification',
+        'call_2_registration' => 'Call 2: Registration Reminder',
+        'call_3_confirmation' => 'Call 3: Confirmation',
+        'completed' => 'Completed',
+        'unreachable' => 'Unreachable',
+    ];
+
+    /**
+     * Call outcomes
+     */
+    const CALL_OUTCOMES = [
+        'answered' => 'Answered',
+        'no_answer' => 'No Answer',
+        'busy' => 'Busy',
+        'wrong_number' => 'Wrong Number',
+        'switched_off' => 'Phone Switched Off',
+        'not_reachable' => 'Not Reachable',
+    ];
+
+    /**
+     * Record a call attempt in the 3-call workflow.
+     *
+     * @param CandidateScreening $screening
+     * @param int $callNumber (1, 2, or 3)
+     * @param array $callData ['outcome' => string, 'response' => string, 'notes' => string]
+     * @return CandidateScreening
+     */
+    public function recordCallAttempt(CandidateScreening $screening, int $callNumber, array $callData): CandidateScreening
+    {
+        if ($callNumber < 1 || $callNumber > 3) {
+            throw new \InvalidArgumentException('Call number must be 1, 2, or 3');
+        }
+
+        $prefix = "call_{$callNumber}";
+        $userId = auth()->id();
+
+        // Update call fields
+        $screening->{$prefix . '_at'} = now();
+        $screening->{$prefix . '_outcome'} = $callData['outcome'];
+        $screening->{$prefix . '_response'} = $callData['response'] ?? null;
+        $screening->{$prefix . '_notes'} = $callData['notes'] ?? null;
+        $screening->{$prefix . '_by'} = $userId;
+
+        // Increment call attempts
+        $screening->total_call_attempts = ($screening->total_call_attempts ?? 0) + 1;
+
+        // Update call stage based on outcome
+        $screening->call_stage = $this->determineNextCallStage($screening, $callNumber, $callData);
+
+        // Handle callback scheduling
+        if (($callData['response'] ?? '') === 'callback_requested' && !empty($callData['callback_at'])) {
+            $screening->callback_scheduled_at = $callData['callback_at'];
+            $screening->callback_reason = $callData['callback_reason'] ?? 'Candidate requested callback';
+        }
+
+        // Handle appointment scheduling (Call 3)
+        if ($callNumber === 3 && ($callData['response'] ?? '') === 'confirmed') {
+            $screening->registration_appointment_at = $callData['appointment_at'] ?? now()->addDays(2);
+            $screening->registration_appointment_campus = $callData['appointment_campus'] ?? null;
+        }
+
+        // Determine final outcome
+        $screening->final_outcome = $this->determineFinalOutcome($screening, $callNumber, $callData);
+
+        $screening->save();
+
+        // Log activity
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($screening)
+            ->withProperties([
+                'call_number' => $callNumber,
+                'outcome' => $callData['outcome'],
+                'response' => $callData['response'] ?? null,
+            ])
+            ->log("Recorded call {$callNumber} attempt");
+
+        return $screening;
+    }
+
+    /**
+     * Determine the next call stage based on call outcome.
+     */
+    protected function determineNextCallStage(CandidateScreening $screening, int $callNumber, array $callData): string
+    {
+        $outcome = $callData['outcome'];
+        $response = $callData['response'] ?? null;
+
+        // If unreachable after max attempts
+        if (in_array($outcome, ['wrong_number', 'switched_off']) && $screening->total_call_attempts >= 5) {
+            return 'unreachable';
+        }
+
+        // If candidate not interested at any stage
+        if ($response === 'not_interested') {
+            return 'completed';
+        }
+
+        // If answered, progress to next stage
+        if ($outcome === 'answered') {
+            return match($callNumber) {
+                1 => 'call_2_registration',
+                2 => 'call_3_confirmation',
+                3 => 'completed',
+                default => $screening->call_stage,
+            };
+        }
+
+        // If not answered, stay at current stage (will retry)
+        return match($callNumber) {
+            1 => 'call_1_document',
+            2 => 'call_2_registration',
+            3 => 'call_3_confirmation',
+            default => $screening->call_stage,
+        };
+    }
+
+    /**
+     * Determine final outcome based on call workflow.
+     */
+    protected function determineFinalOutcome(CandidateScreening $screening, int $callNumber, array $callData): string
+    {
+        $response = $callData['response'] ?? null;
+        $outcome = $callData['outcome'];
+
+        // Explicit not interested
+        if ($response === 'not_interested') {
+            return 'not_interested';
+        }
+
+        // Cancelled appointment
+        if ($response === 'cancelled') {
+            return 'not_interested';
+        }
+
+        // Wrong number or unreachable after multiple attempts
+        if ($outcome === 'wrong_number') {
+            return 'unreachable';
+        }
+
+        if (in_array($outcome, ['switched_off', 'not_reachable']) && $screening->total_call_attempts >= 5) {
+            return 'unreachable';
+        }
+
+        // Successfully confirmed
+        if ($callNumber === 3 && $response === 'confirmed') {
+            return 'registered';
+        }
+
+        // Rescheduled
+        if ($response === 'rescheduled') {
+            return 'postponed';
+        }
+
+        return 'pending';
+    }
+
+    /**
+     * Get candidates pending callback.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingCallbacks(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CandidateScreening::with('candidate')
+            ->whereNotNull('callback_scheduled_at')
+            ->where('callback_scheduled_at', '<=', now())
+            ->whereIn('call_stage', ['call_1_document', 'call_2_registration', 'call_3_confirmation'])
+            ->orderBy('callback_scheduled_at')
+            ->get();
+    }
+
+    /**
+     * Get candidates at each call stage.
+     *
+     * @return array
+     */
+    public function getCallStageStatistics(): array
+    {
+        return CandidateScreening::select('call_stage', DB::raw('COUNT(*) as count'))
+            ->groupBy('call_stage')
+            ->pluck('count', 'call_stage')
+            ->toArray();
+    }
+
+    /**
+     * Get call success rates by stage.
+     *
+     * @return array
+     */
+    public function getCallSuccessRates(): array
+    {
+        $stats = [];
+
+        for ($i = 1; $i <= 3; $i++) {
+            $total = CandidateScreening::whereNotNull("call_{$i}_at")->count();
+            $answered = CandidateScreening::where("call_{$i}_outcome", 'answered')->count();
+
+            $stats["call_{$i}"] = [
+                'total' => $total,
+                'answered' => $answered,
+                'success_rate' => $total > 0 ? round(($answered / $total) * 100, 1) : 0,
+            ];
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get candidates pending registration appointment.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingAppointments(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CandidateScreening::with('candidate')
+            ->whereNotNull('registration_appointment_at')
+            ->where('registration_appointment_at', '>=', now())
+            ->where('final_outcome', '!=', 'registered')
+            ->orderBy('registration_appointment_at')
+            ->get();
+    }
+
+    /**
+     * Get today's scheduled appointments.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getTodaysAppointments(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CandidateScreening::with('candidate')
+            ->whereNotNull('registration_appointment_at')
+            ->whereDate('registration_appointment_at', today())
+            ->orderBy('registration_appointment_at')
+            ->get();
+    }
+
+    /**
+     * Get response rate analytics.
+     *
+     * @param array $filters
+     * @return array
+     */
+    public function getResponseRateAnalytics(array $filters = []): array
+    {
+        $query = CandidateScreening::query();
+
+        if (!empty($filters['from_date'])) {
+            $query->whereDate('created_at', '>=', $filters['from_date']);
+        }
+
+        if (!empty($filters['to_date'])) {
+            $query->whereDate('created_at', '<=', $filters['to_date']);
+        }
+
+        $total = $query->count();
+        $completed = (clone $query)->where('call_stage', 'completed')->count();
+        $unreachable = (clone $query)->where('call_stage', 'unreachable')->count();
+        $registered = (clone $query)->where('final_outcome', 'registered')->count();
+        $notInterested = (clone $query)->where('final_outcome', 'not_interested')->count();
+
+        return [
+            'total_screenings' => $total,
+            'completed' => $completed,
+            'unreachable' => $unreachable,
+            'registered' => $registered,
+            'not_interested' => $notInterested,
+            'completion_rate' => $total > 0 ? round(($completed / $total) * 100, 1) : 0,
+            'registration_rate' => $total > 0 ? round(($registered / $total) * 100, 1) : 0,
+            'unreachable_rate' => $total > 0 ? round(($unreachable / $total) * 100, 1) : 0,
+            'call_success_rates' => $this->getCallSuccessRates(),
+        ];
+    }
+
+    /**
+     * Bulk update call stage for candidates.
+     *
+     * @param array $screeningIds
+     * @param string $stage
+     * @return int Number of records updated
+     */
+    public function bulkUpdateCallStage(array $screeningIds, string $stage): int
+    {
+        return CandidateScreening::whereIn('id', $screeningIds)
+            ->update(['call_stage' => $stage]);
+    }
+
+    /**
+     * Get candidates who need follow-up calls.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getCandidatesNeedingFollowUp(): \Illuminate\Database\Eloquent\Collection
+    {
+        return CandidateScreening::with('candidate')
+            ->whereIn('call_stage', ['call_1_document', 'call_2_registration', 'call_3_confirmation'])
+            ->where(function($query) {
+                // No call in the last 24 hours
+                $query->where('call_1_at', '<', now()->subDay())
+                    ->orWhereNull('call_1_at');
+            })
+            ->where('final_outcome', 'pending')
+            ->orderBy('created_at')
+            ->get();
+    }
 }
