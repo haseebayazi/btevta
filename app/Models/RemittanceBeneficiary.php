@@ -40,9 +40,14 @@ class RemittanceBeneficiary extends Model
         return $this->belongsTo(Candidate::class);
     }
 
+    /**
+     * Get remittances where this beneficiary was the receiver.
+     * Note: Links by receiver_name text field for flexible matching.
+     * For strict foreign key relationships, add beneficiary_id to remittances table.
+     */
     public function remittances()
     {
-        return $this->hasMany(Remittance::class, 'receiver_name', 'full_name');
+        return $this->hasMany(Remittance::class, 'beneficiary_id');
     }
 
     // Scopes

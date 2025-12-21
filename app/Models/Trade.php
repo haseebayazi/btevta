@@ -1,6 +1,4 @@
 <?php
-// ============================================
-// File: app/Models/Trade.php
 
 namespace App\Models;
 
@@ -15,8 +13,7 @@ class Trade extends Model
     protected $fillable = [
         'name',
         'code',
-        'category',  // FIXED: Missing field causing silent data loss
-        'duration_weeks',  // FIXED: Missing field causing silent data loss
+        'category',
         'description',
         'duration_months',
         'is_active',

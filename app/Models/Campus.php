@@ -13,9 +13,6 @@ class Campus extends Model
     protected $fillable = [
         'name',
         'code',
-        'location',  // FIXED: Missing field causing silent data loss
-        'province',  // FIXED: Missing field causing silent data loss
-        'district',  // FIXED: Missing field causing silent data loss
         'address',
         'city',
         'contact_person',

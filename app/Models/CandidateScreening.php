@@ -140,11 +140,19 @@ class CandidateScreening extends Model
     }
 
     /**
-     * Get the undertaking associated with this screening.
+     * Get the undertaking associated with this screening's candidate.
+     * Note: Undertakings are linked to candidates, not directly to screenings.
      */
     public function undertaking()
     {
-        return $this->hasOne(Undertaking::class, 'screening_id');
+        return $this->hasOneThrough(
+            Undertaking::class,
+            Candidate::class,
+            'id',           // Foreign key on candidates table
+            'candidate_id', // Foreign key on undertakings table
+            'candidate_id', // Local key on candidate_screenings table
+            'id'            // Local key on candidates table
+        );
     }
 
     /**

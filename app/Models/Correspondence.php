@@ -134,9 +134,12 @@ class Correspondence extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Alias for creator() relationship.
+     */
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->creator();
     }
 
     public function updater()
