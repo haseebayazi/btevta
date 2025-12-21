@@ -26,6 +26,7 @@ use App\Http\Controllers\RemittanceBeneficiaryController;
 use App\Http\Controllers\RemittanceReportController;
 use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\SecureFileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,9 +58,23 @@ Route::middleware('guest')->group(function () {
 // Logout requires authentication (not guest)
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
+// ========================================================================
+// SECURE FILE ACCESS ROUTES
+// ========================================================================
+// SECURITY: All private documents must be accessed through these routes
+// to ensure proper authentication and authorization.
+Route::middleware(['auth'])->prefix('secure-file')->name('secure-file.')->group(function () {
+    Route::get('/download/{path}', [SecureFileController::class, 'download'])
+        ->where('path', '.*')
+        ->name('download');
+    Route::get('/view/{path}', [SecureFileController::class, 'view'])
+        ->where('path', '.*')
+        ->name('view');
+});
+
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
-    
+
     // Dashboard (UNCHANGED)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     

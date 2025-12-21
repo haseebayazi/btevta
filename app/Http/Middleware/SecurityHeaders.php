@@ -53,7 +53,7 @@ class SecurityHeaders
         // Adjust based on your application's specific needs
         $cspDirectives = [
             "default-src 'self'",  // By default, only allow resources from same origin
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",  // Allow inline scripts and CDN
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com",  // Allow inline scripts and CDNs (removed unsafe-eval for security)
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  // Allow inline styles and Google Fonts
             "font-src 'self' https://fonts.gstatic.com data:",  // Allow fonts from Google and data URIs
             "img-src 'self' data: https:",  // Allow images from same origin, data URIs, and HTTPS sources
