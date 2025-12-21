@@ -2,7 +2,21 @@
 @section('title', 'Document Statistics')
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <h1 class="text-3xl font-bold mb-6">Document Archive Statistics</h1>
+    {{-- Breadcrumbs --}}
+    @include('components.breadcrumbs', ['items' => [
+        ['label' => 'Dashboard', 'route' => 'dashboard.index', 'icon' => 'fas fa-home'],
+        ['label' => 'Document Archive', 'route' => 'document-archive.index'],
+        ['label' => 'Statistics', 'icon' => 'fas fa-chart-bar']
+    ]])
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-chart-bar mr-2 text-blue-600"></i>Document Archive Statistics
+        </h1>
+        <a href="{{ route('document-archive.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Archive
+        </a>
+    </div>
 
     <div class="grid md:grid-cols-4 gap-4 mb-6">
         <div class="card bg-blue-50">
@@ -63,75 +77,122 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('categoryChart');
+        const chartContainer = ctx.parentElement;
 
-        @if(isset($stats['by_type']) && count($stats['by_type']) > 0)
-        const data = {
-            labels: [
-                @foreach($stats['by_type'] as $type => $count)
-                    '{{ ucwords(str_replace("_", " ", $type)) }}',
-                @endforeach
-            ],
-            datasets: [{
-                label: 'Documents by Category',
-                data: [
+        // Show loading state
+        function showChartLoading() {
+            chartContainer.innerHTML = `
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-gray-500">Loading chart...</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show error state
+        function showChartError(message) {
+            chartContainer.innerHTML = `
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                        <p class="text-gray-600 font-medium">Unable to load chart</p>
+                        <p class="text-gray-400 text-sm">${message}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show empty state
+        function showChartEmpty() {
+            chartContainer.innerHTML = `
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <i class="fas fa-chart-bar text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500">No data available for chart</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        try {
+            @if(isset($stats['by_type']) && count($stats['by_type']) > 0)
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                throw new Error('Chart.js library not loaded');
+            }
+
+            const data = {
+                labels: [
                     @foreach($stats['by_type'] as $type => $count)
-                        {{ $count }},
+                        '{{ ucwords(str_replace("_", " ", $type)) }}',
                     @endforeach
                 ],
-                backgroundColor: [
-                    'rgba(59, 130, 246, 0.5)',
-                    'rgba(16, 185, 129, 0.5)',
-                    'rgba(239, 68, 68, 0.5)',
-                    'rgba(168, 85, 247, 0.5)',
-                    'rgba(245, 158, 11, 0.5)',
-                    'rgba(236, 72, 153, 0.5)',
-                    'rgba(20, 184, 166, 0.5)',
-                    'rgba(251, 146, 60, 0.5)',
-                ],
-                borderColor: [
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(16, 185, 129, 1)',
-                    'rgba(239, 68, 68, 1)',
-                    'rgba(168, 85, 247, 1)',
-                    'rgba(245, 158, 11, 1)',
-                    'rgba(236, 72, 153, 1)',
-                    'rgba(20, 184, 166, 1)',
-                    'rgba(251, 146, 60, 1)',
-                ],
-                borderWidth: 1
-            }]
-        };
+                datasets: [{
+                    label: 'Documents by Category',
+                    data: [
+                        @foreach($stats['by_type'] as $type => $count)
+                            {{ $count }},
+                        @endforeach
+                    ],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.5)',
+                        'rgba(16, 185, 129, 0.5)',
+                        'rgba(239, 68, 68, 0.5)',
+                        'rgba(168, 85, 247, 0.5)',
+                        'rgba(245, 158, 11, 0.5)',
+                        'rgba(236, 72, 153, 0.5)',
+                        'rgba(20, 184, 166, 0.5)',
+                        'rgba(251, 146, 60, 0.5)',
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(168, 85, 247, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(236, 72, 153, 1)',
+                        'rgba(20, 184, 166, 1)',
+                        'rgba(251, 146, 60, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            };
 
-        const config = {
-            type: 'bar',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: false
+                        }
                     },
-                    title: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
                         }
                     }
                 }
-            }
-        };
+            };
 
-        new Chart(ctx, config);
-        @else
-        // No data available
-        ctx.getContext('2d').fillText('No data available', 10, 50);
-        @endif
+            new Chart(ctx, config);
+            @else
+            showChartEmpty();
+            @endif
+        } catch (error) {
+            console.error('Chart initialization error:', error);
+            showChartError(error.message || 'An unexpected error occurred');
+        }
     });
 </script>
 @endpush
