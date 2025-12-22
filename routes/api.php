@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\RemittanceApiController;
 use App\Http\Controllers\Api\RemittanceReportApiController;
 use App\Http\Controllers\Api\RemittanceAlertApiController;
 use App\Http\Controllers\Api\GlobalSearchController;
+use App\Http\Controllers\Api\ApiTokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,18 +22,34 @@ use App\Http\Controllers\Api\GlobalSearchController;
 | routes are loaded by the RouteServiceProvider and all of them will
 | be assigned to the "api" middleware group. Make something great!
 |
-| Default Middleware: auth, throttle:60,1 (60 requests per minute)
+| SECURITY: Using Sanctum for token-based API authentication
+| Default Middleware: auth:sanctum, throttle:60,1 (60 requests per minute)
 | All routes automatically prefixed with /api
 |
 */
 
 // ========================================================================
 // API v1 Routes
-// Authentication: Required (web auth session)
+// Authentication: Required (Sanctum token-based auth)
 // Throttle: 60 requests/minute
 // ========================================================================
 
-Route::prefix('v1')->middleware('auth')->name('v1.')->group(function () {
+// ========================================================================
+// API Token Authentication Routes (Public)
+// These routes allow users to authenticate and obtain API tokens
+// ========================================================================
+
+Route::prefix('v1/auth')->name('v1.auth.')->group(function () {
+    Route::post('/token', [ApiTokenController::class, 'createToken'])->name('token.create');
+});
+
+Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function () {
+
+    // Token Management
+    Route::get('/auth/tokens', [ApiTokenController::class, 'listTokens'])->name('auth.tokens.list');
+    Route::delete('/auth/tokens/{tokenId}', [ApiTokenController::class, 'revokeToken'])->name('auth.tokens.revoke');
+    Route::delete('/auth/tokens', [ApiTokenController::class, 'revokeAllTokens'])->name('auth.tokens.revoke-all');
+    Route::get('/auth/user', [ApiTokenController::class, 'currentUser'])->name('auth.user');
 
     // Global Search
     Route::get('/global-search', [GlobalSearchController::class, 'search'])
