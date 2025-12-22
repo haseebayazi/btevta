@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use App\Rules\StrongPassword;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -208,14 +209,18 @@ class AuthController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => ['required', 'min:8', 'confirmed', new StrongPassword],
         ]);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 $user->forceFill([
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
+                    'password_changed_at' => now(),
+                    // Reset lockout on password change
+                    'failed_login_attempts' => 0,
+                    'locked_until' => null,
                 ])->save();
 
                 activity()

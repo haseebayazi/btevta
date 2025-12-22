@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Campus;
 use App\Mail\PasswordResetMail;
+use App\Rules\StrongPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -44,8 +46,9 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            // SECURITY FIX: Exclude soft-deleted users from uniqueness check
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->withoutTrashed()],
+            'password' => ['required', 'string', 'min:8', 'confirmed', new StrongPassword],
             'role' => 'required|in:' . implode(',', User::ROLES),
             'campus_id' => 'nullable|exists:campuses,id',
             'phone' => 'nullable|string|max:20',
@@ -103,11 +106,12 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id . '|max:255',
+            // SECURITY FIX: Exclude soft-deleted users from uniqueness check
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)->withoutTrashed()],
             'role' => 'required|in:' . implode(',', User::ROLES),
             'campus_id' => 'nullable|exists:campuses,id',
             'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'min:8', 'confirmed', new StrongPassword],
         ]);
 
         try {
@@ -444,9 +448,9 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)->withoutTrashed()],
             'current_password' => 'nullable|required_with:new_password|string',
-            'new_password' => 'nullable|string|min:8|confirmed',
+            'new_password' => ['nullable', 'string', 'min:8', 'confirmed', new StrongPassword],
         ]);
 
         // Update basic info
@@ -459,6 +463,7 @@ class UserController extends Controller
                 return back()->with('error', 'Current password is incorrect!');
             }
             $user->password = \Hash::make($request->new_password);
+            $user->password_changed_at = now();
         }
 
         $user->save();
