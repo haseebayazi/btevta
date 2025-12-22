@@ -12,24 +12,23 @@ class CorrespondencePolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep() || $user->isViewer();
     }
 
     public function view(User $user, Correspondence $correspondence): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
         // Campus users can view correspondence related to their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $correspondence->campus_id === $user->campus_id;
         }
 
         // OEP users can view correspondence related to their OEP
-        if ($user->role === 'oep' && $user->oep_id) {
+        if ($user->isOep() && $user->oep_id) {
             return $correspondence->oep_id === $user->oep_id;
         }
 
@@ -38,18 +37,18 @@ class CorrespondencePolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, Correspondence $correspondence): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus users can update their own correspondence
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $correspondence->campus_id === $user->campus_id;
         }
 
@@ -58,7 +57,7 @@ class CorrespondencePolicy
 
     public function delete(User $user, Correspondence $correspondence): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function markReplied(User $user, Correspondence $correspondence): bool

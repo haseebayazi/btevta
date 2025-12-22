@@ -12,29 +12,29 @@ class RemittancePolicy
 
     public function viewAny(User $user): bool
     {
-        // Allow admins, campus admins, OEPs, and viewers
-        return in_array($user->role, ['admin', 'campus_admin', 'oep', 'viewer']);
+        // Allow admins, project directors, campus admins, OEPs, and viewers
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep() || $user->isViewer();
     }
 
     public function view(User $user, Remittance $remittance): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
         // Campus admin can view remittances from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $remittance->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
             return $remittance->candidate->campus_id === $user->campus_id;
         }
 
         // OEP can view remittances from their candidates
-        if ($user->role === 'oep' && $user->oep_id && $remittance->candidate) {
+        if ($user->isOep() && $user->oep_id && $remittance->candidate) {
             return $remittance->candidate->oep_id === $user->oep_id;
         }
 
         // Candidates can view their own remittances
-        if ($user->role === 'candidate' && $remittance->candidate) {
+        if ($user->isCandidate() && $remittance->candidate) {
             return $remittance->candidate->user_id === $user->id;
         }
 
@@ -43,19 +43,19 @@ class RemittancePolicy
 
     public function create(User $user): bool
     {
-        // Only admin and campus_admin can create remittances
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Only admin, project director, and campus_admin can create remittances
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, Remittance $remittance): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can update remittances from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $remittance->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
             return $remittance->candidate->campus_id === $user->campus_id;
         }
 
@@ -65,24 +65,24 @@ class RemittancePolicy
     public function delete(User $user, Remittance $remittance): bool
     {
         // Only admin can delete
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function verify(User $user, Remittance $remittance): bool
     {
-        // Only admin can verify
-        return $user->role === 'admin';
+        // Only admin and project director can verify
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     public function uploadReceipt(User $user, Remittance $remittance): bool
     {
-        // Admin can upload for any
-        if ($user->role === 'admin') {
+        // Admin and Project Director can upload for any
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can upload for their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $remittance->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
             return $remittance->candidate->campus_id === $user->campus_id;
         }
 
@@ -92,18 +92,18 @@ class RemittancePolicy
     public function deleteReceipt(User $user): bool
     {
         // Only admin can delete receipts
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function export(User $user): bool
     {
-        // Only admin and campus_admin can export
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Admin, project director, and campus_admin can export
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function viewReports(User $user): bool
     {
-        // Admin, campus_admin, and viewer can view reports
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        // Admin, project director, campus_admin, and viewer can view reports
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 }

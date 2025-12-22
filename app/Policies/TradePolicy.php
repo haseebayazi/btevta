@@ -12,39 +12,37 @@ class TradePolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     public function view(User $user, Trade $trade): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     public function create(User $user): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function update(User $user, Trade $trade): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function delete(User $user, Trade $trade): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function toggleStatus(User $user, Trade $trade): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function apiList(User $user): bool
     {
         // API list can be accessed by authenticated users who need dropdown data
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 }

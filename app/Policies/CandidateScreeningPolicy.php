@@ -24,15 +24,20 @@ class CandidateScreeningPolicy
      */
     public function view(User $user, CandidateScreening $screening): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin users can only view screenings for their campus candidates
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $screening->candidate &&
                    $screening->candidate->campus_id === $user->campus_id;
+        }
+
+        // Staff can view screenings they created
+        if ($user->isStaff()) {
+            return $screening->created_by === $user->id;
         }
 
         return false;
@@ -43,8 +48,8 @@ class CandidateScreeningPolicy
      */
     public function create(User $user): bool
     {
-        // Admin and campus admin users can create screenings
-        return in_array($user->role, ['admin', 'campus_admin', 'staff']);
+        // Admin, Project Director, campus admin, and staff can create screenings
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isStaff();
     }
 
     /**
@@ -52,19 +57,19 @@ class CandidateScreeningPolicy
      */
     public function update(User $user, CandidateScreening $screening): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin users can only update screenings for their campus candidates
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $screening->candidate &&
                    $screening->candidate->campus_id === $user->campus_id;
         }
 
         // Staff can update screenings they created
-        if ($user->role === 'staff') {
+        if ($user->isStaff()) {
             return $screening->created_by === $user->id;
         }
 
@@ -77,7 +82,7 @@ class CandidateScreeningPolicy
     public function delete(User $user, CandidateScreening $screening): bool
     {
         // Only admin can delete screenings
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -85,7 +90,7 @@ class CandidateScreeningPolicy
      */
     public function restore(User $user, CandidateScreening $screening): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -93,7 +98,7 @@ class CandidateScreeningPolicy
      */
     public function forceDelete(User $user, CandidateScreening $screening): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -101,7 +106,7 @@ class CandidateScreeningPolicy
      */
     public function export(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'staff']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isStaff();
     }
 
     /**
@@ -109,7 +114,7 @@ class CandidateScreeningPolicy
      */
     public function logCall(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'staff']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isStaff();
     }
 
     /**
@@ -117,6 +122,6 @@ class CandidateScreeningPolicy
      */
     public function recordOutcome(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'staff']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isStaff();
     }
 }

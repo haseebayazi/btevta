@@ -74,6 +74,12 @@ class User extends Authenticatable
         'visa_partner_id',
         'is_active',
         'phone',
+        'last_login_at',
+        'failed_login_attempts',
+        'locked_until',
+        'password_changed_at',
+        'created_by',
+        'updated_by',
     ];
 
     protected $hidden = [
@@ -85,6 +91,10 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
+        'locked_until' => 'datetime',
+        'password_changed_at' => 'datetime',
+        'failed_login_attempts' => 'integer',
     ];
 
     // ============================================================
@@ -109,6 +119,39 @@ class User extends Authenticatable
     public function candidate()
     {
         return $this->hasOne(Candidate::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // ============================================================
+    // SECURITY METHODS
+    // ============================================================
+
+    /**
+     * Check if the user account is currently locked
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Get remaining lockout minutes
+     */
+    public function getLockoutMinutesRemaining(): int
+    {
+        if (!$this->isLocked()) {
+            return 0;
+        }
+        return now()->diffInMinutes($this->locked_until, false);
     }
 
     // ============================================================

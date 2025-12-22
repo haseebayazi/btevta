@@ -12,7 +12,7 @@ class ActivityLogPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     /**
@@ -20,7 +20,7 @@ class ActivityLogPolicy
      */
     public function view(User $user, Activity $activity): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     /**
@@ -28,6 +28,6 @@ class ActivityLogPolicy
      */
     public function delete(User $user): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 }

@@ -27,17 +27,8 @@ class VisaProcessPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_PROJECT_DIRECTOR,
-            User::ROLE_CAMPUS_ADMIN,
-            User::ROLE_OEP,
-            User::ROLE_VISA_PARTNER,
-            User::ROLE_TRAINER,
-            User::ROLE_INSTRUCTOR,
-            User::ROLE_VIEWER,
-        ]);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isOep() || $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -84,13 +75,7 @@ class VisaProcessPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_CAMPUS_ADMIN,
-            User::ROLE_OEP,
-            User::ROLE_VISA_PARTNER,
-        ]);
+        return $user->isSuperAdmin() || $user->isCampusAdmin() || $user->isOep() || $user->isVisaPartner();
     }
 
     /**
@@ -147,13 +132,7 @@ class VisaProcessPolicy
      */
     public function complete(User $user): bool
     {
-        return in_array($user->role, [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_CAMPUS_ADMIN,
-            User::ROLE_OEP,
-            User::ROLE_VISA_PARTNER,
-        ]);
+        return $user->isSuperAdmin() || $user->isCampusAdmin() || $user->isOep() || $user->isVisaPartner();
     }
 
     /**
@@ -161,17 +140,8 @@ class VisaProcessPolicy
      */
     public function viewTimeline(User $user): bool
     {
-        return in_array($user->role, [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_PROJECT_DIRECTOR,
-            User::ROLE_CAMPUS_ADMIN,
-            User::ROLE_OEP,
-            User::ROLE_VISA_PARTNER,
-            User::ROLE_TRAINER,
-            User::ROLE_INSTRUCTOR,
-            User::ROLE_VIEWER,
-        ]);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isOep() || $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -179,15 +149,7 @@ class VisaProcessPolicy
      */
     public function viewReports(User $user): bool
     {
-        return in_array($user->role, [
-            User::ROLE_SUPER_ADMIN,
-            User::ROLE_ADMIN,
-            User::ROLE_PROJECT_DIRECTOR,
-            User::ROLE_CAMPUS_ADMIN,
-            User::ROLE_VISA_PARTNER,
-            User::ROLE_TRAINER,
-            User::ROLE_INSTRUCTOR,
-            User::ROLE_VIEWER,
-        ]);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 }

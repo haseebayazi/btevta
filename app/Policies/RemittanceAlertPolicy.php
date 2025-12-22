@@ -12,24 +12,24 @@ class RemittanceAlertPolicy
 
     public function viewAny(User $user): bool
     {
-        // Only admin, campus_admin, and OEP can view alerts
-        return in_array($user->role, ['admin', 'campus_admin', 'oep']);
+        // Admin, project director, campus_admin, and OEP can view alerts
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep();
     }
 
     public function view(User $user, RemittanceAlert $alert): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can view alerts from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $alert->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $alert->candidate) {
             return $alert->candidate->campus_id === $user->campus_id;
         }
 
         // OEP can view alerts from their candidates
-        if ($user->role === 'oep' && $user->oep_id && $alert->candidate) {
+        if ($user->isOep() && $user->oep_id && $alert->candidate) {
             return $alert->candidate->oep_id === $user->oep_id;
         }
 
@@ -50,13 +50,13 @@ class RemittanceAlertPolicy
 
     public function resolve(User $user, RemittanceAlert $alert): bool
     {
-        // Admin can resolve all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can resolve all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can resolve alerts from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $alert->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $alert->candidate) {
             return $alert->candidate->campus_id === $user->campus_id;
         }
 
@@ -71,20 +71,20 @@ class RemittanceAlertPolicy
 
     public function bulkAction(User $user): bool
     {
-        // Only admin and campus_admin can perform bulk actions
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Admin, project director, and campus_admin can perform bulk actions
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function generateAlerts(User $user): bool
     {
-        // Only admin can manually generate alerts
-        return $user->role === 'admin';
+        // Only admin and project director can manually generate alerts
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     public function autoResolve(User $user): bool
     {
         // Only admin can auto-resolve alerts
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function getUnreadCount(User $user): bool
