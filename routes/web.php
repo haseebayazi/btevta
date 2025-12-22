@@ -211,9 +211,9 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // VISA PROCESSING ROUTES
     // Throttle: Standard 60/min, Upload 30/min, Reports 5/min
-    // AUTHORIZATION FIX: Restricted to admin, campus_admin, and instructor roles
+    // Roles: admin, project_director, campus_admin, instructor/trainer, oep, visa_partner
     // ========================================================================
-    Route::middleware('role:admin,campus_admin,instructor')->group(function () {
+    Route::middleware('role:admin,project_director,campus_admin,instructor,oep,visa_partner')->group(function () {
         Route::resource('visa-processing', VisaProcessingController::class);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
             // DEPRECATED ROUTES: These methods don't exist in VisaProcessingController
@@ -261,8 +261,9 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // DEPARTURE ROUTES
     // Throttle: Standard 60/min, Reports 5/min
+    // Roles: admin, project_director, campus_admin, oep, visa_partner, viewer
     // ========================================================================
-    Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+    Route::middleware('role:admin,project_director,campus_admin,oep,visa_partner,viewer')->group(function () {
         Route::resource('departure', DepartureController::class);
         Route::prefix('departure')->name('departure.')->group(function () {
         // RECORD ROUTES (Core departure tracking)
@@ -409,7 +410,7 @@ Route::middleware(['auth'])->group(function () {
     // Purpose: Comprehensive reporting and analytics across all modules
     // FIXED: Added role middleware - was completely open to ANY authenticated user!
     // ========================================================================
-    Route::prefix('reports')->name('reports.')->middleware('role:admin,campus_admin,viewer')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:admin,project_director,campus_admin,viewer')->group(function () {
         // MAIN REPORTS INDEX
         Route::get('/', [ReportController::class, 'index'])->name('index');
 

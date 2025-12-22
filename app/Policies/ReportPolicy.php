@@ -7,6 +7,12 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
  * Policy for report viewing and generation permissions
+ *
+ * Roles with access:
+ * - super_admin/admin: Full access to all reports
+ * - project_director: Full access to all reports (oversight role)
+ * - campus_admin: Access to their campus reports
+ * - viewer: Read-only access to most reports
  */
 class ReportPolicy
 {
@@ -17,8 +23,7 @@ class ReportPolicy
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can view reports
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -26,7 +31,7 @@ class ReportPolicy
      */
     public function viewCandidateReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -34,7 +39,8 @@ class ReportPolicy
      */
     public function viewCampusWiseReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'viewer']);
+        // Campus-wide reports require higher privileges
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer();
     }
 
     /**
@@ -42,7 +48,7 @@ class ReportPolicy
      */
     public function viewDepartureReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -50,8 +56,8 @@ class ReportPolicy
      */
     public function viewFinancialReport(User $user): bool
     {
-        // Only admin can view financial reports
-        return $user->role === 'admin';
+        // Financial reports require super admin or project director
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     /**
@@ -59,7 +65,7 @@ class ReportPolicy
      */
     public function viewTradeWiseReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -67,7 +73,7 @@ class ReportPolicy
      */
     public function viewMonthlyReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -75,7 +81,7 @@ class ReportPolicy
      */
     public function viewScreeningReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -83,7 +89,7 @@ class ReportPolicy
      */
     public function viewTrainingReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer() || $user->isTrainer();
     }
 
     /**
@@ -91,7 +97,7 @@ class ReportPolicy
      */
     public function viewVisaReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer() || $user->isVisaPartner();
     }
 
     /**
@@ -99,7 +105,7 @@ class ReportPolicy
      */
     public function exportReport(User $user): bool
     {
-        // Admin and campus_admin can export
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Export requires management-level access
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 }

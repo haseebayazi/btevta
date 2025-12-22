@@ -5,6 +5,13 @@ namespace App\Policies;
 use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Policy for activity log viewing permissions
+ *
+ * Roles with access:
+ * - super_admin/admin: Full access to view and manage logs
+ * - project_director: View-only access to activity logs
+ */
 class ActivityPolicy
 {
     /**
@@ -12,7 +19,7 @@ class ActivityPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     /**
@@ -20,7 +27,7 @@ class ActivityPolicy
      */
     public function view(User $user, Activity $activity): bool
     {
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     /**
@@ -28,6 +35,7 @@ class ActivityPolicy
      */
     public function delete(User $user): bool
     {
-        return $user->role === 'super_admin';
+        // Only super admins can delete logs
+        return $user->isSuperAdmin();
     }
 }
