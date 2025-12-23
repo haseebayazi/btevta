@@ -169,6 +169,14 @@ class Candidate extends Model
     }
 
     /**
+     * Get the OEP (Overseas Employment Promoter) assigned to the candidate.
+     */
+    public function oep()
+    {
+        return $this->belongsTo(Oep::class);
+    }
+
+    /**
      * Get the next of kin for the candidate.
      */
     public function nextOfKin()
