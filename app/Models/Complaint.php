@@ -122,9 +122,12 @@ class Complaint extends Model
         return $this->belongsTo(Candidate::class);
     }
 
+    /**
+     * Alias for candidate() - the complainant is the candidate who filed the complaint.
+     */
     public function complainant()
     {
-        return $this->belongsTo(Candidate::class, 'candidate_id');
+        return $this->candidate();
     }
 
     public function assignee()
@@ -132,9 +135,12 @@ class Complaint extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    /**
+     * Alias for assignee() relationship.
+     */
     public function assignedTo()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->assignee();
     }
 
     public function registeredBy()

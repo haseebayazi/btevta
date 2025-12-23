@@ -12,19 +12,18 @@ class DocumentArchivePolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     public function view(User $user, DocumentArchive $document): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin, Project Director, and Viewer can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
         // Campus users can view documents from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $document->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $document->candidate) {
             return $document->candidate->campus_id === $user->campus_id;
         }
 
@@ -33,18 +32,18 @@ class DocumentArchivePolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, DocumentArchive $document): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus users can update documents from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $document->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $document->candidate) {
             return $document->candidate->campus_id === $user->campus_id;
         }
 
@@ -53,7 +52,7 @@ class DocumentArchivePolicy
 
     public function delete(User $user, DocumentArchive $document): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function download(User $user, DocumentArchive $document): bool
@@ -63,11 +62,11 @@ class DocumentArchivePolicy
 
     public function archive(User $user, DocumentArchive $document): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function restore(User $user, DocumentArchive $document): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 }

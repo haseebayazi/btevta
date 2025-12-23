@@ -18,7 +18,7 @@ class TrainingPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -26,7 +26,7 @@ class TrainingPolicy
      */
     public function view(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -34,7 +34,7 @@ class TrainingPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -42,7 +42,7 @@ class TrainingPolicy
      */
     public function update(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -50,7 +50,7 @@ class TrainingPolicy
      */
     public function delete(User $user): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -58,7 +58,7 @@ class TrainingPolicy
      */
     public function markAttendance(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer();
     }
 
     /**
@@ -66,7 +66,7 @@ class TrainingPolicy
      */
     public function viewAttendance(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -74,7 +74,7 @@ class TrainingPolicy
      */
     public function createAssessment(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer();
     }
 
     /**
@@ -82,17 +82,17 @@ class TrainingPolicy
      */
     public function updateAssessment(User $user, TrainingAssessment $assessment = null): bool
     {
-        if ($user->role === 'admin') {
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can update assessments from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return true;
         }
 
-        // Instructors can update their own assessments
-        if ($user->role === 'instructor' && $assessment && $assessment->trainer_id === $user->id) {
+        // Trainers can update their own assessments
+        if ($user->isTrainer() && $assessment && $assessment->trainer_id === $user->id) {
             return true;
         }
 
@@ -104,7 +104,7 @@ class TrainingPolicy
      */
     public function generateCertificate(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -112,7 +112,7 @@ class TrainingPolicy
      */
     public function downloadCertificate(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -120,7 +120,7 @@ class TrainingPolicy
      */
     public function completeTraining(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -128,7 +128,7 @@ class TrainingPolicy
      */
     public function viewAttendanceReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -136,7 +136,7 @@ class TrainingPolicy
      */
     public function viewAssessmentReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -144,6 +144,6 @@ class TrainingPolicy
      */
     public function viewBatchPerformance(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 }

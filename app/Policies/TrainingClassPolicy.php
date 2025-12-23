@@ -12,19 +12,23 @@ class TrainingClassPolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     public function view(User $user, TrainingClass $class): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin, Project Director, and Viewer can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
         // Campus users can view classes from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            return $class->campus_id === $user->campus_id;
+        }
+
+        // Trainers can view classes from their campus
+        if ($user->isTrainer() && $user->campus_id) {
             return $class->campus_id === $user->campus_id;
         }
 
@@ -33,18 +37,18 @@ class TrainingClassPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, TrainingClass $class): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus users can update classes from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $class->campus_id === $user->campus_id;
         }
 
@@ -53,7 +57,7 @@ class TrainingClassPolicy
 
     public function delete(User $user, TrainingClass $class): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function assignCandidates(User $user, TrainingClass $class): bool

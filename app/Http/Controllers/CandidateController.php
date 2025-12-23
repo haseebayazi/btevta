@@ -234,7 +234,7 @@ class CandidateController extends Controller
             'batch',
             'oep',
             'screenings' => function($q) {
-                $q->orderBy('call_date', 'desc');
+                $q->orderBy('screened_at', 'desc');
             },
             'documents',
             'nextOfKin',

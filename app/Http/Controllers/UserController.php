@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Campus;
 use App\Mail\PasswordResetMail;
+use App\Rules\StrongPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -31,7 +33,7 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $campuses = Campus::where('is_active', true)->pluck('name', 'id');
-        $roles = ['admin', 'campus_admin', 'oep_coordinator', 'visa_officer', 'trainer'];
+        $roles = User::getRoleOptions();
         return view('admin.users.create', compact('campuses', 'roles'));
     }
 
@@ -44,9 +46,10 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email|max:255',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,campus_admin,oep_coordinator,visa_officer,trainer',
+            // SECURITY FIX: Exclude soft-deleted users from uniqueness check
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->withoutTrashed()],
+            'password' => ['required', 'string', 'min:8', 'confirmed', new StrongPassword],
+            'role' => 'required|in:' . implode(',', User::ROLES),
             'campus_id' => 'nullable|exists:campuses,id',
             'phone' => 'nullable|string|max:20',
         ]);
@@ -90,7 +93,7 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $campuses = Campus::where('is_active', true)->pluck('name', 'id');
-        $roles = ['admin', 'campus_admin', 'oep_coordinator', 'visa_officer', 'trainer'];
+        $roles = User::getRoleOptions();
         return view('admin.users.edit', compact('user', 'campuses', 'roles'));
     }
 
@@ -103,11 +106,12 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id . '|max:255',
-            'role' => 'required|in:admin,campus_admin,oep_coordinator,visa_officer,trainer',
+            // SECURITY FIX: Exclude soft-deleted users from uniqueness check
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)->withoutTrashed()],
+            'role' => 'required|in:' . implode(',', User::ROLES),
             'campus_id' => 'nullable|exists:campuses,id',
             'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'min:8', 'confirmed', new StrongPassword],
         ]);
 
         try {
@@ -121,22 +125,22 @@ class UserController extends Controller
             // SECURITY FIX: Prevent role escalation vulnerabilities
 
             // 1. Non-admins cannot change ANY roles (including their own)
-            if (auth()->user()->role !== 'admin' && isset($validated['role'])) {
+            if (!auth()->user()->isSuperAdmin() && isset($validated['role'])) {
                 unset($validated['role']);  // Strip role from validated data
             }
 
             // 2. Admins cannot change their own role (prevents accidental lockout)
-            if (auth()->user()->role === 'admin' && $user->id === auth()->id() && isset($validated['role']) && $validated['role'] !== $user->role) {
+            if (auth()->user()->isSuperAdmin() && $user->id === auth()->id() && isset($validated['role']) && $validated['role'] !== $user->role) {
                 return back()->with('error', 'You cannot change your own role!');
             }
 
             // 3. Prevent removing the last admin (when admin edits another admin)
             // Use database transaction with locking to prevent race conditions
-            if (auth()->user()->role === 'admin' && isset($validated['role']) && $user->role === 'admin' && $validated['role'] !== 'admin') {
+            if (auth()->user()->isSuperAdmin() && isset($validated['role']) && $user->isSuperAdmin() && !in_array($validated['role'], [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN])) {
                 try {
                     \DB::transaction(function() use ($user, $validated) {
                         // Lock users table for counting admins (prevents race condition)
-                        $adminCount = User::where('role', 'admin')
+                        $adminCount = User::whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN])
                             ->where('id', '!=', $user->id)
                             ->lockForUpdate()
                             ->count();
@@ -182,8 +186,10 @@ class UserController extends Controller
             }
 
             // Prevent deleting last admin
-            if ($user->role === 'admin') {
-                $adminCount = User::where('role', 'admin')->where('id', '!=', $user->id)->count();
+            if ($user->isSuperAdmin()) {
+                $adminCount = User::whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN])
+                    ->where('id', '!=', $user->id)
+                    ->count();
                 if ($adminCount === 0) {
                     return back()->with('error', 'Cannot delete the last admin user!');
                 }
@@ -217,8 +223,8 @@ class UserController extends Controller
             }
 
             // Prevent deactivating last admin
-            if ($user->role === 'admin' && $user->is_active) {
-                $activeAdminCount = User::where('role', 'admin')
+            if ($user->isSuperAdmin() && $user->is_active) {
+                $activeAdminCount = User::whereIn('role', [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN])
                     ->where('is_active', true)
                     ->where('id', '!=', $user->id)
                     ->count();
@@ -442,9 +448,9 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)->withoutTrashed()],
             'current_password' => 'nullable|required_with:new_password|string',
-            'new_password' => 'nullable|string|min:8|confirmed',
+            'new_password' => ['nullable', 'string', 'min:8', 'confirmed', new StrongPassword],
         ]);
 
         // Update basic info
@@ -457,6 +463,7 @@ class UserController extends Controller
                 return back()->with('error', 'Current password is incorrect!');
             }
             $user->password = \Hash::make($request->new_password);
+            $user->password_changed_at = now();
         }
 
         $user->save();

@@ -241,6 +241,33 @@ class Candidate extends Model
     }
 
     /**
+     * Get the latest training certificate for the candidate.
+     * Alias for trainingCertificates - returns the most recent certificate.
+     */
+    public function certificate()
+    {
+        return $this->hasOne(TrainingCertificate::class)->latest();
+    }
+
+    /**
+     * Alias for trainingAttendances relationship.
+     * Used by TrainingController for eager loading.
+     */
+    public function attendances()
+    {
+        return $this->trainingAttendances();
+    }
+
+    /**
+     * Alias for trainingAssessments relationship.
+     * Used by TrainingController for eager loading.
+     */
+    public function assessments()
+    {
+        return $this->trainingAssessments();
+    }
+
+    /**
      * Get the visa process for the candidate.
      */
     public function visaProcess()

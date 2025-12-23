@@ -12,39 +12,46 @@ class CampusPolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     public function view(User $user, Campus $campus): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
+            return true;
+        }
+
+        // Campus admin can only view their own campus
+        if ($user->isCampusAdmin() && $user->campus_id === $campus->id) {
+            return true;
+        }
+
+        return false;
     }
 
     public function create(User $user): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function update(User $user, Campus $campus): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function delete(User $user, Campus $campus): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function toggleStatus(User $user, Campus $campus): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function apiList(User $user): bool
     {
         // API list can be accessed by authenticated users who need dropdown data
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 }

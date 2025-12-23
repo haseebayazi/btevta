@@ -584,6 +584,50 @@
         }
     </script>
 
+    {{-- Global UI Helpers --}}
+    <script>
+        // Auto-loading states for forms
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form:not([data-no-loading])').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const btn = form.querySelector('button[type="submit"]');
+                    if (btn && !btn.disabled) {
+                        btn.dataset.originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+                        btn.disabled = true;
+
+                        // Safety fallback
+                        setTimeout(() => {
+                            if (btn.disabled && btn.dataset.originalHtml) {
+                                btn.innerHTML = btn.dataset.originalHtml;
+                                btn.disabled = false;
+                            }
+                        }, 15000);
+                    }
+                });
+            });
+
+            // Delete confirmations
+            document.querySelectorAll('[data-confirm-delete]').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (!confirm(el.dataset.confirmDelete || 'Are you sure you want to delete this?')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            });
+
+            document.querySelectorAll('form[data-confirm]').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    if (!confirm(form.dataset.confirm || 'Are you sure?')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            });
+        });
+    </script>
+
     @stack('scripts')
 </body>
 </html>

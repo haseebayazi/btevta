@@ -24,19 +24,24 @@ class CandidatePolicy
      */
     public function view(User $user, Candidate $candidate): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin users can only view candidates from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $candidate->campus_id === $user->campus_id;
         }
 
         // OEP users can only view candidates assigned to their OEP
-        if ($user->role === 'oep' && $user->oep_id) {
+        if ($user->isOep() && $user->oep_id) {
             return $candidate->oep_id === $user->oep_id;
+        }
+
+        // Visa Partner can view candidates they process
+        if ($user->isVisaPartner() && $user->visa_partner_id) {
+            return $candidate->visa_partner_id === $user->visa_partner_id;
         }
 
         return false;
@@ -47,8 +52,8 @@ class CandidatePolicy
      */
     public function create(User $user): bool
     {
-        // Admin and campus admin users can create candidates
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Admin, Project Director, and campus admin users can create candidates
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -56,13 +61,13 @@ class CandidatePolicy
      */
     public function update(User $user, Candidate $candidate): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin users can only update candidates from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $candidate->campus_id === $user->campus_id;
         }
 
@@ -75,7 +80,7 @@ class CandidatePolicy
     public function delete(User $user, Candidate $candidate): bool
     {
         // Only admin can delete candidates
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -83,7 +88,7 @@ class CandidatePolicy
      */
     public function restore(User $user, Candidate $candidate): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -91,7 +96,7 @@ class CandidatePolicy
      */
     public function forceDelete(User $user, Candidate $candidate): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -99,7 +104,7 @@ class CandidatePolicy
      */
     public function export(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -107,6 +112,6 @@ class CandidatePolicy
      */
     public function import(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isCampusAdmin();
     }
 }

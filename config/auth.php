@@ -11,10 +11,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        // SECURITY FIX: Use Sanctum for API authentication instead of plain tokens
         'api' => [
-            'driver' => 'token',
+            'driver' => 'sanctum',
             'provider' => 'users',
-            'hash' => false,
         ],
     ],
 
@@ -34,5 +34,7 @@ return [
         ],
     ],
 
-    'password_timeout' => 10800,
+    // Password confirmation timeout in seconds (30 minutes)
+    // Reduced from 3 hours for better security
+    'password_timeout' => 1800,
 ];

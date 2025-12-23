@@ -15,8 +15,7 @@ class DeparturePolicy
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can view departures list
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep() || $user->isViewer();
     }
 
     /**
@@ -24,19 +23,19 @@ class DeparturePolicy
      */
     public function view(User $user, Departure $departure): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin, Project Director, and Viewers can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
         // Campus admin can view departures from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $departure->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $departure->candidate) {
             return $departure->candidate->campus_id === $user->campus_id;
         }
 
-        // Viewers can view all
-        if ($user->role === 'viewer') {
-            return true;
+        // OEP can view departures for their assigned candidates
+        if ($user->isOep() && $user->oep_id && $departure->candidate) {
+            return $departure->candidate->oep_id === $user->oep_id;
         }
 
         return false;
@@ -47,7 +46,7 @@ class DeparturePolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -55,13 +54,13 @@ class DeparturePolicy
      */
     public function update(User $user, Departure $departure): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can update departures from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $departure->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $departure->candidate) {
             return $departure->candidate->campus_id === $user->campus_id;
         }
 
@@ -74,7 +73,7 @@ class DeparturePolicy
     public function delete(User $user, Departure $departure): bool
     {
         // Only admin can delete
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     /**
@@ -82,7 +81,7 @@ class DeparturePolicy
      */
     public function recordBriefing(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -90,7 +89,7 @@ class DeparturePolicy
      */
     public function recordDeparture(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -98,7 +97,7 @@ class DeparturePolicy
      */
     public function recordIqama(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -106,7 +105,7 @@ class DeparturePolicy
      */
     public function recordAbsher(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -114,7 +113,7 @@ class DeparturePolicy
      */
     public function recordWps(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -122,7 +121,7 @@ class DeparturePolicy
      */
     public function recordFirstSalary(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -130,7 +129,7 @@ class DeparturePolicy
      */
     public function record90DayCompliance(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -138,7 +137,7 @@ class DeparturePolicy
      */
     public function reportIssue(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -146,7 +145,7 @@ class DeparturePolicy
      */
     public function updateIssue(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     /**
@@ -154,7 +153,7 @@ class DeparturePolicy
      */
     public function viewTimeline(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -162,7 +161,7 @@ class DeparturePolicy
      */
     public function viewComplianceReport(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -170,7 +169,7 @@ class DeparturePolicy
      */
     public function viewTrackingReports(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     /**
@@ -178,6 +177,6 @@ class DeparturePolicy
      */
     public function markReturned(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 }

@@ -218,6 +218,63 @@ class NotificationService
                 'subject' => 'Monthly Remittance Summary - {{month}} {{year}}',
                 'message' => 'Dear {{candidate_name}}, your remittance summary for {{month}} {{year}}: Total remittances: {{count}}, Total amount: PKR {{total_amount}}, Average: PKR {{average_amount}}. Keep up the good work!',
             ],
+            // Document notifications
+            'document_uploaded' => [
+                'subject' => 'Document Uploaded - {{document_type}}',
+                'message' => 'Dear {{candidate_name}}, a new document ({{document_name}}) has been uploaded on {{uploaded_date}}. Expiry: {{expiry_date}}.',
+            ],
+            // Training notifications
+            'training_completed' => [
+                'subject' => 'Training Completed Successfully',
+                'message' => 'Congratulations {{candidate_name}}! You have successfully completed your training in {{trade_name}} at {{campus_name}} on {{completion_date}}.',
+            ],
+            // Departure notifications
+            'departure_confirmed' => [
+                'subject' => 'Departure Confirmed',
+                'message' => 'Dear {{candidate_name}}, your departure has been confirmed for {{departure_date}}. Flight: {{flight_number}}. Destination: {{destination}}.',
+            ],
+            'iqama_recorded' => [
+                'subject' => 'Iqama Registration Confirmed',
+                'message' => 'Dear {{candidate_name}}, your Iqama has been registered. Iqama Number: {{iqama_number}}. Date: {{iqama_date}}.',
+            ],
+            'first_salary_confirmed' => [
+                'subject' => 'First Salary Confirmed',
+                'message' => 'Congratulations {{candidate_name}}! Your first salary has been confirmed on {{salary_date}} from {{employer}}.',
+            ],
+            'compliance_achieved' => [
+                'subject' => '90-Day Compliance Achieved',
+                'message' => 'Congratulations {{candidate_name}}! You have successfully completed your 90-day compliance period on {{compliance_date}}.',
+            ],
+            'issue_reported' => [
+                'subject' => 'Issue Reported - {{issue_type}}',
+                'message' => 'An issue has been reported for {{candidate_name}}: {{issue_description}}. Reported on {{reported_date}}.',
+            ],
+            // Complaint notifications
+            'complaint_registered' => [
+                'subject' => 'Complaint Registered - {{complaint_reference}}',
+                'message' => 'Dear {{candidate_name}}, your complaint (Ref: {{complaint_reference}}) in category {{category}} has been registered on {{submitted_date}}. We will process it shortly.',
+            ],
+            'complaint_assigned' => [
+                'subject' => 'New Complaint Assigned - {{complaint_reference}}',
+                'message' => 'Dear {{user_name}}, a new complaint (Ref: {{complaint_reference}}) has been assigned to you. Category: {{category}}. Priority: {{priority}}. Complainant: {{complainant_name}}.',
+            ],
+            // Visa notifications
+            'visa_process_initiated' => [
+                'subject' => 'Visa Process Initiated',
+                'message' => 'Dear {{candidate_name}}, your visa process has been initiated on {{initiated_date}} for {{trade_name}}. You will be notified of each step.',
+            ],
+            'visa_stage_completed' => [
+                'subject' => 'Visa Stage Completed - {{stage_name}}',
+                'message' => 'Dear {{candidate_name}}, the {{stage_name}} stage of your visa process has been completed on {{completion_date}}.',
+            ],
+            'ticket_uploaded' => [
+                'subject' => 'Travel Ticket Uploaded',
+                'message' => 'Dear {{candidate_name}}, your travel ticket has been uploaded on {{upload_date}}. Flight: {{flight_number}}.',
+            ],
+            'visa_process_completed' => [
+                'subject' => 'Visa Process Completed',
+                'message' => 'Congratulations {{candidate_name}}! Your visa process has been completed on {{completion_date}}. PTN: {{ptn_number}}. Visa: {{visa_number}}.',
+            ],
             'default' => [
                 'subject' => 'Notification from BTEVTA System',
                 'message' => '{{message}}',
@@ -860,5 +917,349 @@ class NotificationService
     public function sendBulkRemittanceNotifications($candidates, string $notificationType, array $customData = []): array
     {
         return $this->bulkSend($candidates, $notificationType, $customData, ['email', 'sms']);
+    }
+
+    // ==================== DOCUMENT ARCHIVE NOTIFICATIONS ====================
+
+    /**
+     * Send notification when document is uploaded
+     */
+    public function sendDocumentUploaded($document): array
+    {
+        $candidate = $document->candidate;
+
+        if (!$candidate) {
+            // If document is not linked to a candidate, log and return
+            activity()
+                ->withProperties(['document_id' => $document->id])
+                ->log('Document uploaded notification skipped - no candidate linked');
+
+            return ['success' => true, 'skipped' => 'No candidate linked to document'];
+        }
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'document_type' => $document->document_type,
+            'document_name' => $document->document_name,
+            'uploaded_date' => now()->format('M d, Y'),
+            'expiry_date' => $document->expiry_date ? $document->expiry_date->format('M d, Y') : 'N/A',
+        ];
+
+        return $this->send($candidate, 'document_uploaded', $data, ['email', 'in_app']);
+    }
+
+    // ==================== TRAINING NOTIFICATIONS ====================
+
+    /**
+     * Send notification when candidate is assigned to training batch
+     */
+    public function sendTrainingAssigned($candidate, $batch): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'batch_code' => $batch->batch_code ?? 'N/A',
+            'trade_name' => $batch->trade->name ?? 'N/A',
+            'start_date' => $batch->start_date ? $batch->start_date->format('M d, Y') : 'TBA',
+            'campus_name' => $batch->campus->name ?? 'N/A',
+            'location' => $batch->campus->address ?? 'N/A',
+        ];
+
+        return $this->send($candidate, 'training_started', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when certificate is issued
+     */
+    public function sendCertificateIssued($candidate): array
+    {
+        $certificate = $candidate->certificate ?? $candidate->trainingCertificates()->latest()->first();
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'certificate_number' => $certificate ? $certificate->certificate_number : 'N/A',
+            'campus_name' => $candidate->campus->name ?? 'N/A',
+            'trade_name' => $candidate->trade->name ?? 'N/A',
+            'issue_date' => $certificate && $certificate->issue_date ? $certificate->issue_date->format('M d, Y') : now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'certificate_issued', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when training is completed
+     */
+    public function sendTrainingCompleted($candidate): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'trade_name' => $candidate->trade->name ?? 'N/A',
+            'campus_name' => $candidate->campus->name ?? 'N/A',
+            'completion_date' => now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'training_completed', $data, ['email', 'sms']);
+    }
+
+    // ==================== DEPARTURE NOTIFICATIONS ====================
+
+    /**
+     * Send notification when pre-departure briefing is completed
+     */
+    public function sendBriefingCompleted($candidate): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'briefing_date' => now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'departure_briefing', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when departure is confirmed
+     */
+    public function sendDepartureConfirmed($candidate): array
+    {
+        $departure = $candidate->departure;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'departure_date' => $departure && $departure->departure_date ? $departure->departure_date->format('M d, Y') : 'TBA',
+            'flight_number' => $departure->flight_number ?? 'TBA',
+            'destination' => $departure->destination ?? 'Saudi Arabia',
+        ];
+
+        return $this->send($candidate, 'departure_confirmed', $data, ['email', 'sms', 'whatsapp']);
+    }
+
+    /**
+     * Send notification when Iqama is recorded
+     */
+    public function sendIqamaRecorded($candidate): array
+    {
+        $departure = $candidate->departure;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'iqama_number' => $departure->iqama_number ?? 'N/A',
+            'iqama_date' => $departure && $departure->iqama_date ? $departure->iqama_date->format('M d, Y') : now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'iqama_recorded', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when first salary is confirmed
+     */
+    public function sendFirstSalaryConfirmed($candidate): array
+    {
+        $departure = $candidate->departure;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'salary_date' => $departure && $departure->first_salary_date ? $departure->first_salary_date->format('M d, Y') : now()->format('M d, Y'),
+            'employer' => $departure->employer_name ?? 'N/A',
+        ];
+
+        return $this->send($candidate, 'first_salary_confirmed', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when 90-day compliance is achieved
+     */
+    public function sendComplianceAchieved($candidate): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'compliance_date' => now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'compliance_achieved', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when an issue is reported for a candidate
+     */
+    public function sendIssueReported($candidate, $issue): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'issue_type' => $issue['type'] ?? 'General',
+            'issue_description' => $issue['description'] ?? 'An issue has been reported',
+            'reported_date' => now()->format('M d, Y'),
+        ];
+
+        // Send to candidate and admins
+        return $this->send($candidate, 'issue_reported', $data, ['email', 'in_app']);
+    }
+
+    // ==================== COMPLAINT NOTIFICATIONS ====================
+
+    /**
+     * Send notification when complaint is registered
+     */
+    public function sendComplaintRegistered($complaint): array
+    {
+        $candidate = $complaint->candidate;
+        $recipient = $candidate ?? $complaint->complainant_email;
+
+        $data = [
+            'candidate_name' => $candidate ? $candidate->name : $complaint->complainant_name,
+            'complaint_reference' => $complaint->complaint_reference ?? $complaint->id,
+            'category' => $complaint->category ?? 'General',
+            'submitted_date' => $complaint->created_at->format('M d, Y'),
+        ];
+
+        return $this->send($recipient, 'complaint_registered', $data, ['email']);
+    }
+
+    /**
+     * Send notification when complaint is assigned to a user
+     */
+    public function sendComplaintAssigned($complaint, $assignedUser): array
+    {
+        $data = [
+            'user_name' => $assignedUser->name,
+            'complaint_reference' => $complaint->complaint_reference ?? $complaint->id,
+            'category' => $complaint->category ?? 'General',
+            'priority' => $complaint->priority ?? 'Normal',
+            'complainant_name' => $complaint->candidate ? $complaint->candidate->name : $complaint->complainant_name,
+        ];
+
+        return $this->send($assignedUser, 'complaint_assigned', $data, ['email', 'in_app']);
+    }
+
+    /**
+     * Send notification when complaint is escalated
+     */
+    public function sendComplaintEscalated($complaint): array
+    {
+        $candidate = $complaint->candidate;
+        $recipient = $candidate ?? $complaint->complainant_email;
+
+        $data = [
+            'candidate_name' => $candidate ? $candidate->name : $complaint->complainant_name,
+            'complaint_reference' => $complaint->complaint_reference ?? $complaint->id,
+            'status' => 'Escalated',
+            'update_message' => 'Your complaint has been escalated for priority attention.',
+        ];
+
+        return $this->send($recipient, 'complaint_update', $data, ['email']);
+    }
+
+    /**
+     * Send notification when complaint is resolved
+     */
+    public function sendComplaintResolved($complaint): array
+    {
+        $candidate = $complaint->candidate;
+        $recipient = $candidate ?? $complaint->complainant_email;
+
+        $data = [
+            'candidate_name' => $candidate ? $candidate->name : $complaint->complainant_name,
+            'complaint_reference' => $complaint->complaint_reference ?? $complaint->id,
+            'status' => 'Resolved',
+            'update_message' => $complaint->resolution_notes ?? 'Your complaint has been resolved.',
+        ];
+
+        return $this->send($recipient, 'complaint_update', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when complaint is closed
+     */
+    public function sendComplaintClosed($complaint): array
+    {
+        $candidate = $complaint->candidate;
+        $recipient = $candidate ?? $complaint->complainant_email;
+
+        $data = [
+            'candidate_name' => $candidate ? $candidate->name : $complaint->complainant_name,
+            'complaint_reference' => $complaint->complaint_reference ?? $complaint->id,
+            'status' => 'Closed',
+            'update_message' => 'Your complaint has been closed. Thank you for your feedback.',
+        ];
+
+        return $this->send($recipient, 'complaint_update', $data, ['email']);
+    }
+
+    // ==================== VISA PROCESSING NOTIFICATIONS ====================
+
+    /**
+     * Send notification when visa process is initiated
+     */
+    public function sendVisaProcessInitiated($candidate): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'initiated_date' => now()->format('M d, Y'),
+            'trade_name' => $candidate->trade->name ?? 'N/A',
+        ];
+
+        return $this->send($candidate, 'visa_process_initiated', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when a visa stage is completed
+     */
+    public function sendVisaStageCompleted($candidate, string $stage): array
+    {
+        $data = [
+            'candidate_name' => $candidate->name,
+            'stage_name' => $stage,
+            'completion_date' => now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'visa_stage_completed', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when visa is issued
+     */
+    public function sendVisaIssued($candidate): array
+    {
+        $visaProcess = $candidate->visaProcess;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'visa_number' => $visaProcess->visa_number ?? 'N/A',
+            'ptn_number' => $visaProcess->ptn_number ?? 'N/A',
+            'issue_date' => $visaProcess && $visaProcess->visa_issue_date ? $visaProcess->visa_issue_date->format('M d, Y') : now()->format('M d, Y'),
+        ];
+
+        return $this->send($candidate, 'visa_approved', $data, ['email', 'sms', 'whatsapp']);
+    }
+
+    /**
+     * Send notification when ticket is uploaded
+     */
+    public function sendTicketUploaded($candidate): array
+    {
+        $visaProcess = $candidate->visaProcess;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'upload_date' => now()->format('M d, Y'),
+            'flight_number' => $visaProcess->flight_number ?? 'TBA',
+        ];
+
+        return $this->send($candidate, 'ticket_uploaded', $data, ['email', 'sms']);
+    }
+
+    /**
+     * Send notification when visa process is completed
+     */
+    public function sendVisaProcessCompleted($candidate): array
+    {
+        $visaProcess = $candidate->visaProcess;
+
+        $data = [
+            'candidate_name' => $candidate->name,
+            'completion_date' => now()->format('M d, Y'),
+            'ptn_number' => $visaProcess->ptn_number ?? 'N/A',
+            'visa_number' => $visaProcess->visa_number ?? 'N/A',
+        ];
+
+        return $this->send($candidate, 'visa_process_completed', $data, ['email', 'sms', 'whatsapp']);
     }
 }

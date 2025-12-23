@@ -9,8 +9,14 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 /**
  * Policy for visa processing operations
  *
- * CRITICAL: This policy was missing, causing ALL visa processing operations to fail.
- * Controller had authorization checks but no policy existed to evaluate them.
+ * Roles with access:
+ * - super_admin/admin: Full access to all visa processes
+ * - project_director: View all, limited modifications
+ * - campus_admin: Access to their campus candidates only
+ * - oep: Access to their assigned candidates
+ * - visa_partner: Full access to visa processing (their specialty)
+ * - instructor/trainer: View access only
+ * - viewer: Read-only access
  */
 class VisaProcessPolicy
 {
@@ -21,7 +27,8 @@ class VisaProcessPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isOep() || $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -29,21 +36,34 @@ class VisaProcessPolicy
      */
     public function view(User $user, VisaProcess $visaProcess = null): bool
     {
-        // Admins and viewers can view all
-        if (in_array($user->role, ['admin', 'viewer'])) {
+        // Super admins, project directors, and viewers can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
+            return true;
+        }
+
+        // Visa partners can view all visa processes
+        if ($user->isVisaPartner()) {
             return true;
         }
 
         // Campus admin can only view their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             if ($visaProcess && $visaProcess->candidate) {
                 return $visaProcess->candidate->campus_id === $user->campus_id;
             }
-            return true; // Allow access to view form
+            return true;
         }
 
-        // Instructors can view
-        if ($user->role === 'instructor') {
+        // OEP can view their assigned candidates
+        if ($user->isOep() && $user->oep_id) {
+            if ($visaProcess && $visaProcess->candidate) {
+                return $visaProcess->candidate->oep_id === $user->oep_id;
+            }
+            return true;
+        }
+
+        // Trainers/Instructors can view
+        if ($user->isTrainer()) {
             return true;
         }
 
@@ -55,7 +75,7 @@ class VisaProcessPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isCampusAdmin() || $user->isOep() || $user->isVisaPartner();
     }
 
     /**
@@ -63,17 +83,25 @@ class VisaProcessPolicy
      */
     public function update(User $user, VisaProcess $visaProcess = null): bool
     {
-        // Admins can update all
-        if ($user->role === 'admin') {
+        // Super admins and visa partners can update all
+        if ($user->isSuperAdmin() || $user->isVisaPartner()) {
             return true;
         }
 
         // Campus admin can only update their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             if ($visaProcess && $visaProcess->candidate) {
                 return $visaProcess->candidate->campus_id === $user->campus_id;
             }
-            return true; // Allow access to update form
+            return true;
+        }
+
+        // OEP can update their assigned candidates
+        if ($user->isOep() && $user->oep_id) {
+            if ($visaProcess && $visaProcess->candidate) {
+                return $visaProcess->candidate->oep_id === $user->oep_id;
+            }
+            return true;
         }
 
         return false;
@@ -84,13 +112,13 @@ class VisaProcessPolicy
      */
     public function delete(User $user, VisaProcess $visaProcess = null): bool
     {
-        // Only admins can delete
-        if ($user->role === 'admin') {
+        // Only super admins can delete
+        if ($user->isSuperAdmin()) {
             return true;
         }
 
         // Campus admin can delete from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             if ($visaProcess && $visaProcess->candidate) {
                 return $visaProcess->candidate->campus_id === $user->campus_id;
             }
@@ -104,7 +132,7 @@ class VisaProcessPolicy
      */
     public function complete(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isCampusAdmin() || $user->isOep() || $user->isVisaPartner();
     }
 
     /**
@@ -112,7 +140,8 @@ class VisaProcessPolicy
      */
     public function viewTimeline(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isOep() || $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 
     /**
@@ -120,6 +149,7 @@ class VisaProcessPolicy
      */
     public function viewReports(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin', 'instructor', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() ||
+               $user->isVisaPartner() || $user->isTrainer() || $user->isViewer();
     }
 }

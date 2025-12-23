@@ -12,29 +12,29 @@ class RemittanceBeneficiaryPolicy
 
     public function viewAny(User $user): bool
     {
-        // Allow admins, campus admins, OEPs
-        return in_array($user->role, ['admin', 'campus_admin', 'oep']);
+        // Allow admins, project directors, campus admins, OEPs
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep();
     }
 
     public function view(User $user, RemittanceBeneficiary $beneficiary): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can view beneficiaries from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $beneficiary->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $beneficiary->candidate) {
             return $beneficiary->candidate->campus_id === $user->campus_id;
         }
 
         // OEP can view beneficiaries from their candidates
-        if ($user->role === 'oep' && $user->oep_id && $beneficiary->candidate) {
+        if ($user->isOep() && $user->oep_id && $beneficiary->candidate) {
             return $beneficiary->candidate->oep_id === $user->oep_id;
         }
 
         // Candidates can view their own beneficiaries
-        if ($user->role === 'candidate' && $beneficiary->candidate) {
+        if ($user->isCandidate() && $beneficiary->candidate) {
             return $beneficiary->candidate->user_id === $user->id;
         }
 
@@ -43,19 +43,19 @@ class RemittanceBeneficiaryPolicy
 
     public function create(User $user): bool
     {
-        // Only admin and campus_admin can create beneficiaries
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Only admin, project director, and campus_admin can create beneficiaries
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, RemittanceBeneficiary $beneficiary): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can update beneficiaries from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $beneficiary->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $beneficiary->candidate) {
             return $beneficiary->candidate->campus_id === $user->campus_id;
         }
 
@@ -64,13 +64,13 @@ class RemittanceBeneficiaryPolicy
 
     public function delete(User $user, RemittanceBeneficiary $beneficiary): bool
     {
-        // Admin can delete all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can delete all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can delete beneficiaries from their campus
-        if ($user->role === 'campus_admin' && $user->campus_id && $beneficiary->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $beneficiary->candidate) {
             return $beneficiary->candidate->campus_id === $user->campus_id;
         }
 

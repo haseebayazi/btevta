@@ -12,14 +12,13 @@ class ComplaintPolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
     }
 
     public function view(User $user, Complaint $complaint): bool
     {
-        // Admin can view all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
@@ -29,7 +28,7 @@ class ComplaintPolicy
         }
 
         // Campus users can view complaints related to their candidates
-        if ($user->role === 'campus_admin' && $user->campus_id && $complaint->candidate) {
+        if ($user->isCampusAdmin() && $user->campus_id && $complaint->candidate) {
             return $complaint->candidate->campus_id === $user->campus_id;
         }
 
@@ -38,15 +37,14 @@ class ComplaintPolicy
 
     public function create(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        // Only admin and campus_admin can create complaints, not viewers or instructors
-        return in_array($user->role, ['admin', 'campus_admin']);
+        // Only admin, project director, and campus_admin can create complaints
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, Complaint $complaint): bool
     {
-        // Admin can update all
-        if ($user->role === 'admin') {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
@@ -60,31 +58,31 @@ class ComplaintPolicy
 
     public function delete(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function assign(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     public function resolve(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin' || $complaint->assigned_to === $user->id;
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $complaint->assigned_to === $user->id;
     }
 
     public function escalate(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin' || $complaint->assigned_to === $user->id;
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $complaint->assigned_to === $user->id;
     }
 
     public function close(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     public function reopen(User $user, Complaint $complaint): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 }

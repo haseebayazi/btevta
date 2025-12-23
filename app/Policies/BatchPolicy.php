@@ -12,17 +12,20 @@ class BatchPolicy
 
     public function viewAny(User $user): bool
     {
-        // FIXED: Was allowing ALL users - should restrict to specific roles
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     public function view(User $user, Batch $batch): bool
     {
-        if ($user->role === 'admin') {
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
             return true;
         }
 
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            return $batch->campus_id === $user->campus_id;
+        }
+
+        if ($user->isTrainer() && $user->campus_id) {
             return $batch->campus_id === $user->campus_id;
         }
 
@@ -31,16 +34,16 @@ class BatchPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function update(User $user, Batch $batch): bool
     {
-        if ($user->role === 'admin') {
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
-        if ($user->role === 'campus_admin' && $user->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id) {
             return $batch->campus_id === $user->campus_id;
         }
 
@@ -49,23 +52,23 @@ class BatchPolicy
 
     public function delete(User $user, Batch $batch): bool
     {
-        return $user->role === 'admin';
+        return $user->isSuperAdmin();
     }
 
     public function changeStatus(User $user, Batch $batch): bool
     {
-        return in_array($user->role, ['admin', 'campus_admin']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
     public function apiList(User $user): bool
     {
         // API list can be accessed by authenticated users who need dropdown data
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 
     public function byCampus(User $user): bool
     {
         // API endpoint for batches by campus - needed for dropdown filtering
-        return in_array($user->role, ['admin', 'campus_admin', 'viewer']);
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
     }
 }
