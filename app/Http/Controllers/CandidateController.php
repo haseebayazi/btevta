@@ -86,7 +86,15 @@ class CandidateController extends Controller
             return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
-        return view('candidates.create', compact('campuses', 'trades', 'oeps'));
+        // FIX: Include batches with trade relationship for the create form
+        $batches = Cache::remember('active_batches_with_trades', 3600, function () {
+            return Batch::with('trade:id,name')
+                ->where('status', 'active')
+                ->select('id', 'batch_code', 'name', 'trade_id')
+                ->get();
+        });
+
+        return view('candidates.create', compact('campuses', 'trades', 'oeps', 'batches'));
     }
 
     public function store(Request $request)
@@ -101,8 +109,8 @@ class CandidateController extends Controller
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|in:male,female,other',
             'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:255',
-            'address' => 'required|string',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
             'district' => 'required|string|max:100',
             'tehsil' => 'nullable|string|max:100',
             'trade_id' => 'required|exists:trades,id',

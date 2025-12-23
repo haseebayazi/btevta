@@ -17,6 +17,23 @@
         </div>
     </div>
 
+    <!-- Error Summary -->
+    @if ($errors->any())
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle mt-1 mr-3"></i>
+            <div>
+                <p class="font-semibold">Please fix the following errors:</p>
+                <ul class="list-disc list-inside mt-2 text-sm">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Form Card -->
     <div class="bg-white rounded-lg shadow-md p-8">
         <form action="{{ route('candidates.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
@@ -133,13 +150,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Campus -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Campus *</label>
-                        <select name="campus_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('campus_id') border-red-500 @enderror" required>
-                            <option value="">Select Campus</option>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Campus (Optional)</label>
+                        <select name="campus_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('campus_id') border-red-500 @enderror">
+                            <option value="">Select Campus (can be assigned later)</option>
                             @foreach($campuses ?? [] as $campus)
                                 <option value="{{ $campus->id }}" {{ old('campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
                             @endforeach
                         </select>
+                        <p class="text-xs text-gray-500 mt-1">Campus can be assigned later from candidate profile</p>
                         @error('campus_id')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
                     </div>
 
