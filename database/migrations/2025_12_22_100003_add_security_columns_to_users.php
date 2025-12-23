@@ -38,38 +38,57 @@ return new class extends Migration
             }
         });
 
-        // Add foreign key constraints for audit columns
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'created_by_constraint')) {
+        // Add foreign key constraints for audit columns (skip if already exist)
+        try {
+            Schema::table('users', function (Blueprint $table) {
                 $table->foreign('created_by', 'users_created_by_foreign')
                     ->references('id')
                     ->on('users')
                     ->nullOnDelete();
-            }
-            if (!Schema::hasColumn('users', 'updated_by_constraint')) {
+            });
+        } catch (\Exception $e) {
+            // Foreign key may already exist
+        }
+
+        try {
+            Schema::table('users', function (Blueprint $table) {
                 $table->foreign('updated_by', 'users_updated_by_foreign')
                     ->references('id')
                     ->on('users')
                     ->nullOnDelete();
-            }
-        });
+            });
+        } catch (\Exception $e) {
+            // Foreign key may already exist
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Drop foreign keys first
-            $table->dropForeign('users_created_by_foreign');
-            $table->dropForeign('users_updated_by_foreign');
+        // Drop foreign keys first (ignore if they don't exist)
+        try {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign('users_created_by_foreign');
+            });
+        } catch (\Exception $e) {
+            // Foreign key may not exist
+        }
 
-            // Drop columns
-            $table->dropColumn([
-                'failed_login_attempts',
-                'locked_until',
-                'password_changed_at',
-                'created_by',
-                'updated_by',
-            ]);
+        try {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign('users_updated_by_foreign');
+            });
+        } catch (\Exception $e) {
+            // Foreign key may not exist
+        }
+
+        // Drop columns
+        Schema::table('users', function (Blueprint $table) {
+            $columns = ['failed_login_attempts', 'locked_until', 'password_changed_at', 'created_by', 'updated_by'];
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('users', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

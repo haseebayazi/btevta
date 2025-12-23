@@ -14,6 +14,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip if table already exists (idempotent migration)
+        if (Schema::hasTable('training_schedules')) {
+            return;
+        }
+
         Schema::create('training_schedules', function (Blueprint $table) {
             $table->id();
 
