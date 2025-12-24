@@ -21,9 +21,9 @@ class ImportController extends Controller
     {
         $this->authorize('import', Candidate::class);
 
-        // Get all active trades with their codes for reference
+        // Get all active trades with ID, code, and name for reference
         $trades = Trade::where('is_active', true)
-            ->select('code', 'name')
+            ->select('id', 'code', 'name')
             ->orderBy('name')
             ->get();
 
@@ -88,10 +88,10 @@ class ImportController extends Controller
                     'phone' => 'required|string|max:20',
                     'email' => 'nullable|email|max:255',
                     'district' => 'required|string|max:100',
-                    'trade_code' => 'required|exists:trades,code',
+                    'trade_id' => 'required|exists:trades,id',
                 ], [
-                    'trade_code.required' => 'Trade is required. Please provide Trade Code, ID, or Name.',
-                    'trade_code.exists' => "Trade '{$data['trade_raw']}' does not exist. Please use a valid Trade Code, ID, or Name from the 'Trades List' sheet in the template.",
+                    'trade_id.required' => "Trade '{$data['trade_raw']}' was not found. Please use a valid Trade ID, Code, or Name.",
+                    'trade_id.exists' => "Trade '{$data['trade_raw']}' does not exist. Please check the 'Trades List' sheet in the template.",
                 ]);
 
                 if ($validator->fails()) {
@@ -101,9 +101,6 @@ class ImportController extends Controller
                 }
 
                 try {
-                    // Get trade by code
-                    $trade = Trade::where('code', $data['trade_code'])->first();
-                    
                     $candidateData = [
                         'btevta_id' => $data['btevta_id'],
                         'cnic' => $data['cnic'],
@@ -116,8 +113,8 @@ class ImportController extends Controller
                         'address' => $data['address'] ?? 'N/A',
                         'district' => $data['district'],
                         'tehsil' => $data['tehsil'] ?? null,
-                        'trade_id' => $trade->id,
-                        'status' => 'listed',
+                        'trade_id' => $data['trade_id'],
+                        'status' => 'new',
                     ];
 
                     $candidate = Candidate::create($candidateData);
@@ -155,26 +152,35 @@ class ImportController extends Controller
         // Get the trade code/id from column L (index 11)
         $tradeValue = trim($row[11] ?? '');
 
-        // Try to resolve trade by ID if it's numeric, otherwise use as code
+        // Try to resolve trade - supports ID, Code, or Name (case-insensitive)
+        $tradeId = null;
         $tradeCode = null;
         if (!empty($tradeValue)) {
+            $trade = null;
+
             if (is_numeric($tradeValue)) {
-                // It's likely a trade ID, try to get the trade code
+                // It's likely a trade ID
                 $trade = Trade::find((int)$tradeValue);
-                if ($trade) {
-                    $tradeCode = $trade->code;
-                }
-            } else {
-                // It's a trade code or name, try to find matching trade
-                $trade = Trade::where('code', $tradeValue)
-                    ->orWhere('name', 'like', $tradeValue)
-                    ->first();
-                if ($trade) {
-                    $tradeCode = $trade->code;
-                } else {
-                    // Keep original value for validation error
-                    $tradeCode = $tradeValue;
-                }
+            }
+
+            if (!$trade) {
+                // Try exact code match (case-insensitive)
+                $trade = Trade::whereRaw('LOWER(code) = ?', [strtolower($tradeValue)])->first();
+            }
+
+            if (!$trade) {
+                // Try exact name match (case-insensitive)
+                $trade = Trade::whereRaw('LOWER(name) = ?', [strtolower($tradeValue)])->first();
+            }
+
+            if (!$trade) {
+                // Try partial name match (case-insensitive)
+                $trade = Trade::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($tradeValue) . '%'])->first();
+            }
+
+            if ($trade) {
+                $tradeId = $trade->id;
+                $tradeCode = $trade->code;
             }
         }
 
@@ -184,12 +190,13 @@ class ImportController extends Controller
             'name' => $row[2] ?? null,
             'father_name' => $row[3] ?? null,
             'date_of_birth' => $row[4] ?? null,
-            'gender' => $row[5] ?? null,
+            'gender' => strtolower(trim($row[5] ?? '')),
             'phone' => $row[6] ?? null,
             'email' => $row[7] ?? null,
             'address' => $row[8] ?? null,
             'district' => $row[9] ?? null,
             'tehsil' => $row[10] ?? null,
+            'trade_id' => $tradeId,
             'trade_code' => $tradeCode,
             'trade_raw' => $tradeValue, // Keep original for error reporting
         ];
