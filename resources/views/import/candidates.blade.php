@@ -76,14 +76,15 @@
     </div>
     @endif
 
-    <!-- Available Trade Codes -->
+    <!-- Available Trades -->
     <div class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="font-semibold mb-4">Available Trade Codes</h3>
-        <p class="text-sm text-gray-600 mb-3">Use these codes in the "Trade Code" column of your import file:</p>
+        <h3 class="font-semibold mb-4">Available Trades</h3>
+        <p class="text-sm text-gray-600 mb-3">Use <strong>ID</strong>, <strong>Code</strong>, or <strong>Name</strong> in the "Trade" column of your import file:</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
             @forelse($trades as $trade)
             <div class="border border-gray-200 rounded px-3 py-2">
-                <span class="font-mono text-sm font-semibold text-blue-600">{{ $trade->code }}</span>
+                <span class="font-mono text-xs bg-gray-100 text-gray-700 px-1 rounded">ID: {{ $trade->id }}</span>
+                <span class="font-mono text-sm font-semibold text-blue-600 ml-1">{{ $trade->code }}</span>
                 <span class="text-sm text-gray-600">- {{ $trade->name }}</span>
             </div>
             @empty
@@ -137,10 +138,10 @@
                         <td class="px-4 py-2 text-gray-600">male</td>
                     </tr>
                     <tr>
-                        <td class="px-4 py-2">Trade Code</td>
+                        <td class="px-4 py-2">Trade</td>
                         <td class="px-4 py-2 text-red-600">Yes</td>
-                        <td class="px-4 py-2">Valid trade code</td>
-                        <td class="px-4 py-2 text-gray-600">TRD-ELC</td>
+                        <td class="px-4 py-2">ID, Code, or Name</td>
+                        <td class="px-4 py-2 text-gray-600">1, TRD-ELC, or Electrician</td>
                     </tr>
                 </tbody>
             </table>
