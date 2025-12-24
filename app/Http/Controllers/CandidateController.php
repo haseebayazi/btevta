@@ -53,16 +53,16 @@ class CandidateController extends Controller
 
         $candidates = $query->latest()->paginate(20);
 
-        // PERFORMANCE: Cache dropdown data for 24 hours to reduce database queries
-        $campuses = Cache::remember('active_campuses', 86400, function () {
+        // PERFORMANCE: Cache dropdown data - using distinct keys to avoid format conflicts
+        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
             return Campus::where('is_active', true)->select('id', 'name')->get();
         });
 
-        $trades = Cache::remember('active_trades', 86400, function () {
+        $trades = Cache::remember('trades_list_objects', 86400, function () {
             return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
-        $batches = Cache::remember('active_batches', 3600, function () {
+        $batches = Cache::remember('batches_list_objects', 3600, function () {
             return Batch::where('status', 'active')->select('id', 'batch_code', 'name')->get();
         });
 
@@ -73,16 +73,17 @@ class CandidateController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        // PERFORMANCE: Use cached dropdown data
-        $campuses = Cache::remember('active_campuses', 86400, function () {
+        // NOTE: Using distinct cache keys to avoid conflicts with BatchController
+        // which uses pluck() format for the same data
+        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
             return Campus::where('is_active', true)->select('id', 'name')->get();
         });
 
-        $trades = Cache::remember('active_trades', 86400, function () {
+        $trades = Cache::remember('trades_list_objects', 86400, function () {
             return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
-        $oeps = Cache::remember('active_oeps', 86400, function () {
+        $oeps = Cache::remember('oeps_list_objects', 86400, function () {
             return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
@@ -167,16 +168,16 @@ class CandidateController extends Controller
     {
         $this->authorize('update', $candidate);
 
-        // PERFORMANCE: Use cached dropdown data (consistent with create method)
-        $campuses = Cache::remember('active_campuses', 86400, function () {
+        // PERFORMANCE: Use cached dropdown data - using distinct keys to avoid format conflicts
+        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
             return Campus::where('is_active', true)->select('id', 'name')->get();
         });
 
-        $trades = Cache::remember('active_trades', 86400, function () {
+        $trades = Cache::remember('trades_list_objects', 86400, function () {
             return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
-        $oeps = Cache::remember('active_oeps', 86400, function () {
+        $oeps = Cache::remember('oeps_list_objects', 86400, function () {
             return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
         });
 
