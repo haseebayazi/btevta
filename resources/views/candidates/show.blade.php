@@ -139,8 +139,14 @@
             <!-- Photo Card -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Candidate Photo</h3>
-                @if($candidate->photo_path)
-                    <img src="{{ Storage::url($candidate->photo_path) }}" alt="{{ $candidate->name }}" class="w-full h-auto rounded-lg border border-gray-300">
+                @if($candidate->photo_url)
+                    <img src="{{ $candidate->photo_url }}" alt="{{ $candidate->name }}" class="w-full h-auto rounded-lg border border-gray-300" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-full aspect-square bg-gray-200 rounded-lg items-center justify-center" style="display: none;">
+                        <div class="text-center">
+                            <i class="fas fa-user text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500">Photo unavailable</p>
+                        </div>
+                    </div>
                 @else
                     <div class="w-full aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
                         <div class="text-center">
