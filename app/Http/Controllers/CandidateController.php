@@ -87,10 +87,12 @@ class CandidateController extends Controller
         });
 
         // FIX: Include batches with trade relationship for the create form
-        $batches = Cache::remember('active_batches_with_trades', 3600, function () {
+        // Include both 'planned' and 'active' batches so newly created batches are visible
+        $batches = Cache::remember('available_batches_with_trades', 3600, function () {
             return Batch::with('trade:id,name')
-                ->where('status', 'active')
-                ->select('id', 'batch_code', 'name', 'trade_id')
+                ->whereIn('status', ['planned', 'active'])
+                ->select('id', 'batch_code', 'name', 'trade_id', 'status')
+                ->orderBy('created_at', 'desc')
                 ->get();
         });
 
