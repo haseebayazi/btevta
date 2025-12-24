@@ -477,11 +477,30 @@ class Candidate extends Model
     public function getFormattedCnicAttribute()
     {
         if ($this->cnic && strlen($this->cnic) == 13) {
-            return substr($this->cnic, 0, 5) . '-' . 
-                   substr($this->cnic, 5, 7) . '-' . 
+            return substr($this->cnic, 0, 5) . '-' .
+                   substr($this->cnic, 5, 7) . '-' .
                    substr($this->cnic, 12, 1);
         }
         return $this->cnic;
+    }
+
+    /**
+     * Get the photo URL.
+     * Handles both external URLs and local storage paths.
+     */
+    public function getPhotoUrlAttribute()
+    {
+        if (empty($this->photo_path)) {
+            return null;
+        }
+
+        // If it's already a full URL, return as-is
+        if (str_starts_with($this->photo_path, 'http://') || str_starts_with($this->photo_path, 'https://')) {
+            return $this->photo_path;
+        }
+
+        // Otherwise, it's a local storage path
+        return asset('storage/' . $this->photo_path);
     }
 
     /**

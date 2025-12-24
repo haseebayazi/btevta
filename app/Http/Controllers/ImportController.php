@@ -90,8 +90,8 @@ class ImportController extends Controller
                     'district' => 'required|string|max:100',
                     'trade_code' => 'required|exists:trades,code',
                 ], [
-                    'trade_code.required' => 'Trade Code is required',
-                    'trade_code.exists' => 'Trade Code does not exist in the system. Please use a valid trade code from the trades list.',
+                    'trade_code.required' => 'Trade is required. Please provide Trade Code, ID, or Name.',
+                    'trade_code.exists' => "Trade '{$data['trade_raw']}' does not exist. Please use a valid Trade Code, ID, or Name from the 'Trades List' sheet in the template.",
                 ]);
 
                 if ($validator->fails()) {
@@ -152,6 +152,32 @@ class ImportController extends Controller
 
     private function mapRowToData($row)
     {
+        // Get the trade code/id from column L (index 11)
+        $tradeValue = trim($row[11] ?? '');
+
+        // Try to resolve trade by ID if it's numeric, otherwise use as code
+        $tradeCode = null;
+        if (!empty($tradeValue)) {
+            if (is_numeric($tradeValue)) {
+                // It's likely a trade ID, try to get the trade code
+                $trade = Trade::find((int)$tradeValue);
+                if ($trade) {
+                    $tradeCode = $trade->code;
+                }
+            } else {
+                // It's a trade code or name, try to find matching trade
+                $trade = Trade::where('code', $tradeValue)
+                    ->orWhere('name', 'like', $tradeValue)
+                    ->first();
+                if ($trade) {
+                    $tradeCode = $trade->code;
+                } else {
+                    // Keep original value for validation error
+                    $tradeCode = $tradeValue;
+                }
+            }
+        }
+
         return [
             'btevta_id' => $row[0] ?? null,
             'cnic' => $row[1] ?? null,
@@ -164,13 +190,14 @@ class ImportController extends Controller
             'address' => $row[8] ?? null,
             'district' => $row[9] ?? null,
             'tehsil' => $row[10] ?? null,
-            'trade_code' => $row[11] ?? null,
+            'trade_code' => $tradeCode,
+            'trade_raw' => $tradeValue, // Keep original for error reporting
         ];
     }
 
     /**
      * CREATE TEMPLATE FILE
-     * 
+     *
      * This method creates the import template if it doesn't exist.
      * It's automatically called when downloading template.
      */
@@ -178,9 +205,11 @@ class ImportController extends Controller
     {
         try {
             $spreadsheet = new Spreadsheet();
+
+            // =============== SHEET 1: Candidates (Main Import Sheet) ===============
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Candidates');
-            
+
             // Set headers
             $headers = [
                 'BTEVTA ID',
@@ -194,13 +223,13 @@ class ImportController extends Controller
                 'Address',
                 'District',
                 'Tehsil (optional)',
-                'Trade Code',
+                'Trade (Code, ID, or Name)',
             ];
-            
+
             foreach ($headers as $index => $header) {
                 $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
             }
-            
+
             // Format header row
             $headerStyle = $sheet->getStyle('A1:L1');
             $headerStyle->getFont()->setBold(true);
@@ -208,76 +237,161 @@ class ImportController extends Controller
             $headerStyle->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setARGB('FF4472C4'); // Blue background
-            
+
             // Set font color to white for headers
             $headerStyle->getFont()->setColor(
                 new \PhpOffice\PhpSpreadsheet\Style\Color('FFFFFFFF')
             );
-            
+
             // Set column widths
             $sheet->getColumnDimension('A')->setWidth(15);
             $sheet->getColumnDimension('B')->setWidth(18);
             $sheet->getColumnDimension('C')->setWidth(20);
             $sheet->getColumnDimension('D')->setWidth(20);
-            $sheet->getColumnDimension('E')->setWidth(20);
-            $sheet->getColumnDimension('F')->setWidth(15);
+            $sheet->getColumnDimension('E')->setWidth(25);
+            $sheet->getColumnDimension('F')->setWidth(22);
             $sheet->getColumnDimension('G')->setWidth(15);
             $sheet->getColumnDimension('H')->setWidth(20);
             $sheet->getColumnDimension('I')->setWidth(25);
             $sheet->getColumnDimension('J')->setWidth(15);
             $sheet->getColumnDimension('K')->setWidth(15);
-            $sheet->getColumnDimension('L')->setWidth(15);
-            
-            // Add sample data row
+            $sheet->getColumnDimension('L')->setWidth(25);
+
+            // Get a real trade for sample data
+            $sampleTrade = Trade::where('is_active', true)->first();
+            $sampleTradeValue = $sampleTrade ? $sampleTrade->code : '(See Trades List sheet)';
+
+            // Add sample data row with note
             $sampleData = [
-                'BTEVTA001',           // BTEVTA ID
-                '1234567890123',       // CNIC
-                'John Doe',            // Full Name
-                'Ahmed Doe',           // Father Name
-                '2000-01-15',          // Date of Birth
-                'male',                // Gender
-                '03001234567',         // Phone
-                'john@example.com',    // Email
-                '123 Main Street',     // Address
-                'Lahore',              // District
-                'Central',             // Tehsil
-                'TRADE001',            // Trade Code
+                'BTV-2025-00001',       // BTEVTA ID
+                '3520112345678',        // CNIC (realistic Pakistani CNIC)
+                'Muhammad Ali',         // Full Name
+                'Muhammad Akbar',       // Father Name
+                '2000-01-15',           // Date of Birth
+                'male',                 // Gender
+                '03001234567',          // Phone
+                'ali@example.com',      // Email
+                'House 123, Street 5',  // Address
+                'Lahore',               // District
+                'Gulberg',              // Tehsil
+                $sampleTradeValue,      // Trade Code
             ];
-            
+
             foreach ($sampleData as $index => $value) {
                 $sheet->setCellValueByColumnAndRow($index + 1, 2, $value);
             }
-            
+
             // Format sample row
             $sheet->getStyle('A2:L2')->getFont()->setItalic(true);
-            
+            $sheet->getStyle('A2:L2')->getFont()->getColor()->setARGB('FF666666');
+
+            // Add a note in row 3
+            $sheet->setCellValue('A3', '↑ Sample row above - delete before importing. See "Trades List" sheet for available trade codes/IDs.');
+            $sheet->mergeCells('A3:L3');
+            $sheet->getStyle('A3')->getFont()->setItalic(true);
+            $sheet->getStyle('A3')->getFont()->setBold(true);
+            $sheet->getStyle('A3')->getFont()->getColor()->setARGB('FFFF6600');
+
             // Add instructions in comment
             $sheet->getComment('A1')->setAuthor('BTEVTA System');
             $sheet->getComment('A1')->getText()->createTextRun(
                 "Instructions:\n" .
-                "1. Fill in candidate information in rows below the header\n" .
-                "2. CNIC must be exactly 13 digits\n" .
-                "3. Date format must be YYYY-MM-DD\n" .
-                "4. Gender must be: male, female, or other\n" .
-                "5. Trade Code must exist in the system\n" .
-                "6. All required fields must be filled"
+                "1. Fill in candidate information starting from row 4\n" .
+                "2. Delete the sample row (row 2) before importing\n" .
+                "3. CNIC must be exactly 13 digits (no dashes)\n" .
+                "4. Date format must be YYYY-MM-DD\n" .
+                "5. Gender must be: male, female, or other\n" .
+                "6. Trade can be: Trade Code, Trade ID, or Trade Name\n" .
+                "7. See 'Trades List' sheet for available trades\n" .
+                "8. All required fields must be filled"
             );
-            
+
+            // =============== SHEET 2: Trades List (Reference Sheet) ===============
+            $tradesSheet = $spreadsheet->createSheet();
+            $tradesSheet->setTitle('Trades List');
+
+            // Add header
+            $tradesSheet->setCellValue('A1', 'ID');
+            $tradesSheet->setCellValue('B1', 'Trade Code');
+            $tradesSheet->setCellValue('C1', 'Trade Name');
+            $tradesSheet->setCellValue('D1', 'Category');
+            $tradesSheet->setCellValue('E1', 'Duration (Months)');
+
+            // Format header
+            $tradesHeaderStyle = $tradesSheet->getStyle('A1:E1');
+            $tradesHeaderStyle->getFont()->setBold(true);
+            $tradesHeaderStyle->getFont()->setSize(12);
+            $tradesHeaderStyle->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FF70AD47'); // Green background
+            $tradesHeaderStyle->getFont()->setColor(
+                new \PhpOffice\PhpSpreadsheet\Style\Color('FFFFFFFF')
+            );
+
+            // Add all active trades
+            $trades = Trade::where('is_active', true)->orderBy('name')->get();
+            $rowNum = 2;
+            foreach ($trades as $trade) {
+                $tradesSheet->setCellValue('A' . $rowNum, $trade->id);
+                $tradesSheet->setCellValue('B' . $rowNum, $trade->code);
+                $tradesSheet->setCellValue('C' . $rowNum, $trade->name);
+                $tradesSheet->setCellValue('D' . $rowNum, $trade->category ?? 'N/A');
+                $tradesSheet->setCellValue('E' . $rowNum, $trade->duration_months ?? 'N/A');
+                $rowNum++;
+            }
+
+            // Set column widths for trades sheet
+            $tradesSheet->getColumnDimension('A')->setWidth(10);
+            $tradesSheet->getColumnDimension('B')->setWidth(15);
+            $tradesSheet->getColumnDimension('C')->setWidth(30);
+            $tradesSheet->getColumnDimension('D')->setWidth(20);
+            $tradesSheet->getColumnDimension('E')->setWidth(18);
+
+            // Add note at the bottom
+            $noteRow = $rowNum + 1;
+            $tradesSheet->setCellValue('A' . $noteRow, 'Note: You can use ID, Code, or Name in the "Trade" column of Candidates sheet.');
+            $tradesSheet->mergeCells('A' . $noteRow . ':E' . $noteRow);
+            $tradesSheet->getStyle('A' . $noteRow)->getFont()->setItalic(true);
+            $tradesSheet->getStyle('A' . $noteRow)->getFont()->getColor()->setARGB('FF0066CC');
+
+            // Set active sheet back to Candidates
+            $spreadsheet->setActiveSheetIndex(0);
+
             // Create directory if it doesn't exist
             $templateDir = storage_path('app/templates');
             if (!is_dir($templateDir)) {
                 mkdir($templateDir, 0755, true);
             }
-            
+
             // Save the spreadsheet
             $writer = new Xlsx($spreadsheet);
             $templatePath = $templateDir . '/btevta_candidate_import_template.xlsx';
             $writer->save($templatePath);
-            
+
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to create import template: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Force regenerate the import template (for admin use)
+     */
+    public function regenerateTemplate()
+    {
+        $this->authorize('import', Candidate::class);
+
+        // Delete existing template
+        $templatePath = storage_path('app/templates/btevta_candidate_import_template.xlsx');
+        if (file_exists($templatePath)) {
+            unlink($templatePath);
+        }
+
+        if ($this->createTemplate()) {
+            return redirect()->back()->with('success', 'Import template regenerated successfully with latest trades.');
+        }
+
+        return redirect()->back()->with('error', 'Failed to regenerate template.');
     }
 }
