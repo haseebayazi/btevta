@@ -543,4 +543,203 @@ class DocumentArchiveController extends Controller
             return back()->with('error', 'Failed to send reminders: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Missing document summary report
+     */
+    public function missingDocuments(Request $request)
+    {
+        $this->authorize('viewAny', DocumentArchive::class);
+
+        $validated = $request->validate([
+            'campus_id' => 'nullable|exists:campuses,id',
+            'status' => 'nullable|string',
+        ]);
+
+        try {
+            // Define required document types per candidate status
+            $requiredDocsByStatus = [
+                'registered' => ['cnic', 'education_certificate', 'domicile', 'photo'],
+                'training' => ['cnic', 'education_certificate', 'domicile', 'photo', 'medical_certificate'],
+                'visa_processing' => ['cnic', 'education_certificate', 'domicile', 'photo', 'medical_certificate', 'passport'],
+                'departed' => ['cnic', 'education_certificate', 'domicile', 'photo', 'medical_certificate', 'passport', 'visa', 'ticket'],
+            ];
+
+            $query = Candidate::with(['documents', 'campus', 'trade', 'oep'])
+                ->whereIn('status', array_keys($requiredDocsByStatus));
+
+            // Filter by campus
+            if (!empty($validated['campus_id'])) {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by status
+            if (!empty($validated['status'])) {
+                $query->where('status', $validated['status']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            $candidates = $query->get();
+
+            $candidatesWithMissing = [];
+            $missingCounts = [
+                'cnic' => 0,
+                'education_certificate' => 0,
+                'domicile' => 0,
+                'photo' => 0,
+                'medical_certificate' => 0,
+                'passport' => 0,
+                'visa' => 0,
+                'ticket' => 0,
+            ];
+
+            foreach ($candidates as $candidate) {
+                $required = $requiredDocsByStatus[$candidate->status] ?? [];
+                $uploadedTypes = $candidate->documents->pluck('document_type')->map(function($type) {
+                    return strtolower(str_replace(' ', '_', $type));
+                })->toArray();
+
+                $missing = [];
+                foreach ($required as $doc) {
+                    if (!in_array($doc, $uploadedTypes)) {
+                        $missing[] = $doc;
+                        if (isset($missingCounts[$doc])) {
+                            $missingCounts[$doc]++;
+                        }
+                    }
+                }
+
+                if (!empty($missing)) {
+                    $candidatesWithMissing[] = [
+                        'candidate' => $candidate,
+                        'missing' => $missing,
+                        'missing_count' => count($missing),
+                        'required_count' => count($required),
+                        'uploaded_count' => count($uploadedTypes),
+                        'completion_percentage' => count($required) > 0
+                            ? round(((count($required) - count($missing)) / count($required)) * 100, 1)
+                            : 100,
+                    ];
+                }
+            }
+
+            // Sort by missing count (highest first)
+            usort($candidatesWithMissing, function($a, $b) {
+                return $b['missing_count'] - $a['missing_count'];
+            });
+
+            $campuses = \App\Models\Campus::where('is_active', true)->pluck('name', 'id');
+            $statuses = array_keys($requiredDocsByStatus);
+
+            $stats = [
+                'total_candidates_with_missing' => count($candidatesWithMissing),
+                'missing_counts' => $missingCounts,
+            ];
+
+            return view('document-archive.reports.missing', compact(
+                'candidatesWithMissing', 'campuses', 'statuses', 'stats', 'validated'
+            ));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Document verification status by OEP and Campus
+     */
+    public function verificationStatus(Request $request)
+    {
+        $this->authorize('viewAny', DocumentArchive::class);
+
+        $validated = $request->validate([
+            'view_by' => 'nullable|in:campus,oep',
+        ]);
+
+        $viewBy = $validated['view_by'] ?? 'campus';
+
+        try {
+            // Required document count for full verification
+            $requiredDocCount = 5;
+
+            if ($viewBy === 'campus') {
+                $data = \App\Models\Campus::where('is_active', true)
+                    ->withCount([
+                        'candidates as total_candidates',
+                        'candidates as complete_docs' => function($q) use ($requiredDocCount) {
+                            $q->whereHas('documents', function($dq) {}, '>=', $requiredDocCount);
+                        },
+                        'candidates as verified_docs' => function($q) {
+                            $q->whereHas('documents', function($dq) {
+                                $dq->where('verification_status', 'verified');
+                            });
+                        },
+                    ])
+                    ->get()
+                    ->map(function($item) {
+                        $item->completion_rate = $item->total_candidates > 0
+                            ? round(($item->complete_docs / $item->total_candidates) * 100, 1)
+                            : 0;
+                        $item->verification_rate = $item->total_candidates > 0
+                            ? round(($item->verified_docs / $item->total_candidates) * 100, 1)
+                            : 0;
+                        return $item;
+                    });
+            } else {
+                $data = \App\Models\Oep::where('is_active', true)
+                    ->withCount([
+                        'candidates as total_candidates',
+                        'candidates as complete_docs' => function($q) use ($requiredDocCount) {
+                            $q->whereHas('documents', function($dq) {}, '>=', $requiredDocCount);
+                        },
+                        'candidates as verified_docs' => function($q) {
+                            $q->whereHas('documents', function($dq) {
+                                $dq->where('verification_status', 'verified');
+                            });
+                        },
+                    ])
+                    ->get()
+                    ->map(function($item) {
+                        $item->completion_rate = $item->total_candidates > 0
+                            ? round(($item->complete_docs / $item->total_candidates) * 100, 1)
+                            : 0;
+                        $item->verification_rate = $item->total_candidates > 0
+                            ? round(($item->verified_docs / $item->total_candidates) * 100, 1)
+                            : 0;
+                        return $item;
+                    });
+            }
+
+            // Overall stats
+            $totalCandidates = Candidate::when(auth()->user()->role === 'campus_admin', function($q) {
+                $q->where('campus_id', auth()->user()->campus_id);
+            })->count();
+
+            $candidatesWithDocs = Candidate::whereHas('documents')
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })->count();
+
+            $candidatesWithCompleteDocs = Candidate::whereHas('documents', function($q) {}, '>=', $requiredDocCount)
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })->count();
+
+            $stats = [
+                'total_candidates' => $totalCandidates,
+                'with_documents' => $candidatesWithDocs,
+                'with_complete_documents' => $candidatesWithCompleteDocs,
+                'overall_completion_rate' => $totalCandidates > 0
+                    ? round(($candidatesWithCompleteDocs / $totalCandidates) * 100, 1)
+                    : 0,
+            ];
+
+            return view('document-archive.reports.verification-status', compact('data', 'viewBy', 'stats'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
 }

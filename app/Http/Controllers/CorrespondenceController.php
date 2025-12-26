@@ -144,4 +144,121 @@ class CorrespondenceController extends Controller
 
         return view('correspondence.register', compact('correspondences'));
     }
+
+    /**
+     * Communication summary report with outgoing/incoming ratio
+     */
+    public function summary(Request $request)
+    {
+        $this->authorize('viewAny', Correspondence::class);
+
+        $validated = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'organization_type' => 'nullable|string',
+            'campus_id' => 'nullable|exists:campuses,id',
+        ]);
+
+        try {
+            $query = Correspondence::query();
+
+            // Apply date filters
+            if (!empty($validated['start_date'])) {
+                $query->whereDate('date', '>=', $validated['start_date']);
+            }
+            if (!empty($validated['end_date'])) {
+                $query->whereDate('date', '<=', $validated['end_date']);
+            }
+            if (!empty($validated['organization_type'])) {
+                $query->where('organization_type', $validated['organization_type']);
+            }
+            if (!empty($validated['campus_id'])) {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            // Calculate summary statistics
+            $incoming = (clone $query)->where('type', 'incoming')->count();
+            $outgoing = (clone $query)->where('type', 'outgoing')->count();
+            $total = $incoming + $outgoing;
+
+            // By organization type
+            $byOrganization = (clone $query)
+                ->selectRaw('organization_type, type, count(*) as count')
+                ->groupBy('organization_type', 'type')
+                ->get()
+                ->groupBy('organization_type');
+
+            // By month (last 12 months)
+            $byMonth = Correspondence::selectRaw('DATE_FORMAT(date, "%Y-%m") as month, type, count(*) as count')
+                ->where('date', '>=', now()->subMonths(12))
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })
+                ->groupBy('month', 'type')
+                ->orderBy('month')
+                ->get()
+                ->groupBy('month');
+
+            // Pending replies
+            $pendingReplies = Correspondence::where('requires_reply', true)
+                ->where('replied', false)
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })
+                ->count();
+
+            // Overdue replies (past deadline)
+            $overdueReplies = Correspondence::where('requires_reply', true)
+                ->where('replied', false)
+                ->whereNotNull('reply_deadline')
+                ->where('reply_deadline', '<', now())
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })
+                ->count();
+
+            // Average response time (in days)
+            $avgResponseTime = Correspondence::whereNotNull('replied_at')
+                ->selectRaw('AVG(DATEDIFF(replied_at, created_at)) as avg_days')
+                ->when(auth()->user()->role === 'campus_admin', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                })
+                ->value('avg_days');
+
+            $summary = [
+                'total' => $total,
+                'incoming' => $incoming,
+                'outgoing' => $outgoing,
+                'ratio' => $outgoing > 0 ? round($incoming / $outgoing, 2) : ($incoming > 0 ? 'All Incoming' : 'N/A'),
+                'by_organization' => $byOrganization,
+                'by_month' => $byMonth,
+                'pending_replies' => $pendingReplies,
+                'overdue_replies' => $overdueReplies,
+                'avg_response_time' => $avgResponseTime ? round($avgResponseTime, 1) : 0,
+            ];
+
+            $campuses = Cache::remember('active_campuses', 86400, function () {
+                return Campus::where('is_active', true)->select('id', 'name')->get();
+            });
+
+            $organizationTypes = [
+                'btevta' => 'BTEVTA',
+                'oep' => 'OEP',
+                'embassy' => 'Embassy',
+                'campus' => 'Campus',
+                'government' => 'Government',
+                'other' => 'Other',
+            ];
+
+            return view('correspondence.reports.summary', compact('summary', 'campuses', 'organizationTypes', 'validated'));
+        } catch (\Exception $e) {
+            \Log::error('Correspondence summary failed', ['error' => $e->getMessage()]);
+            return back()->with('error', 'Failed to generate summary report. Please try again.');
+        }
+    }
 }

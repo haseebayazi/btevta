@@ -300,6 +300,14 @@ Route::middleware(['auth'])->group(function () {
             // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
             Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
                 ->middleware('throttle:5,1')->name('compliance-report');
+
+            // NEW: Departure report routes
+            Route::get('/reports/list', [DepartureController::class, 'departureListReport'])
+                ->middleware('throttle:5,1')->name('reports.list');
+            Route::get('/reports/pending-activations', [DepartureController::class, 'pendingActivationsReport'])
+                ->middleware('throttle:5,1')->name('reports.pending-activations');
+            Route::get('/reports/salary-status', [DepartureController::class, 'salaryStatusReport'])
+                ->middleware('throttle:5,1')->name('reports.salary-status');
         });
     });
 
@@ -314,6 +322,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
             Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
             Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+
+            // NEW: Communication summary report
+            Route::get('/reports/summary', [CorrespondenceController::class, 'summary'])
+                ->middleware('throttle:5,1')->name('reports.summary');
         });
     });
 
@@ -397,6 +409,12 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Report generation limited to 5/min (CPU intensive)
         Route::post('/reports/generate', [DocumentArchiveController::class, 'report'])
             ->middleware('throttle:5,1')->name('report');
+
+        // NEW: Missing documents and verification status reports
+        Route::get('/reports/missing', [DocumentArchiveController::class, 'missingDocuments'])
+            ->middleware('throttle:5,1')->name('reports.missing');
+        Route::get('/reports/verification-status', [DocumentArchiveController::class, 'verificationStatus'])
+            ->middleware('throttle:5,1')->name('reports.verification-status');
 
         // THROTTLE FIX: Bulk upload limited to 10/min (storage abuse prevention)
         Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
