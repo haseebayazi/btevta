@@ -90,6 +90,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/complaints', [DashboardController::class, 'complaints'])->name('complaints');
         Route::get('/document-archive', [DashboardController::class, 'documentArchive'])->name('document-archive');
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
+        // Phase 3: Compliance Monitoring Dashboard
+        Route::get('/compliance-monitoring', [DashboardController::class, 'complianceMonitoring'])->name('compliance-monitoring');
     });
 
     // ========================================================================
@@ -465,6 +467,9 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('trainer-performance');
         Route::get('/departure-updates', [ReportController::class, 'departureUpdatesReport'])
             ->middleware('throttle:5,1')->name('departure-updates');
+        // Phase 3: Instructor Utilization Report
+        Route::get('/instructor-utilization', [ReportController::class, 'instructorUtilization'])
+            ->middleware('throttle:5,1')->name('instructor-utilization');
     });
 
     // ========================================================================

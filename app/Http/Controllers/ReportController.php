@@ -647,4 +647,103 @@ class ReportController extends Controller
             return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Instructor/Trainer utilization report
+     * Tracks workload, capacity, and efficiency metrics
+     */
+    public function instructorUtilization(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'campus_id' => 'nullable|exists:campuses,id',
+        ]);
+
+        try {
+            $query = Instructor::with(['campus', 'batches' => function($q) {
+                $q->where('status', 'active');
+            }]);
+
+            if (!empty($validated['campus_id'])) {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            $instructors = $query->get()->map(function($instructor) {
+                // Current active batches
+                $activeBatches = Batch::where('instructor_id', $instructor->id)
+                    ->where('status', 'active')
+                    ->get();
+
+                // Scheduled hours this week
+                $scheduledHoursThisWeek = TrainingSchedule::where('instructor_id', $instructor->id)
+                    ->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()])
+                    ->sum('duration') / 60; // Convert minutes to hours
+
+                // Total students currently teaching
+                $currentStudents = Candidate::whereIn('batch_id', $activeBatches->pluck('id'))
+                    ->where('status', 'training')
+                    ->count();
+
+                // Completed batches (historical)
+                $completedBatches = Batch::where('instructor_id', $instructor->id)
+                    ->where('status', 'completed')
+                    ->count();
+
+                // Calculate utilization metrics
+                $maxBatchesCapacity = $instructor->max_batches_capacity ?? 3; // Default 3 batches max
+                $maxHoursPerWeek = $instructor->max_hours_per_week ?? 40; // Default 40 hours
+
+                $instructor->active_batches_count = $activeBatches->count();
+                $instructor->current_students = $currentStudents;
+                $instructor->completed_batches = $completedBatches;
+                $instructor->scheduled_hours_week = round($scheduledHoursThisWeek, 1);
+                $instructor->max_batches = $maxBatchesCapacity;
+                $instructor->max_hours = $maxHoursPerWeek;
+                $instructor->batch_utilization = $maxBatchesCapacity > 0
+                    ? round(($activeBatches->count() / $maxBatchesCapacity) * 100, 1)
+                    : 0;
+                $instructor->hours_utilization = $maxHoursPerWeek > 0
+                    ? round(($scheduledHoursThisWeek / $maxHoursPerWeek) * 100, 1)
+                    : 0;
+
+                // Status based on utilization
+                $avgUtilization = ($instructor->batch_utilization + $instructor->hours_utilization) / 2;
+                $instructor->utilization_status = match (true) {
+                    $avgUtilization >= 90 => 'overloaded',
+                    $avgUtilization >= 70 => 'optimal',
+                    $avgUtilization >= 40 => 'underutilized',
+                    default => 'available',
+                };
+
+                return $instructor;
+            });
+
+            // Summary stats
+            $stats = [
+                'total_instructors' => $instructors->count(),
+                'total_active_batches' => $instructors->sum('active_batches_count'),
+                'total_current_students' => $instructors->sum('current_students'),
+                'avg_batch_utilization' => round($instructors->avg('batch_utilization'), 1),
+                'avg_hours_utilization' => round($instructors->avg('hours_utilization'), 1),
+                'overloaded' => $instructors->where('utilization_status', 'overloaded')->count(),
+                'optimal' => $instructors->where('utilization_status', 'optimal')->count(),
+                'underutilized' => $instructors->where('utilization_status', 'underutilized')->count(),
+                'available' => $instructors->where('utilization_status', 'available')->count(),
+            ];
+
+            $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+
+            return view('reports.instructor-utilization', compact('instructors', 'stats', 'campuses', 'validated'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
 }
