@@ -226,10 +226,6 @@ Route::middleware(['auth'])->group(function () {
             // Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
             // Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
 
-            // THROTTLE FIX: Ticket upload limited to 30/min (file upload)
-            Route::post('/{candidate}/ticket', [VisaProcessingController::class, 'uploadTicket'])
-                ->middleware('throttle:30,1')->name('ticket');
-
             // DEPRECATED ROUTE: timelineReport method doesn't exist
             // TODO: Implement or use 'timeline' route instead
             // Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
@@ -240,8 +236,21 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
             Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
             Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
+            Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');
             Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
+            Route::post('/{candidate}/update-visa-submission', [VisaProcessingController::class, 'updateVisaSubmission'])->name('update-visa-submission');
             Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
+            Route::post('/{candidate}/update-ptn', [VisaProcessingController::class, 'updatePTN'])->name('update-ptn');
+
+            // FILE UPLOAD ROUTES (throttled)
+            Route::post('/{candidate}/upload-takamol-result', [VisaProcessingController::class, 'uploadTakamolResult'])
+                ->middleware('throttle:30,1')->name('upload-takamol-result');
+            Route::post('/{candidate}/upload-gamca-result', [VisaProcessingController::class, 'uploadGamcaResult'])
+                ->middleware('throttle:30,1')->name('upload-gamca-result');
+            Route::post('/{candidate}/upload-travel-plan', [VisaProcessingController::class, 'uploadTravelPlan'])
+                ->middleware('throttle:30,1')->name('upload-travel-plan');
+            Route::post('/{candidate}/upload-ticket', [VisaProcessingController::class, 'uploadTicket'])
+                ->middleware('throttle:30,1')->name('upload-ticket');
 
             // VIEW & REPORTING ROUTES
             Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');

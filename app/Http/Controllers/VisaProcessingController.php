@@ -303,6 +303,8 @@ class VisaProcessingController extends Controller
 
         $validated = $request->validate([
             'biometric_date' => 'required|date',
+            'etimad_appointment_id' => 'nullable|string|max:50',
+            'etimad_center' => 'nullable|string|max:255',
             'biometric_status' => 'required|in:pending,completed,failed',
             'biometric_remarks' => 'nullable|string|max:1000',
         ]);
@@ -321,6 +323,190 @@ class VisaProcessingController extends Controller
         } catch (Exception $e) {
             return back()->withInput()
                 ->with('error', 'Failed to update biometric: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate and update E-Number
+     */
+    public function updateEnumber(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'enumber' => 'nullable|string|max:50',
+            'enumber_date' => 'required|date',
+            'enumber_status' => 'required|in:pending,generated,verified',
+        ]);
+
+        try {
+            // Auto-generate E-Number if not provided
+            if (empty($validated['enumber'])) {
+                $validated['enumber'] = $this->visaService->generateEnumber($candidate);
+            }
+
+            $candidate->visaProcess->update($validated);
+
+            // Update overall status if generated
+            if ($validated['enumber_status'] === 'verified') {
+                $candidate->visaProcess->update(['overall_status' => 'enumber']);
+            }
+
+            return back()->with('success', 'E-Number updated successfully! Generated: ' . $validated['enumber']);
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to update E-Number: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update visa document submission
+     */
+    public function updateVisaSubmission(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'visa_submission_date' => 'required|date',
+            'visa_application_number' => 'nullable|string|max:100',
+            'embassy' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $candidate->visaProcess->update($validated);
+            $candidate->visaProcess->update(['overall_status' => 'visa_submission']);
+
+            return back()->with('success', 'Visa submission details updated successfully!');
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to update visa submission: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update PTN and attestation
+     */
+    public function updatePTN(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'ptn_number' => 'nullable|string|max:50',
+            'ptn_issue_date' => 'required|date',
+            'attestation_date' => 'nullable|date',
+        ]);
+
+        try {
+            // Auto-generate PTN if not provided
+            if (empty($validated['ptn_number'])) {
+                $validated['ptn_number'] = $this->visaService->generatePTN($candidate);
+            }
+
+            $candidate->visaProcess->update($validated);
+
+            return back()->with('success', 'PTN updated successfully! Number: ' . $validated['ptn_number']);
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to update PTN: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Upload travel plan
+     */
+    public function uploadTravelPlan(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'travel_plan_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'flight_number' => 'nullable|string|max:50',
+            'departure_date' => 'required|date',
+            'arrival_date' => 'nullable|date|after:departure_date',
+        ]);
+
+        try {
+            $visaProcess = $this->visaService->uploadTravelPlan(
+                $candidate->visaProcess->id,
+                $request->file('travel_plan_file'),
+                $validated
+            );
+
+            return back()->with('success', 'Travel plan uploaded successfully!');
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to upload travel plan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Upload GAMCA result
+     */
+    public function uploadGamcaResult(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'gamca_result_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'gamca_barcode' => 'nullable|string|max:50',
+            'gamca_expiry_date' => 'nullable|date',
+            'medical_status' => 'required|in:pending,fit,unfit',
+        ]);
+
+        try {
+            $path = $request->file('gamca_result_file')->store('visa/gamca', 'public');
+
+            $candidate->visaProcess->update([
+                'gamca_result_path' => $path,
+                'gamca_barcode' => $validated['gamca_barcode'],
+                'gamca_expiry_date' => $validated['gamca_expiry_date'],
+                'medical_status' => $validated['medical_status'],
+                'medical_completed' => $validated['medical_status'] === 'fit',
+            ]);
+
+            if ($validated['medical_status'] === 'fit') {
+                $candidate->visaProcess->update(['overall_status' => 'medical_completed']);
+                $this->notificationService->sendVisaStageCompleted($candidate, 'Medical');
+            }
+
+            return back()->with('success', 'GAMCA result uploaded successfully!');
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to upload GAMCA result: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Upload Takamol result
+     */
+    public function uploadTakamolResult(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'takamol_result_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'takamol_score' => 'nullable|numeric|min:0|max:100',
+            'takamol_status' => 'required|in:pending,completed,failed',
+        ]);
+
+        try {
+            $path = $request->file('takamol_result_file')->store('visa/takamol', 'public');
+
+            $candidate->visaProcess->update([
+                'takamol_result_path' => $path,
+                'takamol_score' => $validated['takamol_score'],
+                'takamol_status' => $validated['takamol_status'],
+            ]);
+
+            if ($validated['takamol_status'] === 'completed') {
+                $candidate->visaProcess->update(['overall_status' => 'takamol_completed']);
+                $this->notificationService->sendVisaStageCompleted($candidate, 'Takamol');
+            }
+
+            return back()->with('success', 'Takamol result uploaded successfully!');
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to upload Takamol result: ' . $e->getMessage());
         }
     }
 
