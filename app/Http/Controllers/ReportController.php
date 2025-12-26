@@ -746,4 +746,166 @@ class ReportController extends Controller
             return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Performance-based funding metrics report
+     */
+    public function fundingMetrics(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'year' => 'nullable|integer|min:2020|max:' . (date('Y') + 1),
+            'campus_id' => 'nullable|exists:campuses,id',
+        ]);
+
+        $year = $validated['year'] ?? date('Y');
+
+        try {
+            $query = \App\Models\CampusKpi::with('campus')
+                ->where('year', $year);
+
+            if (!empty($validated['campus_id'])) {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            $kpis = $query->orderBy('month')->get();
+
+            // Group by campus for comparison
+            $campusPerformance = $kpis->groupBy('campus_id')->map(function ($monthlyKpis) {
+                return [
+                    'campus' => $monthlyKpis->first()->campus,
+                    'avg_performance_score' => round($monthlyKpis->avg('performance_score'), 1),
+                    'total_candidates_departed' => $monthlyKpis->sum('candidates_departed'),
+                    'total_funding_allocated' => $monthlyKpis->sum('funding_allocated'),
+                    'total_funding_utilized' => $monthlyKpis->sum('funding_utilized'),
+                    'avg_training_completion' => round($monthlyKpis->avg('training_completion_rate'), 1),
+                    'avg_attendance' => round($monthlyKpis->avg('attendance_rate'), 1),
+                    'months_data' => $monthlyKpis,
+                ];
+            });
+
+            // Summary stats
+            $stats = [
+                'total_campuses' => $campusPerformance->count(),
+                'avg_performance' => round($campusPerformance->avg('avg_performance_score'), 1),
+                'total_departed' => $campusPerformance->sum('total_candidates_departed'),
+                'total_allocated' => $campusPerformance->sum('total_funding_allocated'),
+                'total_utilized' => $campusPerformance->sum('total_funding_utilized'),
+                'utilization_rate' => $campusPerformance->sum('total_funding_allocated') > 0
+                    ? round(($campusPerformance->sum('total_funding_utilized') / $campusPerformance->sum('total_funding_allocated')) * 100, 1)
+                    : 0,
+                'top_performer' => $campusPerformance->sortByDesc('avg_performance_score')->first(),
+            ];
+
+            $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+            $years = range(date('Y'), 2020);
+
+            return view('reports.funding-metrics', compact('campusPerformance', 'stats', 'campuses', 'years', 'year', 'validated'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate and store KPIs for a campus/month
+     */
+    public function calculateKpis(Request $request)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'campus_id' => 'required|exists:campuses,id',
+            'year' => 'required|integer',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
+
+        try {
+            $campusId = $validated['campus_id'];
+            $year = $validated['year'];
+            $month = $validated['month'];
+
+            $kpi = \App\Models\CampusKpi::getOrCreateForMonth($campusId, $year, $month);
+
+            // Calculate candidate metrics
+            $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+
+            $kpi->candidates_registered = Candidate::where('campus_id', $campusId)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+
+            $kpi->candidates_trained = Candidate::where('campus_id', $campusId)
+                ->where('status', 'training')
+                ->whereBetween('updated_at', [$startDate, $endDate])
+                ->count();
+
+            $kpi->candidates_departed = Departure::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereBetween('departure_date', [$startDate, $endDate])
+                ->count();
+
+            $kpi->candidates_rejected = Candidate::where('campus_id', $campusId)
+                ->where('status', 'rejected')
+                ->whereBetween('updated_at', [$startDate, $endDate])
+                ->count();
+
+            // Calculate training metrics
+            $totalAttendance = TrainingAttendance::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereBetween('date', [$startDate, $endDate])
+                ->count();
+
+            $presentAttendance = TrainingAttendance::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereBetween('date', [$startDate, $endDate])
+                ->where('status', 'present')
+                ->count();
+
+            $kpi->attendance_rate = $totalAttendance > 0 ? round(($presentAttendance / $totalAttendance) * 100, 2) : 0;
+
+            $totalAssessments = TrainingAssessment::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+
+            $passedAssessments = TrainingAssessment::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->where('result', 'pass')
+                ->count();
+
+            $kpi->assessment_pass_rate = $totalAssessments > 0 ? round(($passedAssessments / $totalAssessments) * 100, 2) : 0;
+
+            // Calculate compliance metrics
+            $totalResolved = Complaint::where('campus_id', $campusId)
+                ->whereIn('status', ['resolved', 'closed'])
+                ->whereBetween('resolved_at', [$startDate, $endDate])
+                ->count();
+
+            $withinSla = Complaint::where('campus_id', $campusId)
+                ->whereIn('status', ['resolved', 'closed'])
+                ->whereBetween('resolved_at', [$startDate, $endDate])
+                ->whereColumn('resolved_at', '<=', DB::raw('DATE_ADD(created_at, INTERVAL sla_days DAY)'))
+                ->count();
+
+            $kpi->complaint_resolution_rate = $totalResolved > 0 ? round(($withinSla / $totalResolved) * 100, 2) : 100;
+
+            // Calculate performance score
+            $kpi->performance_score = $kpi->calculatePerformanceScore();
+            $kpi->performance_grade = \App\Models\CampusKpi::getGrade($kpi->performance_score);
+
+            $kpi->calculated_by = auth()->id();
+            $kpi->calculated_at = now();
+            $kpi->save();
+
+            return redirect()->back()->with('success', 'KPIs calculated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to calculate KPIs: ' . $e->getMessage());
+        }
+    }
 }

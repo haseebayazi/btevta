@@ -155,22 +155,12 @@
         </div>
     </div>
 
-    <!-- Quick Stats & Pipeline -->
+    <!-- Pipeline Chart & Quick Actions -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Candidate Pipeline</h3>
-            <div class="space-y-4">
-                @foreach(['screening' => 'Screening', 'registered' => 'Registered', 'in_training' => 'In Training', 'visa_processing' => 'Visa Processing'] as $key => $label)
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700">{{ $label }}</span>
-                        <span class="text-sm font-bold text-gray-900">{{ number_format($stats[$key] ?? 0) }}</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ $stats['total_candidates'] > 0 ? (($stats[$key] ?? 0) / $stats['total_candidates'] * 100) : 0 }}%"></div>
-                    </div>
-                </div>
-                @endforeach
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Candidate Distribution</h3>
+            <div class="h-64">
+                <canvas id="candidatePipelineChart"></canvas>
             </div>
         </div>
 
@@ -239,4 +229,59 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Candidate Pipeline Doughnut Chart
+    const pipelineCtx = document.getElementById('candidatePipelineChart');
+    if (pipelineCtx) {
+        new Chart(pipelineCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Screening', 'Registered', 'In Training', 'Visa Processing', 'Departed'],
+                datasets: [{
+                    data: [
+                        {{ $stats['screening'] ?? 0 }},
+                        {{ $stats['registered'] ?? 0 }},
+                        {{ $stats['in_training'] ?? 0 }},
+                        {{ $stats['visa_processing'] ?? 0 }},
+                        {{ $stats['departed'] ?? 0 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.8)',  // yellow
+                        'rgba(59, 130, 246, 0.8)',  // blue
+                        'rgba(16, 185, 129, 0.8)',  // green
+                        'rgba(139, 92, 246, 0.8)',  // purple
+                        'rgba(236, 72, 153, 0.8)'   // pink
+                    ],
+                    borderColor: [
+                        'rgb(251, 191, 36)',
+                        'rgb(59, 130, 246)',
+                        'rgb(16, 185, 129)',
+                        'rgb(139, 92, 246)',
+                        'rgb(236, 72, 153)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+    }
+});
+</script>
+@endpush
 @endsection

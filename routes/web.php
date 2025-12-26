@@ -27,6 +27,7 @@ use App\Http\Controllers\RemittanceReportController;
 use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
+use App\Http\Controllers\EquipmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -470,6 +471,11 @@ Route::middleware(['auth'])->group(function () {
         // Phase 3: Instructor Utilization Report
         Route::get('/instructor-utilization', [ReportController::class, 'instructorUtilization'])
             ->middleware('throttle:5,1')->name('instructor-utilization');
+        // Phase 4: Funding Metrics & KPI Reports
+        Route::get('/funding-metrics', [ReportController::class, 'fundingMetrics'])
+            ->middleware('throttle:5,1')->name('funding-metrics');
+        Route::post('/calculate-kpis', [ReportController::class, 'calculateKpis'])
+            ->middleware('throttle:3,1')->name('calculate-kpis');
     });
 
     // ========================================================================
@@ -500,6 +506,29 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity-logs.export');
         Route::post('/activity-logs/clean', [ActivityLogController::class, 'clean'])->name('activity-logs.clean');
         Route::get('/activity-logs/{activity}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
+    });
+
+    // ========================================================================
+    // EQUIPMENT MANAGEMENT ROUTES - Phase 4
+    // Purpose: Track campus equipment inventory, usage, and utilization
+    // Roles: admin, campus_admin
+    // ========================================================================
+    Route::middleware(['role:admin,campus_admin'])->prefix('equipment')->name('equipment.')->group(function () {
+        Route::get('/', [EquipmentController::class, 'index'])->name('index');
+        Route::get('/create', [EquipmentController::class, 'create'])->name('create');
+        Route::post('/', [EquipmentController::class, 'store'])->name('store');
+        Route::get('/{equipment}', [EquipmentController::class, 'show'])->name('show');
+        Route::get('/{equipment}/edit', [EquipmentController::class, 'edit'])->name('edit');
+        Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
+        Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
+
+        // Usage Logging
+        Route::post('/{equipment}/log-usage', [EquipmentController::class, 'logUsage'])->name('log-usage');
+        Route::post('/{equipment}/end-usage/{log}', [EquipmentController::class, 'endUsage'])->name('end-usage');
+
+        // Reports
+        Route::get('/reports/utilization', [EquipmentController::class, 'utilizationReport'])
+            ->middleware('throttle:5,1')->name('utilization-report');
     });
 
     // ========================================================================

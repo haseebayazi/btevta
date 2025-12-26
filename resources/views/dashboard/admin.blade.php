@@ -142,26 +142,12 @@
     </div>
     @endif
 
-    <!-- Monthly Trends -->
+    <!-- Monthly Trends Chart -->
     @if(!empty($roleData['monthly_trends']))
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-bold text-gray-900 mb-4">Monthly Trends (Last 6 Months)</h3>
-        <div class="grid grid-cols-6 gap-4">
-            @foreach($roleData['monthly_trends'] as $trend)
-            <div class="text-center">
-                <p class="text-sm text-gray-600 mb-2">{{ $trend['month'] }}</p>
-                <div class="space-y-2">
-                    <div class="bg-blue-100 rounded p-2">
-                        <p class="text-xs text-blue-600">Registered</p>
-                        <p class="font-bold text-blue-800">{{ $trend['registered'] }}</p>
-                    </div>
-                    <div class="bg-green-100 rounded p-2">
-                        <p class="text-xs text-green-600">Departed</p>
-                        <p class="font-bold text-green-800">{{ $trend['departed'] }}</p>
-                    </div>
-                </div>
-            </div>
-            @endforeach
+        <div class="h-64">
+            <canvas id="monthlyTrendsChart"></canvas>
         </div>
     </div>
     @endif
@@ -275,4 +261,58 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    @if(!empty($roleData['monthly_trends']))
+    // Monthly Trends Chart
+    const trendsCtx = document.getElementById('monthlyTrendsChart');
+    if (trendsCtx) {
+        new Chart(trendsCtx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode(collect($roleData['monthly_trends'])->pluck('month')) !!},
+                datasets: [
+                    {
+                        label: 'Registered',
+                        data: {!! json_encode(collect($roleData['monthly_trends'])->pluck('registered')) !!},
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Departed',
+                        data: {!! json_encode(collect($roleData['monthly_trends'])->pluck('departed')) !!},
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+    @endif
+});
+</script>
+@endpush
 @endsection
