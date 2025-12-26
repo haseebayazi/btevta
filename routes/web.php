@@ -455,6 +455,16 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export/{type}', [ReportController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // NEW: Phase 2 - Enhanced Reports
+        Route::get('/candidate-profile/{candidate}/pdf', [ReportController::class, 'exportProfilePdf'])
+            ->middleware('throttle:5,1')->name('candidate-profile-pdf');
+        Route::get('/export-csv', [ReportController::class, 'exportToCsv'])
+            ->middleware('throttle:5,1')->name('export-csv');
+        Route::get('/trainer-performance', [ReportController::class, 'trainerPerformance'])
+            ->middleware('throttle:5,1')->name('trainer-performance');
+        Route::get('/departure-updates', [ReportController::class, 'departureUpdatesReport'])
+            ->middleware('throttle:5,1')->name('departure-updates');
     });
 
     // ========================================================================

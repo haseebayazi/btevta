@@ -7,7 +7,11 @@ use App\Models\Campus;
 use App\Models\Batch;
 use App\Models\Oep;
 use App\Models\TrainingAssessment;
+use App\Models\TrainingAttendance;
+use App\Models\TrainingSchedule;
 use App\Models\Complaint;
+use App\Models\Departure;
+use App\Models\Instructor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -369,6 +373,278 @@ class ReportController extends Controller
             return response()->download($tempFile, basename($tempFile))->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export candidate profile as PDF
+     */
+    public function exportProfilePdf(Candidate $candidate)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        try {
+            $candidate->load([
+                'trade', 'campus', 'batch', 'oep', 'screenings',
+                'documents', 'nextOfKin', 'undertakings',
+                'trainingAttendances', 'trainingAssessments',
+                'trainingCertificates', 'visaProcess', 'departure'
+            ]);
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.pdf.candidate-profile', compact('candidate'));
+
+            $pdf->setPaper('a4', 'portrait');
+
+            return $pdf->download("candidate-profile-{$candidate->btevta_id}.pdf");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'PDF export failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export data as CSV
+     */
+    public function exportToCsv(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:candidates,departures,complaints,training',
+        ]);
+
+        try {
+            $type = $validated['type'];
+            $filename = $type . '_export_' . date('YmdHis') . '.csv';
+            $tempFile = storage_path('app/temp/' . $filename);
+
+            if (!is_dir(dirname($tempFile))) {
+                mkdir(dirname($tempFile), 0755, true);
+            }
+
+            $file = fopen($tempFile, 'w');
+
+            switch ($type) {
+                case 'candidates':
+                    fputcsv($file, ['BTEVTA ID', 'CNIC', 'Name', 'Father Name', 'Gender', 'Phone', 'Trade', 'Campus', 'Status', 'Created']);
+                    $data = Candidate::with(['trade', 'campus'])->get();
+                    foreach ($data as $item) {
+                        fputcsv($file, [
+                            $item->btevta_id,
+                            $item->cnic,
+                            $item->name,
+                            $item->father_name,
+                            $item->gender,
+                            $item->phone,
+                            $item->trade?->name ?? 'N/A',
+                            $item->campus?->name ?? 'N/A',
+                            $item->status,
+                            $item->created_at->format('Y-m-d'),
+                        ]);
+                    }
+                    break;
+
+                case 'departures':
+                    fputcsv($file, ['BTEVTA ID', 'Name', 'Trade', 'OEP', 'Departure Date', 'Iqama', 'Absher', 'Salary Status']);
+                    $data = Departure::with(['candidate.trade', 'candidate.oep'])->get();
+                    foreach ($data as $item) {
+                        fputcsv($file, [
+                            $item->candidate?->btevta_id ?? 'N/A',
+                            $item->candidate?->name ?? 'N/A',
+                            $item->candidate?->trade?->name ?? 'N/A',
+                            $item->candidate?->oep?->name ?? 'N/A',
+                            $item->departure_date ?? 'N/A',
+                            $item->iqama_number ?? 'Pending',
+                            $item->absher_registered ? 'Registered' : 'Pending',
+                            $item->salary_confirmed ? 'Confirmed' : ($item->first_salary_date ? 'Received' : 'Pending'),
+                        ]);
+                    }
+                    break;
+
+                case 'complaints':
+                    fputcsv($file, ['ID', 'Candidate', 'Category', 'Priority', 'Status', 'Created', 'Resolved']);
+                    $data = Complaint::with(['candidate'])->get();
+                    foreach ($data as $item) {
+                        fputcsv($file, [
+                            $item->id,
+                            $item->candidate?->name ?? 'N/A',
+                            $item->category,
+                            $item->priority,
+                            $item->status,
+                            $item->created_at->format('Y-m-d'),
+                            $item->resolved_at?->format('Y-m-d') ?? 'N/A',
+                        ]);
+                    }
+                    break;
+
+                case 'training':
+                    fputcsv($file, ['BTEVTA ID', 'Name', 'Batch', 'Campus', 'Attendance %', 'Assessment Score', 'Certificate']);
+                    $data = Candidate::with(['batch', 'campus', 'trainingAttendances', 'trainingAssessments', 'trainingCertificates'])
+                        ->whereIn('status', ['training', 'visa_processing', 'departed'])
+                        ->get();
+                    foreach ($data as $item) {
+                        $totalAttendance = $item->trainingAttendances->count();
+                        $presentAttendance = $item->trainingAttendances->where('status', 'present')->count();
+                        $attendanceRate = $totalAttendance > 0 ? round(($presentAttendance / $totalAttendance) * 100, 1) : 0;
+                        $avgScore = $item->trainingAssessments->avg('score') ?? 0;
+
+                        fputcsv($file, [
+                            $item->btevta_id,
+                            $item->name,
+                            $item->batch?->batch_code ?? 'N/A',
+                            $item->campus?->name ?? 'N/A',
+                            $attendanceRate . '%',
+                            round($avgScore, 1),
+                            $item->trainingCertificates->count() > 0 ? 'Yes' : 'No',
+                        ]);
+                    }
+                    break;
+            }
+
+            fclose($file);
+
+            return response()->download($tempFile, $filename)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'CSV export failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Trainer/Instructor performance report
+     */
+    public function trainerPerformance(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'campus_id' => 'nullable|exists:campuses,id',
+        ]);
+
+        try {
+            $query = Instructor::with(['campus']);
+
+            if (!empty($validated['campus_id'])) {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            $instructors = $query->get()->map(function($instructor) {
+                // Get batch IDs where this instructor taught
+                $batchIds = TrainingSchedule::where('instructor_id', $instructor->id)
+                    ->pluck('batch_id')->unique();
+
+                // Calculate metrics
+                $totalStudents = Candidate::whereIn('batch_id', $batchIds)->count();
+                $totalAssessments = TrainingAssessment::whereIn('batch_id', $batchIds)->count();
+                $passedAssessments = TrainingAssessment::whereIn('batch_id', $batchIds)
+                    ->where('result', 'pass')->count();
+                $totalAttendance = TrainingAttendance::whereIn('batch_id', $batchIds)->count();
+                $presentAttendance = TrainingAttendance::whereIn('batch_id', $batchIds)
+                    ->where('status', 'present')->count();
+
+                $instructor->total_batches = $batchIds->count();
+                $instructor->total_students = $totalStudents;
+                $instructor->pass_rate = $totalAssessments > 0
+                    ? round(($passedAssessments / $totalAssessments) * 100, 1)
+                    : 0;
+                $instructor->attendance_rate = $totalAttendance > 0
+                    ? round(($presentAttendance / $totalAttendance) * 100, 1)
+                    : 0;
+                $instructor->avg_score = TrainingAssessment::whereIn('batch_id', $batchIds)->avg('score') ?? 0;
+
+                return $instructor;
+            });
+
+            // Summary stats
+            $stats = [
+                'total_instructors' => $instructors->count(),
+                'avg_pass_rate' => $instructors->avg('pass_rate') ?? 0,
+                'avg_attendance_rate' => $instructors->avg('attendance_rate') ?? 0,
+                'total_students_taught' => $instructors->sum('total_students'),
+            ];
+
+            $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+
+            return view('reports.trainer-performance', compact('instructors', 'stats', 'campuses', 'validated'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Salary & post-departure updates report
+     */
+    public function departureUpdatesReport(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'oep_id' => 'nullable|exists:oeps,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        try {
+            $query = Departure::with(['candidate.oep', 'candidate.trade', 'candidate.campus'])
+                ->whereNotNull('departure_date');
+
+            if (!empty($validated['oep_id'])) {
+                $query->whereHas('candidate', function($q) use ($validated) {
+                    $q->where('oep_id', $validated['oep_id']);
+                });
+            }
+
+            if (!empty($validated['from_date'])) {
+                $query->whereDate('departure_date', '>=', $validated['from_date']);
+            }
+            if (!empty($validated['to_date'])) {
+                $query->whereDate('departure_date', '<=', $validated['to_date']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->whereHas('candidate', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                });
+            }
+
+            $departures = $query->latest('departure_date')->paginate(20);
+
+            // Summary stats
+            $statsQuery = Departure::whereNotNull('departure_date');
+            if (auth()->user()->role === 'campus_admin') {
+                $statsQuery->whereHas('candidate', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                });
+            }
+
+            $stats = [
+                'total_departed' => (clone $statsQuery)->count(),
+                'briefing_completed' => (clone $statsQuery)->where('briefing_completed', true)->count(),
+                'iqama_registered' => (clone $statsQuery)->whereNotNull('iqama_number')->count(),
+                'absher_registered' => (clone $statsQuery)->where('absher_registered', true)->count(),
+                'qiwa_activated' => (clone $statsQuery)->whereNotNull('qiwa_id')->count(),
+                'salary_confirmed' => (clone $statsQuery)->where('salary_confirmed', true)->count(),
+                'compliance_verified' => (clone $statsQuery)->where('ninety_day_report_submitted', true)->count(),
+                'total_salary_amount' => (clone $statsQuery)->where('salary_confirmed', true)->sum('salary_amount'),
+            ];
+
+            $oeps = Oep::where('is_active', true)->pluck('name', 'id');
+
+            return view('reports.departure-updates', compact('departures', 'stats', 'oeps', 'validated'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage());
         }
     }
 }
