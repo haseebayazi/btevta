@@ -12,6 +12,16 @@
         </a>
     </div>
 
+    @if ($errors->any())
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+        <ul class="list-disc list-inside">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <form action="{{ route('screening.store') }}" method="POST" class="bg-white rounded-lg shadow-sm p-6 space-y-6">
         @csrf
 
@@ -31,7 +41,7 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('candidate_id') border-red-500 @enderror">
                 <option value="">Select Candidate</option>
                 @foreach($candidates as $candidate)
-                    <option value="{{ $candidate->id }}" {{ request('candidate_id') == $candidate->id ? 'selected' : '' }}>
+                    <option value="{{ $candidate->id }}" {{ old('candidate_id', request('candidate_id')) == $candidate->id ? 'selected' : '' }}>
                         {{ $candidate->name }} ({{ $candidate->btevta_id }})
                     </option>
                 @endforeach
@@ -42,65 +52,68 @@
             <p class="mt-1 text-xs text-gray-500">Select the candidate being screened</p>
         </div>
 
+        <!-- Screening Type -->
+        <div>
+            <label for="screening_type" class="block text-sm font-medium text-gray-700 mb-2">
+                Screening Type <span class="text-red-600">*</span>
+            </label>
+            <select name="screening_type" id="screening_type" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screening_type') border-red-500 @enderror">
+                <option value="">Select Type</option>
+                <option value="call" {{ old('screening_type') === 'call' ? 'selected' : '' }}>Phone Call</option>
+                <option value="desk" {{ old('screening_type') === 'desk' ? 'selected' : '' }}>Desk Review</option>
+                <option value="document" {{ old('screening_type') === 'document' ? 'selected' : '' }}>Document Verification</option>
+                <option value="interview" {{ old('screening_type') === 'interview' ? 'selected' : '' }}>In-Person Interview</option>
+            </select>
+            @error('screening_type')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
         <!-- Date and Duration Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label for="screening_date" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="screened_at" class="block text-sm font-medium text-gray-700 mb-2">
                     Screening Date & Time <span class="text-red-600">*</span>
                 </label>
-                <input type="datetime-local" name="screening_date" id="screening_date" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screening_date') border-red-500 @enderror"
-                       value="{{ old('screening_date', now()->format('Y-m-d\TH:i')) }}">
-                @error('screening_date')
+                <input type="datetime-local" name="screened_at" id="screened_at" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screened_at') border-red-500 @enderror"
+                       value="{{ old('screened_at', now()->format('Y-m-d\TH:i')) }}">
+                @error('screened_at')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
                 <label for="call_duration" class="block text-sm font-medium text-gray-700 mb-2">
-                    Call Duration (minutes) <span class="text-red-600">*</span>
+                    Duration (minutes)
                 </label>
-                <input type="number" name="call_duration" id="call_duration" min="1" required
+                <input type="number" name="call_duration" id="call_duration" min="1"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('call_duration') border-red-500 @enderror"
                        value="{{ old('call_duration') }}" placeholder="e.g., 15">
                 @error('call_duration')
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
+                <p class="mt-1 text-xs text-gray-500">Optional - for phone calls</p>
             </div>
         </div>
 
-        <!-- Screening Outcome -->
+        <!-- Status -->
         <div>
-            <label for="screening_outcome" class="block text-sm font-medium text-gray-700 mb-2">
-                Screening Outcome <span class="text-red-600">*</span>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                Screening Status <span class="text-red-600">*</span>
             </label>
-            <select name="screening_outcome" id="screening_outcome" required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('screening_outcome') border-red-500 @enderror">
-                <option value="">Select Outcome</option>
-                <option value="pending" {{ old('screening_outcome') === 'pending' ? 'selected' : '' }}>
-                    ⏳ Pending
-                </option>
-                <option value="pass" {{ old('screening_outcome') === 'pass' ? 'selected' : '' }}>
-                    ✅ Pass
-                </option>
-                <option value="fail" {{ old('screening_outcome') === 'fail' ? 'selected' : '' }}>
-                    ❌ Fail
-                </option>
+            <select name="status" id="status" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('status') border-red-500 @enderror">
+                <option value="">Select Status</option>
+                <option value="pending" {{ old('status') === 'pending' ? 'selected' : '' }}>Pending - Awaiting further action</option>
+                <option value="in_progress" {{ old('status') === 'in_progress' ? 'selected' : '' }}>In Progress - Currently being processed</option>
+                <option value="passed" {{ old('status') === 'passed' ? 'selected' : '' }}>Passed - Successfully cleared</option>
+                <option value="failed" {{ old('status') === 'failed' ? 'selected' : '' }}>Failed - Did not meet requirements</option>
+                <option value="deferred" {{ old('status') === 'deferred' ? 'selected' : '' }}>Deferred - Postponed for later</option>
+                <option value="cancelled" {{ old('status') === 'cancelled' ? 'selected' : '' }}>Cancelled - No longer needed</option>
             </select>
-            @error('screening_outcome')
-            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <!-- Call Notes -->
-        <div>
-            <label for="call_notes" class="block text-sm font-medium text-gray-700 mb-2">
-                Call Notes
-            </label>
-            <textarea name="call_notes" id="call_notes" rows="4"
-                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('call_notes') border-red-500 @enderror"
-                      placeholder="Enter notes from the screening call...">{{ old('call_notes') }}</textarea>
-            @error('call_notes')
+            @error('status')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
@@ -108,15 +121,18 @@
         <!-- Remarks -->
         <div>
             <label for="remarks" class="block text-sm font-medium text-gray-700 mb-2">
-                Remarks
+                Remarks / Notes
             </label>
-            <textarea name="remarks" id="remarks" rows="3"
+            <textarea name="remarks" id="remarks" rows="4"
                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('remarks') border-red-500 @enderror"
-                      placeholder="Additional remarks or observations...">{{ old('remarks') }}</textarea>
+                      placeholder="Enter notes from the screening, observations, or any relevant information...">{{ old('remarks') }}</textarea>
             @error('remarks')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
+
+        <!-- Evidence Path (hidden for now, can be used for file uploads later) -->
+        <input type="hidden" name="evidence_path" value="{{ old('evidence_path') }}">
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center pt-4 border-t border-gray-200">
