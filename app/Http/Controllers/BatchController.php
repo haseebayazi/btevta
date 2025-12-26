@@ -42,9 +42,10 @@ class BatchController extends Controller
             return Trade::where('is_active', true)->pluck('name', 'id');
         });
 
-        $users = Cache::remember('active_trainers', 3600, function () {
-            return User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
-        });
+        // Get trainers and staff who can be assigned to batches
+        $users = User::whereIn('role', ['trainer', 'campus_admin', 'admin'])
+            ->where('is_active', true)
+            ->pluck('name', 'id');
 
         return view('admin.batches.create', compact('campuses', 'trades', 'users'));
     }
@@ -83,7 +84,7 @@ class BatchController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Batch created');
 
-            return redirect()->route('batches.index')
+            return redirect()->route('admin.batches.index')
                 ->with('success', 'Batch created successfully!');
         } catch (\Exception $e) {
             // SECURITY: Log exception details, show generic message to user
@@ -116,7 +117,11 @@ class BatchController extends Controller
 
         $campuses = Campus::where('is_active', true)->pluck('name', 'id');
         $trades = Trade::where('is_active', true)->pluck('name', 'id');
-        $users = User::where('role', 'trainer')->where('is_active', true)->pluck('name', 'id');
+
+        // Get trainers and staff who can be assigned to batches
+        $users = User::whereIn('role', ['trainer', 'campus_admin', 'admin'])
+            ->where('is_active', true)
+            ->pluck('name', 'id');
 
         return view('admin.batches.edit', compact('batch', 'campuses', 'trades', 'users'));
     }
@@ -155,7 +160,7 @@ class BatchController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Batch updated');
 
-            return redirect()->route('batches.index')
+            return redirect()->route('admin.batches.index')
                 ->with('success', 'Batch updated successfully!');
         } catch (\Exception $e) {
             // SECURITY: Log exception details, show generic message to user

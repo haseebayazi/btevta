@@ -89,11 +89,13 @@ class ScreeningController extends Controller
     public function edit($candidateId)
     {
         try {
-            $candidate = Candidate::findOrFail($candidateId);
+            $candidate = Candidate::with('screenings')->findOrFail($candidateId);
             $screening = $candidate->screenings()->latest()->first();
 
             if (!$screening) {
-                return back()->with('error', 'No screening record found for this candidate!');
+                // No existing screening, create a new one for this candidate
+                return redirect()->route('screening.create', ['candidate_id' => $candidate->id])
+                    ->with('info', 'No existing screening record. Please create a new one.');
             }
 
             $this->authorize('update', $screening);

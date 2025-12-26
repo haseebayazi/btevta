@@ -1,157 +1,241 @@
 @extends('layouts.app')
 
-@section('title', 'Assessment - ' . $training->title)
+@section('title', 'Record Assessment - ' . $candidate->name)
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="flex justify-between items-start mb-6">
-        <div>
-            <h1 class="text-3xl font-bold">Training Assessment</h1>
-            <p class="text-gray-600 mt-1">{{ $training->title }} - Batch: {{ $training->batch_name }}</p>
+<div class="container-fluid py-4">
+    {{-- Header --}}
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-2">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('training.index') }}">Training</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('training.show', $candidate) }}">{{ $candidate->btevta_id }}</a></li>
+                    <li class="breadcrumb-item active">Assessment</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Record Assessment</h2>
+            <p class="text-muted mb-0">{{ $candidate->name }} - {{ $candidate->trade->name ?? 'N/A' }}</p>
         </div>
-        <a href="{{ route('training.show', $training) }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left mr-2"></i>Back
-        </a>
+        <div class="col-md-4 text-right">
+            <a href="{{ route('training.show', $candidate) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Details
+            </a>
+        </div>
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2">
-            <div class="card">
-                <form method="POST" action="{{ route('training.assessment.store', $training) }}" id="assessmentForm">
-                    @csrf
-                    
-                    <!-- Assessment Type Tabs -->
-                    <div class="mb-6">
-                        <div class="flex bg-gray-100 p-1 rounded-lg">
-                            <button type="button" class="tab-btn active" data-type="theory">
-                                <i class="fas fa-book mr-2"></i>Theory
-                            </button>
-                            <button type="button" class="tab-btn" data-type="practical">
-                                <i class="fas fa-tools mr-2"></i>Practical
-                            </button>
-                            <button type="button" class="tab-btn" data-type="final">
-                                <i class="fas fa-graduation-cap mr-2"></i>Final Exam
-                            </button>
-                        </div>
-                    </div>
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+    @endif
 
-                    <input type="hidden" name="assessment_type" id="assessment_type" value="theory">
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+    @endif
 
-                    <!-- Assessment Details -->
-                    <div class="grid md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label class="form-label required">Assessment Date</label>
-                            <input type="date" name="assessment_date" value="{{ old('assessment_date', date('Y-m-d')) }}" 
-                                   class="form-input" required max="{{ date('Y-m-d') }}">
-                        </div>
-                        <div>
-                            <label class="form-label required">Maximum Marks</label>
-                            <input type="number" name="max_marks" value="{{ old('max_marks', 100) }}" 
-                                   class="form-input" required min="1" id="maxMarks">
-                        </div>
-                        <div>
-                            <label class="form-label required">Passing Marks</label>
-                            <input type="number" name="passing_marks" value="{{ old('passing_marks', 40) }}" 
-                                   class="form-input" required min="1" id="passingMarks">
-                        </div>
-                        <div>
-                            <label class="form-label">Assessor Name</label>
-                            <input type="text" name="assessor_name" value="{{ old('assessor_name', auth()->user()->name) }}" 
-                                   class="form-input">
-                        </div>
-                    </div>
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+    @endif
 
-                    <!-- Candidates Marks Entry -->
-                    <div class="border-t pt-6">
-                        <h3 class="text-lg font-semibold mb-4">Enter Marks for Each Candidate</h3>
-                        <div class="space-y-3">
-                            @forelse($candidates as $candidate)
-                            <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                                <div class="flex items-center space-x-4 flex-1">
-                                    <img src="{{ $candidate->photo_url ?? asset('img/default.png') }}" 
-                                         class="w-12 h-12 rounded-full">
-                                    <div>
-                                        <h4 class="font-semibold">{{ $candidate->name }}</h4>
-                                        <p class="text-sm text-gray-600">{{ $candidate->passport_number }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-4">
-                                    <input type="number" name="marks[{{ $candidate->id }}]" 
-                                           class="marks-input w-28 px-3 py-2 border rounded text-center" 
-                                           placeholder="0" min="0" step="0.5" 
-                                           data-candidate-id="{{ $candidate->id }}">
-                                    <span class="grade-badge w-20 text-center font-semibold" 
-                                          id="grade-{{ $candidate->id }}">-</span>
-                                    <span class="status-badge w-24 text-center text-xs font-medium" 
-                                          id="status-{{ $candidate->id }}"></span>
+    <div class="row">
+        {{-- Main Form --}}
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-chart-line mr-2"></i>New Assessment</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('training.store-assessment', $candidate) }}" method="POST" id="assessmentForm">
+                        @csrf
+
+                        {{-- Assessment Type Tabs --}}
+                        <div class="mb-4">
+                            <label class="font-weight-bold d-block mb-2">Assessment Type <span class="text-danger">*</span></label>
+                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                <label class="btn btn-outline-primary {{ old('assessment_type', 'theory') === 'theory' ? 'active' : '' }}">
+                                    <input type="radio" name="assessment_type" value="theory" {{ old('assessment_type', 'theory') === 'theory' ? 'checked' : '' }}>
+                                    <i class="fas fa-book mr-1"></i> Theory
+                                </label>
+                                <label class="btn btn-outline-primary {{ old('assessment_type') === 'practical' ? 'active' : '' }}">
+                                    <input type="radio" name="assessment_type" value="practical" {{ old('assessment_type') === 'practical' ? 'checked' : '' }}>
+                                    <i class="fas fa-tools mr-1"></i> Practical
+                                </label>
+                                <label class="btn btn-outline-primary {{ old('assessment_type') === 'final' ? 'active' : '' }}">
+                                    <input type="radio" name="assessment_type" value="final" {{ old('assessment_type') === 'final' ? 'checked' : '' }}>
+                                    <i class="fas fa-graduation-cap mr-1"></i> Final Exam
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            {{-- Assessment Date --}}
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Assessment Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="assessment_date" class="form-control @error('assessment_date') is-invalid @enderror"
+                                           value="{{ old('assessment_date', date('Y-m-d')) }}" max="{{ date('Y-m-d') }}" required>
+                                    @error('assessment_date')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
-                            @empty
-                            <p class="text-center text-gray-500 py-8">No candidates enrolled</p>
-                            @endforelse
+
+                            {{-- Total Marks --}}
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Total Marks <span class="text-danger">*</span></label>
+                                    <input type="number" name="total_marks" id="totalMarks" class="form-control @error('total_marks') is-invalid @enderror"
+                                           value="{{ old('total_marks', 100) }}" min="1" required>
+                                    @error('total_marks')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            {{-- Obtained Marks --}}
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Obtained Marks <span class="text-danger">*</span></label>
+                                    <input type="number" name="obtained_marks" id="obtainedMarks" class="form-control @error('obtained_marks') is-invalid @enderror"
+                                           value="{{ old('obtained_marks') }}" min="0" required>
+                                    @error('obtained_marks')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Remarks -->
-                    <div class="mt-6">
-                        <label class="form-label">Assessment Remarks</label>
-                        <textarea name="remarks" rows="3" class="form-input" 
-                                  placeholder="Add remarks about the assessment...">{{ old('remarks') }}</textarea>
-                    </div>
+                        <div class="row">
+                            {{-- Grade (Auto-calculated) --}}
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Grade <span class="text-danger">*</span></label>
+                                    <select name="grade" id="gradeSelect" class="form-control @error('grade') is-invalid @enderror" required>
+                                        <option value="">Select Grade</option>
+                                        <option value="A+" {{ old('grade') === 'A+' ? 'selected' : '' }}>A+ (90-100%)</option>
+                                        <option value="A" {{ old('grade') === 'A' ? 'selected' : '' }}>A (80-89%)</option>
+                                        <option value="B" {{ old('grade') === 'B' ? 'selected' : '' }}>B (70-79%)</option>
+                                        <option value="C" {{ old('grade') === 'C' ? 'selected' : '' }}>C (60-69%)</option>
+                                        <option value="D" {{ old('grade') === 'D' ? 'selected' : '' }}>D (50-59%)</option>
+                                        <option value="F" {{ old('grade') === 'F' ? 'selected' : '' }}>F (Below 50%)</option>
+                                    </select>
+                                    @error('grade')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
 
-                    <!-- Actions -->
-                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                        <a href="{{ route('training.show', $training) }}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save mr-2"></i>Save Assessment
-                        </button>
-                    </div>
-                </form>
+                            {{-- Result Display --}}
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Result</label>
+                                    <div class="form-control-plaintext">
+                                        <span id="resultBadge" class="badge badge-secondary px-3 py-2">--</span>
+                                        <span id="percentageDisplay" class="ml-2 text-muted">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Remarks --}}
+                        <div class="form-group">
+                            <label class="font-weight-bold">Remarks</label>
+                            <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" rows="3"
+                                      placeholder="Add remarks about the assessment...">{{ old('remarks') }}</textarea>
+                            @error('remarks')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        {{-- Submit --}}
+                        <div class="d-flex justify-content-between pt-4 border-top">
+                            <a href="{{ route('training.show', $candidate) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save Assessment
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <!-- Grading System -->
-        <div class="lg:col-span-1">
-            <div class="card mb-4">
-                <h3 class="text-lg font-semibold mb-4">Grading System</h3>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span>A+ (90-100%)</span>
-                        <span class="badge badge-success">Excellent</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>A (80-89%)</span>
-                        <span class="badge badge-info">Very Good</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>B+ (70-79%)</span>
-                        <span class="badge badge-primary">Good</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>B (60-69%)</span>
-                        <span class="badge badge-warning">Above Average</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>C (50-59%)</span>
-                        <span class="badge badge-secondary">Average</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>D (40-49%)</span>
-                        <span class="badge badge-danger">Below Average</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>F (<40%)</span>
-                        <span class="badge badge-dark">Fail</span>
-                    </div>
+        {{-- Sidebar --}}
+        <div class="col-lg-4">
+            {{-- Candidate Info --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Candidate Info</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>BTEVTA ID:</strong> <span class="text-monospace">{{ $candidate->btevta_id }}</span></p>
+                    <p class="mb-2"><strong>Name:</strong> {{ $candidate->name }}</p>
+                    <p class="mb-2"><strong>Trade:</strong> {{ $candidate->trade->name ?? 'N/A' }}</p>
+                    <p class="mb-0"><strong>Batch:</strong> {{ $candidate->batch->name ?? 'N/A' }}</p>
                 </div>
             </div>
 
-            <div class="card">
-                <h3 class="text-lg font-semibold mb-3">Quick Stats</h3>
-                <div class="text-sm text-gray-600">
-                    <p class="mb-2">Total Candidates: <span class="font-bold">{{ $candidates->count() }}</span></p>
-                    <p class="mb-2">Max Marks: <span class="font-bold" id="displayMaxMarks">100</span></p>
-                    <p class="mb-2">Passing Marks: <span class="font-bold" id="displayPassingMarks">40</span></p>
+            {{-- Grading Guide --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Grading Guide</h5>
+                </div>
+                <div class="card-body small">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><td>A+ (Excellent)</td><td class="text-right">90% - 100%</td></tr>
+                            <tr><td>A (Very Good)</td><td class="text-right">80% - 89%</td></tr>
+                            <tr><td>B (Good)</td><td class="text-right">70% - 79%</td></tr>
+                            <tr><td>C (Average)</td><td class="text-right">60% - 69%</td></tr>
+                            <tr><td>D (Pass)</td><td class="text-right">50% - 59%</td></tr>
+                            <tr class="text-danger"><td>F (Fail)</td><td class="text-right">Below 50%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Previous Assessments --}}
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-history mr-2"></i>Previous Assessments</h5>
+                </div>
+                <div class="card-body">
+                    @if($candidate->assessments && $candidate->assessments->count() > 0)
+                        <div class="list-group list-group-flush">
+                            @foreach($candidate->assessments->take(5) as $assessment)
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ ucfirst($assessment->assessment_type) }}</strong>
+                                            <small class="text-muted d-block">{{ $assessment->assessment_date ? $assessment->assessment_date->format('d M Y') : 'N/A' }}</small>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="font-weight-bold">{{ $assessment->total_score }}/{{ $assessment->max_score }}</span>
+                                            <span class="badge badge-{{ $assessment->result === 'pass' ? 'success' : 'danger' }} d-block mt-1">
+                                                {{ ucfirst($assessment->result) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">No previous assessments recorded.</p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -160,60 +244,50 @@
 
 @push('scripts')
 <script>
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById('assessment_type').value = this.dataset.type;
-    });
-});
+    // Auto-calculate grade and result
+    function calculateResult() {
+        const totalMarks = parseFloat(document.getElementById('totalMarks').value) || 100;
+        const obtainedMarks = parseFloat(document.getElementById('obtainedMarks').value) || 0;
 
-// Grade calculation
-function calculateGrade(marks, maxMarks) {
-    const percentage = (marks / maxMarks) * 100;
-    if (percentage >= 90) return {grade: 'A+', class: 'success', status: 'Excellent'};
-    if (percentage >= 80) return {grade: 'A', class: 'info', status: 'Very Good'};
-    if (percentage >= 70) return {grade: 'B+', class: 'primary', status: 'Good'};
-    if (percentage >= 60) return {grade: 'B', class: 'warning', status: 'Above Avg'};
-    if (percentage >= 50) return {grade: 'C', class: 'secondary', status: 'Average'};
-    if (percentage >= 40) return {grade: 'D', class: 'danger', status: 'Below Avg'};
-    return {grade: 'F', class: 'dark', status: 'Fail'};
-}
-
-// Real-time grade update
-document.querySelectorAll('.marks-input').forEach(input => {
-    input.addEventListener('input', function() {
-        const candidateId = this.dataset.candidateId;
-        const marks = parseFloat(this.value) || 0;
-        const maxMarks = parseFloat(document.getElementById('maxMarks').value) || 100;
-        const passingMarks = parseFloat(document.getElementById('passingMarks').value) || 40;
-        
-        if (marks > maxMarks) {
-            this.value = maxMarks;
+        if (obtainedMarks > totalMarks) {
+            document.getElementById('obtainedMarks').value = totalMarks;
             return;
         }
-        
-        const result = calculateGrade(marks, maxMarks);
-        const gradeEl = document.getElementById('grade-' + candidateId);
-        const statusEl = document.getElementById('status-' + candidateId);
-        
-        gradeEl.textContent = result.grade;
-        gradeEl.className = 'grade-badge w-20 text-center font-semibold badge badge-' + result.class;
-        
-        statusEl.textContent = marks >= passingMarks ? 'Pass' : 'Fail';
-        statusEl.className = 'status-badge w-24 text-center text-xs font-medium badge badge-' + 
-                            (marks >= passingMarks ? 'success' : 'danger');
-    });
-});
 
-// Update display when max/passing marks change
-document.getElementById('maxMarks').addEventListener('input', function() {
-    document.getElementById('displayMaxMarks').textContent = this.value;
-});
-document.getElementById('passingMarks').addEventListener('input', function() {
-    document.getElementById('displayPassingMarks').textContent = this.value;
-});
+        const percentage = (obtainedMarks / totalMarks) * 100;
+        let grade = 'F';
+        let resultClass = 'danger';
+        let resultText = 'Fail';
+
+        if (percentage >= 90) {
+            grade = 'A+'; resultClass = 'success'; resultText = 'Excellent';
+        } else if (percentage >= 80) {
+            grade = 'A'; resultClass = 'success'; resultText = 'Very Good';
+        } else if (percentage >= 70) {
+            grade = 'B'; resultClass = 'info'; resultText = 'Good';
+        } else if (percentage >= 60) {
+            grade = 'C'; resultClass = 'warning'; resultText = 'Average';
+        } else if (percentage >= 50) {
+            grade = 'D'; resultClass = 'warning'; resultText = 'Pass';
+        } else {
+            grade = 'F'; resultClass = 'danger'; resultText = 'Fail';
+        }
+
+        // Update grade select
+        document.getElementById('gradeSelect').value = grade;
+
+        // Update result display
+        document.getElementById('resultBadge').textContent = resultText;
+        document.getElementById('resultBadge').className = 'badge badge-' + resultClass + ' px-3 py-2';
+        document.getElementById('percentageDisplay').textContent = percentage.toFixed(1) + '%';
+    }
+
+    // Attach event listeners
+    document.getElementById('totalMarks').addEventListener('input', calculateResult);
+    document.getElementById('obtainedMarks').addEventListener('input', calculateResult);
+
+    // Initial calculation if values exist
+    document.addEventListener('DOMContentLoaded', calculateResult);
 </script>
 @endpush
 @endsection

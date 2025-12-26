@@ -1,216 +1,252 @@
 @extends('layouts.app')
 
-@section('title', 'Mark Attendance - ' . $training->title)
+@section('title', 'Mark Attendance')
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">Mark Attendance</h1>
-            <p class="text-gray-600 mt-1">{{ $training->title }} - {{ $training->batch_name }}</p>
+<div class="container-fluid py-4">
+    {{-- Header --}}
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-2">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('training.index') }}">Training</a></li>
+                    <li class="breadcrumb-item active">Mark Attendance</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Mark Attendance</h2>
+            <p class="text-muted mb-0">Record daily attendance for training batches</p>
         </div>
-        <a href="{{ route('training.show', $training) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Training
-        </a>
+        <div class="col-md-4 text-right">
+            <a href="{{ route('training.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Training
+            </a>
+        </div>
     </div>
 
-    <!-- Attendance Form -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <form id="attendanceForm" method="POST" action="{{ route('training.attendance.store', $training) }}">
-            @csrf
-            
-            <!-- Date and Session Info -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
-                    <label for="attendance_date" class="block text-sm font-medium text-gray-700 mb-2">
-                        Date <span class="text-red-500">*</span>
-                    </label>
-                    <input type="date" 
-                           id="attendance_date" 
-                           name="attendance_date" 
-                           value="{{ old('attendance_date', date('Y-m-d')) }}"
-                           max="{{ date('Y-m-d') }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           required>
-                    @error('attendance_date')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+    @endif
 
-                <div>
-                    <label for="session_type" class="block text-sm font-medium text-gray-700 mb-2">
-                        Session Type
-                    </label>
-                    <select id="session_type" 
-                            name="session_type" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="full_day" {{ old('session_type') == 'full_day' ? 'selected' : '' }}>Full Day</option>
-                        <option value="morning" {{ old('session_type') == 'morning' ? 'selected' : '' }}>Morning Session</option>
-                        <option value="afternoon" {{ old('session_type') == 'afternoon' ? 'selected' : '' }}>Afternoon Session</option>
-                    </select>
-                </div>
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+    @endif
 
-                <div>
-                    <label for="instructor_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Instructor
-                    </label>
-                    <select id="instructor_id" 
-                            name="instructor_id" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Select Instructor</option>
-                        @foreach($instructors as $instructor)
-                            <option value="{{ $instructor->id }}" {{ old('instructor_id') == $instructor->id ? 'selected' : '' }}>
-                                {{ $instructor->name }}
+    {{-- Batch Selection --}}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0"><i class="fas fa-filter mr-2"></i>Select Batch & Date</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('training.attendance-form') }}" method="GET" class="row align-items-end">
+                <div class="col-md-5">
+                    <label class="font-weight-bold">Select Batch</label>
+                    <select name="batch_id" class="form-control" onchange="this.form.submit()">
+                        <option value="">-- Select a Batch --</option>
+                        @foreach($batches as $batch)
+                            <option value="{{ $batch->id }}" {{ request('batch_id') == $batch->id ? 'selected' : '' }}>
+                                {{ $batch->name }} ({{ $batch->batch_code }}) - {{ $batch->candidates->count() }} candidates
                             </option>
                         @endforeach
                     </select>
                 </div>
-            </div>
-
-            <!-- Bulk Actions -->
-            <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" 
-                            onclick="markAll('present')" 
-                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-check-double mr-1"></i>Mark All Present
-                    </button>
-                    <button type="button" 
-                            onclick="markAll('absent')" 
-                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-times-circle mr-1"></i>Mark All Absent
-                    </button>
-                    <button type="button" 
-                            onclick="clearAll()" 
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-eraser mr-1"></i>Clear All
+                <div class="col-md-4">
+                    <label class="font-weight-bold">Attendance Date</label>
+                    <input type="date" name="date" class="form-control" value="{{ $date }}" max="{{ date('Y-m-d') }}" onchange="this.form.submit()">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sync-alt"></i> Load
                     </button>
                 </div>
-                <div class="text-sm text-gray-600">
-                    Total: <span class="font-bold text-gray-800">{{ $candidates->count() }}</span> candidates
+            </form>
+        </div>
+    </div>
+
+    {{-- Attendance Form --}}
+    @if($selectedBatch)
+        <div class="card shadow-sm">
+            <div class="card-header py-3 bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check mr-2"></i>{{ $selectedBatch->name }}</h5>
+                        <small>Date: {{ \Carbon\Carbon::parse($date)->format('d M Y, l') }}</small>
+                    </div>
+                    <div>
+                        <span class="badge badge-light">{{ $selectedBatch->candidates->count() }} Candidates</span>
+                    </div>
                 </div>
             </div>
+            <div class="card-body">
+                @if($selectedBatch->candidates->count() > 0)
+                    <form action="{{ route('training.bulk-attendance') }}" method="POST" id="attendanceForm">
+                        @csrf
+                        <input type="hidden" name="batch_id" value="{{ $selectedBatch->id }}">
+                        <input type="hidden" name="date" value="{{ $date }}">
 
-            <!-- Candidates List -->
-            <div class="space-y-2 mb-6">
-                @forelse($candidates as $candidate)
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                        <div class="flex items-center space-x-4 flex-1">
-                            <img src="{{ $candidate->profile_photo_url ?? asset('images/default-avatar.png') }}" 
-                                 alt="{{ $candidate->name }}"
-                                 class="w-12 h-12 rounded-full object-cover border-2 border-gray-200">
-                            <div>
-                                <h3 class="font-semibold text-gray-800">{{ $candidate->name }}</h3>
-                                <p class="text-sm text-gray-600">{{ $candidate->passport_number }}</p>
+                        {{-- Quick Actions --}}
+                        <div class="d-flex justify-content-between mb-4 pb-3 border-bottom">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-success" onclick="markAll('present')">
+                                    <i class="fas fa-check-double"></i> All Present
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="markAll('absent')">
+                                    <i class="fas fa-times-circle"></i> All Absent
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearAll()">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                            <div class="text-muted">
+                                Total: <strong id="totalCount">0</strong> |
+                                Present: <strong id="presentCount" class="text-success">0</strong> |
+                                Absent: <strong id="absentCount" class="text-danger">0</strong> |
+                                Leave: <strong id="leaveCount" class="text-warning">0</strong>
                             </div>
                         </div>
 
-                        <!-- Attendance Options -->
-                        <div class="flex items-center space-x-3">
-                            <label class="flex items-center cursor-pointer group">
-                                <input type="radio" 
-                                       name="attendance[{{ $candidate->id }}]" 
-                                       value="present"
-                                       class="attendance-radio w-5 h-5 text-green-600 focus:ring-green-500 cursor-pointer">
-                                <span class="ml-2 text-sm font-medium text-green-700 group-hover:text-green-800">Present</span>
-                            </label>
-
-                            <label class="flex items-center cursor-pointer group">
-                                <input type="radio" 
-                                       name="attendance[{{ $candidate->id }}]" 
-                                       value="absent"
-                                       class="attendance-radio w-5 h-5 text-red-600 focus:ring-red-500 cursor-pointer">
-                                <span class="ml-2 text-sm font-medium text-red-700 group-hover:text-red-800">Absent</span>
-                            </label>
-
-                            <label class="flex items-center cursor-pointer group">
-                                <input type="radio" 
-                                       name="attendance[{{ $candidate->id }}]" 
-                                       value="late"
-                                       class="attendance-radio w-5 h-5 text-yellow-600 focus:ring-yellow-500 cursor-pointer">
-                                <span class="ml-2 text-sm font-medium text-yellow-700 group-hover:text-yellow-800">Late</span>
-                            </label>
-
-                            <label class="flex items-center cursor-pointer group">
-                                <input type="radio" 
-                                       name="attendance[{{ $candidate->id }}]" 
-                                       value="excused"
-                                       class="attendance-radio w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer">
-                                <span class="ml-2 text-sm font-medium text-blue-700 group-hover:text-blue-800">Excused</span>
-                            </label>
+                        {{-- Candidates List --}}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th width="5%">#</th>
+                                        <th width="15%">BTEVTA ID</th>
+                                        <th width="25%">Name</th>
+                                        <th width="30%">Attendance Status</th>
+                                        <th width="25%">Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($selectedBatch->candidates as $index => $candidate)
+                                        @php
+                                            $existingAttendance = $candidate->attendances->first();
+                                            $currentStatus = $existingAttendance ? $existingAttendance->status : null;
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $index + 1 }}</td>
+                                            <td class="text-monospace">{{ $candidate->btevta_id }}</td>
+                                            <td>
+                                                <strong>{{ $candidate->name }}</strong>
+                                                <small class="text-muted d-block">{{ $candidate->trade->name ?? 'N/A' }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                                    <label class="btn btn-outline-success {{ $currentStatus === 'present' ? 'active' : '' }}">
+                                                        <input type="radio" name="attendances[{{ $index }}][status]" value="present" autocomplete="off" class="status-radio"
+                                                               {{ $currentStatus === 'present' ? 'checked' : '' }} data-candidate="{{ $index }}">
+                                                        <i class="fas fa-check"></i> Present
+                                                    </label>
+                                                    <label class="btn btn-outline-danger {{ $currentStatus === 'absent' ? 'active' : '' }}">
+                                                        <input type="radio" name="attendances[{{ $index }}][status]" value="absent" autocomplete="off" class="status-radio"
+                                                               {{ $currentStatus === 'absent' ? 'checked' : '' }} data-candidate="{{ $index }}">
+                                                        <i class="fas fa-times"></i> Absent
+                                                    </label>
+                                                    <label class="btn btn-outline-warning {{ $currentStatus === 'leave' ? 'active' : '' }}">
+                                                        <input type="radio" name="attendances[{{ $index }}][status]" value="leave" autocomplete="off" class="status-radio"
+                                                               {{ $currentStatus === 'leave' ? 'checked' : '' }} data-candidate="{{ $index }}">
+                                                        <i class="fas fa-clock"></i> Leave
+                                                    </label>
+                                                </div>
+                                                <input type="hidden" name="attendances[{{ $index }}][candidate_id]" value="{{ $candidate->id }}">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="attendances[{{ $index }}][remarks]" class="form-control form-control-sm"
+                                                       placeholder="Optional remarks" value="{{ $existingAttendance->remarks ?? '' }}">
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                @empty
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-users text-5xl mb-3 text-gray-400"></i>
-                        <p class="text-lg font-medium">No candidates enrolled in this training batch.</p>
-                        <a href="{{ route('training.edit', $training) }}" class="text-blue-600 hover:text-blue-700 mt-2 inline-block">
-                            Add Candidates
-                        </a>
-                    </div>
-                @endforelse
-            </div>
 
-            <!-- Notes Section -->
-            <div class="mb-6">
-                <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
-                    Session Notes (Optional)
-                </label>
-                <textarea id="notes" 
-                          name="notes" 
-                          rows="3"
-                          placeholder="Add notes about today's session, topics covered, or any issues..."
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ old('notes') }}</textarea>
+                        {{-- Submit --}}
+                        <div class="d-flex justify-content-between pt-4 border-top">
+                            <a href="{{ route('training.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Save Attendance
+                            </button>
+                        </div>
+                    </form>
+                @else
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>No candidates enrolled in this batch.
+                    </div>
+                @endif
             </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <a href="{{ route('training.show', $training) }}" 
-                   class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">
-                    <i class="fas fa-save mr-2"></i>Save Attendance
-                </button>
+        </div>
+    @else
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Select a Batch</h4>
+                <p class="text-muted">Please select a batch from the dropdown above to mark attendance.</p>
             </div>
-        </form>
-    </div>
+        </div>
+    @endif
 </div>
 
 @push('scripts')
 <script>
-    // Mark all candidates with specific status
+    // Mark all candidates with a specific status
     function markAll(status) {
-        document.querySelectorAll('.attendance-radio').forEach(radio => {
+        document.querySelectorAll('.status-radio').forEach(radio => {
             if (radio.value === status) {
                 radio.checked = true;
+                radio.closest('.btn').classList.add('active');
+            } else {
+                radio.closest('.btn').classList.remove('active');
             }
         });
+        updateCounts();
     }
 
-    // Clear all attendance selections
+    // Clear all selections
     function clearAll() {
-        document.querySelectorAll('.attendance-radio').forEach(radio => {
+        document.querySelectorAll('.status-radio').forEach(radio => {
             radio.checked = false;
+            radio.closest('.btn').classList.remove('active');
         });
+        updateCounts();
     }
 
-    // Form validation before submit
-    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
-        const checkedRadios = document.querySelectorAll('.attendance-radio:checked');
-        
+    // Update attendance counts
+    function updateCounts() {
+        const total = document.querySelectorAll('input[type="hidden"][name$="[candidate_id]"]').length;
+        const present = document.querySelectorAll('.status-radio[value="present"]:checked').length;
+        const absent = document.querySelectorAll('.status-radio[value="absent"]:checked').length;
+        const leave = document.querySelectorAll('.status-radio[value="leave"]:checked').length;
+
+        document.getElementById('totalCount').textContent = total;
+        document.getElementById('presentCount').textContent = present;
+        document.getElementById('absentCount').textContent = absent;
+        document.getElementById('leaveCount').textContent = leave;
+    }
+
+    // Update counts on radio change
+    document.querySelectorAll('.status-radio').forEach(radio => {
+        radio.addEventListener('change', updateCounts);
+    });
+
+    // Initial count
+    document.addEventListener('DOMContentLoaded', updateCounts);
+
+    // Form validation
+    document.getElementById('attendanceForm')?.addEventListener('submit', function(e) {
+        const checkedRadios = document.querySelectorAll('.status-radio:checked');
         if (checkedRadios.length === 0) {
             e.preventDefault();
-            alert('Please mark attendance for at least one candidate before submitting.');
+            alert('Please mark attendance for at least one candidate.');
             return false;
         }
-        
-        // Show loading state
-        const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
     });
 </script>
 @endpush

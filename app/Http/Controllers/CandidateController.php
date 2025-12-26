@@ -53,18 +53,10 @@ class CandidateController extends Controller
 
         $candidates = $query->latest()->paginate(20);
 
-        // PERFORMANCE: Cache dropdown data - using distinct keys to avoid format conflicts
-        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
-            return Campus::where('is_active', true)->select('id', 'name')->get();
-        });
-
-        $trades = Cache::remember('trades_list_objects', 86400, function () {
-            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
-
-        $batches = Cache::remember('batches_list_objects', 3600, function () {
-            return Batch::where('status', 'active')->select('id', 'batch_code', 'name')->get();
-        });
+        // Get dropdown data - fetching fresh to avoid cache issues
+        $campuses = Campus::where('is_active', true)->select('id', 'name')->get();
+        $trades = Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        $batches = Batch::whereIn('status', ['planned', 'active'])->select('id', 'batch_code', 'name')->get();
 
         return view('candidates.index', compact('candidates', 'campuses', 'trades', 'batches'));
     }
@@ -73,29 +65,17 @@ class CandidateController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        // NOTE: Using distinct cache keys to avoid conflicts with BatchController
-        // which uses pluck() format for the same data
-        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
-            return Campus::where('is_active', true)->select('id', 'name')->get();
-        });
+        // Get dropdown data - fetching fresh to avoid cache issues
+        $campuses = Campus::where('is_active', true)->select('id', 'name')->get();
+        $trades = Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        $oeps = Oep::where('is_active', true)->select('id', 'name', 'code')->get();
 
-        $trades = Cache::remember('trades_list_objects', 86400, function () {
-            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
-
-        $oeps = Cache::remember('oeps_list_objects', 86400, function () {
-            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
-
-        // FIX: Include batches with trade relationship for the create form
-        // Include both 'planned' and 'active' batches so newly created batches are visible
-        $batches = Cache::remember('available_batches_with_trades', 3600, function () {
-            return Batch::with('trade:id,name')
-                ->whereIn('status', ['planned', 'active'])
-                ->select('id', 'batch_code', 'name', 'trade_id', 'status')
-                ->orderBy('created_at', 'desc')
-                ->get();
-        });
+        // Get batches - include planned and active, fresh query (no cache)
+        $batches = Batch::with('trade:id,name')
+            ->whereIn('status', ['planned', 'active'])
+            ->select('id', 'batch_code', 'name', 'trade_id', 'status')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return view('candidates.create', compact('campuses', 'trades', 'oeps', 'batches'));
     }
@@ -168,20 +148,24 @@ class CandidateController extends Controller
     {
         $this->authorize('update', $candidate);
 
-        // PERFORMANCE: Use cached dropdown data - using distinct keys to avoid format conflicts
-        $campuses = Cache::remember('campuses_list_objects', 86400, function () {
-            return Campus::where('is_active', true)->select('id', 'name')->get();
-        });
+        // Get dropdown data - fetching fresh to avoid cache issues
+        $campuses = Campus::where('is_active', true)->select('id', 'name')->get();
+        $trades = Trade::where('is_active', true)->select('id', 'name', 'code')->get();
+        $oeps = Oep::where('is_active', true)->select('id', 'name', 'code')->get();
 
-        $trades = Cache::remember('trades_list_objects', 86400, function () {
-            return Trade::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
+        // Get batches - include planned and active, plus the candidate's current batch if different
+        $batches = Batch::with('trade:id,name')
+            ->where(function($query) use ($candidate) {
+                $query->whereIn('status', ['planned', 'active']);
+                if ($candidate->batch_id) {
+                    $query->orWhere('id', $candidate->batch_id);
+                }
+            })
+            ->select('id', 'batch_code', 'name', 'trade_id', 'status')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        $oeps = Cache::remember('oeps_list_objects', 86400, function () {
-            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
-
-        return view('candidates.edit', compact('candidate', 'campuses', 'trades', 'oeps'));
+        return view('candidates.edit', compact('candidate', 'campuses', 'trades', 'oeps', 'batches'));
     }
 
     public function update(Request $request, Candidate $candidate)
