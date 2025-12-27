@@ -27,6 +27,7 @@ use App\Http\Controllers\RemittanceReportController;
 use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
+use App\Http\Controllers\EquipmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,6 +91,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/complaints', [DashboardController::class, 'complaints'])->name('complaints');
         Route::get('/document-archive', [DashboardController::class, 'documentArchive'])->name('document-archive');
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
+        // Phase 3: Compliance Monitoring Dashboard
+        Route::get('/compliance-monitoring', [DashboardController::class, 'complianceMonitoring'])->name('compliance-monitoring');
     });
 
     // ========================================================================
@@ -309,6 +312,14 @@ Route::middleware(['auth'])->group(function () {
             // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
             Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
                 ->middleware('throttle:5,1')->name('compliance-report');
+
+            // NEW: Departure report routes
+            Route::get('/reports/list', [DepartureController::class, 'departureListReport'])
+                ->middleware('throttle:5,1')->name('reports.list');
+            Route::get('/reports/pending-activations', [DepartureController::class, 'pendingActivationsReport'])
+                ->middleware('throttle:5,1')->name('reports.pending-activations');
+            Route::get('/reports/salary-status', [DepartureController::class, 'salaryStatusReport'])
+                ->middleware('throttle:5,1')->name('reports.salary-status');
         });
     });
 
@@ -323,6 +334,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/pending-reply', [CorrespondenceController::class, 'pendingReply'])->name('pending-reply');
             Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
             Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
+
+            // NEW: Communication summary report
+            Route::get('/reports/summary', [CorrespondenceController::class, 'summary'])
+                ->middleware('throttle:5,1')->name('reports.summary');
         });
     });
 
@@ -407,6 +422,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reports/generate', [DocumentArchiveController::class, 'report'])
             ->middleware('throttle:5,1')->name('report');
 
+        // NEW: Missing documents and verification status reports
+        Route::get('/reports/missing', [DocumentArchiveController::class, 'missingDocuments'])
+            ->middleware('throttle:5,1')->name('reports.missing');
+        Route::get('/reports/verification-status', [DocumentArchiveController::class, 'verificationStatus'])
+            ->middleware('throttle:5,1')->name('reports.verification-status');
+
         // THROTTLE FIX: Bulk upload limited to 10/min (storage abuse prevention)
         Route::post('/bulk/upload', [DocumentArchiveController::class, 'bulkUpload'])
             ->middleware('throttle:10,1')->name('bulk-upload');
@@ -446,6 +467,24 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export/{type}', [ReportController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // NEW: Phase 2 - Enhanced Reports
+        Route::get('/candidate-profile/{candidate}/pdf', [ReportController::class, 'exportProfilePdf'])
+            ->middleware('throttle:5,1')->name('candidate-profile-pdf');
+        Route::get('/export-csv', [ReportController::class, 'exportToCsv'])
+            ->middleware('throttle:5,1')->name('export-csv');
+        Route::get('/trainer-performance', [ReportController::class, 'trainerPerformance'])
+            ->middleware('throttle:5,1')->name('trainer-performance');
+        Route::get('/departure-updates', [ReportController::class, 'departureUpdatesReport'])
+            ->middleware('throttle:5,1')->name('departure-updates');
+        // Phase 3: Instructor Utilization Report
+        Route::get('/instructor-utilization', [ReportController::class, 'instructorUtilization'])
+            ->middleware('throttle:5,1')->name('instructor-utilization');
+        // Phase 4: Funding Metrics & KPI Reports
+        Route::get('/funding-metrics', [ReportController::class, 'fundingMetrics'])
+            ->middleware('throttle:5,1')->name('funding-metrics');
+        Route::post('/calculate-kpis', [ReportController::class, 'calculateKpis'])
+            ->middleware('throttle:3,1')->name('calculate-kpis');
     });
 
     // ========================================================================
@@ -476,6 +515,29 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity-logs.export');
         Route::post('/activity-logs/clean', [ActivityLogController::class, 'clean'])->name('activity-logs.clean');
         Route::get('/activity-logs/{activity}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
+    });
+
+    // ========================================================================
+    // EQUIPMENT MANAGEMENT ROUTES - Phase 4
+    // Purpose: Track campus equipment inventory, usage, and utilization
+    // Roles: admin, campus_admin
+    // ========================================================================
+    Route::middleware(['role:admin,campus_admin'])->prefix('equipment')->name('equipment.')->group(function () {
+        Route::get('/', [EquipmentController::class, 'index'])->name('index');
+        Route::get('/create', [EquipmentController::class, 'create'])->name('create');
+        Route::post('/', [EquipmentController::class, 'store'])->name('store');
+        Route::get('/{equipment}', [EquipmentController::class, 'show'])->name('show');
+        Route::get('/{equipment}/edit', [EquipmentController::class, 'edit'])->name('edit');
+        Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
+        Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
+
+        // Usage Logging
+        Route::post('/{equipment}/log-usage', [EquipmentController::class, 'logUsage'])->name('log-usage');
+        Route::post('/{equipment}/end-usage/{log}', [EquipmentController::class, 'endUsage'])->name('end-usage');
+
+        // Reports
+        Route::get('/reports/utilization', [EquipmentController::class, 'utilizationReport'])
+            ->middleware('throttle:5,1')->name('utilization-report');
     });
 
     // ========================================================================

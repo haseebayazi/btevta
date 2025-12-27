@@ -493,4 +493,174 @@ class DepartureController extends Controller
             return back()->with('error', 'Failed to mark as returned: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Departure list report by date, trade, and OEP
+     */
+    public function departureListReport(Request $request)
+    {
+        $this->authorize('viewTrackingReports', Departure::class);
+
+        $validated = $request->validate([
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+            'trade_id' => 'nullable|exists:trades,id',
+            'oep_id' => 'nullable|exists:oeps,id',
+        ]);
+
+        try {
+            $departures = $this->departureService->getDepartureList($validated);
+
+            $trades = \App\Models\Trade::where('is_active', true)->pluck('name', 'id');
+            $oeps = \App\Models\Oep::where('is_active', true)->pluck('name', 'id');
+
+            return view('departure.reports.list', compact('departures', 'trades', 'oeps', 'validated'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Pending Iqama or Absher activation report
+     */
+    public function pendingActivationsReport(Request $request)
+    {
+        $this->authorize('viewTrackingReports', Departure::class);
+
+        $validated = $request->validate([
+            'type' => 'nullable|in:iqama,absher,all',
+            'oep_id' => 'nullable|exists:oeps,id',
+        ]);
+
+        $type = $validated['type'] ?? 'all';
+
+        try {
+            $query = Departure::with(['candidate.trade', 'candidate.oep', 'candidate.campus'])
+                ->whereNotNull('departure_date');
+
+            // Filter by pending type
+            if ($type === 'iqama') {
+                $query->whereNull('iqama_number');
+            } elseif ($type === 'absher') {
+                $query->where(function($q) {
+                    $q->whereNull('absher_registered')
+                      ->orWhere('absher_registered', false);
+                });
+            } else {
+                $query->where(function($q) {
+                    $q->whereNull('iqama_number')
+                      ->orWhereNull('absher_registered')
+                      ->orWhere('absher_registered', false);
+                });
+            }
+
+            // Filter by OEP
+            if (!empty($validated['oep_id'])) {
+                $query->whereHas('candidate', function($q) use ($validated) {
+                    $q->where('oep_id', $validated['oep_id']);
+                });
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->whereHas('candidate', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                });
+            }
+
+            $departures = $query->latest('departure_date')->paginate(20);
+
+            $oeps = \App\Models\Oep::where('is_active', true)->pluck('name', 'id');
+
+            // Summary stats
+            $stats = [
+                'pending_iqama' => Departure::whereNotNull('departure_date')->whereNull('iqama_number')->count(),
+                'pending_absher' => Departure::whereNotNull('departure_date')
+                    ->where(function($q) {
+                        $q->whereNull('absher_registered')->orWhere('absher_registered', false);
+                    })->count(),
+            ];
+
+            return view('departure.reports.pending-activations', compact('departures', 'oeps', 'stats', 'type'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Salary disbursement status report
+     */
+    public function salaryStatusReport(Request $request)
+    {
+        $this->authorize('viewTrackingReports', Departure::class);
+
+        $validated = $request->validate([
+            'status' => 'nullable|in:confirmed,pending,not_received,all',
+            'oep_id' => 'nullable|exists:oeps,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $status = $validated['status'] ?? 'all';
+
+        try {
+            $query = Departure::with(['candidate.trade', 'candidate.oep', 'candidate.campus'])
+                ->whereNotNull('departure_date');
+
+            // Filter by salary status
+            if ($status === 'confirmed') {
+                $query->where('salary_confirmed', true);
+            } elseif ($status === 'pending') {
+                $query->whereNotNull('first_salary_date')
+                      ->where(function($q) {
+                          $q->whereNull('salary_confirmed')->orWhere('salary_confirmed', false);
+                      });
+            } elseif ($status === 'not_received') {
+                $query->whereNull('first_salary_date');
+            }
+
+            // Filter by OEP
+            if (!empty($validated['oep_id'])) {
+                $query->whereHas('candidate', function($q) use ($validated) {
+                    $q->where('oep_id', $validated['oep_id']);
+                });
+            }
+
+            // Filter by date range
+            if (!empty($validated['from_date'])) {
+                $query->whereDate('departure_date', '>=', $validated['from_date']);
+            }
+            if (!empty($validated['to_date'])) {
+                $query->whereDate('departure_date', '<=', $validated['to_date']);
+            }
+
+            // Filter by campus for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->whereHas('candidate', function($q) {
+                    $q->where('campus_id', auth()->user()->campus_id);
+                });
+            }
+
+            $departures = $query->latest('departure_date')->paginate(20);
+
+            $oeps = \App\Models\Oep::where('is_active', true)->pluck('name', 'id');
+
+            // Summary stats
+            $stats = [
+                'total_departed' => Departure::whereNotNull('departure_date')->count(),
+                'salary_confirmed' => Departure::where('salary_confirmed', true)->count(),
+                'salary_pending' => Departure::whereNotNull('first_salary_date')
+                    ->where(function($q) {
+                        $q->whereNull('salary_confirmed')->orWhere('salary_confirmed', false);
+                    })->count(),
+                'salary_not_received' => Departure::whereNotNull('departure_date')
+                    ->whereNull('first_salary_date')->count(),
+                'total_salary_amount' => Departure::where('salary_confirmed', true)->sum('salary_amount'),
+            ];
+
+            return view('departure.reports.salary-status', compact('departures', 'oeps', 'stats', 'status', 'validated'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
+        }
+    }
 }
