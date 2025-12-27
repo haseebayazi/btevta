@@ -123,6 +123,15 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('export', [CandidateController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // PHASE 1 IMPROVEMENTS: Real-time validation API endpoints
+        // These endpoints support duplicate detection and validation during registration
+        Route::post('/api/check-duplicates', [CandidateController::class, 'checkDuplicates'])
+            ->middleware('throttle:60,1')->name('api.check-duplicates');
+        Route::post('/api/validate-cnic', [CandidateController::class, 'validateCnic'])
+            ->middleware('throttle:60,1')->name('api.validate-cnic');
+        Route::post('/api/validate-phone', [CandidateController::class, 'validatePhone'])
+            ->middleware('throttle:60,1')->name('api.validate-phone');
     });
 
     // ========================================================================

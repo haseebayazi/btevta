@@ -526,4 +526,118 @@ class CandidateController extends Controller
 
         return response()->json($candidates);
     }
+
+    /**
+     * Check for potential duplicate candidates based on phone, email, or name.
+     * Used for real-time duplicate warning during registration.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkDuplicates(Request $request)
+    {
+        $this->authorize('viewAny', Candidate::class);
+
+        $request->validate([
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'name' => 'nullable|string|max:255',
+            'exclude_id' => 'nullable|integer|exists:candidates,id',
+        ]);
+
+        $duplicates = Candidate::findPotentialDuplicates(
+            $request->phone,
+            $request->email,
+            $request->name,
+            $request->exclude_id
+        );
+
+        $result = $duplicates->map(function ($item) {
+            return [
+                'id' => $item['candidate']->id,
+                'btevta_id' => $item['candidate']->btevta_id,
+                'name' => $item['candidate']->name,
+                'status' => $item['candidate']->status,
+                'match_type' => $item['match_type'],
+                'confidence' => $item['confidence'],
+            ];
+        });
+
+        return response()->json([
+            'has_duplicates' => $duplicates->isNotEmpty(),
+            'count' => $duplicates->count(),
+            'duplicates' => $result,
+        ]);
+    }
+
+    /**
+     * Validate CNIC format and checksum.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateCnic(Request $request)
+    {
+        $request->validate([
+            'cnic' => 'required|string',
+            'exclude_id' => 'nullable|integer|exists:candidates,id',
+        ]);
+
+        $cnic = preg_replace('/[^0-9]/', '', $request->cnic);
+
+        $response = [
+            'cnic' => $cnic,
+            'is_valid_format' => strlen($cnic) === 13,
+            'is_valid_checksum' => Candidate::validateCnicChecksum($cnic),
+            'is_unique' => true,
+            'existing_candidate' => null,
+        ];
+
+        // Check uniqueness
+        $query = Candidate::where('cnic', $cnic);
+        if ($request->exclude_id) {
+            $query->where('id', '!=', $request->exclude_id);
+        }
+        $existing = $query->first();
+
+        if ($existing) {
+            $response['is_unique'] = false;
+            $response['existing_candidate'] = [
+                'id' => $existing->id,
+                'btevta_id' => $existing->btevta_id,
+                'name' => $existing->name,
+                'status' => $existing->status,
+            ];
+        }
+
+        $response['is_valid'] = $response['is_valid_format']
+            && $response['is_valid_checksum']
+            && $response['is_unique'];
+
+        return response()->json($response);
+    }
+
+    /**
+     * Validate Pakistan phone number format.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validatePhone(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|max:20',
+        ]);
+
+        $phone = $request->phone;
+        $isValidFormat = Candidate::validatePakistanPhone($phone);
+
+        return response()->json([
+            'phone' => $phone,
+            'is_valid_format' => $isValidFormat,
+            'message' => $isValidFormat
+                ? 'Valid Pakistan phone number format'
+                : 'Please enter a valid Pakistan phone number (e.g., 03XX-XXXXXXX or +92-3XX-XXXXXXX)',
+        ]);
+    }
 }
