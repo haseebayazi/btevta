@@ -91,6 +91,24 @@ class TrainingPolicy
     }
 
     /**
+     * Determine if the user can restore soft-deleted training records.
+     * AUDIT FIX: Added restore method for SoftDeletes support
+     */
+    public function restore(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector();
+    }
+
+    /**
+     * Determine if the user can permanently delete training records.
+     * AUDIT FIX: Added forceDelete method for SoftDeletes support
+     */
+    public function forceDelete(User $user): bool
+    {
+        return $user->isSuperAdmin();
+    }
+
+    /**
      * Determine if the user can mark attendance.
      */
     public function markAttendance(User $user): bool
