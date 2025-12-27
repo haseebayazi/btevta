@@ -848,7 +848,7 @@ class ComplaintService
         activity()
             ->performedOn($complaint)
             ->causedBy(auth()->user())
-            ->log("Complaint deleted: {$complaint->complaint_number}");
+            ->log("Complaint deleted: {$complaint->complaint_reference}");
 
         return $complaint->delete();
     }

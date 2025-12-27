@@ -108,6 +108,15 @@ class Instructor extends Model
         return $this->hasMany(TrainingAssessment::class, 'trainer_id');
     }
 
+    /**
+     * Get training schedules for this instructor.
+     * AUDIT FIX: Added missing inverse relationship
+     */
+    public function trainingSchedules()
+    {
+        return $this->hasMany(TrainingSchedule::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -155,6 +164,7 @@ class Instructor extends Model
         static::creating(function ($instructor) {
             if (auth()->check()) {
                 $instructor->created_by = auth()->id();
+                $instructor->updated_by = auth()->id();
             }
         });
 

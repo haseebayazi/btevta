@@ -18,7 +18,30 @@ class RemittanceUsageBreakdown extends Model
         'percentage',
         'description',
         'has_proof',
+        'created_by',
+        'updated_by',
     ];
+
+    /**
+     * Boot method for audit trail tracking.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = auth()->id();
+                $model->updated_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'amount' => 'decimal:2',

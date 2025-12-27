@@ -131,7 +131,7 @@ class DepartureService
     public function recordIqama($departureId, $iqamaNumber, $issueDate = null, $expiryDate = null)
     {
         $departure = Departure::findOrFail($departureId);
-        
+
         $departure->update([
             'iqama_number' => $iqamaNumber,
             'iqama_issue_date' => $issueDate ?? now(),
@@ -139,7 +139,10 @@ class DepartureService
             'current_stage' => 'iqama_issued',
         ]);
 
-        // Update candidate status
+        // Update candidate status with NULL CHECK
+        if (!$departure->candidate) {
+            throw new \Exception("Departure {$departureId} has no associated candidate");
+        }
         $departure->candidate->update(['status' => 'iqama_issued']);
 
         // Log activity

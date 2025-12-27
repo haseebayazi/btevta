@@ -23,10 +23,47 @@ class TrainingPolicy
 
     /**
      * Determine if the user can view specific training details.
+     * SECURITY FIX: Added optional model parameter for campus-specific enforcement
+     *
+     * @param User $user The authenticated user
+     * @param mixed $training Optional training model (TrainingClass, TrainingSchedule, etc.)
      */
-    public function view(User $user): bool
+    public function view(User $user, $training = null): bool
     {
-        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isTrainer() || $user->isViewer();
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
+            return true;
+        }
+
+        // If no training model provided, fall back to role-based check
+        if (!$training) {
+            return $user->isCampusAdmin() || $user->isTrainer();
+        }
+
+        // Campus admin can only view training from their campus
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            // Check if training has campus_id property
+            if (property_exists($training, 'campus_id') || isset($training->campus_id)) {
+                return $training->campus_id === $user->campus_id;
+            }
+            return true;
+        }
+
+        // Trainers can view all trainings they're assigned to or from their campus
+        if ($user->isTrainer()) {
+            // Check if trainer is assigned to this training
+            if (property_exists($training, 'trainer_id') || isset($training->trainer_id)) {
+                if ($training->trainer_id === $user->id) {
+                    return true;
+                }
+            }
+            // Also allow if in same campus
+            if ($user->campus_id && isset($training->campus_id)) {
+                return $training->campus_id === $user->campus_id;
+            }
+            return true;
+        }
+
+        return false;
     }
 
     /**

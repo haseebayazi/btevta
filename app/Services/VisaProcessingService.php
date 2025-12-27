@@ -119,13 +119,17 @@ class VisaProcessingService
     public function recordInterviewResult($visaProcessId, $result, $remarks = null)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
             'interview_result' => $result,
             'interview_remarks' => $remarks,
         ]);
 
-        // Update candidate status based on result
+        // Update candidate status based on result with NULL CHECK
+        if (!$visaProcess->candidate) {
+            throw new \Exception("Visa process {$visaProcessId} has no associated candidate");
+        }
+
         if ($result === 'pass') {
             $visaProcess->candidate->update(['status' => 'interview_passed']);
             $this->moveToNextStage($visaProcess, 'trade_test');

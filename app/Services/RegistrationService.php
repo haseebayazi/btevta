@@ -150,14 +150,14 @@ class RegistrationService
 
 
             ATTESTATION BY GUARDIAN/PARENT:
-            I, _____________________, {$candidate->nextOfKin->relationship ?? 'Guardian'} of the above-named candidate, 
+            I, _____________________, {$candidate->nextOfKin?->relationship ?? 'Guardian'} of the above-named candidate,
             have read and understood the undertaking and consent to the candidate's participation in the program.
 
             _____________________
             Signature of Guardian/Parent
-            Name: {$candidate->nextOfKin->name ?? ''}
-            CNIC: {$candidate->nextOfKin->formatted_cnic ?? ''}
-            Contact: {$candidate->nextOfKin->phone ?? ''}
+            Name: {$candidate->nextOfKin?->name ?? ''}
+            CNIC: {$candidate->nextOfKin?->formatted_cnic ?? ''}
+            Contact: {$candidate->nextOfKin?->phone ?? ''}
 
 
             FOR OFFICIAL USE ONLY:
