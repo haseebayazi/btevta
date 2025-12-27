@@ -42,9 +42,18 @@ class CandidatePolicy
             return $candidate->oep_id === $user->oep_id;
         }
 
-        // Visa Partner can view candidates they process
+        // Visa Partner can view candidates through visa process relationship
+        // Note: Visa partners access candidates via VisaProcess model, not directly
         if ($user->isVisaPartner() && $user->visa_partner_id) {
-            return $candidate->visa_partner_id === $user->visa_partner_id;
+            // Check if this candidate has a visa process associated with this visa partner
+            return $candidate->visaProcess()
+                ->where('visa_partner_id', $user->visa_partner_id)
+                ->exists();
+        }
+
+        // Trainers/Instructors can view candidates in their batches
+        if ($user->isTrainer() || $user->isInstructor()) {
+            return $candidate->batch && $candidate->batch->trainer_id === $user->id;
         }
 
         return false;

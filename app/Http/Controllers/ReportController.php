@@ -245,7 +245,7 @@ class ReportController extends Controller
 
         $validated = $request->validate([
             'campus_id' => 'nullable|exists:campuses,id',
-            'status' => 'nullable|in:listed,screening,registered,training,visa_processing,departed,rejected',
+            'status' => 'nullable|in:new,screening,registered,training,visa_process,ready,departed,rejected,dropped',
             'trade_id' => 'nullable|exists:trades,id',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
