@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Edit Remittance</h1>
-            <p class="text-gray-600 mt-1">Update remittance details for {{ $remittance->candidate->full_name }}</p>
+            <p class="text-gray-600 mt-1">Update remittance details for {{ $remittance->candidate?->full_name ?? 'Unknown Candidate' }}</p>
         </div>
         <div class="flex items-center space-x-3">
             <a href="{{ route('remittances.show', $remittance) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
@@ -31,7 +31,7 @@
             </div>
             <div class="ml-3">
                 <p class="text-sm text-yellow-700">
-                    This remittance has been verified by {{ $remittance->verifiedBy->name }} on {{ $remittance->verified_at->format('M d, Y') }}.
+                    This remittance has been verified by {{ $remittance->verifiedBy?->name ?? 'System' }} on {{ $remittance->verified_at?->format('M d, Y') ?? 'N/A' }}.
                     Changes may require re-verification.
                 </p>
             </div>
@@ -117,7 +117,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Transfer Date <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" name="transfer_date" value="{{ old('transfer_date', $remittance->transfer_date->format('Y-m-d')) }}" required
+                    <input type="date" name="transfer_date" value="{{ old('transfer_date', $remittance->transfer_date?->format('Y-m-d') ?? '') }}" required
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 @error('transfer_date') border-red-500 @enderror">
                     @error('transfer_date')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

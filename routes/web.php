@@ -532,6 +532,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [RemittanceBeneficiaryController::class, 'index'])->name('index');
             Route::get('/create', [RemittanceBeneficiaryController::class, 'create'])->name('create');
             Route::post('/', [RemittanceBeneficiaryController::class, 'store'])->name('store');
+            // AUDIT FIX: Added missing endpoint for AJAX beneficiary loading in remittance forms
+            Route::get('/data', [RemittanceBeneficiaryController::class, 'data'])->name('data');
         });
 
         Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {

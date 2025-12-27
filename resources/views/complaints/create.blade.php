@@ -74,7 +74,7 @@
                                     <label>Candidate (if applicable)</label>
                                     <select name="candidate_id" class="form-control @error('candidate_id') is-invalid @enderror">
                                         <option value="">Select Candidate</option>
-                                        @foreach($candidates as $candidate)
+                                        @foreach($candidates ?? [] as $candidate)
                                             <option value="{{ $candidate->id }}" {{ old('candidate_id') == $candidate->id ? 'selected' : '' }}>
                                                 {{ $candidate->name }} - {{ $candidate->cnic ?? $candidate->passport_number }}
                                             </option>
@@ -90,7 +90,7 @@
                                     <label>Campus (if applicable)</label>
                                     <select name="campus_id" class="form-control @error('campus_id') is-invalid @enderror">
                                         <option value="">Select Campus</option>
-                                        @foreach($campuses as $campus)
+                                        @foreach($campuses ?? [] as $campus)
                                             <option value="{{ $campus->id }}" {{ old('campus_id') == $campus->id ? 'selected' : '' }}>{{ $campus->name }}</option>
                                         @endforeach
                                     </select>
@@ -104,7 +104,7 @@
                                     <label>OEP (if applicable)</label>
                                     <select name="oep_id" class="form-control @error('oep_id') is-invalid @enderror">
                                         <option value="">Select OEP</option>
-                                        @foreach($oeps as $oep)
+                                        @foreach($oeps ?? [] as $oep)
                                             <option value="{{ $oep->id }}" {{ old('oep_id') == $oep->id ? 'selected' : '' }}>{{ $oep->name }}</option>
                                         @endforeach
                                     </select>

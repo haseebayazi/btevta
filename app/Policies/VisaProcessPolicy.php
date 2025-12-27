@@ -48,18 +48,20 @@ class VisaProcessPolicy
 
         // Campus admin can only view their campus
         if ($user->isCampusAdmin() && $user->campus_id) {
-            if ($visaProcess && $visaProcess->candidate) {
-                return $visaProcess->candidate->campus_id === $user->campus_id;
+            // SECURITY FIX: Return false if model is null instead of true
+            if (!$visaProcess || !$visaProcess->candidate) {
+                return false;
             }
-            return true;
+            return $visaProcess->candidate->campus_id === $user->campus_id;
         }
 
         // OEP can view their assigned candidates
         if ($user->isOep() && $user->oep_id) {
-            if ($visaProcess && $visaProcess->candidate) {
-                return $visaProcess->candidate->oep_id === $user->oep_id;
+            // SECURITY FIX: Return false if model is null instead of true
+            if (!$visaProcess || !$visaProcess->candidate) {
+                return false;
             }
-            return true;
+            return $visaProcess->candidate->oep_id === $user->oep_id;
         }
 
         // Trainers/Instructors can view
@@ -90,18 +92,20 @@ class VisaProcessPolicy
 
         // Campus admin can only update their campus
         if ($user->isCampusAdmin() && $user->campus_id) {
-            if ($visaProcess && $visaProcess->candidate) {
-                return $visaProcess->candidate->campus_id === $user->campus_id;
+            // SECURITY FIX: Return false if model is null instead of true
+            if (!$visaProcess || !$visaProcess->candidate) {
+                return false;
             }
-            return true;
+            return $visaProcess->candidate->campus_id === $user->campus_id;
         }
 
         // OEP can update their assigned candidates
         if ($user->isOep() && $user->oep_id) {
-            if ($visaProcess && $visaProcess->candidate) {
-                return $visaProcess->candidate->oep_id === $user->oep_id;
+            // SECURITY FIX: Return false if model is null instead of true
+            if (!$visaProcess || !$visaProcess->candidate) {
+                return false;
             }
-            return true;
+            return $visaProcess->candidate->oep_id === $user->oep_id;
         }
 
         return false;

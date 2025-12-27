@@ -12,11 +12,14 @@ class CandidatePolicy
 
     /**
      * Determine if the user can view any candidates.
+     * SECURITY FIX: Added role-based restrictions instead of allowing all users
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can view candidates list
-        return true;
+        return $user->isSuperAdmin() || $user->isProjectDirector() ||
+               $user->isCampusAdmin() || $user->isOep() ||
+               $user->isVisaPartner() || $user->isStaff() ||
+               $user->isTrainer() || $user->isViewer();
     }
 
     /**
