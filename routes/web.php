@@ -159,6 +159,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/call-log', [ScreeningController::class, 'logCall'])->name('log-call');
         Route::post('/{candidate}/screening-outcome', [ScreeningController::class, 'recordOutcome'])->name('outcome');
 
+        // PHASE 2 IMPROVEMENTS: Progress tracking and evidence upload
+        Route::get('/{candidate}/progress', [ScreeningController::class, 'progress'])->name('progress');
+        Route::post('/{candidate}/upload-evidence', [ScreeningController::class, 'uploadEvidence'])
+            ->middleware('throttle:30,1')->name('upload-evidence');
+
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export', [ScreeningController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');

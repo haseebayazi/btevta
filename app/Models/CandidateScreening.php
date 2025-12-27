@@ -436,26 +436,139 @@ class CandidateScreening extends Model
     }
 
     /**
-     * Upload and store evidence file.
+     * Allowed file extensions for evidence uploads.
+     */
+    const ALLOWED_EVIDENCE_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+
+    /**
+     * Maximum file size for evidence uploads (5MB).
+     */
+    const MAX_EVIDENCE_SIZE = 5 * 1024 * 1024;
+
+    /**
+     * Upload and store evidence file with security validation.
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return string The stored file path
+     * @throws \Exception If file validation fails
      */
     public function uploadEvidence($file)
     {
         if (!$file || !$file->isValid()) {
             throw new \Exception('Invalid file provided');
         }
-        
+
+        // Validate file extension (security: prevent executable uploads)
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, self::ALLOWED_EVIDENCE_EXTENSIONS)) {
+            throw new \Exception(
+                'Invalid file type. Allowed types: ' . implode(', ', self::ALLOWED_EVIDENCE_EXTENSIONS)
+            );
+        }
+
+        // Validate MIME type matches extension (prevent extension spoofing)
+        $mimeType = $file->getMimeType();
+        $validMimes = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+
+        if (isset($validMimes[$extension]) && !str_contains($mimeType, explode('/', $validMimes[$extension])[0])) {
+            throw new \Exception('File type mismatch. The file content does not match its extension.');
+        }
+
+        // Validate file size
+        if ($file->getSize() > self::MAX_EVIDENCE_SIZE) {
+            throw new \Exception('File too large. Maximum size is 5MB.');
+        }
+
+        // Delete old evidence if exists
+        if ($this->evidence_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($this->evidence_path);
+        }
+
         $candidateId = $this->candidate_id;
         $screeningType = $this->screening_type;
         $timestamp = now()->format('Y-m-d_His');
-        
-        $filename = "screening_{$candidateId}_{$screeningType}_{$timestamp}." . $file->getClientOriginalExtension();
-        
+
+        $filename = "screening_{$candidateId}_{$screeningType}_{$timestamp}.{$extension}";
+
         $path = $file->storeAs('screenings/evidence', $filename, 'public');
-        
+
         $this->evidence_path = $path;
         $this->save();
-        
+
+        activity()
+            ->performedOn($this)
+            ->log('Evidence file uploaded');
+
         return $path;
+    }
+
+    /**
+     * Get the evidence URL for secure access.
+     */
+    public function getEvidenceUrlAttribute()
+    {
+        if (empty($this->evidence_path)) {
+            return null;
+        }
+        return route('secure-file.view', ['path' => $this->evidence_path]);
+    }
+
+    /**
+     * Get screening progress summary for a candidate.
+     * Returns the status of each required screening type.
+     *
+     * @param Candidate $candidate
+     * @return array
+     */
+    public static function getScreeningProgress(Candidate $candidate)
+    {
+        $requiredTypes = [self::TYPE_DESK, self::TYPE_CALL, self::TYPE_PHYSICAL];
+
+        $screenings = $candidate->screenings()
+            ->whereIn('screening_type', $requiredTypes)
+            ->get()
+            ->keyBy('screening_type');
+
+        $progress = [];
+        foreach ($requiredTypes as $type) {
+            $screening = $screenings->get($type);
+            $progress[$type] = [
+                'label' => self::getScreeningTypes()[$type] ?? $type,
+                'status' => $screening ? $screening->status : 'not_started',
+                'status_label' => $screening ? $screening->status_label : 'Not Started',
+                'status_color' => $screening ? $screening->status_color : 'secondary',
+                'screened_at' => $screening && $screening->screened_at
+                    ? $screening->screened_at->format('Y-m-d H:i')
+                    : null,
+                'screener' => $screening && $screening->screener
+                    ? $screening->screener->name
+                    : null,
+                'call_attempts' => $type === self::TYPE_CALL && $screening
+                    ? $screening->call_attempt_display
+                    : null,
+            ];
+        }
+
+        // Calculate overall progress
+        $passedCount = collect($progress)->where('status', self::STATUS_PASSED)->count();
+        $failedCount = collect($progress)->where('status', self::STATUS_FAILED)->count();
+
+        return [
+            'screenings' => $progress,
+            'passed_count' => $passedCount,
+            'failed_count' => $failedCount,
+            'total_required' => count($requiredTypes),
+            'is_complete' => $passedCount === count($requiredTypes),
+            'has_failure' => $failedCount > 0,
+            'progress_percentage' => round(($passedCount / count($requiredTypes)) * 100),
+        ];
     }
 
     /**
