@@ -272,7 +272,7 @@ class CandidateController extends Controller
         $this->authorize('update', $candidate);
 
         $request->validate([
-            'status' => 'required|in:listed,screening,registered,training,visa_processing,departed,rejected',
+            'status' => 'required|in:new,screening,registered,training,visa_process,ready,departed,rejected,dropped',
             'remarks' => 'nullable|string'
         ]);
 

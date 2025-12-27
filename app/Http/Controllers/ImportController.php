@@ -175,7 +175,9 @@ class ImportController extends Controller
 
             if (!$trade) {
                 // Try partial name match (case-insensitive)
-                $trade = Trade::whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($tradeValue) . '%'])->first();
+                // Escape LIKE wildcards to prevent unexpected matches from user input
+                $escapedValue = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], strtolower($tradeValue));
+                $trade = Trade::whereRaw('LOWER(name) LIKE ?', ['%' . $escapedValue . '%'])->first();
             }
 
             if ($trade) {
