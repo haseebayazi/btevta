@@ -175,14 +175,25 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     Route::resource('registration', RegistrationController::class);
     Route::prefix('registration')->name('registration.')->group(function () {
+        // Registration status API endpoint
+        Route::get('/{candidate}/status', [RegistrationController::class, 'status'])->name('status');
+
         // THROTTLE FIX: Upload limited to 30/min (storage abuse prevention)
         Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])
             ->middleware('throttle:30,1')->name('upload-document');
 
         Route::delete('/documents/{document}', [RegistrationController::class, 'deleteDocument'])->name('delete-document');
+
+        // PHASE 3 IMPROVEMENTS: Document verification workflow (admin only)
+        Route::post('/documents/{document}/verify', [RegistrationController::class, 'verifyDocument'])->name('verify-document');
+        Route::post('/documents/{document}/reject', [RegistrationController::class, 'rejectDocument'])->name('reject-document');
+
         Route::post('/{candidate}/next-of-kin', [RegistrationController::class, 'saveNextOfKin'])->name('next-of-kin');
         Route::post('/{candidate}/undertaking', [RegistrationController::class, 'saveUndertaking'])->name('undertaking');
         Route::post('/{candidate}/complete', [RegistrationController::class, 'completeRegistration'])->name('complete');
+
+        // PHASE 3 IMPROVEMENTS: Transition to training phase
+        Route::post('/{candidate}/start-training', [RegistrationController::class, 'startTraining'])->name('start-training');
     });
 
     // ========================================================================
