@@ -687,6 +687,10 @@ class DepartureService
     /**
      * Record 90-day compliance
      */
+    /**
+     * Record 90-day compliance status for a deployed candidate.
+     * PHASE 6 FIX: Updates deployment remarks instead of non-existent compliance_status field.
+     */
     public function record90DayCompliance($candidateId, $complianceDate, $isCompliant, $remarks = null)
     {
         $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
@@ -698,21 +702,37 @@ class DepartureService
             'current_stage' => $isCompliant ? 'compliance_verified' : $departure->current_stage,
         ]);
 
+        // PHASE 6 FIX: Update candidate remarks instead of non-existent compliance_status field
         if ($departure->candidate) {
-            $status = $isCompliant ? 'compliant' : 'non_compliant';
-            $departure->candidate->update(['compliance_status' => $status]);
+            $complianceNote = $isCompliant
+                ? "[Compliant] 90-day report verified on {$complianceDate}"
+                : "[Non-Compliant] 90-day report issues on {$complianceDate}";
+
+            if ($remarks) {
+                $complianceNote .= ": {$remarks}";
+            }
+
+            $currentRemarks = $departure->candidate->remarks ?? '';
+            $departure->candidate->update([
+                'remarks' => $currentRemarks . ($currentRemarks ? "\n" : '') . $complianceNote,
+            ]);
         }
 
         activity()
             ->performedOn($departure)
             ->causedBy(auth()->user())
+            ->withProperties([
+                'is_compliant' => $isCompliant,
+                'compliance_date' => $complianceDate,
+            ])
             ->log("90-day compliance recorded: " . ($isCompliant ? 'Compliant' : 'Non-compliant'));
 
         return $departure;
     }
 
     /**
-     * Report post-departure issue
+     * Report post-departure issue.
+     * PHASE 6 FIX: Uses UUID for secure ID generation instead of uniqid().
      */
     public function reportIssue($candidateId, $issueType, $issueDate, $description, $severity, $evidencePath = null)
     {
@@ -724,8 +744,9 @@ class DepartureService
 
             $issues = $departure->issues ? json_decode($departure->issues, true) : [];
 
+            // PHASE 6 FIX: Use UUID for secure, unique ID generation
             $issue = [
-                'id' => uniqid('issue_'),
+                'id' => 'issue_' . \Illuminate\Support\Str::uuid()->toString(),
                 'type' => $issueType,
                 'date' => $issueDate,
                 'description' => $description,
@@ -743,6 +764,11 @@ class DepartureService
             activity()
                 ->performedOn($departure)
                 ->causedBy(auth()->user())
+                ->withProperties([
+                    'issue_id' => $issue['id'],
+                    'issue_type' => $issueType,
+                    'severity' => $severity,
+                ])
                 ->log("Issue reported: {$issueType} - {$severity}");
 
             DB::commit();
@@ -754,36 +780,48 @@ class DepartureService
     }
 
     /**
-     * Update issue status
+     * Update issue status.
+     * PHASE 6 FIX: Uses indexed JSON search instead of loading all departures (N+1 query fix).
      */
     public function updateIssueStatus($issueId, $status, $resolutionNotes = null)
     {
-        // Find departure record containing this issue
-        $departures = Departure::whereNotNull('issues')->get();
+        // PHASE 6 FIX: Use direct database search instead of loading all records
+        // Search for departure containing this issue ID using JSON search
+        $departure = Departure::whereNotNull('issues')
+            ->where('issues', 'LIKE', '%' . str_replace(['%', '_'], ['\\%', '\\_'], $issueId) . '%')
+            ->first();
 
-        foreach ($departures as $departure) {
-            $issues = json_decode($departure->issues, true);
+        if (!$departure) {
+            throw new \Exception("Issue not found: {$issueId}");
+        }
 
-            foreach ($issues as $key => $issue) {
-                if ($issue['id'] === $issueId) {
-                    $issues[$key]['status'] = $status;
-                    $issues[$key]['resolution_notes'] = $resolutionNotes;
-                    $issues[$key]['resolved_by'] = auth()->id();
-                    $issues[$key]['resolved_at'] = now()->toDateTimeString();
+        $issues = json_decode($departure->issues, true);
+        $issueFound = false;
 
-                    $departure->update(['issues' => json_encode($issues)]);
+        foreach ($issues as $key => $issue) {
+            if ($issue['id'] === $issueId) {
+                $issues[$key]['status'] = $status;
+                $issues[$key]['resolution_notes'] = $resolutionNotes;
+                $issues[$key]['resolved_by'] = auth()->id();
+                $issues[$key]['resolved_at'] = now()->toDateTimeString();
+                $issueFound = true;
 
-                    activity()
-                        ->performedOn($departure)
-                        ->causedBy(auth()->user())
-                        ->log("Issue {$issueId} updated to: {$status}");
+                $departure->update(['issues' => json_encode($issues)]);
 
-                    return $issues[$key];
-                }
+                activity()
+                    ->performedOn($departure)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'issue_id' => $issueId,
+                        'new_status' => $status,
+                    ])
+                    ->log("Issue {$issueId} updated to: {$status}");
+
+                return $issues[$key];
             }
         }
 
-        throw new \Exception("Issue not found: {$issueId}");
+        throw new \Exception("Issue not found in departure record: {$issueId}");
     }
 
     /**

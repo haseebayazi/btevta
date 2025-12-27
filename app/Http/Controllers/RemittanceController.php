@@ -295,13 +295,96 @@ class RemittanceController extends Controller
     }
 
     /**
-     * Export remittances.
+     * Export remittances to CSV.
+     * PHASE 7 FIX: Implemented export functionality.
      */
-    public function export(Request $request, $format = 'excel')
+    public function export(Request $request, $format = 'csv')
     {
         $this->authorize('export', Remittance::class);
 
-        // Implementation for export will be added in Phase 2
-        return back()->with('info', 'Export functionality coming soon.');
+        // Validate export parameters
+        $request->validate([
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+            'candidate_id' => 'nullable|exists:candidates,id',
+            'status' => 'nullable|string|in:pending,verified,rejected',
+        ]);
+
+        try {
+            // Build query with filters
+            $query = Remittance::with(['candidate', 'candidate.trade', 'beneficiary'])
+                ->when($request->from_date, fn($q) => $q->whereDate('remittance_date', '>=', $request->from_date))
+                ->when($request->to_date, fn($q) => $q->whereDate('remittance_date', '<=', $request->to_date))
+                ->when($request->candidate_id, fn($q) => $q->where('candidate_id', $request->candidate_id))
+                ->when($request->status, fn($q) => $q->where('status', $request->status))
+                ->orderBy('remittance_date', 'desc');
+
+            // Role-based filtering
+            if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('campus_id', auth()->user()->campus_id));
+            }
+
+            $remittances = $query->get();
+
+            // Generate CSV
+            $filename = 'remittances-export-' . now()->format('Y-m-d-His') . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv; charset=utf-8',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ];
+
+            $callback = function() use ($remittances) {
+                $file = fopen('php://output', 'w');
+
+                // CSV Header
+                fputcsv($file, [
+                    'BTEVTA ID',
+                    'Candidate Name',
+                    'Trade',
+                    'Remittance Date',
+                    'Amount (PKR)',
+                    'Amount (SAR)',
+                    'Exchange Rate',
+                    'Transaction Reference',
+                    'Bank Name',
+                    'Beneficiary Name',
+                    'Status',
+                    'Verified At',
+                ]);
+
+                // Data rows
+                foreach ($remittances as $remittance) {
+                    fputcsv($file, [
+                        $remittance->candidate->btevta_id ?? 'N/A',
+                        $remittance->candidate->name ?? 'N/A',
+                        $remittance->candidate->trade->name ?? 'N/A',
+                        $remittance->remittance_date ? $remittance->remittance_date->format('Y-m-d') : 'N/A',
+                        number_format($remittance->amount_pkr ?? 0, 2),
+                        number_format($remittance->amount_sar ?? 0, 2),
+                        $remittance->exchange_rate ?? 'N/A',
+                        $remittance->transaction_reference ?? 'N/A',
+                        $remittance->bank_name ?? 'N/A',
+                        $remittance->beneficiary->name ?? 'N/A',
+                        ucfirst($remittance->status ?? 'pending'),
+                        $remittance->verified_at ? $remittance->verified_at->format('Y-m-d H:i') : '',
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            // Log export activity
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'count' => $remittances->count(),
+                    'filters' => $request->only(['from_date', 'to_date', 'candidate_id', 'status']),
+                ])
+                ->log('Exported remittance records');
+
+            return response()->stream($callback, 200, $headers);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to export remittances: ' . $e->getMessage());
+        }
     }
 }
