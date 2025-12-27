@@ -229,15 +229,15 @@ All raw SQL queries use proper parameterization:
 2. Clear caches: `php artisan config:clear && php artisan route:clear && php artisan view:clear`
 3. Test all fixed views and routes
 
-### High Priority (Fix Within Sprint)
-1. Add null checks to service methods identified above
-2. Wrap multi-step operations in database transactions
+### High Priority (Fix Within Sprint) - COMPLETED
+1. ~~Add null checks to service methods identified above~~ **FIXED**
+2. ~~Wrap multi-step operations in database transactions~~ **FIXED**
 3. Add error handling for file operations in services
-4. Fix OepPolicy campus_id validation
+4. ~~Fix OepPolicy campus_id validation~~ **FIXED**
 
-### Medium Priority (Technical Debt)
-1. Add missing $hidden arrays for sensitive fields
-2. Add missing inverse relationships in models
+### Medium Priority (Technical Debt) - COMPLETED
+1. ~~Add missing $hidden arrays for sensitive fields~~ **FIXED**
+2. ~~Add missing inverse relationships in models~~ **FIXED**
 3. Add proper error logging in NotificationService
 4. Review and strengthen FileStorageService file validation
 
@@ -250,6 +250,7 @@ All raw SQL queries use proper parameterization:
 
 ## Files Modified in This Audit
 
+### Initial Commit (Critical Fixes)
 ```
 app/Policies/VisaProcessPolicy.php
 app/Policies/CandidatePolicy.php
@@ -265,6 +266,29 @@ database/migrations/2025_12_27_000001_add_soft_deletes_to_correspondence_table.p
 docs/AUDIT_REPORT.md (new)
 ```
 
+### Follow-up Commit (Remaining Issues)
+```
+# Models
+app/Models/Campus.php - Added trainingSchedules() relationship
+app/Models/Trade.php - Added trainingSchedules() relationship
+app/Models/Instructor.php - Added trainingSchedules() relationship, fixed boot method
+app/Models/RemittanceBeneficiary.php - Added $hidden for sensitive fields
+app/Models/RemittanceReceipt.php - Added $hidden for file_path
+app/Models/RemittanceUsageBreakdown.php - Added boot method with audit tracking
+app/Models/RemittanceAlert.php - Added boot method with audit tracking
+
+# Policies
+app/Policies/OepPolicy.php - Fixed campus_admin view() to check for candidates in campus
+app/Policies/TrainingPolicy.php - Added optional model parameter for campus-specific access
+
+# Services
+app/Services/ComplaintService.php - Fixed complaint_number -> complaint_reference
+app/Services/DepartureService.php - Added null check on departure->candidate
+app/Services/VisaProcessingService.php - Added null check on visaProcess->candidate
+app/Services/TrainingService.php - Wrapped startBatchTraining() in DB transaction
+app/Services/RegistrationService.php - Added null-safe operators for nextOfKin
+```
+
 ---
 
 ## Testing Checklist
@@ -278,3 +302,8 @@ docs/AUDIT_REPORT.md (new)
 - [ ] Test user create/edit forms in admin panel
 - [ ] Verify correspondence soft deletes work correctly
 - [ ] Verify beneficiary AJAX loading in remittance forms
+- [ ] Test OEP listing with campus_admin (should only see OEPs with campus candidates)
+- [ ] Test training schedule view() authorization with campus-specific checks
+- [ ] Test departure Iqama recording workflow
+- [ ] Test visa interview result recording
+- [ ] Test batch training start operation
