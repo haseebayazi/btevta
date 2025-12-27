@@ -212,10 +212,15 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                         <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('status') border-red-500 @enderror" required>
-                            <option value="pending" {{ old('status', $candidate->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="active" {{ old('status', $candidate->status) == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="completed" {{ old('status', $candidate->status) == 'completed' ? 'selected' : '' }}>Completed</option>
+                            <option value="new" {{ old('status', $candidate->status) == 'new' ? 'selected' : '' }}>New</option>
+                            <option value="screening" {{ old('status', $candidate->status) == 'screening' ? 'selected' : '' }}>Screening</option>
+                            <option value="registered" {{ old('status', $candidate->status) == 'registered' ? 'selected' : '' }}>Registered</option>
+                            <option value="training" {{ old('status', $candidate->status) == 'training' ? 'selected' : '' }}>Training</option>
+                            <option value="visa_process" {{ old('status', $candidate->status) == 'visa_process' ? 'selected' : '' }}>Visa Process</option>
+                            <option value="ready" {{ old('status', $candidate->status) == 'ready' ? 'selected' : '' }}>Ready</option>
+                            <option value="departed" {{ old('status', $candidate->status) == 'departed' ? 'selected' : '' }}>Departed</option>
                             <option value="rejected" {{ old('status', $candidate->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                            <option value="dropped" {{ old('status', $candidate->status) == 'dropped' ? 'selected' : '' }}>Dropped</option>
                         </select>
                         @error('status')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
                     </div>

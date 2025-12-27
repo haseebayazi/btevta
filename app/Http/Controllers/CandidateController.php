@@ -173,22 +173,34 @@ class CandidateController extends Controller
         $this->authorize('update', $candidate);
 
         $validated = $request->validate([
-            'btevta_id' => 'required|unique:candidates,btevta_id,' . $candidate->id,
+            // btevta_id is auto-generated and disabled in form, so not validated here
             'cnic' => 'required|digits:13|unique:candidates,cnic,' . $candidate->id,
             'name' => 'required|string|max:255',
             'father_name' => 'required|string|max:255',
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|in:male,female,other',
             'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:255',
-            'address' => 'required|string',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
             'district' => 'required|string|max:100',
             'tehsil' => 'nullable|string|max:100',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'nullable|exists:campuses,id',
+            'batch_id' => 'nullable|exists:batches,id',
             'oep_id' => 'nullable|exists:oeps,id',
+            'status' => 'nullable|in:new,screening,registered,training,visa_process,ready,departed,rejected,dropped',
             'remarks' => 'nullable|string',
+            'photo' => 'nullable|image|max:2048',
         ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($candidate->photo_path) {
+                Storage::disk('public')->delete($candidate->photo_path);
+            }
+            $validated['photo_path'] = $request->file('photo')->store('candidates/photos', 'public');
+        }
 
         $candidate->update($validated);
 
