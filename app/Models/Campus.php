@@ -52,6 +52,15 @@ class Campus extends Model
         return $this->hasManyThrough(VisaProcess::class, Candidate::class);
     }
 
+    /**
+     * Get training schedules for this campus.
+     * AUDIT FIX: Added missing inverse relationship
+     */
+    public function trainingSchedules()
+    {
+        return $this->hasMany(TrainingSchedule::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

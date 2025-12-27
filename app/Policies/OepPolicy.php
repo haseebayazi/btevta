@@ -26,7 +26,12 @@ class OepPolicy
             return true;
         }
 
-        return $user->isCampusAdmin();
+        // SECURITY FIX: Campus admin can only view OEPs that have candidates in their campus
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            return $oep->candidates()->where('campus_id', $user->campus_id)->exists();
+        }
+
+        return false;
     }
 
     public function create(User $user): bool

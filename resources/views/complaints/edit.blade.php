@@ -114,7 +114,7 @@
                                     name="assigned_to"
                                     class="form-control @error('assigned_to') is-invalid @enderror">
                                 <option value="">Unassigned</option>
-                                @foreach($users as $user)
+                                @foreach($users ?? [] as $user)
                                     <option value="{{ $user->id }}" {{ old('assigned_to', $complaint->assigned_to) == $user->id ? 'selected' : '' }}>
                                         {{ $user->name }} ({{ $user->role }})
                                     </option>

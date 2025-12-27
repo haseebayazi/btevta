@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Candidate;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Carbon\Carbon;
@@ -90,6 +91,15 @@ class NotificationService
                         break;
                 }
             } catch (\Exception $e) {
+                // AUDIT FIX: Add proper error logging
+                Log::error('Notification channel failed', [
+                    'channel' => $channel,
+                    'type' => $type,
+                    'recipient' => $this->getRecipientIdentifier($recipient),
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
                 $results[$channel] = [
                     'success' => false,
                     'error' => $e->getMessage(),
@@ -447,6 +457,13 @@ class NotificationService
                     'result' => $result,
                 ];
             } catch (\Exception $e) {
+                // AUDIT FIX: Add proper error logging for bulk send failures
+                Log::error('Bulk notification failed for recipient', [
+                    'type' => $type,
+                    'recipient' => $this->getRecipientIdentifier($recipient),
+                    'error' => $e->getMessage(),
+                ]);
+
                 $results['failed']++;
                 $results['details'][] = [
                     'recipient' => $this->getRecipientIdentifier($recipient),
@@ -555,6 +572,14 @@ class NotificationService
                 
                 $processed++;
             } catch (\Exception $e) {
+                // AUDIT FIX: Add proper error logging for scheduled notification failures
+                Log::error('Scheduled notification failed', [
+                    'notification_id' => $notification->id,
+                    'type' => $notification->type,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
                 DB::table('scheduled_notifications')
                     ->where('id', $notification->id)
                     ->update([

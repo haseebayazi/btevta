@@ -59,28 +59,36 @@ class TrainingService
     public function startBatchTraining($batchId, $startDate, $endDate, $trainerId = null)
     {
         $batch = Batch::findOrFail($batchId);
-        
-        $batch->update([
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'status' => 'ongoing',
-        ]);
 
-        // Update all candidates in batch
-        $batch->candidates()->update([
-            'training_start_date' => $startDate,
-            'training_end_date' => $endDate,
-            'training_status' => 'ongoing',
-            'status' => 'in_training',
-        ]);
+        // AUDIT FIX: Wrap multi-step operation in database transaction
+        DB::beginTransaction();
+        try {
+            $batch->update([
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'status' => 'ongoing',
+            ]);
 
-        // Log activity
-        activity()
-            ->performedOn($batch)
-            ->causedBy(auth()->user())
-            ->log("Training started for batch {$batch->batch_code}");
+            // Update all candidates in batch
+            $batch->candidates()->update([
+                'training_start_date' => $startDate,
+                'training_end_date' => $endDate,
+                'training_status' => 'ongoing',
+                'status' => 'in_training',
+            ]);
 
-        return $batch;
+            // Log activity
+            activity()
+                ->performedOn($batch)
+                ->causedBy(auth()->user())
+                ->log("Training started for batch {$batch->batch_code}");
+
+            DB::commit();
+            return $batch;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**

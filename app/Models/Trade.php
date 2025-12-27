@@ -36,6 +36,15 @@ class Trade extends Model
         return $this->hasMany(Batch::class);
     }
 
+    /**
+     * Get training schedules for this trade.
+     * AUDIT FIX: Added missing inverse relationship
+     */
+    public function trainingSchedules()
+    {
+        return $this->hasMany(TrainingSchedule::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

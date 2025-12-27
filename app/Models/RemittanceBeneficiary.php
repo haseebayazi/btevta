@@ -34,6 +34,16 @@ class RemittanceBeneficiary extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     * SECURITY: Hide sensitive financial and personal information
+     */
+    protected $hidden = [
+        'cnic',
+        'account_number',
+        'iban',
+    ];
+
     // Relationships
     public function candidate()
     {

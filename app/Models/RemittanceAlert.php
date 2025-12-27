@@ -22,7 +22,30 @@ class RemittanceAlert extends Model
         'resolved_by',
         'resolved_at',
         'resolution_notes',
+        'created_by',
+        'updated_by',
     ];
+
+    /**
+     * Boot method for audit trail tracking.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->created_by = auth()->id();
+                $model->updated_by = auth()->id();
+            }
+        });
+
+        static::updating(function ($model) {
+            if (auth()->check()) {
+                $model->updated_by = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'metadata' => 'array',

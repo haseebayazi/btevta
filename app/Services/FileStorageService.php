@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Http\Controllers\SecureFileController;
 
@@ -98,8 +99,22 @@ class FileStorageService
 
         $fullPath = $basePath . '/' . $filename;
 
-        // Store the file
-        Storage::disk($disk)->putFileAs($basePath, $file, $filename);
+        // Store the file with error handling
+        try {
+            $stored = Storage::disk($disk)->putFileAs($basePath, $file, $filename);
+
+            if (!$stored) {
+                throw new \RuntimeException("Failed to store file to disk: {$disk}");
+            }
+        } catch (\Exception $e) {
+            Log::error('File storage failed', [
+                'disk' => $disk,
+                'path' => $fullPath,
+                'original_name' => $file->getClientOriginalName(),
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException("File storage failed: {$e->getMessage()}", 0, $e);
+        }
 
         // Generate URL based on disk type
         $url = $this->generateUrl($disk, $fullPath);
@@ -135,7 +150,22 @@ class FileStorageService
         $basePath = str_replace('{id}', $resourceId, $config['path']);
         $fullPath = $basePath . '/' . $filename;
 
-        Storage::disk($disk)->put($fullPath, $content);
+        // Store content with error handling
+        try {
+            $stored = Storage::disk($disk)->put($fullPath, $content);
+
+            if (!$stored) {
+                throw new \RuntimeException("Failed to store content to disk: {$disk}");
+            }
+        } catch (\Exception $e) {
+            Log::error('Content storage failed', [
+                'disk' => $disk,
+                'path' => $fullPath,
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException("Content storage failed: {$e->getMessage()}", 0, $e);
+        }
 
         return [
             'disk' => $disk,
@@ -236,14 +266,33 @@ class FileStorageService
     public function move(string $sourceDisk, string $sourcePath, string $destDisk, string $destPath): bool
     {
         if (!Storage::disk($sourceDisk)->exists($sourcePath)) {
+            Log::warning('Move failed: source file not found', [
+                'source_disk' => $sourceDisk,
+                'source_path' => $sourcePath,
+            ]);
             return false;
         }
 
-        $content = Storage::disk($sourceDisk)->get($sourcePath);
-        Storage::disk($destDisk)->put($destPath, $content);
-        Storage::disk($sourceDisk)->delete($sourcePath);
+        try {
+            $content = Storage::disk($sourceDisk)->get($sourcePath);
+            $stored = Storage::disk($destDisk)->put($destPath, $content);
 
-        return true;
+            if (!$stored) {
+                throw new \RuntimeException("Failed to write to destination");
+            }
+
+            Storage::disk($sourceDisk)->delete($sourcePath);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('File move failed', [
+                'source_disk' => $sourceDisk,
+                'source_path' => $sourcePath,
+                'dest_disk' => $destDisk,
+                'dest_path' => $destPath,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -258,11 +307,32 @@ class FileStorageService
     public function copy(string $sourceDisk, string $sourcePath, string $destDisk, string $destPath): bool
     {
         if (!Storage::disk($sourceDisk)->exists($sourcePath)) {
+            Log::warning('Copy failed: source file not found', [
+                'source_disk' => $sourceDisk,
+                'source_path' => $sourcePath,
+            ]);
             return false;
         }
 
-        $content = Storage::disk($sourceDisk)->get($sourcePath);
-        return Storage::disk($destDisk)->put($destPath, $content);
+        try {
+            $content = Storage::disk($sourceDisk)->get($sourcePath);
+            $stored = Storage::disk($destDisk)->put($destPath, $content);
+
+            if (!$stored) {
+                throw new \RuntimeException("Failed to write to destination");
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('File copy failed', [
+                'source_disk' => $sourceDisk,
+                'source_path' => $sourcePath,
+                'dest_disk' => $destDisk,
+                'dest_path' => $destPath,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -335,15 +405,54 @@ class FileStorageService
             ];
         }
 
-        // Check for executable content in filename
+        // SECURITY: Comprehensive check for dangerous file extensions
         $extension = strtolower($file->getClientOriginalExtension());
-        $dangerousExtensions = ['php', 'phtml', 'php3', 'php4', 'php5', 'exe', 'sh', 'bat', 'cmd', 'js'];
+        $dangerousExtensions = [
+            // PHP variants
+            'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phar',
+            // Windows executables and scripts
+            'exe', 'com', 'msi', 'bat', 'cmd', 'vbs', 'vbe', 'wsf', 'wsh', 'ps1', 'psm1',
+            // Unix/Linux scripts
+            'sh', 'bash', 'csh', 'ksh', 'zsh',
+            // Other server-side scripts
+            'jsp', 'jspx', 'asp', 'aspx', 'cgi', 'pl', 'py', 'rb',
+            // JavaScript
+            'js', 'mjs',
+            // HTML/SVG (can contain malicious scripts)
+            'html', 'htm', 'xhtml', 'svg',
+            // Server config files
+            'htaccess', 'htpasswd',
+            // Java
+            'jar', 'war', 'class',
+            // Other potentially dangerous
+            'dll', 'so', 'dylib', 'scr', 'reg', 'inf', 'hta',
+        ];
 
         if (in_array($extension, $dangerousExtensions)) {
+            Log::warning('Blocked dangerous file upload attempt', [
+                'extension' => $extension,
+                'original_name' => $file->getClientOriginalName(),
+                'user_id' => auth()->id(),
+            ]);
             return [
                 'valid' => false,
                 'error' => 'File type not allowed for security reasons',
             ];
+        }
+
+        // SECURITY: Check for double extensions (e.g., file.php.jpg)
+        $filename = $file->getClientOriginalName();
+        foreach ($dangerousExtensions as $dangerousExt) {
+            if (preg_match('/\.' . preg_quote($dangerousExt, '/') . '\./i', $filename)) {
+                Log::warning('Blocked double extension upload attempt', [
+                    'filename' => $filename,
+                    'user_id' => auth()->id(),
+                ]);
+                return [
+                    'valid' => false,
+                    'error' => 'File name contains suspicious patterns',
+                ];
+            }
         }
 
         return ['valid' => true, 'error' => null];

@@ -12,11 +12,13 @@ class CandidateScreeningPolicy
 
     /**
      * Determine if the user can view any candidate screenings.
+     * SECURITY FIX: Added role-based restrictions instead of allowing all users
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can view screenings list
-        return true;
+        return $user->isSuperAdmin() || $user->isProjectDirector() ||
+               $user->isCampusAdmin() || $user->isStaff() ||
+               $user->isTrainer() || $user->isViewer();
     }
 
     /**

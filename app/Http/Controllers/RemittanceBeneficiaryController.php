@@ -158,4 +158,21 @@ class RemittanceBeneficiaryController extends Controller
 
         return back()->with('success', 'Primary beneficiary updated successfully.');
     }
+
+    /**
+     * Get beneficiaries data for AJAX requests.
+     * AUDIT FIX: Added missing endpoint for remittances create/edit forms
+     */
+    public function data($candidateId)
+    {
+        $this->authorize('viewAny', RemittanceBeneficiary::class);
+
+        $beneficiaries = RemittanceBeneficiary::where('candidate_id', $candidateId)
+            ->where('is_active', true)
+            ->orderBy('is_primary', 'desc')
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'relationship', 'account_number', 'iban', 'mobile_wallet', 'bank_name']);
+
+        return response()->json($beneficiaries);
+    }
 }

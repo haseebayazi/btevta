@@ -31,6 +31,14 @@ class RemittanceReceipt extends Model
         'file_size' => 'integer',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     * SECURITY: Hide internal file system paths
+     */
+    protected $hidden = [
+        'file_path',
+    ];
+
     // Relationships
     public function remittance()
     {
