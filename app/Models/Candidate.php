@@ -30,6 +30,7 @@ class Candidate extends Model
         'campus_id',
         'trade_id',
         'oep_id',
+        'visa_partner_id',
         'district',
         'tehsil',
         'province',
@@ -174,6 +175,14 @@ class Candidate extends Model
     public function oep()
     {
         return $this->belongsTo(Oep::class);
+    }
+
+    /**
+     * Get the Visa Partner assigned to the candidate.
+     */
+    public function visaPartner()
+    {
+        return $this->belongsTo(VisaPartner::class);
     }
 
     /**

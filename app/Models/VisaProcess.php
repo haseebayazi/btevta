@@ -14,6 +14,7 @@ class VisaProcess extends Model
 
     protected $fillable = [
         'candidate_id',
+        'visa_partner_id',
         // Interview & Trade Test
         'interview_date', 'interview_status', 'interview_completed', 'interview_remarks',
         'trade_test_date', 'trade_test_status', 'trade_test_completed', 'trade_test_remarks',
@@ -163,6 +164,11 @@ class VisaProcess extends Model
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);
+    }
+
+    public function visaPartner()
+    {
+        return $this->belongsTo(VisaPartner::class);
     }
 
     public function oep()
