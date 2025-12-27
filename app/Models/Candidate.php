@@ -625,16 +625,263 @@ class Candidate extends Model
         }
 
         $this->training_status = $status;
-        
+
         if ($status === self::TRAINING_IN_PROGRESS && !$this->training_start_date) {
             $this->training_start_date = now();
         }
-        
+
         if ($status === self::TRAINING_COMPLETED) {
             $this->training_end_date = $endDate ?? now();
         }
-        
+
         return $this->save();
+    }
+
+    // ==================== PHASE 9: CROSS-PHASE TRANSITION VALIDATION ====================
+
+    /**
+     * Check if candidate can transition from NEW to SCREENING.
+     * Validates that all required fields are filled.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToScreening()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_NEW) {
+            $issues[] = "Current status must be 'new'. Current: {$this->status}";
+        }
+
+        if (empty($this->name) || empty($this->cnic)) {
+            $issues[] = 'Name and CNIC are required';
+        }
+
+        if (empty($this->phone)) {
+            $issues[] = 'Phone number is required for call screening';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from SCREENING to REGISTERED.
+     * Validates that all required screenings are passed.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToRegistered()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_SCREENING) {
+            $issues[] = "Current status must be 'screening'. Current: {$this->status}";
+        }
+
+        // Check required screenings
+        $requiredTypes = ['desk', 'call', 'physical'];
+        $passedScreenings = $this->screenings()
+            ->whereIn('screening_type', $requiredTypes)
+            ->where('status', 'passed')
+            ->pluck('screening_type')
+            ->toArray();
+
+        $missingScreenings = array_diff($requiredTypes, $passedScreenings);
+        if (!empty($missingScreenings)) {
+            $issues[] = 'Missing passed screenings: ' . implode(', ', $missingScreenings);
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from REGISTERED to TRAINING.
+     * Validates that registration documents and next of kin are complete.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToTraining()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_REGISTERED) {
+            $issues[] = "Current status must be 'registered'. Current: {$this->status}";
+        }
+
+        // Check required documents
+        $requiredDocs = ['cnic', 'education', 'photo'];
+        $uploadedDocs = $this->documents()
+            ->whereIn('document_type', $requiredDocs)
+            ->pluck('document_type')
+            ->toArray();
+
+        $missingDocs = array_diff($requiredDocs, $uploadedDocs);
+        if (!empty($missingDocs)) {
+            $issues[] = 'Missing documents: ' . implode(', ', $missingDocs);
+        }
+
+        // Check next of kin
+        if (!$this->nextOfKin) {
+            $issues[] = 'Next of kin information is required';
+        }
+
+        // Check undertaking
+        if (!$this->undertakings()->where('is_completed', true)->exists()) {
+            $issues[] = 'Signed undertaking is required';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from TRAINING to VISA_PROCESS.
+     * Validates attendance, assessments, and certificate.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToVisaProcess()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_TRAINING) {
+            $issues[] = "Current status must be 'training'. Current: {$this->status}";
+        }
+
+        // Check training completion
+        if ($this->training_status !== self::TRAINING_COMPLETED) {
+            $issues[] = "Training must be completed. Current: {$this->training_status}";
+        }
+
+        // Check final assessment
+        $finalAssessment = $this->trainingAssessments()
+            ->where('assessment_type', 'final')
+            ->where('result', 'pass')
+            ->first();
+
+        if (!$finalAssessment) {
+            $issues[] = 'Final assessment must be passed';
+        }
+
+        // Check certificate
+        if (!$this->certificate) {
+            $issues[] = 'Training certificate must be issued';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from VISA_PROCESS to READY.
+     * Validates visa and all required clearances.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToReady()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_VISA_PROCESS) {
+            $issues[] = "Current status must be 'visa_process'. Current: {$this->status}";
+        }
+
+        // Check visa process record
+        $visaProcess = $this->visaProcess;
+        if (!$visaProcess) {
+            $issues[] = 'Visa process record not found';
+        } else {
+            if (!$visaProcess->visa_issued) {
+                $issues[] = 'Visa must be issued';
+            }
+            if (!$visaProcess->trade_test_passed) {
+                $issues[] = 'Trade test must be passed';
+            }
+            if (!$visaProcess->medical_passed) {
+                $issues[] = 'Medical (GAMCA) must be passed';
+            }
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from READY to DEPARTED.
+     * Validates departure record and pre-departure requirements.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToDeparted()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_READY) {
+            $issues[] = "Current status must be 'ready'. Current: {$this->status}";
+        }
+
+        // Check departure record
+        $departure = $this->departure;
+        if (!$departure) {
+            $issues[] = 'Departure record not found';
+        } else {
+            if (!$departure->departure_date) {
+                $issues[] = 'Departure date must be set';
+            }
+            if (!$departure->flight_number) {
+                $issues[] = 'Flight details must be recorded';
+            }
+            if (!$departure->pre_briefing_completed) {
+                $issues[] = 'Pre-departure briefing must be completed';
+            }
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Validate transition and return detailed result.
+     * Use this before calling updateStatus() to get specific failure reasons.
+     *
+     * @param string $targetStatus The status to transition to
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function validateTransition($targetStatus)
+    {
+        $validators = [
+            self::STATUS_SCREENING => 'canTransitionToScreening',
+            self::STATUS_REGISTERED => 'canTransitionToRegistered',
+            self::STATUS_TRAINING => 'canTransitionToTraining',
+            self::STATUS_VISA_PROCESS => 'canTransitionToVisaProcess',
+            self::STATUS_READY => 'canTransitionToReady',
+            self::STATUS_DEPARTED => 'canTransitionToDeparted',
+        ];
+
+        if (isset($validators[$targetStatus])) {
+            return $this->{$validators[$targetStatus]}();
+        }
+
+        // For rejected/dropped statuses, always allow
+        if (in_array($targetStatus, [self::STATUS_REJECTED, self::STATUS_DROPPED])) {
+            return ['can_transition' => true, 'issues' => []];
+        }
+
+        return ['can_transition' => false, 'issues' => ['Unknown target status: ' . $targetStatus]];
     }
 
     /**
