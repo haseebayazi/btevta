@@ -419,6 +419,42 @@ Training materials and user guides available at:
 
 ## 📝 Changelog
 
+### Version 1.3.0 (December 2025) - Feature Enhancements Release
+
+**Real-time Notifications:**
+- WebSocket/Pusher broadcasting events for candidate status changes
+- Real-time complaint registration alerts
+- Live dashboard stats updates
+- Toast notification system with auto-dismiss
+- Polling fallback for environments without WebSockets
+
+**Dashboard Analytics Widgets:**
+- Interactive status distribution chart (doughnut/bar toggle)
+- Monthly trend chart with configurable period (6/12/24 months)
+- Campus performance comparison charts
+- Trade distribution visualization
+- Weekly activity heatmap
+- Live KPI cards with trend indicators
+- Performance metrics table with month-over-month comparison
+
+**Bulk Operations:**
+- Multi-select candidates with select all/clear
+- Bulk status update with state machine validation
+- Bulk batch assignment with capacity checking
+- Bulk campus transfer
+- Bulk export (CSV, Excel, PDF formats)
+- Admin-only bulk delete with double confirmation
+- Operation feedback via toast notifications
+
+**Mobile-Responsive Improvements:**
+- Responsive sidebar with mobile overlay
+- Bottom navigation bar for mobile devices
+- Touch-friendly button sizing (44px minimum)
+- Safe area support for notched devices
+- Collapsible sections on mobile
+- Adaptive table columns
+- Smooth transitions and animations
+
 ### Version 1.2.0 (December 2025) - Security Audit Release
 **Security Hardening:**
 - Removed 9 dangerous PHP utility scripts from root directory
@@ -533,4 +569,4 @@ The project includes comprehensive tests for:
 
 **Developed for BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab**
 
-Version: 1.2.0 | Last Updated: December 2025
+Version: 1.3.0 | Last Updated: December 2025
