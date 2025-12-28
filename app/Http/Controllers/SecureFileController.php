@@ -147,8 +147,8 @@ class SecureFileController extends Controller
     {
         $user = auth()->user();
 
-        // Admins can access all files
-        if ($user->role === 'admin') {
+        // Super admins and project directors can access all files
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 

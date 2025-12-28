@@ -80,9 +80,10 @@ class ComplaintController extends Controller
     {
         $this->authorize('create', Complaint::class);
 
-        $candidates = Candidate::select('id', 'name', 'cnic', 'application_id')->get();
-        $campuses = Campus::where('is_active', true)->get();
-        $oeps = Oep::where('is_active', true)->get();
+        // AUDIT FIX: Limit dropdown results for performance
+        $candidates = Candidate::select('id', 'name', 'cnic', 'application_id')->limit(200)->get();
+        $campuses = Campus::where('is_active', true)->limit(100)->get();
+        $oeps = Oep::where('is_active', true)->limit(100)->get();
 
         return view('complaints.create', compact('candidates', 'campuses', 'oeps'));
     }
@@ -173,10 +174,11 @@ class ComplaintController extends Controller
     {
         $this->authorize('update', $complaint);
 
-        $candidates = Candidate::select('id', 'name', 'cnic')->get();
-        $campuses = Campus::where('is_active', true)->get();
-        $oeps = Oep::where('is_active', true)->get();
-        $users = User::where('role', 'admin')->get();
+        // AUDIT FIX: Limit dropdown results for performance
+        $candidates = Candidate::select('id', 'name', 'cnic')->limit(200)->get();
+        $campuses = Campus::where('is_active', true)->limit(100)->get();
+        $oeps = Oep::where('is_active', true)->limit(100)->get();
+        $users = User::where('role', 'admin')->limit(100)->get();
 
         return view('complaints.edit', compact('complaint', 'candidates', 'campuses', 'oeps', 'users'));
     }

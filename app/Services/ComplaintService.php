@@ -218,12 +218,37 @@ class ComplaintService
     }
 
     /**
-     * Update complaint status
+     * Valid status transitions for complaint workflow
+     */
+    const STATUS_TRANSITIONS = [
+        'open' => ['assigned', 'in_progress', 'resolved'],
+        'assigned' => ['in_progress', 'resolved', 'open'],
+        'in_progress' => ['resolved', 'assigned'],
+        'resolved' => ['closed', 'open'], // Can reopen from resolved
+        'closed' => ['open'], // Can reopen from closed
+    ];
+
+    /**
+     * Validate if a status transition is allowed
+     */
+    protected function isValidStatusTransition(string $currentStatus, string $newStatus): bool
+    {
+        $allowedTransitions = self::STATUS_TRANSITIONS[$currentStatus] ?? [];
+        return in_array($newStatus, $allowedTransitions);
+    }
+
+    /**
+     * Update complaint status with workflow validation
      */
     public function updateStatus($complaintId, $status, $remarks = null): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
-        
+
+        // Validate status transition
+        if (!$this->isValidStatusTransition($complaint->status, $status)) {
+            throw new \Exception("Invalid status transition from '{$complaint->status}' to '{$status}'. Allowed: " . implode(', ', self::STATUS_TRANSITIONS[$complaint->status] ?? []));
+        }
+
         $complaint->update([
             'status' => $status,
             'status_updated_at' => now(),
@@ -374,12 +399,15 @@ class ComplaintService
 
     /**
      * Recalculate SLA based on new priority
+     * FIXED: On escalation, SLA is calculated from NOW, not from registration date
+     * This ensures escalated complaints get fresh SLA timeframes
      */
     private function recalculateSLA($complaint): void
     {
         $slaDays = $this->getSLADays($complaint->priority);
-        $newDueDate = Carbon::parse($complaint->registered_at)->addDays($slaDays);
-        
+        // Use current time as base for escalated complaints to give fresh SLA
+        $newDueDate = Carbon::now()->addDays($slaDays);
+
         $complaint->update([
             'sla_days' => $slaDays,
             'sla_due_date' => $newDueDate,

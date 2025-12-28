@@ -455,6 +455,108 @@ class FileStorageService
             }
         }
 
+        // SECURITY: Validate file content using magic bytes
+        $magicBytesResult = $this->validateMagicBytes($file);
+        if (!$magicBytesResult['valid']) {
+            return $magicBytesResult;
+        }
+
+        return ['valid' => true, 'error' => null];
+    }
+
+    /**
+     * Validate file content using magic bytes (file signatures).
+     * This prevents file type spoofing where a malicious file has a fake extension.
+     *
+     * @param UploadedFile $file
+     * @return array ['valid' => bool, 'error' => string|null]
+     */
+    protected function validateMagicBytes(UploadedFile $file): array
+    {
+        // Read first 12 bytes for magic number detection
+        $handle = fopen($file->getRealPath(), 'rb');
+        if (!$handle) {
+            return ['valid' => false, 'error' => 'Unable to read file for validation'];
+        }
+        $bytes = fread($handle, 12);
+        fclose($handle);
+
+        if ($bytes === false || strlen($bytes) < 4) {
+            return ['valid' => false, 'error' => 'File too small for validation'];
+        }
+
+        // Common magic bytes signatures
+        $signatures = [
+            // Images
+            'jpg' => ["\xFF\xD8\xFF"],
+            'png' => ["\x89PNG\r\n\x1a\n"],
+            'gif' => ["GIF87a", "GIF89a"],
+            'webp' => ["RIFF"],
+            'bmp' => ["BM"],
+            'ico' => ["\x00\x00\x01\x00"],
+            // Documents
+            'pdf' => ["%PDF"],
+            'zip' => ["PK\x03\x04", "PK\x05\x06"],
+            'rar' => ["Rar!\x1a\x07"],
+            '7z' => ["7z\xBC\xAF"],
+            'docx' => ["PK\x03\x04"], // Office Open XML
+            'xlsx' => ["PK\x03\x04"],
+            'pptx' => ["PK\x03\x04"],
+            // Legacy Office
+            'doc' => ["\xD0\xCF\x11\xE0"],
+            'xls' => ["\xD0\xCF\x11\xE0"],
+            'ppt' => ["\xD0\xCF\x11\xE0"],
+        ];
+
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        // If we have a signature for this extension, validate it
+        if (isset($signatures[$extension])) {
+            $validSignature = false;
+            foreach ($signatures[$extension] as $sig) {
+                if (substr($bytes, 0, strlen($sig)) === $sig) {
+                    $validSignature = true;
+                    break;
+                }
+            }
+
+            if (!$validSignature) {
+                Log::warning('Magic bytes mismatch detected', [
+                    'extension' => $extension,
+                    'original_name' => $file->getClientOriginalName(),
+                    'actual_bytes' => bin2hex(substr($bytes, 0, 8)),
+                    'user_id' => auth()->id(),
+                ]);
+                return [
+                    'valid' => false,
+                    'error' => 'File content does not match its extension',
+                ];
+            }
+        }
+
+        // Check for PHP code in the file content (common attack vector)
+        $content = file_get_contents($file->getRealPath());
+        if ($content !== false) {
+            $phpPatterns = [
+                '<?php',
+                '<?=',
+                '<script language="php">',
+                '<script language=php>',
+            ];
+            foreach ($phpPatterns as $pattern) {
+                if (stripos($content, $pattern) !== false) {
+                    Log::warning('PHP code detected in uploaded file', [
+                        'original_name' => $file->getClientOriginalName(),
+                        'user_id' => auth()->id(),
+                    ]);
+                    return [
+                        'valid' => false,
+                        'error' => 'File contains potentially malicious content',
+                    ];
+                }
+            }
+        }
+
         return ['valid' => true, 'error' => null];
     }
 

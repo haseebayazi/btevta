@@ -278,11 +278,15 @@ class ReportController extends Controller
             $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
-        $data = $query->get();
+        // AUDIT FIX: Limit results and use pagination for custom reports
+        $data = $query->limit(5000)->get();
 
         if ($validated['format'] === 'excel') {
             return $this->exportToExcel($data, 'custom_report');
         }
+
+        // Paginate for view display
+        $data = $query->paginate(50);
 
         return view('reports.custom-report-result', compact('data'));
     }
@@ -312,7 +316,8 @@ class ReportController extends Controller
             $query->where('status', $validated['status']);
         }
 
-        $data = $query->get();
+        // AUDIT FIX: Limit export results to prevent memory exhaustion
+        $data = $query->limit(10000)->get();
 
         if ($type === 'excel') {
             return $this->exportToExcel($data, 'report');
@@ -427,80 +432,85 @@ class ReportController extends Controller
 
             $file = fopen($tempFile, 'w');
 
+            // AUDIT FIX: Use chunking to prevent memory exhaustion on large datasets
             switch ($type) {
                 case 'candidates':
                     fputcsv($file, ['BTEVTA ID', 'CNIC', 'Name', 'Father Name', 'Gender', 'Phone', 'Trade', 'Campus', 'Status', 'Created']);
-                    $data = Candidate::with(['trade', 'campus'])->get();
-                    foreach ($data as $item) {
-                        fputcsv($file, [
-                            $item->btevta_id,
-                            $item->cnic,
-                            $item->name,
-                            $item->father_name,
-                            $item->gender,
-                            $item->phone,
-                            $item->trade?->name ?? 'N/A',
-                            $item->campus?->name ?? 'N/A',
-                            $item->status,
-                            $item->created_at->format('Y-m-d'),
-                        ]);
-                    }
+                    Candidate::with(['trade', 'campus'])->chunk(500, function($candidates) use ($file) {
+                        foreach ($candidates as $item) {
+                            fputcsv($file, [
+                                $item->btevta_id,
+                                $item->cnic,
+                                $item->name,
+                                $item->father_name,
+                                $item->gender,
+                                $item->phone,
+                                $item->trade?->name ?? 'N/A',
+                                $item->campus?->name ?? 'N/A',
+                                $item->status,
+                                $item->created_at->format('Y-m-d'),
+                            ]);
+                        }
+                    });
                     break;
 
                 case 'departures':
                     fputcsv($file, ['BTEVTA ID', 'Name', 'Trade', 'OEP', 'Departure Date', 'Iqama', 'Absher', 'Salary Status']);
-                    $data = Departure::with(['candidate.trade', 'candidate.oep'])->get();
-                    foreach ($data as $item) {
-                        fputcsv($file, [
-                            $item->candidate?->btevta_id ?? 'N/A',
-                            $item->candidate?->name ?? 'N/A',
-                            $item->candidate?->trade?->name ?? 'N/A',
-                            $item->candidate?->oep?->name ?? 'N/A',
-                            $item->departure_date ?? 'N/A',
-                            $item->iqama_number ?? 'Pending',
-                            $item->absher_registered ? 'Registered' : 'Pending',
-                            $item->salary_confirmed ? 'Confirmed' : ($item->first_salary_date ? 'Received' : 'Pending'),
-                        ]);
-                    }
+                    Departure::with(['candidate.trade', 'candidate.oep'])->chunk(500, function($departures) use ($file) {
+                        foreach ($departures as $item) {
+                            fputcsv($file, [
+                                $item->candidate?->btevta_id ?? 'N/A',
+                                $item->candidate?->name ?? 'N/A',
+                                $item->candidate?->trade?->name ?? 'N/A',
+                                $item->candidate?->oep?->name ?? 'N/A',
+                                $item->departure_date ?? 'N/A',
+                                $item->iqama_number ?? 'Pending',
+                                $item->absher_registered ? 'Registered' : 'Pending',
+                                $item->salary_confirmed ? 'Confirmed' : ($item->first_salary_date ? 'Received' : 'Pending'),
+                            ]);
+                        }
+                    });
                     break;
 
                 case 'complaints':
                     fputcsv($file, ['ID', 'Candidate', 'Category', 'Priority', 'Status', 'Created', 'Resolved']);
-                    $data = Complaint::with(['candidate'])->get();
-                    foreach ($data as $item) {
-                        fputcsv($file, [
-                            $item->id,
-                            $item->candidate?->name ?? 'N/A',
-                            $item->category,
-                            $item->priority,
-                            $item->status,
-                            $item->created_at->format('Y-m-d'),
-                            $item->resolved_at?->format('Y-m-d') ?? 'N/A',
-                        ]);
-                    }
+                    Complaint::with(['candidate'])->chunk(500, function($complaints) use ($file) {
+                        foreach ($complaints as $item) {
+                            fputcsv($file, [
+                                $item->id,
+                                $item->candidate?->name ?? 'N/A',
+                                $item->category,
+                                $item->priority,
+                                $item->status,
+                                $item->created_at->format('Y-m-d'),
+                                $item->resolved_at?->format('Y-m-d') ?? 'N/A',
+                            ]);
+                        }
+                    });
                     break;
 
                 case 'training':
                     fputcsv($file, ['BTEVTA ID', 'Name', 'Batch', 'Campus', 'Attendance %', 'Assessment Score', 'Certificate']);
-                    $data = Candidate::with(['batch', 'campus', 'trainingAttendances', 'trainingAssessments', 'trainingCertificates'])
-                        ->whereIn('status', ['training', 'visa_processing', 'departed'])
-                        ->get();
-                    foreach ($data as $item) {
-                        $totalAttendance = $item->trainingAttendances->count();
-                        $presentAttendance = $item->trainingAttendances->where('status', 'present')->count();
-                        $attendanceRate = $totalAttendance > 0 ? round(($presentAttendance / $totalAttendance) * 100, 1) : 0;
-                        $avgScore = $item->trainingAssessments->avg('score') ?? 0;
+                    Candidate::with(['batch', 'campus', 'trainingAttendances', 'trainingAssessments', 'trainingCertificates'])
+                        ->whereIn('status', ['training', 'visa_process', 'departed'])
+                        ->chunk(500, function($candidates) use ($file) {
+                            foreach ($candidates as $item) {
+                                $totalAttendance = $item->trainingAttendances->count();
+                                $presentAttendance = $item->trainingAttendances->where('status', 'present')->count();
+                                $attendanceRate = $totalAttendance > 0 ? round(($presentAttendance / $totalAttendance) * 100, 1) : 0;
+                                $avgScore = $item->trainingAssessments->avg('score') ?? 0;
 
-                        fputcsv($file, [
-                            $item->btevta_id,
-                            $item->name,
-                            $item->batch?->batch_code ?? 'N/A',
-                            $item->campus?->name ?? 'N/A',
-                            $attendanceRate . '%',
-                            round($avgScore, 1),
-                            $item->trainingCertificates->count() > 0 ? 'Yes' : 'No',
-                        ]);
-                    }
+                                fputcsv($file, [
+                                    $item->btevta_id,
+                                    $item->name,
+                                    $item->batch?->batch_code ?? 'N/A',
+                                    $item->campus?->name ?? 'N/A',
+                                    $attendanceRate . '%',
+                                    round($avgScore, 1),
+                                    $item->trainingCertificates->count() > 0 ? 'Yes' : 'No',
+                                ]);
+                            }
+                        });
                     break;
             }
 
