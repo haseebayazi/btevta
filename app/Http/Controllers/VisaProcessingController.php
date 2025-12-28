@@ -32,7 +32,7 @@ class VisaProcessingController extends Controller
         $this->authorize('viewAny', VisaProcess::class);
 
         $query = Candidate::with(['trade', 'campus', 'oep', 'visaProcess'])
-            ->where('status', 'visa_processing');
+            ->where('status', Candidate::STATUS_VISA_PROCESS);
 
         // Filter by campus for campus admins
         if (auth()->user()->role === 'campus_admin') {
@@ -69,8 +69,9 @@ class VisaProcessingController extends Controller
         $this->authorize('create', VisaProcess::class);
 
         // Get candidates eligible for visa processing (completed training)
-        // FIXED: Changed orWhere to whereIn to properly scope the query
-        $candidates = Candidate::whereIn('status', ['training_completed', 'screening_passed'])
+        // FIXED: Use proper status constant - candidates in training with completed training_status
+        $candidates = Candidate::where('status', Candidate::STATUS_TRAINING)
+            ->where('training_status', Candidate::TRAINING_COMPLETED)
             ->with(['trade', 'campus'])
             ->get();
 
@@ -621,7 +622,7 @@ class VisaProcessingController extends Controller
             $visaProcess = $this->visaService->completeVisaProcess($candidate->visaProcess->id);
 
             // Update candidate status to ready for departure
-            $candidate->update(['status' => 'visa_completed']);
+            $candidate->update(['status' => Candidate::STATUS_READY]);
 
             $this->notificationService->sendVisaProcessCompleted($candidate);
 
@@ -683,7 +684,8 @@ class VisaProcessingController extends Controller
 
             $this->visaService->deleteVisaProcess($candidate->visaProcess->id);
 
-            $candidate->update(['status' => 'training_completed']);
+            // Revert candidate to training status when visa process is deleted
+            $candidate->update(['status' => Candidate::STATUS_TRAINING]);
 
             // Log activity
             activity()

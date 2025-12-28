@@ -485,7 +485,7 @@ class DepartureController extends Controller
                 $validated['return_remarks'] ?? null
             );
 
-            $candidate->update(['status' => 'returned']);
+            $candidate->update(['status' => Candidate::STATUS_RETURNED]);
 
             return redirect()->route('departure.index')
                 ->with('success', 'Candidate marked as returned!');
