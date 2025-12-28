@@ -284,28 +284,18 @@ class CandidateController extends Controller
         $this->authorize('update', $candidate);
 
         $request->validate([
-            'status' => 'required|in:new,screening,registered,training,visa_process,ready,departed,rejected,dropped',
+            'status' => 'required|in:' . implode(',', array_keys(Candidate::getStatuses())),
             'remarks' => 'nullable|string'
         ]);
 
         try {
-            $oldStatus = $candidate->status;
-            $candidate->status = $request->status;
-            $candidate->remarks = $request->remarks;
-            $candidate->save();
-
-            activity()
-                ->performedOn($candidate)
-                ->withProperties([
-                    'old_status' => $oldStatus,
-                    'new_status' => $request->status,
-                    'remarks' => $request->remarks
-                ])
-                ->log('Status changed');
+            // Use the model's updateStatus method which validates state transitions
+            // This prevents invalid transitions like new → training (skipping screening)
+            $candidate->updateStatus($request->status, $request->remarks);
 
             return back()->with('success', 'Status updated successfully!');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to update status: ' . $e->getMessage());
+            return back()->with('error', 'Invalid status transition: ' . $e->getMessage());
         }
     }
 

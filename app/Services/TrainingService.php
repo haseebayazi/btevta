@@ -291,7 +291,24 @@ class TrainingService
     public function generateCertificate($candidateId, $issueDate = null)
     {
         $candidate = Candidate::with(['batch', 'trade', 'campus'])->findOrFail($candidateId);
-        
+
+        // AUDIT FIX: Check attendance percentage before issuing certificate
+        $attendanceStats = $this->getAttendanceStatistics($candidateId);
+        $minAttendance = config('training.minimum_attendance', 80);
+
+        if ($attendanceStats['percentage'] < $minAttendance) {
+            throw new \Exception(
+                "Candidate does not meet minimum attendance requirement. " .
+                "Required: {$minAttendance}%, Actual: {$attendanceStats['percentage']}%"
+            );
+        }
+
+        // Check if candidate is at-risk due to attendance issues
+        if ($candidate->training_status === Candidate::TRAINING_DROPPED ||
+            $candidate->training_status === 'at_risk') {
+            throw new \Exception('Candidate is at-risk or dropped from training and cannot receive certificate');
+        }
+
         // Check if candidate passed all assessments
         $finalAssessment = TrainingAssessment::where('candidate_id', $candidateId)
             ->where('assessment_type', 'final')
