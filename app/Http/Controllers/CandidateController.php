@@ -252,16 +252,33 @@ class CandidateController extends Controller
             }
         ]);
 
-        // Calculate remittance statistics
+        // AUDIT FIX: Calculate remittance statistics in a single query to avoid N+1
+        $remittanceStats = \DB::table('remittances')
+            ->where('candidate_id', $candidate->id)
+            ->selectRaw('
+                COUNT(*) as total_count,
+                COALESCE(SUM(amount), 0) as total_amount,
+                SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN has_proof = 1 THEN 1 ELSE 0 END) as with_proof,
+                MAX(transfer_date) as last_transfer_date
+            ')
+            ->first();
+
+        // Get last remittance details separately (single query)
+        $lastRemittance = $candidate->remittances()->latest('transfer_date')->first();
+
+        // Get unresolved alerts count (single query)
+        $unresolvedAlerts = \App\Models\RemittanceAlert::where('candidate_id', $candidate->id)
+            ->where('is_resolved', false)
+            ->count();
+
         $remittanceStats = [
-            'total_count' => $candidate->remittances()->count(),
-            'total_amount' => $candidate->remittances()->sum('amount'),
-            'last_remittance' => $candidate->remittances()->latest('transfer_date')->first(),
-            'pending_count' => $candidate->remittances()->where('status', 'pending')->count(),
-            'with_proof' => $candidate->remittances()->where('has_proof', true)->count(),
-            'unresolved_alerts' => \App\Models\RemittanceAlert::where('candidate_id', $candidate->id)
-                ->where('is_resolved', false)
-                ->count(),
+            'total_count' => $remittanceStats->total_count ?? 0,
+            'total_amount' => $remittanceStats->total_amount ?? 0,
+            'last_remittance' => $lastRemittance,
+            'pending_count' => $remittanceStats->pending_count ?? 0,
+            'with_proof' => $remittanceStats->with_proof ?? 0,
+            'unresolved_alerts' => $unresolvedAlerts,
         ];
 
         return view('candidates.profile', compact('candidate', 'remittanceStats'));
