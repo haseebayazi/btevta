@@ -1,550 +1,599 @@
-# BTEVTA Overseas Employment Management System
+# WASL - Workforce Abroad Skills & Linkages
 
-A comprehensive Laravel-based platform for managing the entire candidate lifecycle from BTEVTA listing to overseas deployment and post-departure tracking.
+## BTEVTA Overseas Employment Management System
 
-> **Security Audit Status:** Completed December 2025 - All CRITICAL and HIGH issues resolved
+A comprehensive digital platform for managing the complete candidate lifecycle from BTEVTA listing through overseas deployment, post-departure tracking, and remittance management.
 
-## 🎯 Features
+**Version:** 1.3.0 | **Status:** Production Ready | **Last Updated:** December 2025
 
-### ✅ Core Modules (10 Tabs)
-1. **Candidates Listing** - Import and manage BTEVTA candidates
-2. **Candidate Screening** - Multi-call tracking system
-3. **Registration at Campus** - Document management and undertakings
-4. **Training Management** - Attendance, assessments, and certificates
-5. **Visa Processing** - Complete pre-departure workflow
-6. **Departure Tracking** - Post-departure compliance monitoring
-7. **Correspondence** - Official communication tracking
-8. **Complaints Redressal** - SLA-based complaint management
-9. **Document Archive** - Centralized document repository
-10. **Reporting Module** - Dynamic report generation
+---
 
-### 🔐 Role-Based Access Control
-- **Admin** - Full system access
-- **Campus Admin** - Campus-specific operations
-- **OEP** - Overseas Employment Promoter access
-- **Trainer** - Training module access
-- **Candidate** - Self-service portal
+## Table of Contents
 
-### 📊 Key Capabilities
-- Excel import/export (BTEVTA template compatible)
-- Multi-campus management with comparative analytics
-- Real-time progress tracking for each candidate
-- Automated batch assignment and management
-- Document versioning and expiry alerts
-- Comprehensive audit trail
-- Dynamic reporting with custom filters
-- Email/SMS notifications (configurable)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Requirements](#system-requirements)
+- [Installation](#installation)
+- [Quick Start Guide](#quick-start-guide)
+- [User Roles](#user-roles)
+- [Module Documentation](#module-documentation)
+- [API Reference](#api-reference)
+- [Tutorials](#tutorials)
+- [Security Features](#security-features)
+- [Troubleshooting](#troubleshooting)
+- [Changelog](#changelog)
 
-## 🛠️ Technology Stack
+---
 
-- **Framework:** Laravel 11.x
-- **PHP:** 8.2+
-- **Database:** MySQL 8.0+
-- **Frontend:** Tailwind CSS, Alpine.js
-- **Document Processing:** PhpSpreadsheet
-- **PDF Generation:** DomPDF
-- **Activity Logging:** Spatie Activity Log
+## Overview
 
-## 📋 Requirements
+WASL (Workforce Abroad Skills & Linkages) is a Laravel-based enterprise application designed for BTEVTA (Board of Technical Education & Vocational Training Authority, Punjab) to streamline overseas employment management. The system tracks candidates from initial listing through training, visa processing, departure, and post-deployment monitoring.
 
-- PHP 8.2 or higher
-- MySQL 8.0 or higher
-- Composer
-- Node.js & NPM (for assets)
-- Apache/Nginx web server
-- SSL Certificate (recommended for production)
+### Technology Stack
 
-## 🚀 Installation on Cloudways
+| Component | Technology |
+|-----------|------------|
+| Backend | Laravel 11.x (PHP 8.2+) |
+| Database | MySQL 8.0+ |
+| Frontend | Tailwind CSS 3.x, Alpine.js 3.x |
+| Charts | Chart.js |
+| Documents | PhpSpreadsheet, DomPDF |
+| Authentication | Laravel Sanctum |
+| Activity Logging | Spatie Activity Log |
 
-### Step 1: Create Application
-1. Log in to your Cloudways account
-2. Create a new PHP application
-3. Select PHP 8.2 or higher
-4. Choose MySQL 8.0 as database
+---
 
-### Step 2: Upload Files
-```bash
-# Via SSH
-ssh master@your-server-ip
-cd /home/master/applications/{your-app}/public_html
+## Key Features
 
-# Clone or upload your files here
+### Core Modules (10 Tabs)
+
+| # | Module | Description |
+|---|--------|-------------|
+| 1 | **Candidates Listing** | Import BTEVTA candidates, auto-assign batches, bulk operations |
+| 2 | **Screening** | 3-call screening workflow, outcome tracking, evidence upload |
+| 3 | **Registration** | Profile creation, document archive, OEP allocation |
+| 4 | **Training** | Attendance, assessments, certificates, batch management |
+| 5 | **Visa Processing** | Interview, trade test, Takamol, GAMCA, E-number, PTN |
+| 6 | **Departure** | Flight tracking, Iqama, Absher, 90-day compliance |
+| 7 | **Correspondence** | Official communications, reply tracking |
+| 8 | **Complaints** | SLA-based complaint management, escalation |
+| 9 | **Document Archive** | Version control, expiry alerts, access logging |
+| 10 | **Reports** | Dynamic reports, Excel/PDF/CSV export |
+
+### Additional Features
+
+- **Remittance Management** - Track money transfers with alerts and analytics
+- **Real-time Notifications** - WebSocket/polling-based live updates
+- **Interactive Analytics** - Dashboard widgets with Chart.js
+- **Bulk Operations** - Multi-select actions for candidates
+- **Mobile-Responsive** - Bottom navigation, touch-friendly UI
+
+---
+
+## System Requirements
+
+### Server Requirements
+
+```
+PHP >= 8.2
+MySQL >= 8.0 or PostgreSQL >= 13
+Composer >= 2.0
+Node.js >= 18.0 (for asset compilation)
 ```
 
-### Step 3: Install Dependencies
-```bash
-composer install --optimize-autoloader --no-dev
+### PHP Extensions
+
+```
+BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML, GD/Imagick
 ```
 
-### Step 4: Configure Environment
+---
+
+## Installation
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/haseebayazi/btevta.git
+cd btevta
+```
+
+### 2. Install Dependencies
+
+```bash
+composer install
+npm install && npm run build
+```
+
+### 3. Environment Setup
+
 ```bash
 cp .env.example .env
-nano .env  # Edit database and other credentials
 php artisan key:generate
 ```
 
-### Step 5: Database Setup
-```bash
-php artisan migrate --force
-php artisan db:seed --force
+### 4. Configure Database
+
+Edit `.env` file:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=btevta
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
 ```
 
-### Step 6: Set Permissions
+### 5. Run Migrations & Seeders
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+### 6. Start Development Server
+
+```bash
+php artisan serve
+```
+
+Access at: `http://localhost:8000`
+
+---
+
+## Quick Start Guide
+
+### Default Login Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | admin@btevta.gov.pk | password |
+| Campus Admin | campus@btevta.gov.pk | password |
+
+### First Steps After Login
+
+1. **Configure Campuses** - Go to Admin > Campuses
+2. **Add Trades** - Go to Admin > Trades
+3. **Register OEPs** - Go to Admin > OEPs
+4. **Create Users** - Go to Admin > Users
+5. **Import Candidates** - Dashboard > Import from Excel
+
+---
+
+## User Roles
+
+### Role Hierarchy
+
+```
+Super Admin
+    |
+    +-- Admin (full access)
+    |
+    +-- Campus Admin (campus-scoped)
+    |
+    +-- OEP (assigned candidates)
+    |
+    +-- Instructor (training module)
+    |
+    +-- Viewer (read-only)
+```
+
+### Permission Matrix
+
+| Feature | Super Admin | Admin | Campus Admin | OEP | Instructor | Viewer |
+|---------|:-----------:|:-----:|:------------:|:---:|:----------:|:------:|
+| All Candidates | Y | Y | Campus Only | Assigned | N | N |
+| Import Candidates | Y | Y | Y | N | N | N |
+| Manage Training | Y | Y | Y | N | Y | N |
+| Visa Processing | Y | Y | Y | Y | N | N |
+| System Settings | Y | Y | N | N | N | N |
+| User Management | Y | Y | N | N | N | N |
+| View Reports | Y | Y | Y | Y | Y | Y |
+| Bulk Delete | Y | Y | N | N | N | N |
+
+---
+
+## Module Documentation
+
+### 1. Candidates Listing
+
+**Import Candidates from Excel:**
+1. Download template: Dashboard > Import > Download Template
+2. Fill in candidate data following the template format
+3. Upload: Dashboard > Import from Excel
+4. System validates and creates candidates with status "Listed"
+
+**Bulk Operations:**
+- Select multiple candidates using checkboxes
+- Available actions: Change Status, Assign Batch, Assign Campus, Export, Delete
+
+### 2. Screening Workflow
+
+The screening process follows a 3-call system:
+
+```
+Call 1: Document collection reminder
+    |
+Call 2: Registration & campus selection
+    |
+Call 3: Training confirmation
+    |
+Outcome: Eligible / Rejected / Pending
+```
+
+**Recording a Call:**
+1. Go to Screening > Select Candidate
+2. Click "Log Call"
+3. Select outcome: Answered, No Answer, Busy, Wrong Number
+4. Add notes and evidence if needed
+
+### 3. Registration Process
+
+**Complete Registration:**
+1. Navigate to Registration tab
+2. Upload required documents:
+   - CNIC (front & back)
+   - Passport
+   - Educational certificates
+   - Police clearance
+   - Medical report
+3. Enter Next of Kin information
+4. Complete undertaking form
+5. Assign to OEP
+
+### 4. Training Management
+
+**Mark Attendance:**
+```
+Daily attendance options: Present | Absent | Late | Leave
+```
+
+**Record Assessment:**
+1. Go to Training > Select Batch
+2. Click "Assessments"
+3. Enter scores for: Midterm, Final, Practical
+4. System calculates grades automatically
+
+**Generate Certificate:**
+- Requires: 80% attendance + passing grades
+- Click "Generate Certificate" on candidate profile
+
+### 5. Visa Processing Stages
+
+```
+Interview -> Trade Test -> Takamol -> Medical (GAMCA) ->
+E-Number -> Biometrics (Etimad) -> Visa Submission ->
+Visa Issued -> PTN -> Attestation -> Ticket -> Ready
+```
+
+**Update Stage:**
+1. Go to Visa Processing > Select Candidate
+2. Click current stage to update
+3. Upload required documents
+4. System validates prerequisites before advancing
+
+### 6. Departure Tracking
+
+**Record Departure:**
+1. Pre-departure briefing completion
+2. Enter flight details
+3. Track post-arrival:
+   - Iqama number
+   - Absher registration
+   - Qiwa ID
+   - First salary confirmation
+
+**90-Day Compliance:**
+- System automatically tracks 90-day post-arrival compliance
+- Alerts generated for missing information
+
+### 7. Remittance Management
+
+**Record Remittance:**
+1. Go to Remittances > Add New
+2. Select candidate and departure record
+3. Enter transfer details (amount, date, method)
+4. Upload proof of transfer
+5. System tracks monthly remittance patterns
+
+**Alerts:**
+- Missing proof alerts
+- Irregular pattern alerts
+- Auto-generated based on configurable rules
+
+---
+
+## API Reference
+
+### Authentication
+
+```bash
+# Login
+POST /api/v1/login
+Content-Type: application/json
+{
+    "email": "user@example.com",
+    "password": "password"
+}
+
+# Response
+{
+    "token": "1|abc123...",
+    "user": { ... }
+}
+
+# Use token in requests
+Authorization: Bearer {token}
+```
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/candidates` | List candidates (paginated) |
+| POST | `/api/v1/candidates` | Create candidate |
+| GET | `/api/v1/candidates/{id}` | Get candidate details |
+| PUT | `/api/v1/candidates/{id}` | Update candidate |
+| DELETE | `/api/v1/candidates/{id}` | Delete candidate |
+| GET | `/api/v1/departures` | List departures |
+| GET | `/api/v1/visa-processes` | List visa processes |
+| GET | `/api/v1/remittances` | List remittances |
+| GET | `/api/v1/reports/*` | Various reports |
+
+### Query Parameters
+
+```
+?page=1              # Pagination
+?per_page=25         # Items per page
+?status=training     # Filter by status
+?campus_id=1         # Filter by campus
+?trade_id=2          # Filter by trade
+?search=john         # Search term
+```
+
+---
+
+## Tutorials
+
+### Tutorial 1: Import Candidates from BTEVTA
+
+```
+Step 1: Download Template
+        Dashboard > Import Candidates > Download Template
+
+Step 2: Prepare Data
+        - Fill columns: Name, CNIC, Trade, District, Phone
+        - Save as .xlsx format
+
+Step 3: Upload File
+        Dashboard > Import Candidates > Choose File > Upload
+
+Step 4: Review Import
+        - Check validation errors
+        - Confirm successful imports
+        - View imported candidates in listing
+```
+
+### Tutorial 2: Complete Candidate Registration
+
+```
+Step 1: Find Candidate
+        Registration > Search by CNIC or Name
+
+Step 2: Upload Documents
+        - Click "Upload Documents"
+        - Select document type
+        - Upload file (PDF, JPG, PNG)
+        - Repeat for all required documents
+
+Step 3: Enter Next of Kin
+        - Full name, relationship
+        - Contact information
+        - Address
+
+Step 4: Complete Undertaking
+        - Review terms
+        - Digital signature
+        - Submit
+
+Step 5: Assign OEP
+        - Select available OEP
+        - Confirm assignment
+        - Status changes to "Registered"
+```
+
+### Tutorial 3: Process Visa Application
+
+```
+Step 1: Schedule Interview
+        Visa Processing > Select Candidate > Schedule Interview
+        Enter: Date, Location, Notes
+
+Step 2: Record Results
+        After interview: Pass/Fail with remarks
+
+Step 3: Proceed Through Stages
+        Each stage requires:
+        - Date of completion
+        - Result (if applicable)
+        - Supporting documents
+
+Step 4: Generate E-Number
+        After Takamol: System auto-generates E-Number
+
+Step 5: Issue PTN
+        After visa approval: Enter PTN details
+
+Step 6: Upload Ticket
+        Final step: Upload travel itinerary
+        Status: "Ready to Depart"
+```
+
+### Tutorial 4: Generate Reports
+
+```
+Step 1: Select Report Type
+        Reports > Choose from:
+        - Candidate Summary
+        - Training Progress
+        - Visa Pipeline
+        - Departure Statistics
+        - Remittance Analysis
+
+Step 2: Apply Filters
+        - Date range
+        - Campus
+        - Trade
+        - Status
+        - OEP
+
+Step 3: Preview
+        Click "Generate" to preview data
+
+Step 4: Export
+        Choose format: Excel, PDF, or CSV
+        Click "Download"
+```
+
+### Tutorial 5: Handle Complaints
+
+```
+Step 1: Register Complaint
+        Complaints > New Complaint
+        - Select candidate
+        - Category (Training, Visa, Salary, etc.)
+        - Priority (Low, Medium, High, Critical)
+        - Description
+
+Step 2: Assign to Staff
+        - Select staff member
+        - Set deadline based on SLA
+
+Step 3: Investigation
+        - Add notes
+        - Upload evidence
+        - Update status
+
+Step 4: Resolution
+        - Document resolution
+        - Close complaint
+        - Notify candidate
+```
+
+### Tutorial 6: Use Bulk Operations
+
+```
+Step 1: Select Candidates
+        Candidates Listing > Check boxes next to candidates
+        Or use "Select All" checkbox
+
+Step 2: Choose Action
+        Bulk Action Bar appears with options:
+        - Change Status
+        - Assign Batch
+        - Export
+        - Delete (Admin only)
+
+Step 3: Confirm Action
+        Review selection count
+        Click action button
+        Confirm in dialog
+
+Step 4: View Results
+        Toast notification shows success/failure count
+        Page refreshes with updated data
+```
+
+---
+
+## Security Features
+
+### Authentication & Authorization
+- Password hashing (bcrypt, cost 10)
+- Account lockout (5 failed attempts, 15-min cooldown)
+- Session regeneration on login
+- Role-based access control (RBAC)
+- Policy-based authorization (23 policies)
+- API authentication via Sanctum
+
+### Input Protection
+- CSRF protection on all forms
+- SQL injection prevention (Eloquent ORM)
+- XSS protection (Blade escaping)
+- Rate limiting on auth/API endpoints
+
+### File Security
+- Magic bytes validation (content-based type verification)
+- Dangerous extension blocking (PHP, EXE, BAT, etc.)
+- Double extension attack prevention
+- PHP code injection detection
+- Private storage for sensitive files
+- Directory traversal prevention
+
+### Audit & Compliance
+- Comprehensive activity logging
+- Login/logout tracking with IP
+- File access logging
+- Status change audit trail
+- Soft deletes for recovery
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Database Connection Error**
+```bash
+# Check MySQL is running
+sudo systemctl status mysql
+
+# Verify credentials in .env
+DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+```
+
+**2. Storage Permission Error**
 ```bash
 chmod -R 775 storage bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 ```
 
-### Step 7: Create Storage Link
+**3. 500 Internal Server Error**
 ```bash
-php artisan storage:link
-```
+# Check Laravel logs
+tail -f storage/logs/laravel.log
 
-### Step 8: Optimize for Production
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan optimize
-```
-
-### Step 9: Configure Cron Job
-Add to crontab:
-```bash
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-```
-
-### Step 10: Configure Web Server
-Update your Cloudways application settings:
-- Document Root: `/public`
-- Enable SSL certificate
-- Set PHP max upload size to 20MB
-- Enable Redis for caching (optional but recommended)
-
-## 🔑 Default Login Credentials
-
-After seeding, use these credentials:
-
-### Admin Access
-- **Email:** admin@btevta.gov.pk
-- **Password:** Admin@123
-
-### Campus Admin (Rawalpindi)
-- **Email:** ttc.rawalpindi.admin@btevta.gov.pk
-- **Password:** Campus@123
-
-### OEP Access
-- **Email:** info@alkhabeer.com
-- **Password:** Oep@123
-
-⚠️ **IMPORTANT:** Change all default passwords immediately after first login!
-
-## 📁 Project Structure
-
-```
-btevta-system/
-├── app/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── AuthController.php
-│   │   │   ├── DashboardController.php
-│   │   │   ├── CandidateController.php
-│   │   │   ├── ScreeningController.php
-│   │   │   ├── RegistrationController.php
-│   │   │   ├── TrainingController.php
-│   │   │   ├── VisaProcessingController.php
-│   │   │   ├── DepartureController.php
-│   │   │   ├── CorrespondenceController.php
-│   │   │   ├── ComplaintController.php
-│   │   │   ├── DocumentArchiveController.php
-│   │   │   ├── ReportController.php
-│   │   │   └── ImportController.php
-│   │   └── Middleware/
-│   │       └── RoleMiddleware.php
-│   ├── Models/
-│   │   ├── User.php
-│   │   ├── Candidate.php
-│   │   ├── Campus.php
-│   │   ├── Oep.php
-│   │   ├── Trade.php
-│   │   ├── Batch.php
-│   │   └── [other models...]
-│   └── Services/
-│       ├── ImportService.php
-│       ├── ReportService.php
-│       └── NotificationService.php
-├── database/
-│   ├── migrations/
-│   │   └── 2025_01_01_000000_create_all_tables.php
-│   └── seeders/
-│       └── DatabaseSeeder.php
-├── resources/
-│   └── views/
-│       ├── layouts/
-│       │   └── app.blade.php
-│       ├── auth/
-│       │   ├── login.blade.php
-│       │   └── forgot-password.blade.php
-│       ├── dashboard/
-│       │   ├── index.blade.php
-│       │   └── tabs/
-│       │       ├── candidates-listing.blade.php
-│       │       ├── screening.blade.php
-│       │       └── [other tabs...]
-│       └── [other views...]
-├── routes/
-│   ├── web.php
-│   └── api.php
-├── storage/
-│   ├── app/
-│   │   └── templates/
-│   │       └── btevta_candidate_import_template.xlsx
-│   └── logs/
-├── .env.example
-├── composer.json
-└── README.md
-```
-
-## 📊 Database Schema
-
-### Main Tables
-- `users` - System users with role-based access
-- `candidates` - Core candidate information
-- `campuses` - Training campus details
-- `oeps` - Overseas Employment Promoters
-- `trades` - Available training trades
-- `batches` - Training batches
-- `candidate_screenings` - Call log and screening data
-- `registration_documents` - Candidate documents
-- `training_attendances` - Daily attendance records
-- `training_assessments` - Test scores and evaluations
-- `visa_processes` - Complete visa workflow tracking
-- `departures` - Post-departure monitoring
-- `correspondences` - Official communications
-- `complaints` - Complaint management
-- `document_archives` - Global document repository
-- `audit_logs` - Complete activity tracking
-
-## 🔧 Configuration
-
-### Email Settings
-Configure in `.env`:
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-MAIL_ENCRYPTION=tls
-```
-
-### File Upload Settings
-```env
-MAX_UPLOAD_SIZE=20480
-ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,doc,docx,xlsx
-```
-
-### SMS/WhatsApp (Optional)
-```env
-SMS_ENABLED=true
-SMS_GATEWAY_URL=your-gateway-url
-SMS_API_KEY=your-api-key
-```
-
-## 📤 Importing Candidates
-
-1. Navigate to **Import Candidates** from dashboard
-2. Download the BTEVTA template
-3. Fill in candidate data following the format
-4. Upload the Excel file
-5. Review import summary and errors
-6. Candidates are auto-assigned to campuses and batches
-
-### Excel Template Columns
-- BTEVTA ID (required, unique)
-- Application ID
-- CNIC (required, 13 digits, unique)
-- Name (required)
-- Father Name (required)
-- Date of Birth (required, YYYY-MM-DD)
-- Gender (required: male/female/other)
-- Phone (required)
-- Email
-- Address (required)
-- District (required)
-- Tehsil
-- Trade Code (required, e.g., TRD-ELC)
-- Remarks
-
-## 📈 Generating Reports
-
-The system includes multiple report types:
-
-### Candidate Reports
-- Individual profile with complete history
-- Batch-wise candidate lists
-- Status-wise summaries
-
-### Operational Reports
-- Process completion tracking
-- Visa status by stage
-- Salary disbursement status
-- OEP performance metrics
-
-### Training Reports
-- Campus attendance analysis
-- Pass/fail statistics
-- Trainer performance
-
-### Complaint Reports
-- Resolution time analysis
-- Category-wise trends
-- SLA compliance
-
-### Custom Reports
-Use filters to build custom reports:
-- Campus
-- Trade
-- Status
-- Gender
-- Date range
-- OEP
-
-Export formats: Excel, CSV, PDF
-
-## 🔒 Security Features
-
-### Authentication & Authorization
-- Password hashing with bcrypt (cost factor 10)
-- Account lockout after 5 failed attempts (15-minute cooldown)
-- Session regeneration on login
-- Role-based access control with 11 defined roles
-- Policy-based authorization (23 policy classes)
-- API authentication via Laravel Sanctum
-
-### Input & Data Protection
-- CSRF protection on all forms
-- SQL injection prevention via Eloquent ORM
-- XSS protection with Blade escaping
-- Rate limiting on auth and API endpoints
-
-### File Upload Security
-- Magic bytes validation (content-based file type verification)
-- Dangerous extension blocking (PHP, EXE, BAT, etc.)
-- Double extension attack prevention
-- PHP code injection detection in uploads
-- Private disk storage for sensitive documents
-- Directory traversal prevention
-
-### Audit & Compliance
-- Comprehensive activity logging (Spatie Activity Log)
-- Login/logout tracking with IP addresses
-- File access logging
-- Status change audit trail
-- Soft deletes for data recovery
-
-## 🐛 Troubleshooting
-
-### Database Connection Error
-```bash
+# Clear caches
 php artisan config:clear
 php artisan cache:clear
-# Check .env database credentials
-```
-
-### Permission Issues
-```bash
-sudo chmod -R 775 storage bootstrap/cache
-sudo chown -R www-data:www-data storage bootstrap/cache
-```
-
-### 500 Internal Server Error
-```bash
-php artisan config:clear
-php artisan route:clear
 php artisan view:clear
-# Check storage/logs/laravel.log for details
 ```
 
-### Import Fails
-- Ensure Excel file matches template format
-- Check for duplicate CNIC or BTEVTA IDs
-- Verify Trade Codes exist in system
-- Check file size (max 10MB)
+**4. Import Failing**
+- Verify Excel format matches template
+- Check for duplicate CNICs
+- Ensure required columns are filled
+- Maximum 1000 rows per import
 
-## 📞 Support
+**5. File Upload Issues**
+- Max file size: 10MB (configurable)
+- Allowed: PDF, JPG, PNG, XLSX
+- Check `upload_max_filesize` in php.ini
 
-For technical support or questions:
-- **Email:** support@btevta.gov.pk
-- **Phone:** +92-51-9201596
-- **Website:** www.btevta.gov.pk
+### Performance Optimization
 
-## 📝 License
-
-Proprietary - Copyright © 2025 BTEVTA, Punjab
-
-## 🔄 Updates & Maintenance
-
-### Updating the Application
 ```bash
-git pull origin main
-composer install --no-dev
-php artisan migrate --force
+# Production optimization
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+composer install --optimize-autoloader --no-dev
 ```
-
-### Database Backup
-```bash
-php artisan backup:run
-# Or use Cloudways automated backups
-```
-
-### Performance Optimization
-```bash
-# Enable OPcache in PHP settings
-# Use Redis for caching
-# Enable CDN for static assets
-# Configure database query caching
-```
-
-## 🎓 Training Resources
-
-Training materials and user guides available at:
-- Admin Guide: `/docs/admin-guide.pdf`
-- Campus User Manual: `/docs/campus-manual.pdf`
-- OEP Guide: `/docs/oep-guide.pdf`
-- Video Tutorials: Available on request
-
-## 📝 Changelog
-
-### Version 1.3.0 (December 2025) - Feature Enhancements Release
-
-**Real-time Notifications:**
-- WebSocket/Pusher broadcasting events for candidate status changes
-- Real-time complaint registration alerts
-- Live dashboard stats updates
-- Toast notification system with auto-dismiss
-- Polling fallback for environments without WebSockets
-
-**Dashboard Analytics Widgets:**
-- Interactive status distribution chart (doughnut/bar toggle)
-- Monthly trend chart with configurable period (6/12/24 months)
-- Campus performance comparison charts
-- Trade distribution visualization
-- Weekly activity heatmap
-- Live KPI cards with trend indicators
-- Performance metrics table with month-over-month comparison
-
-**Bulk Operations:**
-- Multi-select candidates with select all/clear
-- Bulk status update with state machine validation
-- Bulk batch assignment with capacity checking
-- Bulk campus transfer
-- Bulk export (CSV, Excel, PDF formats)
-- Admin-only bulk delete with double confirmation
-- Operation feedback via toast notifications
-
-**Mobile-Responsive Improvements:**
-- Responsive sidebar with mobile overlay
-- Bottom navigation bar for mobile devices
-- Touch-friendly button sizing (44px minimum)
-- Safe area support for notched devices
-- Collapsible sections on mobile
-- Adaptive table columns
-- Smooth transitions and animations
-
-### Version 1.2.0 (December 2025) - Security Audit Release
-**Security Hardening:**
-- Removed 9 dangerous PHP utility scripts from root directory
-- Fixed role bypass vulnerability in SecureFileController
-- Added magic bytes validation for file uploads
-- Implemented double extension attack prevention
-- Added PHP code injection detection in uploads
-
-**Workflow Improvements:**
-- Implemented candidate state machine with valid transition validation
-- Added complaint workflow state validation with proper transitions
-- Fixed SLA calculation on complaint escalation
-- Added visa stage prerequisite validation
-
-**Performance Optimization:**
-- Fixed N+1 query patterns in CandidateController
-- Added query chunking for large CSV exports
-- Optimized RemittanceAnalyticsService (reduced 10+ queries to 2)
-- Added pagination limits to dropdown queries
-
-**Database Integrity:**
-- Added missing foreign key for `users.visa_partner_id`
-- Created `class_enrollments` pivot table migration
-- Added missing indexes on `remittances(candidate_id, status)`
-- Standardized status field values across tables
-
-**API Enhancements:**
-- Added complete CRUD endpoints for Candidates API
-- Added complete CRUD endpoints for Departures API
-- Added complete CRUD endpoints for VisaProcesses API
-- Implemented pagination on all list endpoints
-
-**Test Coverage:**
-- Added CandidateStateMachineTest (lifecycle transitions)
-- Added CandidatePolicyTest (authorization for all roles)
-- Added ComplaintServiceTest (workflow, SLA, escalation)
-- Added FileStorageServiceTest (magic bytes, security)
-- Added TrainingServiceTest (attendance, certificates)
-- Added VisaProcessingServiceTest (40+ tests)
-- Added CandidateApiControllerTest (API endpoints)
-- Added DepartureApiControllerTest (API endpoints)
-- Added VisaProcessApiControllerTest (API endpoints)
-
-**UI/UX Fixes:**
-- Implemented functional report generation buttons
-- Fixed report export (Excel, CSV, PDF) functionality
-
-### Version 1.0.1 (November 2025)
-- **Code Cleanup:** Removed duplicate view files from incorrect path `resources/views/resources/views/`
-- All views are now correctly located in `resources/views/` directory
-- Affected modules: Admin, Complaints, Correspondence, Departure, Document Archive, Registration, Reports, Screening, Training, and Visa Processing
-
-### Version 1.0.0 (October 2025)
-- Initial release with all core modules
-- Complete candidate lifecycle management
-- 10 integrated modules for overseas employment management
 
 ---
 
-## 📊 API Documentation
+## Running Tests
 
-### Authentication
-All API endpoints require Bearer token authentication via Laravel Sanctum.
-
-```bash
-# Get token
-POST /api/v1/login
-Content-Type: application/json
-{ "email": "user@example.com", "password": "password" }
-
-# Use token
-GET /api/v1/candidates
-Authorization: Bearer {token}
-```
-
-### Available Endpoints
-
-| Resource | Endpoints | Description |
-|----------|-----------|-------------|
-| Candidates | GET, POST, PUT, DELETE `/api/v1/candidates` | Full CRUD with filtering |
-| Departures | GET, POST, PUT, DELETE `/api/v1/departures` | Departure tracking |
-| Visa Processes | GET, POST, PUT, DELETE `/api/v1/visa-processes` | Visa workflow management |
-| Remittances | GET, POST `/api/v1/remittances` | Salary remittance tracking |
-| Reports | GET `/api/v1/reports/*` | Various report endpoints |
-
----
-
-## 🧪 Testing
-
-### Running Tests
 ```bash
 # Run all tests
 php artisan test
@@ -553,20 +602,76 @@ php artisan test
 php artisan test --testsuite=Unit
 php artisan test --testsuite=Feature
 
-# Run specific test file
-php artisan test --filter=CandidateStateMachineTest
+# Run with coverage
+php artisan test --coverage
 ```
 
 ### Test Coverage
+
 The project includes comprehensive tests for:
-- State machine transitions (candidate lifecycle)
-- Authorization policies (all 11 roles)
+- Candidate state machine transitions
+- Authorization policies (all roles)
 - API endpoints (CRUD operations)
-- Service classes (workflows, SLA, file validation)
-- Security features (magic bytes, injection prevention)
+- Service classes (workflows, SLA)
+- Security features (file validation)
+
+---
+
+## Changelog
+
+### Version 1.3.0 (December 2025) - Feature Enhancements
+
+**Real-time Notifications:**
+- WebSocket broadcasting for status changes
+- Toast notification system
+- Polling fallback for compatibility
+
+**Dashboard Analytics:**
+- Interactive Chart.js widgets
+- Live KPI cards
+- Performance metrics table
+
+**Bulk Operations:**
+- Multi-select with select all
+- Bulk status update
+- Bulk batch/campus assignment
+- Bulk export (CSV, Excel, PDF)
+- Bulk delete (admin only)
+
+**Mobile Improvements:**
+- Responsive sidebar overlay
+- Bottom navigation bar
+- Touch-friendly sizing
+- Safe area support
+
+### Version 1.2.0 (December 2025) - Security Audit
+
+- Security hardening (9 critical fixes)
+- State machine validation
+- Magic bytes file validation
+- Performance optimization
+- Comprehensive test coverage
+
+### Version 1.0.0 (October 2025)
+
+- Initial release
+- 10 core modules
+- Complete candidate lifecycle
+
+---
+
+## Support
+
+**Technical Support:** support@btevta.gov.pk
+
+**Issue Tracker:** GitHub Issues
 
 ---
 
 **Developed for BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab**
 
-Version: 1.3.0 | Last Updated: December 2025
+Product Conceived by: BTEVTA | Developed by: Development Team
+
+---
+
+*Copyright 2025 BTEVTA. All rights reserved.*
