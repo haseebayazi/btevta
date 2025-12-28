@@ -245,7 +245,13 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Required document types for registration completion.
+     */
+    const REQUIRED_DOCUMENTS = ['cnic', 'education', 'photo'];
+
+    /**
      * Complete the registration process for a candidate.
+     * Validates all required documents, expiry dates, next of kin, and undertaking.
      */
     public function completeRegistration(Request $request, Candidate $candidate)
     {
@@ -253,19 +259,42 @@ class RegistrationController extends Controller
 
         try {
             // Check if all required documents are uploaded
-            $requiredDocs = ['cnic', 'passport', 'education', 'police_clearance'];
             $uploadedDocs = $candidate->documents()
-                ->whereIn('document_type', $requiredDocs)
-                ->pluck('document_type')
-                ->toArray();
+                ->whereIn('document_type', self::REQUIRED_DOCUMENTS)
+                ->get();
 
-            $missing = array_diff($requiredDocs, $uploadedDocs);
+            $uploadedTypes = $uploadedDocs->pluck('document_type')->toArray();
+            $missing = array_diff(self::REQUIRED_DOCUMENTS, $uploadedTypes);
 
             if (!empty($missing)) {
+                $docLabels = [
+                    'cnic' => 'CNIC Copy',
+                    'education' => 'Educational Certificate',
+                    'photo' => 'Passport Size Photo',
+                ];
+                $missingLabels = array_map(fn($type) => $docLabels[$type] ?? ucfirst($type), $missing);
                 return back()->with('error',
-                    'Missing required documents: ' . implode(', ', array_map('ucfirst', $missing))
+                    'Missing required documents: ' . implode(', ', $missingLabels)
                 );
             }
+
+            // Check for expired documents
+            $expiredDocs = $uploadedDocs->filter(function ($doc) {
+                return $doc->expiry_date && $doc->expiry_date->isPast();
+            });
+
+            if ($expiredDocs->isNotEmpty()) {
+                $expiredTypes = $expiredDocs->pluck('document_type')->toArray();
+                return back()->with('error',
+                    'Cannot complete registration - expired documents: ' . implode(', ', $expiredTypes) .
+                    '. Please upload valid documents.'
+                );
+            }
+
+            // Check for documents expiring soon (warning only)
+            $expiringDocs = $uploadedDocs->filter(function ($doc) {
+                return $doc->expiry_date && $doc->expiry_date->isBetween(now(), now()->addDays(30));
+            });
 
             // Check if next of kin exists
             if (!$candidate->nextOfKin) {
@@ -273,30 +302,257 @@ class RegistrationController extends Controller
             }
 
             // Check if undertaking is signed
-            if ($candidate->undertakings()->count() === 0) {
-                return back()->with('error', 'At least one undertaking must be signed!');
+            $undertaking = $candidate->undertakings()->where('is_completed', true)->first();
+            if (!$undertaking) {
+                return back()->with('error', 'At least one completed undertaking is required!');
             }
 
             DB::beginTransaction();
 
             // Update candidate status
             $candidate->status = 'registered';
-            $candidate->registered_at = now();
+            $candidate->registration_date = now();
             $candidate->save();
 
             // Log activity
             activity()
                 ->performedOn($candidate)
                 ->causedBy(auth()->user())
+                ->withProperties([
+                    'documents_count' => $uploadedDocs->count(),
+                    'has_next_of_kin' => true,
+                    'has_undertaking' => true,
+                ])
                 ->log('Registration completed');
 
             DB::commit();
 
-            return redirect()->route('registration.index')
-                ->with('success', 'Registration completed successfully!');
+            $message = 'Registration completed successfully!';
+            if ($expiringDocs->isNotEmpty()) {
+                $message .= ' Note: Some documents expire within 30 days.';
+            }
+
+            return redirect()->route('registration.index')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to complete registration: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Verify a document (admin only).
+     */
+    public function verifyDocument(Request $request, RegistrationDocument $document)
+    {
+        $document->load('candidate');
+
+        if (!$document->candidate) {
+            return back()->with('error', 'Invalid document reference.');
+        }
+
+        $this->authorize('update', $document->candidate);
+
+        // Only admin and campus_admin can verify
+        if (!in_array(auth()->user()->role, ['admin', 'campus_admin'])) {
+            abort(403, 'Only administrators can verify documents.');
+        }
+
+        $validated = $request->validate([
+            'verification_remarks' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $document->status = 'verified';
+            $document->verification_status = 'verified';
+            $document->verification_remarks = $validated['verification_remarks'] ?? null;
+            $document->updated_by = auth()->id();
+            $document->save();
+
+            activity()
+                ->performedOn($document->candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'document_type' => $document->document_type,
+                    'document_id' => $document->id,
+                ])
+                ->log('Document verified: ' . $document->document_type);
+
+            DB::commit();
+
+            return back()->with('success', 'Document verified successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to verify document: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject a document (admin only).
+     */
+    public function rejectDocument(Request $request, RegistrationDocument $document)
+    {
+        $document->load('candidate');
+
+        if (!$document->candidate) {
+            return back()->with('error', 'Invalid document reference.');
+        }
+
+        $this->authorize('update', $document->candidate);
+
+        // Only admin and campus_admin can reject
+        if (!in_array(auth()->user()->role, ['admin', 'campus_admin'])) {
+            abort(403, 'Only administrators can reject documents.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $document->status = 'rejected';
+            $document->verification_status = 'rejected';
+            $document->verification_remarks = $validated['rejection_reason'];
+            $document->updated_by = auth()->id();
+            $document->save();
+
+            activity()
+                ->performedOn($document->candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'document_type' => $document->document_type,
+                    'document_id' => $document->id,
+                    'reason' => $validated['rejection_reason'],
+                ])
+                ->log('Document rejected: ' . $document->document_type);
+
+            DB::commit();
+
+            return back()->with('success', 'Document marked as rejected.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to reject document: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get registration completion status for a candidate.
+     */
+    public function status(Candidate $candidate)
+    {
+        $this->authorize('view', $candidate);
+
+        $documents = $candidate->documents()->get();
+        $requiredDocs = self::REQUIRED_DOCUMENTS;
+
+        $docStatus = [];
+        foreach ($requiredDocs as $type) {
+            $doc = $documents->where('document_type', $type)->first();
+            $docStatus[$type] = [
+                'label' => $this->getDocumentLabel($type),
+                'uploaded' => $doc !== null,
+                'status' => $doc ? $doc->status : 'missing',
+                'expired' => $doc && $doc->expiry_date && $doc->expiry_date->isPast(),
+                'expiry_date' => $doc && $doc->expiry_date ? $doc->expiry_date->format('Y-m-d') : null,
+            ];
+        }
+
+        $status = [
+            'documents' => $docStatus,
+            'documents_complete' => collect($docStatus)->every(fn($d) => $d['uploaded'] && !$d['expired']),
+            'next_of_kin' => $candidate->nextOfKin !== null,
+            'undertaking' => $candidate->undertakings()->where('is_completed', true)->exists(),
+            'can_complete' => false,
+        ];
+
+        $status['can_complete'] = $status['documents_complete']
+            && $status['next_of_kin']
+            && $status['undertaking'];
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'candidate' => [
+                    'id' => $candidate->id,
+                    'btevta_id' => $candidate->btevta_id,
+                    'name' => $candidate->name,
+                    'status' => $candidate->status,
+                ],
+                'registration_status' => $status,
+            ]);
+        }
+
+        return view('registration.status', compact('candidate', 'status'));
+    }
+
+    /**
+     * Start training for a registered candidate.
+     * Transitions status from REGISTERED to TRAINING.
+     */
+    public function startTraining(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate);
+
+        // Verify candidate is in REGISTERED status
+        if ($candidate->status !== 'registered') {
+            return back()->with('error', 'Only registered candidates can start training. Current status: ' . $candidate->status);
+        }
+
+        $validated = $request->validate([
+            'batch_id' => 'required|exists:batches,id',
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Assign to batch
+            $candidate->batch_id = $validated['batch_id'];
+
+            // Update status to training
+            $candidate->status = 'training';
+            $candidate->training_status = 'in_progress';
+            $candidate->training_start_date = now();
+            $candidate->save();
+
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'batch_id' => $validated['batch_id'],
+                    'previous_status' => 'registered',
+                    'new_status' => 'training',
+                ])
+                ->log('Training started');
+
+            DB::commit();
+
+            return redirect()->route('training.index')
+                ->with('success', 'Candidate has started training!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to start training: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get document type label.
+     */
+    private function getDocumentLabel($type)
+    {
+        $labels = [
+            'cnic' => 'CNIC Copy',
+            'education' => 'Educational Certificate',
+            'domicile' => 'Domicile Certificate',
+            'photo' => 'Passport Size Photo',
+            'passport' => 'Passport Copy',
+            'police_clearance' => 'Police Character Certificate',
+            'medical' => 'Medical Fitness Certificate',
+            'other' => 'Other Document',
+        ];
+
+        return $labels[$type] ?? ucfirst($type);
     }
 }

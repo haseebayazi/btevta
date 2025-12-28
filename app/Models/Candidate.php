@@ -625,16 +625,263 @@ class Candidate extends Model
         }
 
         $this->training_status = $status;
-        
+
         if ($status === self::TRAINING_IN_PROGRESS && !$this->training_start_date) {
             $this->training_start_date = now();
         }
-        
+
         if ($status === self::TRAINING_COMPLETED) {
             $this->training_end_date = $endDate ?? now();
         }
-        
+
         return $this->save();
+    }
+
+    // ==================== PHASE 9: CROSS-PHASE TRANSITION VALIDATION ====================
+
+    /**
+     * Check if candidate can transition from NEW to SCREENING.
+     * Validates that all required fields are filled.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToScreening()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_NEW) {
+            $issues[] = "Current status must be 'new'. Current: {$this->status}";
+        }
+
+        if (empty($this->name) || empty($this->cnic)) {
+            $issues[] = 'Name and CNIC are required';
+        }
+
+        if (empty($this->phone)) {
+            $issues[] = 'Phone number is required for call screening';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from SCREENING to REGISTERED.
+     * Validates that all required screenings are passed.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToRegistered()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_SCREENING) {
+            $issues[] = "Current status must be 'screening'. Current: {$this->status}";
+        }
+
+        // Check required screenings
+        $requiredTypes = ['desk', 'call', 'physical'];
+        $passedScreenings = $this->screenings()
+            ->whereIn('screening_type', $requiredTypes)
+            ->where('status', 'passed')
+            ->pluck('screening_type')
+            ->toArray();
+
+        $missingScreenings = array_diff($requiredTypes, $passedScreenings);
+        if (!empty($missingScreenings)) {
+            $issues[] = 'Missing passed screenings: ' . implode(', ', $missingScreenings);
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from REGISTERED to TRAINING.
+     * Validates that registration documents and next of kin are complete.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToTraining()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_REGISTERED) {
+            $issues[] = "Current status must be 'registered'. Current: {$this->status}";
+        }
+
+        // Check required documents
+        $requiredDocs = ['cnic', 'education', 'photo'];
+        $uploadedDocs = $this->documents()
+            ->whereIn('document_type', $requiredDocs)
+            ->pluck('document_type')
+            ->toArray();
+
+        $missingDocs = array_diff($requiredDocs, $uploadedDocs);
+        if (!empty($missingDocs)) {
+            $issues[] = 'Missing documents: ' . implode(', ', $missingDocs);
+        }
+
+        // Check next of kin
+        if (!$this->nextOfKin) {
+            $issues[] = 'Next of kin information is required';
+        }
+
+        // Check undertaking
+        if (!$this->undertakings()->where('is_completed', true)->exists()) {
+            $issues[] = 'Signed undertaking is required';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from TRAINING to VISA_PROCESS.
+     * Validates attendance, assessments, and certificate.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToVisaProcess()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_TRAINING) {
+            $issues[] = "Current status must be 'training'. Current: {$this->status}";
+        }
+
+        // Check training completion
+        if ($this->training_status !== self::TRAINING_COMPLETED) {
+            $issues[] = "Training must be completed. Current: {$this->training_status}";
+        }
+
+        // Check final assessment
+        $finalAssessment = $this->trainingAssessments()
+            ->where('assessment_type', 'final')
+            ->where('result', 'pass')
+            ->first();
+
+        if (!$finalAssessment) {
+            $issues[] = 'Final assessment must be passed';
+        }
+
+        // Check certificate
+        if (!$this->certificate) {
+            $issues[] = 'Training certificate must be issued';
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from VISA_PROCESS to READY.
+     * Validates visa and all required clearances.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToReady()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_VISA_PROCESS) {
+            $issues[] = "Current status must be 'visa_process'. Current: {$this->status}";
+        }
+
+        // Check visa process record
+        $visaProcess = $this->visaProcess;
+        if (!$visaProcess) {
+            $issues[] = 'Visa process record not found';
+        } else {
+            if (!$visaProcess->visa_issued) {
+                $issues[] = 'Visa must be issued';
+            }
+            if (!$visaProcess->trade_test_passed) {
+                $issues[] = 'Trade test must be passed';
+            }
+            if (!$visaProcess->medical_passed) {
+                $issues[] = 'Medical (GAMCA) must be passed';
+            }
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from READY to DEPARTED.
+     * Validates departure record and pre-departure requirements.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToDeparted()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_READY) {
+            $issues[] = "Current status must be 'ready'. Current: {$this->status}";
+        }
+
+        // Check departure record
+        $departure = $this->departure;
+        if (!$departure) {
+            $issues[] = 'Departure record not found';
+        } else {
+            if (!$departure->departure_date) {
+                $issues[] = 'Departure date must be set';
+            }
+            if (!$departure->flight_number) {
+                $issues[] = 'Flight details must be recorded';
+            }
+            if (!$departure->pre_briefing_completed) {
+                $issues[] = 'Pre-departure briefing must be completed';
+            }
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Validate transition and return detailed result.
+     * Use this before calling updateStatus() to get specific failure reasons.
+     *
+     * @param string $targetStatus The status to transition to
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function validateTransition($targetStatus)
+    {
+        $validators = [
+            self::STATUS_SCREENING => 'canTransitionToScreening',
+            self::STATUS_REGISTERED => 'canTransitionToRegistered',
+            self::STATUS_TRAINING => 'canTransitionToTraining',
+            self::STATUS_VISA_PROCESS => 'canTransitionToVisaProcess',
+            self::STATUS_READY => 'canTransitionToReady',
+            self::STATUS_DEPARTED => 'canTransitionToDeparted',
+        ];
+
+        if (isset($validators[$targetStatus])) {
+            return $this->{$validators[$targetStatus]}();
+        }
+
+        // For rejected/dropped statuses, always allow
+        if (in_array($targetStatus, [self::STATUS_REJECTED, self::STATUS_DROPPED])) {
+            return ['can_transition' => true, 'issues' => []];
+        }
+
+        return ['can_transition' => false, 'issues' => ['Unknown target status: ' . $targetStatus]];
     }
 
     /**
@@ -751,7 +998,8 @@ class Candidate extends Model
     }
 
     /**
-     * Generate a unique BTEVTA ID for the candidate.
+     * Generate a unique BTEVTA ID for the candidate with Luhn check digit.
+     * Format: BTV-YYYY-XXXXX-C (where C is check digit)
      */
     public static function generateBtevtaId()
     {
@@ -761,12 +1009,235 @@ class Candidate extends Model
                       ->max('btevta_id');
 
         if ($lastId) {
-            $number = intval(substr($lastId, -5)) + 1;
+            // Extract the sequence number (before check digit if present)
+            $parts = explode('-', $lastId);
+            if (count($parts) >= 3) {
+                $seqPart = $parts[2];
+                // Remove check digit if present (format: XXXXX-C or XXXXXC)
+                if (strlen($seqPart) > 5) {
+                    $seqPart = substr($seqPart, 0, 5);
+                }
+                $number = intval($seqPart) + 1;
+            } else {
+                $number = 1;
+            }
         } else {
             $number = 1;
         }
 
-        return 'BTV-' . $year . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
+        $sequenceNum = str_pad($number, 5, '0', STR_PAD_LEFT);
+        $baseId = $year . $sequenceNum; // e.g., "202500001"
+        $checkDigit = self::calculateLuhnCheckDigit($baseId);
+
+        return 'BTV-' . $year . '-' . $sequenceNum . '-' . $checkDigit;
+    }
+
+    /**
+     * Calculate Luhn check digit for ID validation.
+     *
+     * @param string $number Numeric string to calculate check digit for
+     * @return int Check digit (0-9)
+     */
+    public static function calculateLuhnCheckDigit($number)
+    {
+        $digits = str_split(strrev($number));
+        $sum = 0;
+
+        foreach ($digits as $index => $digit) {
+            $d = (int) $digit;
+            // Double every second digit (odd index after reverse)
+            if ($index % 2 === 0) {
+                $d *= 2;
+                if ($d > 9) {
+                    $d -= 9;
+                }
+            }
+            $sum += $d;
+        }
+
+        return (10 - ($sum % 10)) % 10;
+    }
+
+    /**
+     * Validate a BTEVTA ID with its check digit.
+     *
+     * @param string $btevtaId Full BTEVTA ID (e.g., BTV-2025-00001-7)
+     * @return bool True if valid, false otherwise
+     */
+    public static function validateBtevtaId($btevtaId)
+    {
+        // Expected format: BTV-YYYY-XXXXX-C
+        if (!preg_match('/^BTV-(\d{4})-(\d{5})-(\d)$/', $btevtaId, $matches)) {
+            return false;
+        }
+
+        $year = $matches[1];
+        $sequence = $matches[2];
+        $providedCheckDigit = (int) $matches[3];
+
+        $baseId = $year . $sequence;
+        $expectedCheckDigit = self::calculateLuhnCheckDigit($baseId);
+
+        return $providedCheckDigit === $expectedCheckDigit;
+    }
+
+    /**
+     * Validate Pakistani CNIC checksum.
+     * Pakistani CNIC format: XXXXX-XXXXXXX-X (13 digits)
+     * The 13th digit is a check digit calculated using a weighted sum algorithm.
+     *
+     * @param string $cnic 13-digit CNIC number (without dashes)
+     * @return bool True if checksum is valid
+     */
+    public static function validateCnicChecksum($cnic)
+    {
+        // Remove any dashes and validate length
+        $cnic = preg_replace('/[^0-9]/', '', $cnic);
+
+        if (strlen($cnic) !== 13) {
+            return false;
+        }
+
+        // Validate that all characters are digits
+        if (!ctype_digit($cnic)) {
+            return false;
+        }
+
+        // Pakistani CNIC validation algorithm
+        // The check digit (13th digit) validates the first 12 digits
+        $weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3];
+        $sum = 0;
+
+        for ($i = 0; $i < 12; $i++) {
+            $sum += (int) $cnic[$i] * $weights[$i];
+        }
+
+        $expectedCheckDigit = $sum % 11;
+        // If remainder is 10, check digit should be 0
+        if ($expectedCheckDigit === 10) {
+            $expectedCheckDigit = 0;
+        }
+
+        $actualCheckDigit = (int) $cnic[12];
+
+        return $expectedCheckDigit === $actualCheckDigit;
+    }
+
+    /**
+     * Validate Pakistan phone number format.
+     * Accepts: 03XX-XXXXXXX, 03XXXXXXXXX, +923XXXXXXXXX, 923XXXXXXXXX
+     *
+     * @param string $phone Phone number
+     * @return bool True if valid Pakistan phone format
+     */
+    public static function validatePakistanPhone($phone)
+    {
+        // Remove spaces and dashes
+        $phone = preg_replace('/[\s\-]/', '', $phone);
+
+        // Valid patterns:
+        // 1. 03XXXXXXXXX (11 digits starting with 03)
+        // 2. +923XXXXXXXXX (13 chars starting with +92)
+        // 3. 923XXXXXXXXX (12 digits starting with 92)
+
+        $patterns = [
+            '/^03[0-9]{9}$/',         // 03XX-XXXXXXX format
+            '/^\+923[0-9]{9}$/',      // +923XX-XXXXXXX format
+            '/^923[0-9]{9}$/',        // 923XX-XXXXXXX format
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $phone)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Find potential duplicate candidates by phone, email, or similar name.
+     * Returns candidates that might be duplicates for warning purposes.
+     *
+     * @param string|null $phone Phone number to check
+     * @param string|null $email Email to check
+     * @param string|null $name Name to check (for fuzzy matching)
+     * @param int|null $excludeId Candidate ID to exclude from results
+     * @return \Illuminate\Support\Collection Collection of potential duplicates
+     */
+    public static function findPotentialDuplicates($phone = null, $email = null, $name = null, $excludeId = null)
+    {
+        $duplicates = collect();
+
+        $query = self::query();
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        // Check phone match
+        if ($phone) {
+            $normalizedPhone = preg_replace('/[\s\-]/', '', $phone);
+            $phoneMatches = (clone $query)->where(function ($q) use ($phone, $normalizedPhone) {
+                $q->where('phone', $phone)
+                  ->orWhere('phone', $normalizedPhone)
+                  ->orWhere('phone', 'like', '%' . substr($normalizedPhone, -10) . '%');
+            })->get();
+
+            foreach ($phoneMatches as $match) {
+                $duplicates->push([
+                    'candidate' => $match,
+                    'match_type' => 'phone',
+                    'confidence' => 95,
+                ]);
+            }
+        }
+
+        // Check email match
+        if ($email) {
+            $emailMatches = (clone $query)->where('email', $email)->get();
+
+            foreach ($emailMatches as $match) {
+                $duplicates->push([
+                    'candidate' => $match,
+                    'match_type' => 'email',
+                    'confidence' => 100,
+                ]);
+            }
+        }
+
+        // Check similar name (using simple Levenshtein for performance)
+        if ($name && strlen($name) >= 3) {
+            $nameWords = explode(' ', strtolower(trim($name)));
+            $firstWord = $nameWords[0] ?? '';
+
+            if (strlen($firstWord) >= 3) {
+                $nameMatches = (clone $query)
+                    ->where('name', 'like', $firstWord . '%')
+                    ->limit(10)
+                    ->get();
+
+                foreach ($nameMatches as $match) {
+                    $similarity = 0;
+                    similar_text(strtolower($name), strtolower($match->name), $similarity);
+
+                    if ($similarity >= 80) {
+                        $duplicates->push([
+                            'candidate' => $match,
+                            'match_type' => 'name',
+                            'confidence' => round($similarity),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Remove duplicates by candidate ID and keep highest confidence
+        return $duplicates->groupBy(function ($item) {
+            return $item['candidate']->id;
+        })->map(function ($group) {
+            return $group->sortByDesc('confidence')->first();
+        })->values();
     }
 
     /**

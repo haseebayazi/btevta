@@ -123,6 +123,15 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('export', [CandidateController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // PHASE 1 IMPROVEMENTS: Real-time validation API endpoints
+        // These endpoints support duplicate detection and validation during registration
+        Route::post('/api/check-duplicates', [CandidateController::class, 'checkDuplicates'])
+            ->middleware('throttle:60,1')->name('api.check-duplicates');
+        Route::post('/api/validate-cnic', [CandidateController::class, 'validateCnic'])
+            ->middleware('throttle:60,1')->name('api.validate-cnic');
+        Route::post('/api/validate-phone', [CandidateController::class, 'validatePhone'])
+            ->middleware('throttle:60,1')->name('api.validate-phone');
     });
 
     // ========================================================================
@@ -150,6 +159,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/call-log', [ScreeningController::class, 'logCall'])->name('log-call');
         Route::post('/{candidate}/screening-outcome', [ScreeningController::class, 'recordOutcome'])->name('outcome');
 
+        // PHASE 2 IMPROVEMENTS: Progress tracking and evidence upload
+        Route::get('/{candidate}/progress', [ScreeningController::class, 'progress'])->name('progress');
+        Route::post('/{candidate}/upload-evidence', [ScreeningController::class, 'uploadEvidence'])
+            ->middleware('throttle:30,1')->name('upload-evidence');
+
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export', [ScreeningController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
@@ -161,14 +175,25 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     Route::resource('registration', RegistrationController::class);
     Route::prefix('registration')->name('registration.')->group(function () {
+        // Registration status API endpoint
+        Route::get('/{candidate}/status', [RegistrationController::class, 'status'])->name('status');
+
         // THROTTLE FIX: Upload limited to 30/min (storage abuse prevention)
         Route::post('/{candidate}/documents', [RegistrationController::class, 'uploadDocument'])
             ->middleware('throttle:30,1')->name('upload-document');
 
         Route::delete('/documents/{document}', [RegistrationController::class, 'deleteDocument'])->name('delete-document');
+
+        // PHASE 3 IMPROVEMENTS: Document verification workflow (admin only)
+        Route::post('/documents/{document}/verify', [RegistrationController::class, 'verifyDocument'])->name('verify-document');
+        Route::post('/documents/{document}/reject', [RegistrationController::class, 'rejectDocument'])->name('reject-document');
+
         Route::post('/{candidate}/next-of-kin', [RegistrationController::class, 'saveNextOfKin'])->name('next-of-kin');
         Route::post('/{candidate}/undertaking', [RegistrationController::class, 'saveUndertaking'])->name('undertaking');
         Route::post('/{candidate}/complete', [RegistrationController::class, 'completeRegistration'])->name('complete');
+
+        // PHASE 3 IMPROVEMENTS: Transition to training phase
+        Route::post('/{candidate}/start-training', [RegistrationController::class, 'startTraining'])->name('start-training');
     });
 
     // ========================================================================

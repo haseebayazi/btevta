@@ -137,6 +137,11 @@ class ScreeningController extends Controller
         }
     }
 
+    /**
+     * Log a call attempt for a candidate's call screening.
+     * Updates existing call screening record instead of creating new ones.
+     * Respects the max 3 attempts limit.
+     */
     public function logCall(Request $request, Candidate $candidate)
     {
         $this->authorize('create', CandidateScreening::class);
@@ -144,74 +149,247 @@ class ScreeningController extends Controller
         $validated = $request->validate([
             'screened_at' => 'required|date',
             'call_duration' => 'required|integer|min:1',
-            'remarks' => 'nullable|string',
-        ]);
-
-        try {
-            $validated['candidate_id'] = $candidate->id;
-            $validated['screening_type'] = 'call';
-            $validated['status'] = 'in_progress';
-            $validated['screened_by'] = auth()->id();
-            $validated['created_by'] = auth()->id();
-
-            CandidateScreening::create($validated);
-
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->log('Call logged for screening');
-
-            return back()->with('success', 'Call logged successfully!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to log call: ' . $e->getMessage());
-        }
-    }
-
-    public function recordOutcome(Request $request, Candidate $candidate)
-    {
-        $validated = $request->validate([
-            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
-            'remarks' => 'nullable|string',
+            'remarks' => 'nullable|string|max:1000',
+            'answered' => 'nullable|boolean',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $screening = $candidate->screenings()->latest()->first();
+            // Get or create call screening for this candidate
+            $screening = $candidate->screenings()
+                ->where('screening_type', CandidateScreening::TYPE_CALL)
+                ->whereIn('status', [
+                    CandidateScreening::STATUS_PENDING,
+                    CandidateScreening::STATUS_IN_PROGRESS
+                ])
+                ->first();
+
+            if (!$screening) {
+                // Create new call screening if none exists
+                $screening = CandidateScreening::create([
+                    'candidate_id' => $candidate->id,
+                    'screening_type' => CandidateScreening::TYPE_CALL,
+                    'status' => CandidateScreening::STATUS_IN_PROGRESS,
+                    'screened_by' => auth()->id(),
+                    'screened_at' => $validated['screened_at'],
+                    'call_count' => 0,
+                ]);
+            }
+
+            // Check if max attempts reached
+            if ($screening->max_calls_reached) {
+                DB::rollBack();
+                return back()->with('error', 'Maximum call attempts (3) already reached for this candidate.');
+            }
+
+            // Record the call attempt
+            $answered = $validated['answered'] ?? false;
+            $screening->recordCallAttempt(
+                $validated['call_duration'],
+                $answered,
+                $validated['remarks'] ?? null
+            );
+
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'call_number' => $screening->call_count,
+                    'answered' => $answered,
+                    'duration' => $validated['call_duration'],
+                ])
+                ->log('Call attempt logged for screening');
+
+            DB::commit();
+
+            $message = "Call #{$screening->call_count} logged successfully!";
+            if ($screening->max_calls_reached && !$answered) {
+                $message .= " Maximum attempts reached.";
+            }
+
+            return back()->with('success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to log call: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Record screening outcome for a candidate.
+     * Uses the model's markAsPassed/markAsFailed methods to ensure proper
+     * auto-progression logic (all 3 screenings must pass for REGISTERED status).
+     */
+    public function recordOutcome(Request $request, Candidate $candidate)
+    {
+        $validated = $request->validate([
+            'screening_type' => 'nullable|in:desk,call,physical,document,medical',
+            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
+            'remarks' => 'nullable|string|max:1000',
+            'evidence' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Get the screening record for this type, or latest if not specified
+            $screeningType = $validated['screening_type'] ?? null;
+
+            if ($screeningType) {
+                $screening = $candidate->screenings()
+                    ->where('screening_type', $screeningType)
+                    ->latest()
+                    ->first();
+            } else {
+                $screening = $candidate->screenings()->latest()->first();
+            }
 
             if ($screening) {
                 $this->authorize('update', $screening);
-                $validated['updated_by'] = auth()->id();
-                $screening->update($validated);
             } else {
                 $this->authorize('create', CandidateScreening::class);
-                $validated['candidate_id'] = $candidate->id;
-                $validated['screening_type'] = 'desk';
-                $validated['screened_by'] = auth()->id();
-                $validated['screened_at'] = now();
-                $validated['created_by'] = auth()->id();
-                $screening = CandidateScreening::create($validated);
+
+                // Create new screening record if none exists
+                $screeningType = $screeningType ?? CandidateScreening::TYPE_DESK;
+                $screening = CandidateScreening::create([
+                    'candidate_id' => $candidate->id,
+                    'screening_type' => $screeningType,
+                    'status' => CandidateScreening::STATUS_PENDING,
+                    'screened_by' => auth()->id(),
+                    'screened_at' => now(),
+                ]);
             }
 
-            // Update candidate status if passed
-            if ($validated['status'] === 'passed') {
-                $candidate->update(['status' => 'registered']);
-            } elseif ($validated['status'] === 'failed') {
-                $candidate->update(['status' => 'rejected']);
+            // Handle evidence file upload with validation
+            if ($request->hasFile('evidence')) {
+                $screening->uploadEvidence($request->file('evidence'));
+            }
+
+            // Use the model's methods for proper auto-progression
+            // These methods handle the status transitions correctly:
+            // - markAsPassed() calls checkAndUpdateCandidateStatus() which checks if ALL 3 screenings passed
+            // - markAsFailed() immediately rejects the candidate
+            $remarks = $validated['remarks'] ?? null;
+            $status = $validated['status'];
+
+            if ($status === CandidateScreening::STATUS_PASSED) {
+                $screening->markAsPassed($remarks);
+
+                // Check if this was the final screening that triggered auto-progression
+                $candidate->refresh();
+                $message = 'Screening marked as passed.';
+                if ($candidate->status === 'registered') {
+                    $message .= ' All screenings complete - candidate moved to REGISTERED status.';
+                } else {
+                    // Show which screenings are still pending
+                    $requiredTypes = [
+                        CandidateScreening::TYPE_DESK,
+                        CandidateScreening::TYPE_CALL,
+                        CandidateScreening::TYPE_PHYSICAL
+                    ];
+                    $passedTypes = $candidate->screenings()
+                        ->whereIn('screening_type', $requiredTypes)
+                        ->where('status', CandidateScreening::STATUS_PASSED)
+                        ->pluck('screening_type')
+                        ->toArray();
+                    $pendingTypes = array_diff($requiredTypes, $passedTypes);
+
+                    if (!empty($pendingTypes)) {
+                        $pendingLabels = array_map(function($type) {
+                            return CandidateScreening::getScreeningTypes()[$type] ?? $type;
+                        }, $pendingTypes);
+                        $message .= ' Pending: ' . implode(', ', $pendingLabels);
+                    }
+                }
+            } elseif ($status === CandidateScreening::STATUS_FAILED) {
+                $screening->markAsFailed($remarks);
+                $message = 'Screening failed - candidate has been REJECTED.';
+            } elseif ($status === CandidateScreening::STATUS_DEFERRED) {
+                $nextDate = $request->input('next_date', now()->addDays(7));
+                $screening->defer($nextDate, $remarks);
+                $message = 'Screening deferred.';
+            } else {
+                // For other statuses (pending, in_progress, cancelled), just update the record
+                $screening->status = $status;
+                if ($remarks) {
+                    $screening->remarks = $remarks;
+                }
+                $screening->updated_by = auth()->id();
+                $screening->save();
+                $message = 'Screening status updated.';
             }
 
             activity()
                 ->performedOn($candidate)
                 ->causedBy(auth()->user())
-                ->withProperties(['screening_status' => $validated['status']])
+                ->withProperties([
+                    'screening_type' => $screening->screening_type,
+                    'screening_status' => $status,
+                    'candidate_status' => $candidate->fresh()->status,
+                ])
                 ->log('Screening outcome recorded');
 
             DB::commit();
 
-            return back()->with('success', 'Screening outcome recorded successfully!');
+            return back()->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to record outcome: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get screening progress for a candidate.
+     * Returns the status of all required screenings (desk, call, physical).
+     */
+    public function progress(Candidate $candidate)
+    {
+        $this->authorize('view', $candidate);
+
+        $progress = CandidateScreening::getScreeningProgress($candidate);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'candidate' => [
+                    'id' => $candidate->id,
+                    'btevta_id' => $candidate->btevta_id,
+                    'name' => $candidate->name,
+                    'status' => $candidate->status,
+                ],
+                'progress' => $progress,
+            ]);
+        }
+
+        return view('screening.progress', compact('candidate', 'progress'));
+    }
+
+    /**
+     * Upload evidence file for a screening.
+     */
+    public function uploadEvidence(Request $request, Candidate $candidate)
+    {
+        $request->validate([
+            'screening_type' => 'required|in:desk,call,physical,document,medical',
+            'evidence' => 'required|file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
+        ]);
+
+        try {
+            $screening = $candidate->screenings()
+                ->where('screening_type', $request->screening_type)
+                ->latest()
+                ->first();
+
+            if (!$screening) {
+                return back()->with('error', 'No screening record found for this type. Please create a screening first.');
+            }
+
+            $this->authorize('update', $screening);
+
+            $path = $screening->uploadEvidence($request->file('evidence'));
+
+            return back()->with('success', 'Evidence uploaded successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to upload evidence: ' . $e->getMessage());
         }
     }
 

@@ -38,6 +38,34 @@ class TrainingService
     ];
 
     /**
+     * Configurable attendance threshold (percentage).
+     * Can be overridden via config('training.attendance_threshold')
+     */
+    const DEFAULT_ATTENDANCE_THRESHOLD = 80;
+
+    /**
+     * Configurable passing score (percentage).
+     * Can be overridden via config('training.passing_score')
+     */
+    const DEFAULT_PASSING_SCORE = 60;
+
+    /**
+     * Get the configured attendance threshold.
+     */
+    public function getAttendanceThreshold(): int
+    {
+        return config('training.attendance_threshold', self::DEFAULT_ATTENDANCE_THRESHOLD);
+    }
+
+    /**
+     * Get the configured passing score.
+     */
+    public function getPassingScore(): int
+    {
+        return config('training.passing_score', self::DEFAULT_PASSING_SCORE);
+    }
+
+    /**
      * Get all training modules
      */
     public function getModules(): array
@@ -603,5 +631,383 @@ class TrainingService
             'trainer_id' => $data['trainer_id'] ?? auth()->id(),
             'remarks' => $data['remarks'] ?? 'Makeup session',
         ]);
+    }
+
+    // ==================== PHASE 4 IMPROVEMENTS ====================
+
+    /**
+     * Assign candidates to a batch with capacity enforcement.
+     * Uses database transaction to prevent race conditions.
+     *
+     * @param int $batchId Batch ID
+     * @param array $candidateIds Array of candidate IDs
+     * @return array Results with success/failure counts
+     * @throws \Exception If batch not found
+     */
+    public function assignCandidatesToBatch($batchId, array $candidateIds)
+    {
+        $batch = Batch::lockForUpdate()->findOrFail($batchId);
+        $results = [
+            'success' => [],
+            'failed' => [],
+            'already_assigned' => [],
+        ];
+
+        DB::beginTransaction();
+        try {
+            foreach ($candidateIds as $candidateId) {
+                $candidate = Candidate::find($candidateId);
+
+                if (!$candidate) {
+                    $results['failed'][] = [
+                        'id' => $candidateId,
+                        'reason' => 'Candidate not found',
+                    ];
+                    continue;
+                }
+
+                // Check if already in this batch
+                if ($candidate->batch_id === $batchId) {
+                    $results['already_assigned'][] = $candidateId;
+                    continue;
+                }
+
+                // Check batch capacity
+                $currentCount = Candidate::where('batch_id', $batchId)->count();
+                if ($currentCount >= $batch->capacity) {
+                    $results['failed'][] = [
+                        'id' => $candidateId,
+                        'reason' => 'Batch is at full capacity',
+                    ];
+                    continue;
+                }
+
+                // Assign to batch
+                $candidate->update([
+                    'batch_id' => $batchId,
+                    'status' => 'training',
+                    'training_status' => 'in_progress',
+                    'training_start_date' => $batch->start_date ?? now(),
+                ]);
+
+                $results['success'][] = $candidateId;
+
+                activity()
+                    ->performedOn($candidate)
+                    ->causedBy(auth()->user())
+                    ->withProperties(['batch_id' => $batchId])
+                    ->log('Assigned to training batch');
+            }
+
+            DB::commit();
+            return $results;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Complete training for a candidate.
+     * Validates all requirements before transitioning to visa_process status.
+     *
+     * @param int $candidateId Candidate ID
+     * @param string|null $remarks Optional remarks
+     * @return Candidate Updated candidate
+     * @throws \Exception If requirements not met
+     */
+    public function completeTraining($candidateId, $remarks = null)
+    {
+        $candidate = Candidate::with(['batch', 'certificate'])->findOrFail($candidateId);
+
+        // Validate candidate is in training
+        if ($candidate->status !== 'training') {
+            throw new \Exception("Candidate is not in training. Current status: {$candidate->status}");
+        }
+
+        // Check attendance threshold
+        $attendanceStats = $this->getAttendanceStatistics($candidateId);
+        $threshold = $this->getAttendanceThreshold();
+
+        if ($attendanceStats['percentage'] < $threshold) {
+            throw new \Exception(
+                "Attendance ({$attendanceStats['percentage']}%) is below required threshold ({$threshold}%)"
+            );
+        }
+
+        // Check final assessment passed
+        $finalAssessment = TrainingAssessment::where('candidate_id', $candidateId)
+            ->where('assessment_type', 'final')
+            ->where('result', 'pass')
+            ->first();
+
+        if (!$finalAssessment) {
+            throw new \Exception('Candidate has not passed final assessment');
+        }
+
+        // Check or generate certificate
+        $certificate = $candidate->certificate ?? $this->generateCertificate($candidateId);
+
+        DB::beginTransaction();
+        try {
+            // Update candidate status
+            $candidate->update([
+                'status' => 'visa_process',
+                'training_status' => 'completed',
+                'training_end_date' => now(),
+                'remarks' => $remarks ? ($candidate->remarks . "\n" . $remarks) : $candidate->remarks,
+            ]);
+
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'attendance_percentage' => $attendanceStats['percentage'],
+                    'final_assessment_score' => $finalAssessment->total_score,
+                    'certificate_number' => $certificate->certificate_number,
+                ])
+                ->log('Training completed - moved to visa processing');
+
+            DB::commit();
+            return $candidate->fresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Generate attendance report for a batch or candidate.
+     *
+     * @param array $filters Filters (batch_id, candidate_id, from_date, to_date)
+     * @return array Report data
+     */
+    public function generateAttendanceReport(array $filters = [])
+    {
+        $batchId = $filters['batch_id'] ?? null;
+        $candidateId = $filters['candidate_id'] ?? null;
+        $fromDate = $filters['from_date'] ?? null;
+        $toDate = $filters['to_date'] ?? null;
+
+        if ($candidateId) {
+            // Single candidate report
+            $candidate = Candidate::with(['batch', 'trade', 'campus'])->findOrFail($candidateId);
+            $stats = $this->getAttendanceStatistics($candidateId, $fromDate, $toDate);
+
+            $records = TrainingAttendance::where('candidate_id', $candidateId)
+                ->when($fromDate, fn($q) => $q->whereDate('date', '>=', $fromDate))
+                ->when($toDate, fn($q) => $q->whereDate('date', '<=', $toDate))
+                ->orderBy('date', 'desc')
+                ->get();
+
+            return [
+                'type' => 'individual',
+                'candidate' => $candidate,
+                'statistics' => $stats,
+                'records' => $records,
+                'threshold' => $this->getAttendanceThreshold(),
+                'meets_threshold' => $stats['percentage'] >= $this->getAttendanceThreshold(),
+            ];
+        }
+
+        if ($batchId) {
+            // Batch report
+            return $this->getBatchAttendanceSummary($batchId, $fromDate, $toDate);
+        }
+
+        // All batches summary
+        $batches = Batch::where('status', 'ongoing')->get();
+        $report = [];
+
+        foreach ($batches as $batch) {
+            $summary = $this->getBatchAttendanceSummary($batch->id, $fromDate, $toDate);
+            $report[] = [
+                'batch' => $batch,
+                'average_attendance' => $summary['batch_average'],
+                'candidates_below_threshold' => collect($summary['attendance'])
+                    ->filter(fn($item) => $item['statistics']['percentage'] < $this->getAttendanceThreshold())
+                    ->count(),
+            ];
+        }
+
+        return [
+            'type' => 'summary',
+            'batches' => $report,
+            'threshold' => $this->getAttendanceThreshold(),
+        ];
+    }
+
+    /**
+     * Generate assessment report for a batch or candidate.
+     *
+     * @param array $filters Filters (batch_id, candidate_id, assessment_type, from_date, to_date)
+     * @return array Report data
+     */
+    public function generateAssessmentReport(array $filters = [])
+    {
+        $query = TrainingAssessment::with(['candidate', 'candidate.batch', 'candidate.trade']);
+
+        if (!empty($filters['batch_id'])) {
+            $query->where('batch_id', $filters['batch_id']);
+        }
+
+        if (!empty($filters['candidate_id'])) {
+            $query->where('candidate_id', $filters['candidate_id']);
+        }
+
+        if (!empty($filters['assessment_type'])) {
+            $query->where('assessment_type', $filters['assessment_type']);
+        }
+
+        if (!empty($filters['from_date'])) {
+            $query->whereDate('assessment_date', '>=', $filters['from_date']);
+        }
+
+        if (!empty($filters['to_date'])) {
+            $query->whereDate('assessment_date', '<=', $filters['to_date']);
+        }
+
+        $assessments = $query->orderBy('assessment_date', 'desc')->get();
+
+        // Calculate statistics
+        $stats = [
+            'total' => $assessments->count(),
+            'passed' => $assessments->where('result', 'pass')->count(),
+            'failed' => $assessments->where('result', 'fail')->count(),
+            'average_score' => round($assessments->avg('total_score'), 2),
+            'highest_score' => $assessments->max('total_score'),
+            'lowest_score' => $assessments->min('total_score'),
+        ];
+
+        // Group by type
+        $byType = [];
+        foreach (self::ASSESSMENT_TYPES as $type => $label) {
+            $typeAssessments = $assessments->where('assessment_type', $type);
+            $byType[$type] = [
+                'label' => $label,
+                'count' => $typeAssessments->count(),
+                'passed' => $typeAssessments->where('result', 'pass')->count(),
+                'average' => round($typeAssessments->avg('total_score'), 2),
+            ];
+        }
+
+        return [
+            'filters' => $filters,
+            'statistics' => $stats,
+            'by_type' => $byType,
+            'assessments' => $assessments,
+            'passing_score' => $this->getPassingScore(),
+        ];
+    }
+
+    /**
+     * Get batch performance data for analytics.
+     *
+     * @param int $batchId Batch ID
+     * @return array Performance data
+     */
+    public function getBatchPerformance($batchId)
+    {
+        $batch = Batch::with(['candidates', 'campus', 'trade'])->findOrFail($batchId);
+        $candidates = $batch->candidates;
+
+        // Collect performance data for each candidate
+        $candidatePerformance = [];
+        foreach ($candidates as $candidate) {
+            $attendance = $this->getAttendanceStatistics($candidate->id);
+            $assessments = TrainingAssessment::where('candidate_id', $candidate->id)
+                ->orderBy('assessment_date')
+                ->get();
+
+            $candidatePerformance[] = [
+                'candidate' => $candidate,
+                'attendance_percentage' => $attendance['percentage'],
+                'meets_attendance_threshold' => $attendance['percentage'] >= $this->getAttendanceThreshold(),
+                'assessments' => $assessments,
+                'average_assessment_score' => round($assessments->avg('total_score'), 2),
+                'final_assessment' => $assessments->where('assessment_type', 'final')->first(),
+                'training_status' => $candidate->training_status,
+                'has_certificate' => TrainingCertificate::where('candidate_id', $candidate->id)->exists(),
+            ];
+        }
+
+        // Calculate batch-level metrics
+        $metrics = [
+            'total_candidates' => $candidates->count(),
+            'average_attendance' => round(collect($candidatePerformance)->avg('attendance_percentage'), 2),
+            'average_assessment_score' => round(collect($candidatePerformance)->avg('average_assessment_score'), 2),
+            'completed' => $candidates->where('training_status', 'completed')->count(),
+            'in_progress' => $candidates->where('training_status', 'in_progress')->count(),
+            'at_risk' => $candidates->where('training_status', 'at_risk')->count(),
+            'failed' => $candidates->where('training_status', 'failed')->count(),
+            'certificates_issued' => collect($candidatePerformance)->where('has_certificate', true)->count(),
+            'below_attendance_threshold' => collect($candidatePerformance)->where('meets_attendance_threshold', false)->count(),
+        ];
+
+        return [
+            'batch' => $batch,
+            'metrics' => $metrics,
+            'candidates' => $candidatePerformance,
+            'thresholds' => [
+                'attendance' => $this->getAttendanceThreshold(),
+                'passing_score' => $this->getPassingScore(),
+            ],
+        ];
+    }
+
+    /**
+     * Validate certificate generation requirements.
+     *
+     * @param int $candidateId Candidate ID
+     * @return array Validation result with status and issues
+     */
+    public function validateCertificateRequirements($candidateId)
+    {
+        $candidate = Candidate::with(['batch'])->findOrFail($candidateId);
+        $issues = [];
+        $canGenerate = true;
+
+        // Check training status
+        if ($candidate->status !== 'training' && $candidate->training_status !== 'completed') {
+            $issues[] = "Candidate is not in training (status: {$candidate->status})";
+            $canGenerate = false;
+        }
+
+        // Check attendance
+        $attendance = $this->getAttendanceStatistics($candidateId);
+        $threshold = $this->getAttendanceThreshold();
+
+        if ($attendance['percentage'] < $threshold) {
+            $issues[] = "Attendance ({$attendance['percentage']}%) is below threshold ({$threshold}%)";
+            $canGenerate = false;
+        }
+
+        // Check final assessment
+        $finalAssessment = TrainingAssessment::where('candidate_id', $candidateId)
+            ->where('assessment_type', 'final')
+            ->first();
+
+        if (!$finalAssessment) {
+            $issues[] = 'Final assessment not completed';
+            $canGenerate = false;
+        } elseif ($finalAssessment->result !== 'pass') {
+            $issues[] = "Final assessment not passed (result: {$finalAssessment->result}, score: {$finalAssessment->total_score})";
+            $canGenerate = false;
+        }
+
+        // Check if certificate already exists
+        $existingCertificate = TrainingCertificate::where('candidate_id', $candidateId)->first();
+        if ($existingCertificate) {
+            $issues[] = "Certificate already issued: {$existingCertificate->certificate_number}";
+            // Don't block generation, just warn
+        }
+
+        return [
+            'can_generate' => $canGenerate,
+            'issues' => $issues,
+            'attendance' => $attendance,
+            'final_assessment' => $finalAssessment,
+            'existing_certificate' => $existingCertificate,
+        ];
     }
 }

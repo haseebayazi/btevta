@@ -405,14 +405,16 @@ class DashboardController extends Controller
 
         return Cache::remember($cacheKey, 300, function () use ($campusId) {
             // Use single query with CASE statements instead of 8 separate queries
+            // PHASE 8 FIX: Fixed status constants to match Candidate model
+            // STATUS_NEW = 'new' (was 'listed'), STATUS_VISA_PROCESS = 'visa_process' (was 'visa_processing')
             $candidateStats = DB::table('candidates')
             ->selectRaw('
                 COUNT(*) as total_candidates,
-                SUM(CASE WHEN status = "listed" THEN 1 ELSE 0 END) as listed,
+                SUM(CASE WHEN status = "new" THEN 1 ELSE 0 END) as listed,
                 SUM(CASE WHEN status = "screening" THEN 1 ELSE 0 END) as screening,
                 SUM(CASE WHEN status = "registered" THEN 1 ELSE 0 END) as registered,
                 SUM(CASE WHEN status = "training" THEN 1 ELSE 0 END) as in_training,
-                SUM(CASE WHEN status = "visa_processing" THEN 1 ELSE 0 END) as visa_processing,
+                SUM(CASE WHEN status = "visa_process" THEN 1 ELSE 0 END) as visa_processing,
                 SUM(CASE WHEN status = "departed" THEN 1 ELSE 0 END) as departed,
                 SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected
             ')
