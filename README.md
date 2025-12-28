@@ -2,6 +2,8 @@
 
 A comprehensive Laravel-based platform for managing the entire candidate lifecycle from BTEVTA listing to overseas deployment and post-departure tracking.
 
+> **Security Audit Status:** Completed December 2025 - All CRITICAL and HIGH issues resolved
+
 ## 🎯 Features
 
 ### ✅ Core Modules (10 Tabs)
@@ -312,15 +314,34 @@ Export formats: Excel, CSV, PDF
 
 ## 🔒 Security Features
 
-- Password hashing with bcrypt
+### Authentication & Authorization
+- Password hashing with bcrypt (cost factor 10)
+- Account lockout after 5 failed attempts (15-minute cooldown)
+- Session regeneration on login
+- Role-based access control with 11 defined roles
+- Policy-based authorization (23 policy classes)
+- API authentication via Laravel Sanctum
+
+### Input & Data Protection
 - CSRF protection on all forms
-- Role-based access control
-- Session security
-- SQL injection prevention
-- XSS protection
-- Secure file uploads
-- Activity logging
-- IP tracking
+- SQL injection prevention via Eloquent ORM
+- XSS protection with Blade escaping
+- Rate limiting on auth and API endpoints
+
+### File Upload Security
+- Magic bytes validation (content-based file type verification)
+- Dangerous extension blocking (PHP, EXE, BAT, etc.)
+- Double extension attack prevention
+- PHP code injection detection in uploads
+- Private disk storage for sensitive documents
+- Directory traversal prevention
+
+### Audit & Compliance
+- Comprehensive activity logging (Spatie Activity Log)
+- Login/logout tracking with IP addresses
+- File access logging
+- Status change audit trail
+- Soft deletes for data recovery
 
 ## 🐛 Troubleshooting
 
@@ -398,6 +419,53 @@ Training materials and user guides available at:
 
 ## 📝 Changelog
 
+### Version 1.2.0 (December 2025) - Security Audit Release
+**Security Hardening:**
+- Removed 9 dangerous PHP utility scripts from root directory
+- Fixed role bypass vulnerability in SecureFileController
+- Added magic bytes validation for file uploads
+- Implemented double extension attack prevention
+- Added PHP code injection detection in uploads
+
+**Workflow Improvements:**
+- Implemented candidate state machine with valid transition validation
+- Added complaint workflow state validation with proper transitions
+- Fixed SLA calculation on complaint escalation
+- Added visa stage prerequisite validation
+
+**Performance Optimization:**
+- Fixed N+1 query patterns in CandidateController
+- Added query chunking for large CSV exports
+- Optimized RemittanceAnalyticsService (reduced 10+ queries to 2)
+- Added pagination limits to dropdown queries
+
+**Database Integrity:**
+- Added missing foreign key for `users.visa_partner_id`
+- Created `class_enrollments` pivot table migration
+- Added missing indexes on `remittances(candidate_id, status)`
+- Standardized status field values across tables
+
+**API Enhancements:**
+- Added complete CRUD endpoints for Candidates API
+- Added complete CRUD endpoints for Departures API
+- Added complete CRUD endpoints for VisaProcesses API
+- Implemented pagination on all list endpoints
+
+**Test Coverage:**
+- Added CandidateStateMachineTest (lifecycle transitions)
+- Added CandidatePolicyTest (authorization for all roles)
+- Added ComplaintServiceTest (workflow, SLA, escalation)
+- Added FileStorageServiceTest (magic bytes, security)
+- Added TrainingServiceTest (attendance, certificates)
+- Added VisaProcessingServiceTest (40+ tests)
+- Added CandidateApiControllerTest (API endpoints)
+- Added DepartureApiControllerTest (API endpoints)
+- Added VisaProcessApiControllerTest (API endpoints)
+
+**UI/UX Fixes:**
+- Implemented functional report generation buttons
+- Fixed report export (Excel, CSV, PDF) functionality
+
 ### Version 1.0.1 (November 2025)
 - **Code Cleanup:** Removed duplicate view files from incorrect path `resources/views/resources/views/`
 - All views are now correctly located in `resources/views/` directory
@@ -410,6 +478,59 @@ Training materials and user guides available at:
 
 ---
 
+## 📊 API Documentation
+
+### Authentication
+All API endpoints require Bearer token authentication via Laravel Sanctum.
+
+```bash
+# Get token
+POST /api/v1/login
+Content-Type: application/json
+{ "email": "user@example.com", "password": "password" }
+
+# Use token
+GET /api/v1/candidates
+Authorization: Bearer {token}
+```
+
+### Available Endpoints
+
+| Resource | Endpoints | Description |
+|----------|-----------|-------------|
+| Candidates | GET, POST, PUT, DELETE `/api/v1/candidates` | Full CRUD with filtering |
+| Departures | GET, POST, PUT, DELETE `/api/v1/departures` | Departure tracking |
+| Visa Processes | GET, POST, PUT, DELETE `/api/v1/visa-processes` | Visa workflow management |
+| Remittances | GET, POST `/api/v1/remittances` | Salary remittance tracking |
+| Reports | GET `/api/v1/reports/*` | Various report endpoints |
+
+---
+
+## 🧪 Testing
+
+### Running Tests
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test suite
+php artisan test --testsuite=Unit
+php artisan test --testsuite=Feature
+
+# Run specific test file
+php artisan test --filter=CandidateStateMachineTest
+```
+
+### Test Coverage
+The project includes comprehensive tests for:
+- State machine transitions (candidate lifecycle)
+- Authorization policies (all 11 roles)
+- API endpoints (CRUD operations)
+- Service classes (workflows, SLA, file validation)
+- Security features (magic bytes, injection prevention)
+
+---
+
 **Developed for BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab**
 
-Version: 1.0.1 | Last Updated: November 2025
+Version: 1.2.0 | Last Updated: December 2025

@@ -56,7 +56,8 @@ class DocumentArchiveController extends Controller
         }
 
         $documents = $query->latest('uploaded_at')->paginate(20);
-        $candidates = Candidate::select('id', 'name', 'cnic')->get();
+        // AUDIT FIX: Limit dropdown for performance
+        $candidates = Candidate::select('id', 'name', 'cnic')->limit(200)->get();
 
         return view('document-archive.index', compact('documents', 'candidates'));
     }
@@ -68,7 +69,8 @@ class DocumentArchiveController extends Controller
     {
         $this->authorize('create', DocumentArchive::class);
 
-        $candidates = Candidate::select('id', 'name', 'cnic')->get();
+        // AUDIT FIX: Limit dropdown for performance
+        $candidates = Candidate::select('id', 'name', 'cnic')->limit(200)->get();
 
         return view('document-archive.create', compact('candidates'));
     }

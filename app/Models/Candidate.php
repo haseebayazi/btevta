@@ -103,6 +103,7 @@ class Candidate extends Model
     const STATUS_DEPARTED = 'departed';
     const STATUS_REJECTED = 'rejected';
     const STATUS_DROPPED = 'dropped';
+    const STATUS_RETURNED = 'returned';
 
     /**
      * Training status constants
@@ -127,6 +128,7 @@ class Candidate extends Model
             self::STATUS_DEPARTED => 'Departed',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_DROPPED => 'Dropped',
+            self::STATUS_RETURNED => 'Returned',
         ];
     }
 
@@ -578,6 +580,7 @@ class Candidate extends Model
             self::STATUS_TRAINING => [self::STATUS_VISA_PROCESS, self::STATUS_DROPPED],
             self::STATUS_VISA_PROCESS => [self::STATUS_READY, self::STATUS_REJECTED],
             self::STATUS_READY => [self::STATUS_DEPARTED],
+            self::STATUS_DEPARTED => [self::STATUS_RETURNED],  // Workers can return from abroad
         ];
 
         $currentStatus = $this->status;

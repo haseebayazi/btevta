@@ -394,7 +394,8 @@ class TrainingController extends Controller
         try {
             $this->trainingService->completeTraining($candidate->id);
 
-            $candidate->update(['status' => 'training_completed']);
+            // Move candidate to visa processing stage
+            $candidate->update(['status' => Candidate::STATUS_VISA_PROCESS]);
 
             $this->notificationService->sendTrainingCompleted($candidate);
 
@@ -483,8 +484,9 @@ class TrainingController extends Controller
         try {
             $this->trainingService->removeCandidateFromTraining($candidate->id);
 
+            // Revert candidate to registered status when removed from training
             $candidate->update([
-                'status' => 'screening_passed',
+                'status' => Candidate::STATUS_REGISTERED,
                 'batch_id' => null
             ]);
 

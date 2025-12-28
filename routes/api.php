@@ -12,6 +12,9 @@ use App\Http\Controllers\Api\RemittanceReportApiController;
 use App\Http\Controllers\Api\RemittanceAlertApiController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\ApiTokenController;
+use App\Http\Controllers\Api\CandidateApiController;
+use App\Http\Controllers\Api\DepartureApiController;
+use App\Http\Controllers\Api\VisaProcessApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +84,45 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
 
     Route::post('/notifications/{notification}/mark-read', [UserController::class, 'markNotificationRead'])
         ->name('notifications.mark-read');
+
+    // ========================================================================
+    // CANDIDATE API ROUTES (AUDIT FIX: API-001)
+    // ========================================================================
+
+    Route::prefix('candidates')->name('candidates.')->group(function () {
+        Route::get('/', [CandidateApiController::class, 'index'])->name('index');
+        Route::get('/stats', [CandidateApiController::class, 'statistics'])->name('statistics');
+        Route::get('/{id}', [CandidateApiController::class, 'show'])->name('show');
+        Route::post('/', [CandidateApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [CandidateApiController::class, 'update'])->name('update');
+        Route::delete('/{id}', [CandidateApiController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
+    // DEPARTURE API ROUTES (AUDIT FIX: API-001)
+    // ========================================================================
+
+    Route::prefix('departures')->name('departures.')->group(function () {
+        Route::get('/', [DepartureApiController::class, 'index'])->name('index');
+        Route::get('/stats', [DepartureApiController::class, 'statistics'])->name('statistics');
+        Route::get('/candidate/{candidateId}', [DepartureApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::get('/{id}', [DepartureApiController::class, 'show'])->name('show');
+        Route::post('/', [DepartureApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [DepartureApiController::class, 'update'])->name('update');
+    });
+
+    // ========================================================================
+    // VISA PROCESS API ROUTES (AUDIT FIX: API-001)
+    // ========================================================================
+
+    Route::prefix('visa-processes')->name('visa-processes.')->group(function () {
+        Route::get('/', [VisaProcessApiController::class, 'index'])->name('index');
+        Route::get('/stats', [VisaProcessApiController::class, 'statistics'])->name('statistics');
+        Route::get('/candidate/{candidateId}', [VisaProcessApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::get('/{id}', [VisaProcessApiController::class, 'show'])->name('show');
+        Route::post('/', [VisaProcessApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [VisaProcessApiController::class, 'update'])->name('update');
+    });
 
     // ========================================================================
     // REMITTANCE API ROUTES

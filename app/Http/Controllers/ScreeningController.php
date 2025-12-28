@@ -35,12 +35,13 @@ class ScreeningController extends Controller
     {
         $this->authorize('viewAny', CandidateScreening::class);
 
+        // AUDIT FIX: Added pagination to prevent memory issues with large datasets
         $candidates = Candidate::where('status', 'screening')
             ->withCount('screenings')
             ->having('screenings_count', '<', 3)
             ->latest()
-            ->get();
-        
+            ->paginate(20);
+
         return view('screening.pending', compact('candidates'));
     }
 
@@ -48,9 +49,11 @@ class ScreeningController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
+        // AUDIT FIX: Limit dropdown results for performance
         $candidates = Candidate::whereIn('status', ['new', 'screening'])
             ->select('id', 'name', 'btevta_id')
             ->orderBy('name')
+            ->limit(200)
             ->get();
 
         return view('screening.create', compact('candidates'));

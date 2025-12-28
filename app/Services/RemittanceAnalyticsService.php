@@ -12,43 +12,72 @@ class RemittanceAnalyticsService
 {
     /**
      * Get comprehensive dashboard statistics
+     *
+     * AUDIT FIX: Combined multiple queries into single aggregated query
+     * to reduce database round-trips from 15+ to 3
      */
     public function getDashboardStats()
     {
+        $currentYear = date('Y');
+        $currentMonth = date('n');
+
+        // Single query for all aggregate statistics
+        $aggregates = DB::table('remittances')
+            ->selectRaw('
+                COUNT(*) as total_remittances,
+                COALESCE(SUM(amount), 0) as total_amount,
+                COALESCE(AVG(amount), 0) as average_amount,
+                COUNT(DISTINCT candidate_id) as total_candidates,
+                SUM(CASE WHEN year = ? THEN 1 ELSE 0 END) as current_year_count,
+                SUM(CASE WHEN year = ? THEN amount ELSE 0 END) as current_year_amount,
+                SUM(CASE WHEN year = ? AND month = ? THEN 1 ELSE 0 END) as current_month_count,
+                SUM(CASE WHEN year = ? AND month = ? THEN amount ELSE 0 END) as current_month_amount,
+                SUM(CASE WHEN has_proof = 1 THEN 1 ELSE 0 END) as with_proof,
+                SUM(CASE WHEN has_proof = 0 OR has_proof IS NULL THEN 1 ELSE 0 END) as without_proof,
+                SUM(CASE WHEN is_first_remittance = 1 THEN 1 ELSE 0 END) as first_remittances
+            ', [$currentYear, $currentYear, $currentYear, $currentMonth, $currentYear, $currentMonth])
+            ->first();
+
+        // Status breakdown (single query)
+        $statusBreakdown = Remittance::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Calculate rates from aggregates
+        $total = $aggregates->total_remittances ?: 1; // Avoid division by zero
+        $proofRate = round(($aggregates->with_proof / $total) * 100, 2);
+        $firstRate = round(($aggregates->first_remittances / $total) * 100, 2);
+
         $stats = [
             // Overall statistics
-            'total_remittances' => Remittance::count(),
-            'total_amount' => Remittance::sum('amount'),
-            'average_amount' => Remittance::avg('amount'),
-            'total_candidates' => Remittance::distinct('candidate_id')->count(),
+            'total_remittances' => $aggregates->total_remittances,
+            'total_amount' => $aggregates->total_amount,
+            'average_amount' => $aggregates->average_amount,
+            'total_candidates' => $aggregates->total_candidates,
 
             // This year statistics
-            'current_year_count' => Remittance::where('year', date('Y'))->count(),
-            'current_year_amount' => Remittance::where('year', date('Y'))->sum('amount'),
+            'current_year_count' => $aggregates->current_year_count,
+            'current_year_amount' => $aggregates->current_year_amount,
 
             // This month statistics
-            'current_month_count' => Remittance::where('year', date('Y'))
-                ->where('month', date('n'))->count(),
-            'current_month_amount' => Remittance::where('year', date('Y'))
-                ->where('month', date('n'))->sum('amount'),
+            'current_month_count' => $aggregates->current_month_count,
+            'current_month_amount' => $aggregates->current_month_amount,
 
             // Status breakdown
-            'status_breakdown' => Remittance::select('status', DB::raw('count(*) as count'))
-                ->groupBy('status')
-                ->get()
-                ->pluck('count', 'status')
-                ->toArray(),
+            'status_breakdown' => $statusBreakdown,
 
             // Proof compliance
-            'with_proof' => Remittance::where('has_proof', true)->count(),
-            'without_proof' => Remittance::where('has_proof', false)->count(),
-            'proof_compliance_rate' => $this->calculateProofComplianceRate(),
+            'with_proof' => $aggregates->with_proof,
+            'without_proof' => $aggregates->without_proof,
+            'proof_compliance_rate' => $proofRate,
 
             // First remittance tracking
-            'first_remittances' => Remittance::where('is_first_remittance', true)->count(),
-            'first_remittance_rate' => $this->calculateFirstRemittanceRate(),
+            'first_remittances' => $aggregates->first_remittances,
+            'first_remittance_rate' => $firstRate,
 
-            // Growth statistics
+            // Growth statistics (cached for performance)
             'month_over_month_growth' => $this->calculateMonthOverMonthGrowth(),
             'year_over_year_growth' => $this->calculateYearOverYearGrowth(),
         ];

@@ -25,6 +25,59 @@ class VisaProcessingController extends Controller
     }
 
     /**
+     * Validate visa stage prerequisites before allowing updates.
+     *
+     * Stage Order: interview → takamol → medical → biometric → enumber → visa → ticket
+     */
+    protected function validateStagePrerequisites(VisaProcess $visaProcess, string $targetStage): array
+    {
+        $errors = [];
+
+        switch ($targetStage) {
+            case 'takamol':
+                if ($visaProcess->interview_status !== 'passed') {
+                    $errors[] = 'Interview must be passed before Takamol registration';
+                }
+                break;
+
+            case 'medical':
+                if ($visaProcess->interview_status !== 'passed') {
+                    $errors[] = 'Interview must be passed first';
+                }
+                if ($visaProcess->takamol_status !== 'passed') {
+                    $errors[] = 'Takamol test must be passed before medical examination';
+                }
+                break;
+
+            case 'biometric':
+                if ($visaProcess->medical_status !== 'fit') {
+                    $errors[] = 'Medical examination must be cleared before biometrics';
+                }
+                break;
+
+            case 'enumber':
+                if ($visaProcess->biometric_status !== 'completed') {
+                    $errors[] = 'Biometrics must be completed before E-Number generation';
+                }
+                break;
+
+            case 'visa':
+                if (empty($visaProcess->enumber) || $visaProcess->enumber_status !== 'verified') {
+                    $errors[] = 'E-Number must be verified before visa submission';
+                }
+                break;
+
+            case 'ticket':
+                if ($visaProcess->visa_status !== 'issued') {
+                    $errors[] = 'Visa must be issued before ticket upload';
+                }
+                break;
+        }
+
+        return $errors;
+    }
+
+    /**
      * Display list of candidates in visa processing
      */
     public function index(Request $request)
@@ -32,7 +85,7 @@ class VisaProcessingController extends Controller
         $this->authorize('viewAny', VisaProcess::class);
 
         $query = Candidate::with(['trade', 'campus', 'oep', 'visaProcess'])
-            ->where('status', 'visa_processing');
+            ->where('status', Candidate::STATUS_VISA_PROCESS);
 
         // Filter by campus for campus admins
         if (auth()->user()->role === 'campus_admin') {
@@ -69,8 +122,9 @@ class VisaProcessingController extends Controller
         $this->authorize('create', VisaProcess::class);
 
         // Get candidates eligible for visa processing (completed training)
-        // FIXED: Changed orWhere to whereIn to properly scope the query
-        $candidates = Candidate::whereIn('status', ['training_completed', 'screening_passed'])
+        // FIXED: Use proper status constant - candidates in training with completed training_status
+        $candidates = Candidate::where('status', Candidate::STATUS_TRAINING)
+            ->where('training_status', Candidate::TRAINING_COMPLETED)
             ->with(['trade', 'campus'])
             ->get();
 
@@ -271,6 +325,13 @@ class VisaProcessingController extends Controller
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
 
+        // Validate prerequisites: Takamol must be passed
+        $prereqErrors = $this->validateStagePrerequisites($candidate->visaProcess, 'medical');
+        if (!empty($prereqErrors)) {
+            return back()->withErrors(['prerequisites' => $prereqErrors])
+                ->with('error', 'Prerequisites not met: ' . implode(', ', $prereqErrors));
+        }
+
         $validated = $request->validate([
             'medical_date' => 'required|date',
             'medical_status' => 'required|in:pending,fit,unfit',
@@ -300,6 +361,13 @@ class VisaProcessingController extends Controller
     public function updateBiometric(Request $request, Candidate $candidate)
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        // Validate prerequisites: Medical must be cleared
+        $prereqErrors = $this->validateStagePrerequisites($candidate->visaProcess, 'biometric');
+        if (!empty($prereqErrors)) {
+            return back()->withErrors(['prerequisites' => $prereqErrors])
+                ->with('error', 'Prerequisites not met: ' . implode(', ', $prereqErrors));
+        }
 
         $validated = $request->validate([
             'biometric_date' => 'required|date',
@@ -332,6 +400,13 @@ class VisaProcessingController extends Controller
     public function updateEnumber(Request $request, Candidate $candidate)
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        // Validate prerequisites: Biometrics must be completed
+        $prereqErrors = $this->validateStagePrerequisites($candidate->visaProcess, 'enumber');
+        if (!empty($prereqErrors)) {
+            return back()->withErrors(['prerequisites' => $prereqErrors])
+                ->with('error', 'Prerequisites not met: ' . implode(', ', $prereqErrors));
+        }
 
         $validated = $request->validate([
             'enumber' => 'nullable|string|max:50',
@@ -621,7 +696,7 @@ class VisaProcessingController extends Controller
             $visaProcess = $this->visaService->completeVisaProcess($candidate->visaProcess->id);
 
             // Update candidate status to ready for departure
-            $candidate->update(['status' => 'visa_completed']);
+            $candidate->update(['status' => Candidate::STATUS_READY]);
 
             $this->notificationService->sendVisaProcessCompleted($candidate);
 
@@ -683,7 +758,8 @@ class VisaProcessingController extends Controller
 
             $this->visaService->deleteVisaProcess($candidate->visaProcess->id);
 
-            $candidate->update(['status' => 'training_completed']);
+            // Revert candidate to training status when visa process is deleted
+            $candidate->update(['status' => Candidate::STATUS_TRAINING]);
 
             // Log activity
             activity()

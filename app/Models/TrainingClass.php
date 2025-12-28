@@ -84,8 +84,8 @@ class TrainingClass extends Model
 
     public function candidates()
     {
-        return $this->belongsToMany(Candidate::class, 'class_enrollments')
-                    ->withPivot('enrolled_at', 'status', 'completion_date', 'remarks')
+        return $this->belongsToMany(Candidate::class, 'class_enrollments', 'training_class_id', 'candidate_id')
+                    ->withPivot('enrollment_date', 'status', 'remarks', 'enrolled_by')
                     ->withTimestamps();
     }
 
