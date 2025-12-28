@@ -16,7 +16,15 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Candidate Profile</h5>
                     <p class="card-text">Detailed candidate information</p>
-                    <a href="#" class="btn btn-sm btn-primary" onclick="viewCandidateReport()">Generate</a>
+                    <div class="input-group">
+                        <select id="candidate-select" class="form-select form-select-sm">
+                            <option value="">Select Candidate...</option>
+                            @foreach(\App\Models\Candidate::select('id', 'name', 'btevta_id')->orderBy('name')->limit(100)->get() as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->btevta_id }})</option>
+                            @endforeach
+                        </select>
+                        <button class="btn btn-sm btn-primary" onclick="viewCandidateReport()">Generate</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -26,7 +34,15 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Batch Summary</h5>
                     <p class="card-text">Training batch performance</p>
-                    <a href="#" class="btn btn-sm btn-primary" onclick="viewBatchReport()">Generate</a>
+                    <div class="input-group">
+                        <select id="batch-select" class="form-select form-select-sm">
+                            <option value="">Select Batch...</option>
+                            @foreach(\App\Models\Batch::select('id', 'name')->orderBy('created_at', 'desc')->limit(50)->get() as $b)
+                                <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+                        <button class="btn btn-sm btn-primary" onclick="viewBatchReport()">Generate</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -95,11 +111,21 @@
 
 <script>
 function viewCandidateReport() {
-    alert('Select a candidate to generate report');
+    const candidateId = document.getElementById('candidate-select').value;
+    if (!candidateId) {
+        alert('Please select a candidate first');
+        return;
+    }
+    window.location.href = '{{ url("candidates") }}/' + candidateId;
 }
 
 function viewBatchReport() {
-    alert('Select a batch to generate report');
+    const batchId = document.getElementById('batch-select').value;
+    if (!batchId) {
+        alert('Please select a batch first');
+        return;
+    }
+    window.location.href = '{{ url("training/batch") }}/' + batchId + '/performance';
 }
 </script>
 @endsection
