@@ -1,0 +1,667 @@
+openapi: 3.1.0
+info:
+  title: BTEVTA Overseas Employment Management API
+  description: |
+    REST API for the BTEVTA (Board of Technical Education & Vocational Training Authority)
+    Overseas Employment Management System.
+
+    ## Authentication
+    All API endpoints require authentication via Laravel Sanctum.
+    Include the session cookie or Bearer token with all requests.
+
+    ## Rate Limiting
+    - Standard endpoints: 60 requests/minute
+    - Upload endpoints: 30 requests/minute
+    - Report endpoints: 5 requests/minute
+
+    ## Response Format
+    All responses are JSON formatted with consistent structure.
+  version: 1.3.0
+  contact:
+    name: BTEVTA Development Team
+    email: dev-team@btevta.gov.pk
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://btevta.gov.pk/api/v1
+    description: Production Server
+  - url: http://localhost:8000/api/v1
+    description: Development Server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Candidates
+    description: Candidate management operations
+  - name: Training
+    description: Training management and attendance
+  - name: Visa Processing
+    description: Visa processing workflow
+  - name: Departures
+    description: Departure and compliance tracking
+  - name: Remittances
+    description: Remittance management and reporting
+  - name: Complaints
+    description: Complaint handling system
+  - name: Reports
+    description: Analytics and reporting
+
+paths:
+  # ============= CANDIDATES =============
+  /candidates:
+    get:
+      tags:
+        - Candidates
+      summary: List all candidates
+      description: Get paginated list of candidates with optional filters
+      operationId: listCandidates
+      parameters:
+        - name: status
+          in: query
+          description: Filter by candidate status
+          schema:
+            type: string
+            enum: [new, screening, registered, training, visa_process, ready, departed, rejected, dropped, returned]
+        - name: campus_id
+          in: query
+          description: Filter by campus
+          schema:
+            type: integer
+        - name: batch_id
+          in: query
+          description: Filter by batch
+          schema:
+            type: integer
+        - name: search
+          in: query
+          description: Search by name, CNIC, or BTEVTA ID
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          description: Items per page (default 20)
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Candidates
+      summary: Create a new candidate
+      operationId: createCandidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateCreateRequest'
+      responses:
+        '201':
+          description: Candidate created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /candidates/{id}:
+    get:
+      tags:
+        - Candidates
+      summary: Get candidate details
+      operationId: getCandidate
+      parameters:
+        - $ref: '#/components/parameters/CandidateId'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Candidates
+      summary: Update candidate
+      operationId: updateCandidate
+      parameters:
+        - $ref: '#/components/parameters/CandidateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateUpdateRequest'
+      responses:
+        '200':
+          description: Candidate updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateResponse'
+
+    delete:
+      tags:
+        - Candidates
+      summary: Delete candidate (soft delete)
+      operationId: deleteCandidate
+      parameters:
+        - $ref: '#/components/parameters/CandidateId'
+      responses:
+        '204':
+          description: Candidate deleted
+
+  # ============= REMITTANCES =============
+  /remittances:
+    get:
+      tags:
+        - Remittances
+      summary: List remittances
+      operationId: listRemittances
+      parameters:
+        - name: candidate_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, verified, flagged]
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemittanceListResponse'
+
+    post:
+      tags:
+        - Remittances
+      summary: Create remittance
+      operationId: createRemittance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemittanceCreateRequest'
+      responses:
+        '201':
+          description: Remittance created
+
+  /remittances/{id}:
+    get:
+      tags:
+        - Remittances
+      summary: Get remittance details
+      operationId: getRemittance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemittanceResponse'
+
+  /remittances/{id}/verify:
+    post:
+      tags:
+        - Remittances
+      summary: Verify a remittance
+      operationId: verifyRemittance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Remittance verified
+
+  /remittances/stats/overview:
+    get:
+      tags:
+        - Remittances
+      summary: Get remittance statistics
+      operationId: getRemittanceStats
+      responses:
+        '200':
+          description: Statistics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemittanceStatsResponse'
+
+  # ============= REPORTS =============
+  /remittance/reports/dashboard:
+    get:
+      tags:
+        - Reports
+      summary: Get dashboard overview
+      operationId: getDashboard
+      responses:
+        '200':
+          description: Dashboard data
+
+  /remittance/reports/monthly-trends:
+    get:
+      tags:
+        - Reports
+      summary: Get monthly trends
+      operationId: getMonthlyTrends
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Monthly trend data
+
+  # ============= HEALTH =============
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check endpoint
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: boolean
+                      cache:
+                        type: boolean
+                      storage:
+                        type: boolean
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: btevta_session
+
+  parameters:
+    CandidateId:
+      name: id
+      in: path
+      required: true
+      description: Candidate ID
+      schema:
+        type: integer
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Unauthenticated.
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Resource not found
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: The given data was invalid.
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+
+  schemas:
+    # ===== CANDIDATE SCHEMAS =====
+    CandidateStatus:
+      type: object
+      properties:
+        value:
+          type: string
+          enum: [new, screening, registered, training, visa_process, ready, departed, rejected, dropped, returned]
+        label:
+          type: string
+        color:
+          type: string
+        is_terminal:
+          type: boolean
+
+    Candidate:
+      type: object
+      properties:
+        id:
+          type: integer
+        btevta_id:
+          type: string
+          example: "BTEVTA-2025-0001"
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        district:
+          type: string
+        province:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female]
+        qualification:
+          type: string
+        experience_years:
+          type: integer
+        status:
+          $ref: '#/components/schemas/CandidateStatus'
+        training_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CandidateCreateRequest:
+      type: object
+      required:
+        - name
+        - cnic
+        - phone
+        - campus_id
+        - trade_id
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        cnic:
+          type: string
+          pattern: '^\d{5}-\d{7}-\d{1}$'
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        campus_id:
+          type: integer
+        trade_id:
+          type: integer
+        batch_id:
+          type: integer
+        date_of_birth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female]
+        father_name:
+          type: string
+        address:
+          type: string
+        district:
+          type: string
+        province:
+          type: string
+        qualification:
+          type: string
+        passport_number:
+          type: string
+
+    CandidateUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+        training_status:
+          type: string
+
+    CandidateResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Candidate'
+        meta:
+          type: object
+          properties:
+            available_statuses:
+              type: object
+
+    CandidateListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+        meta:
+          type: object
+          properties:
+            current_page:
+              type: integer
+            last_page:
+              type: integer
+            per_page:
+              type: integer
+            total:
+              type: integer
+
+    # ===== REMITTANCE SCHEMAS =====
+    Remittance:
+      type: object
+      properties:
+        id:
+          type: integer
+        candidate_id:
+          type: integer
+        transaction_reference:
+          type: string
+        amount:
+          type: object
+          properties:
+            value:
+              type: number
+            currency:
+              type: string
+            formatted:
+              type: string
+        transfer:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+            method:
+              type: string
+        status:
+          type: object
+          properties:
+            value:
+              type: string
+            label:
+              type: string
+            color:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+
+    RemittanceCreateRequest:
+      type: object
+      required:
+        - candidate_id
+        - amount
+        - transfer_date
+        - transaction_reference
+      properties:
+        candidate_id:
+          type: integer
+        departure_id:
+          type: integer
+        transaction_reference:
+          type: string
+        amount:
+          type: number
+          minimum: 0
+        currency:
+          type: string
+          default: PKR
+        amount_foreign:
+          type: number
+        foreign_currency:
+          type: string
+        exchange_rate:
+          type: number
+        transfer_date:
+          type: string
+          format: date
+        transfer_method:
+          type: string
+          enum: [bank_transfer, money_exchange, online_transfer, cash_deposit, mobile_wallet, other]
+        sender_name:
+          type: string
+        receiver_name:
+          type: string
+        primary_purpose:
+          type: string
+          enum: [family_support, education, healthcare, debt_repayment, savings, investment, property, business, other]
+
+    RemittanceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Remittance'
+
+    RemittanceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Remittance'
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+
+    RemittanceStatsResponse:
+      type: object
+      properties:
+        total_remittances:
+          type: integer
+        total_amount:
+          type: number
+        average_amount:
+          type: number
+        total_candidates:
+          type: integer
+        with_proof:
+          type: integer
+        proof_compliance_rate:
+          type: number
+        by_status:
+          type: object
+          properties:
+            pending:
+              type: integer
+            verified:
+              type: integer
+            flagged:
+              type: integer
+
+security:
+  - bearerAuth: []
+  - sessionAuth: []
