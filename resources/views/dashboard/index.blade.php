@@ -321,31 +321,46 @@
     </div>
     
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <a href="{{ route('import.candidates.form') }}" class="bg-white hover:bg-blue-50 border-2 border-blue-200 rounded-lg p-6 text-center transition group">
-            <i class="fas fa-file-import text-blue-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
-            <h4 class="font-semibold text-gray-900">Import Candidates</h4>
-            <p class="text-sm text-gray-600 mt-1">Bulk import from Excel</p>
+    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <a href="{{ route('import.candidates.form') }}" class="bg-white hover:bg-blue-50 border-2 border-blue-200 rounded-lg p-4 sm:p-6 text-center transition group">
+            <i class="fas fa-file-import text-blue-600 text-2xl sm:text-3xl mb-2 sm:mb-3 group-hover:scale-110 transition"></i>
+            <h4 class="font-semibold text-gray-900 text-sm sm:text-base">Import Candidates</h4>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">Bulk import from Excel</p>
         </a>
-        
-        <a href="{{ route('candidates.create') }}" class="bg-white hover:bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center transition group">
-            <i class="fas fa-user-plus text-green-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
-            <h4 class="font-semibold text-gray-900">Add Candidate</h4>
-            <p class="text-sm text-gray-600 mt-1">Register new candidate</p>
+
+        <a href="{{ route('candidates.create') }}" class="bg-white hover:bg-green-50 border-2 border-green-200 rounded-lg p-4 sm:p-6 text-center transition group">
+            <i class="fas fa-user-plus text-green-600 text-2xl sm:text-3xl mb-2 sm:mb-3 group-hover:scale-110 transition"></i>
+            <h4 class="font-semibold text-gray-900 text-sm sm:text-base">Add Candidate</h4>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">Register new candidate</p>
         </a>
-        
-        <a href="{{ route('reports.index') }}" class="bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-lg p-6 text-center transition group">
-            <i class="fas fa-chart-bar text-purple-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
-            <h4 class="font-semibold text-gray-900">Generate Report</h4>
-            <p class="text-sm text-gray-600 mt-1">View analytics</p>
+
+        <a href="{{ route('reports.index') }}" class="bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-lg p-4 sm:p-6 text-center transition group">
+            <i class="fas fa-chart-bar text-purple-600 text-2xl sm:text-3xl mb-2 sm:mb-3 group-hover:scale-110 transition"></i>
+            <h4 class="font-semibold text-gray-900 text-sm sm:text-base">Generate Report</h4>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">View analytics</p>
         </a>
-        
-        <a href="{{ route('complaints.create') }}" class="bg-white hover:bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center transition group">
-            <i class="fas fa-exclamation-circle text-red-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
-            <h4 class="font-semibold text-gray-900">Register Complaint</h4>
-            <p class="text-sm text-gray-600 mt-1">Submit new complaint</p>
+
+        <a href="{{ route('complaints.create') }}" class="bg-white hover:bg-red-50 border-2 border-red-200 rounded-lg p-4 sm:p-6 text-center transition group">
+            <i class="fas fa-exclamation-circle text-red-600 text-2xl sm:text-3xl mb-2 sm:mb-3 group-hover:scale-110 transition"></i>
+            <h4 class="font-semibold text-gray-900 text-sm sm:text-base">Register Complaint</h4>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">Submit new complaint</p>
         </a>
     </div>
-    
+
+    <!-- Analytics Section (Collapsible on Mobile) -->
+    <div x-data="{ showAnalytics: window.innerWidth > 768 }" class="mt-6">
+        <button @click="showAnalytics = !showAnalytics"
+                class="w-full flex items-center justify-between bg-white rounded-lg shadow-sm p-4 mb-4 lg:hidden">
+            <span class="font-semibold text-gray-900">
+                <i class="fas fa-chart-pie mr-2 text-blue-600"></i>Analytics Dashboard
+            </span>
+            <i class="fas" :class="showAnalytics ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+
+        <div x-show="showAnalytics" x-collapse>
+            @include('components.analytics-widgets', ['stats' => $stats])
+        </div>
+    </div>
+
 </div>
 @endsection

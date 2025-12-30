@@ -38,11 +38,68 @@
             background-color: #eff6ff;
             border-left: 4px solid #3b82f6;
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 640px) {
+            .hide-mobile { display: none !important; }
+            .mobile-full { width: 100% !important; }
+            .mobile-stack { flex-direction: column !important; }
+            .mobile-text-sm { font-size: 0.875rem !important; }
+            .mobile-p-2 { padding: 0.5rem !important; }
+        }
+
+        /* Smooth collapse animation */
+        [x-collapse] {
+            overflow: hidden;
+            transition: height 0.3s ease-out;
+        }
+
+        /* Touch-friendly buttons */
+        @media (hover: none) and (pointer: coarse) {
+            button, a.btn, .clickable {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+
+        /* Safe area for notched devices */
+        @supports (padding: max(0px)) {
+            .safe-area-bottom {
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+            .safe-area-top {
+                padding-top: max(0.75rem, env(safe-area-inset-top));
+            }
+        }
+
+        /* Better scroll on mobile */
+        .scroll-smooth {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* Prevent text selection on mobile nav */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
     </style>
     
     @stack('styles')
 </head>
-<body class="bg-gray-50" x-data="{ sidebarOpen: true, profileDropdown: false }">
+<body class="bg-gray-50" x-data="{
+    sidebarOpen: window.innerWidth >= 1024,
+    profileDropdown: false,
+    isMobile: window.innerWidth < 768,
+    init() {
+        window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth < 768;
+            if (window.innerWidth >= 1024) {
+                this.sidebarOpen = true;
+            }
+        });
+    }
+}" x-init="init()">
     
     <!-- Top Navigation Bar -->
     <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
@@ -242,10 +299,28 @@
     
     <!-- Sidebar and Main Content -->
     <div class="flex pt-16">
+        <!-- Mobile Sidebar Overlay -->
+        <div x-show="sidebarOpen && isMobile"
+             x-cloak
+             @click="sidebarOpen = false"
+             class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+             x-transition:enter="transition-opacity ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
+
         <!-- Sidebar -->
-        <aside :class="sidebarOpen ? 'w-64' : 'w-20'" 
-               class="bg-white shadow-lg fixed left-0 top-16 bottom-0 overflow-y-auto transition-all duration-300 z-40">
-            
+        <aside :class="{
+                   'w-64': sidebarOpen,
+                   'w-20': !sidebarOpen && !isMobile,
+                   'w-0 -translate-x-full': !sidebarOpen && isMobile,
+                   'translate-x-0': sidebarOpen
+               }"
+               class="bg-white shadow-lg fixed left-0 top-16 bottom-0 overflow-y-auto transition-all duration-300 z-40 lg:translate-x-0"
+               :style="isMobile ? 'padding-bottom: 70px' : ''">
+
             <nav class="p-4 space-y-2">
                 <!-- Dashboard -->
                 <a href="{{ route('dashboard') }}" 
@@ -380,8 +455,13 @@
         </aside>
         
         <!-- Main Content -->
-        <main :class="sidebarOpen ? 'ml-64' : 'ml-20'" 
-              class="flex-1 p-6 transition-all duration-300">
+        <main :class="{
+                  'ml-64': sidebarOpen && !isMobile,
+                  'ml-20': !sidebarOpen && !isMobile,
+                  'ml-0': isMobile,
+                  'pb-20': isMobile
+              }"
+              class="flex-1 p-3 sm:p-6 transition-all duration-300 min-h-screen">
             
             <!-- Alerts -->
             @if(session('success'))
@@ -442,8 +522,13 @@
     </div>
     
     <!-- Footer -->
-    <footer :class="sidebarOpen ? 'ml-64' : 'ml-20'"
-            class="bg-white border-t py-6 px-6 text-center transition-all duration-300">
+    <footer :class="{
+                'ml-64': sidebarOpen && !isMobile,
+                'ml-20': !sidebarOpen && !isMobile,
+                'ml-0 pb-16': isMobile
+            }"
+            class="bg-white border-t py-4 sm:py-6 px-4 sm:px-6 text-center transition-all duration-300"
+            x-show="!isMobile || !sidebarOpen">
         <div class="max-w-4xl mx-auto space-y-3">
             <!-- Main Footer Text -->
             <div class="flex items-center justify-center space-x-2 text-sm">
@@ -630,6 +715,36 @@
             });
         });
     </script>
+
+    <!-- Real-time Notifications Component -->
+    @include('components.realtime-notifications')
+
+    <!-- Mobile Bottom Navigation -->
+    <div x-show="isMobile" x-cloak
+         class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 safe-area-bottom lg:hidden">
+        <div class="flex justify-around py-2">
+            <a href="{{ route('dashboard') }}" class="flex flex-col items-center px-3 py-2 text-gray-600 hover:text-blue-600">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs mt-1">Home</span>
+            </a>
+            <a href="{{ route('dashboard.candidates-listing') }}" class="flex flex-col items-center px-3 py-2 text-gray-600 hover:text-blue-600">
+                <i class="fas fa-users text-lg"></i>
+                <span class="text-xs mt-1">Candidates</span>
+            </a>
+            <a href="{{ route('dashboard.training') }}" class="flex flex-col items-center px-3 py-2 text-gray-600 hover:text-blue-600">
+                <i class="fas fa-graduation-cap text-lg"></i>
+                <span class="text-xs mt-1">Training</span>
+            </a>
+            <a href="{{ route('dashboard.reports') }}" class="flex flex-col items-center px-3 py-2 text-gray-600 hover:text-blue-600">
+                <i class="fas fa-chart-bar text-lg"></i>
+                <span class="text-xs mt-1">Reports</span>
+            </a>
+            <button @click="sidebarOpen = !sidebarOpen" class="flex flex-col items-center px-3 py-2 text-gray-600 hover:text-blue-600">
+                <i class="fas fa-bars text-lg"></i>
+                <span class="text-xs mt-1">Menu</span>
+            </button>
+        </div>
+    </div>
 
     @stack('scripts')
 </body>

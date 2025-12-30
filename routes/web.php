@@ -135,6 +135,19 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
+    // BULK OPERATIONS
+    // Throttle: 30/min for bulk operations to prevent abuse
+    // ========================================================================
+    Route::prefix('bulk/candidates')->name('bulk.candidates.')->middleware('throttle:30,1')->group(function () {
+        Route::post('/status', [\App\Http\Controllers\BulkOperationsController::class, 'updateStatus'])->name('status');
+        Route::post('/batch', [\App\Http\Controllers\BulkOperationsController::class, 'assignToBatch'])->name('batch');
+        Route::post('/campus', [\App\Http\Controllers\BulkOperationsController::class, 'assignToCampus'])->name('campus');
+        Route::post('/export', [\App\Http\Controllers\BulkOperationsController::class, 'export'])->name('export');
+        Route::post('/delete', [\App\Http\Controllers\BulkOperationsController::class, 'delete'])->name('delete')->middleware('role:admin');
+        Route::post('/notify', [\App\Http\Controllers\BulkOperationsController::class, 'sendNotification'])->name('notify');
+    });
+
+    // ========================================================================
     // IMPORT/EXPORT
     // Throttle: View 60/min, Import 5/min (database intensive)
     // SECURITY FIX: Only admin and campus_admin can import
