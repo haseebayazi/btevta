@@ -10,54 +10,74 @@ use App\Models\Oep;
 use App\Models\VisaPartner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
+/**
+ * DatabaseSeeder - Secure Implementation
+ *
+ * SECURITY FEATURES:
+ * - Random passwords generated using Str::random(16)
+ * - Passwords logged to secure file (not console)
+ * - All seeded users have force_password_change=true
+ * - No passwords echoed to console output
+ *
+ * After seeding, check: storage/logs/seeder-credentials.log
+ * This file should be securely deleted after initial setup.
+ */
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Credential storage for secure logging
+     */
+    private array $credentials = [];
+
+    /**
+     * Path to secure credentials log file
+     */
+    private string $credentialsLogPath;
+
+    public function __construct()
+    {
+        $this->credentialsLogPath = storage_path('logs/seeder-credentials.log');
+    }
+
     public function run(): void
     {
+        // Initialize credentials log
+        $this->initializeCredentialsLog();
+
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        echo "🔐 CREATING USER ROLES (Per ICLMS Specification)\n";
+        echo "🔐 CREATING USER ROLES (Secure Mode)\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
         // ============================================================
         // 1. SUPER ADMIN - Highest privilege level
         // ============================================================
-        User::updateOrCreate(
-            ['email' => 'superadmin@btevta.gov.pk'],
-            [
-                'name' => 'Super Administrator',
-                'password' => Hash::make('SuperAdmin@123'),
-                'role' => User::ROLE_SUPER_ADMIN,
-                'is_active' => true,
-            ]
-        );
-        echo "✓ Super Admin created (superadmin@btevta.gov.pk / SuperAdmin@123)\n";
+        $this->createSecureUser([
+            'email' => 'superadmin@btevta.gov.pk',
+            'name' => 'Super Administrator',
+            'role' => User::ROLE_SUPER_ADMIN,
+        ]);
+        echo "✓ Super Admin created (superadmin@btevta.gov.pk)\n";
 
         // Legacy admin alias
-        User::updateOrCreate(
-            ['email' => 'admin@btevta.gov.pk'],
-            [
-                'name' => 'Administrator',
-                'password' => Hash::make('Admin@123'),
-                'role' => User::ROLE_ADMIN,
-                'is_active' => true,
-            ]
-        );
-        echo "✓ Admin created (admin@btevta.gov.pk / Admin@123)\n";
+        $this->createSecureUser([
+            'email' => 'admin@btevta.gov.pk',
+            'name' => 'Administrator',
+            'role' => User::ROLE_ADMIN,
+        ]);
+        echo "✓ Admin created (admin@btevta.gov.pk)\n";
 
         // ============================================================
         // 2. PROJECT DIRECTOR - Oversight of all operations
         // ============================================================
-        User::updateOrCreate(
-            ['email' => 'director@btevta.gov.pk'],
-            [
-                'name' => 'Project Director',
-                'password' => Hash::make('Director@123'),
-                'role' => User::ROLE_PROJECT_DIRECTOR,
-                'is_active' => true,
-            ]
-        );
-        echo "✓ Project Director created (director@btevta.gov.pk / Director@123)\n";
+        $this->createSecureUser([
+            'email' => 'director@btevta.gov.pk',
+            'name' => 'Project Director',
+            'role' => User::ROLE_PROJECT_DIRECTOR,
+        ]);
+        echo "✓ Project Director created (director@btevta.gov.pk)\n";
 
         // ============================================================
         // 3. CAMPUSES - Required before Campus Admins
@@ -84,45 +104,36 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
-
         echo "✓ Created 5 campuses\n";
 
         // ============================================================
         // 4. CAMPUS ADMINS - Manage individual campuses
         // ============================================================
         $campusList = Campus::all();
-        foreach ($campusList as $index => $campus) {
-            User::updateOrCreate(
-                ['email' => 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk'],
-                [
-                    'name' => $campus->name . ' Admin',
-                    'password' => Hash::make('CampusAdmin@123'),
-                    'role' => User::ROLE_CAMPUS_ADMIN,
-                    'campus_id' => $campus->id,
-                    'is_active' => true,
-                ]
-            );
+        foreach ($campusList as $campus) {
+            $email = 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk';
+            $this->createSecureUser([
+                'email' => $email,
+                'name' => $campus->name . ' Admin',
+                'role' => User::ROLE_CAMPUS_ADMIN,
+                'campus_id' => $campus->id,
+            ]);
         }
-
-        echo "✓ Created 5 campus admin users (password: CampusAdmin@123)\n";
+        echo "✓ Created 5 campus admin users\n";
 
         // ============================================================
         // 5. TRAINERS - Conduct training sessions
         // ============================================================
         foreach ($campusList->take(3) as $campus) {
-            User::updateOrCreate(
-                ['email' => 'trainer-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk'],
-                [
-                    'name' => $campus->name . ' Trainer',
-                    'password' => Hash::make('Trainer@123'),
-                    'role' => User::ROLE_TRAINER,
-                    'campus_id' => $campus->id,
-                    'is_active' => true,
-                ]
-            );
+            $email = 'trainer-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk';
+            $this->createSecureUser([
+                'email' => $email,
+                'name' => $campus->name . ' Trainer',
+                'role' => User::ROLE_TRAINER,
+                'campus_id' => $campus->id,
+            ]);
         }
-
-        echo "✓ Created 3 trainer users (password: Trainer@123)\n";
+        echo "✓ Created 3 trainer users\n";
 
         // Create Trades
         $trades = [
@@ -145,7 +156,6 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
-
         echo "✓ Created 5 trades\n";
 
         // Create OEPs (Overseas Employment Promoters)
@@ -172,7 +182,6 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
-
         echo "✓ Created 5 OEPs\n";
 
         // ============================================================
@@ -180,19 +189,15 @@ class DatabaseSeeder extends Seeder
         // ============================================================
         $oepList = Oep::all();
         foreach ($oepList as $oep) {
-            User::updateOrCreate(
-                ['email' => 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@btevta.gov.pk'],
-                [
-                    'name' => $oep->name . ' User',
-                    'password' => Hash::make('OEP@123'),
-                    'role' => User::ROLE_OEP,
-                    'oep_id' => $oep->id,
-                    'is_active' => true,
-                ]
-            );
+            $email = 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@btevta.gov.pk';
+            $this->createSecureUser([
+                'email' => $email,
+                'name' => $oep->name . ' User',
+                'role' => User::ROLE_OEP,
+                'oep_id' => $oep->id,
+            ]);
         }
-
-        echo "✓ Created 5 OEP users (password: OEP@123)\n";
+        echo "✓ Created 5 OEP users\n";
 
         // ============================================================
         // 7. VISA PARTNERS - Handle visa processing
@@ -217,51 +222,36 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            // Create a user for each visa partner
-            User::updateOrCreate(
-                ['email' => 'visa-' . strtolower(str_replace(' ', '', $partner['name'])) . '@btevta.gov.pk'],
-                [
-                    'name' => $partner['name'] . ' User',
-                    'password' => Hash::make('VisaPartner@123'),
-                    'role' => User::ROLE_VISA_PARTNER,
-                    'visa_partner_id' => $visaPartner->id,
-                    'is_active' => true,
-                ]
-            );
+            $email = 'visa-' . strtolower(str_replace(' ', '', $partner['name'])) . '@btevta.gov.pk';
+            $this->createSecureUser([
+                'email' => $email,
+                'name' => $partner['name'] . ' User',
+                'role' => User::ROLE_VISA_PARTNER,
+                'visa_partner_id' => $visaPartner->id,
+            ]);
         }
-
-        echo "✓ Created 3 Visa Partners and users (password: VisaPartner@123)\n";
+        echo "✓ Created 3 Visa Partners and users\n";
 
         // ============================================================
         // 8. VIEWER - Read-only access for reports
         // ============================================================
-        User::updateOrCreate(
-            ['email' => 'viewer@btevta.gov.pk'],
-            [
-                'name' => 'Report Viewer',
-                'password' => Hash::make('Viewer@123'),
-                'role' => User::ROLE_VIEWER,
-                'is_active' => true,
-            ]
-        );
-
-        echo "✓ Viewer created (viewer@btevta.gov.pk / Viewer@123)\n";
+        $this->createSecureUser([
+            'email' => 'viewer@btevta.gov.pk',
+            'name' => 'Report Viewer',
+            'role' => User::ROLE_VIEWER,
+        ]);
+        echo "✓ Viewer created (viewer@btevta.gov.pk)\n";
 
         // ============================================================
         // 9. STAFF - General staff access
         // ============================================================
-        User::updateOrCreate(
-            ['email' => 'staff@btevta.gov.pk'],
-            [
-                'name' => 'Staff Member',
-                'password' => Hash::make('Staff@123'),
-                'role' => User::ROLE_STAFF,
-                'campus_id' => $campusList->first()->id,
-                'is_active' => true,
-            ]
-        );
-
-        echo "✓ Staff created (staff@btevta.gov.pk / Staff@123)\n";
+        $this->createSecureUser([
+            'email' => 'staff@btevta.gov.pk',
+            'name' => 'Staff Member',
+            'role' => User::ROLE_STAFF,
+            'campus_id' => $campusList->first()->id,
+        ]);
+        echo "✓ Staff created (staff@btevta.gov.pk)\n";
 
         // Create Batches
         if (Batch::count() === 0) {
@@ -296,50 +286,172 @@ class DatabaseSeeder extends Seeder
             echo "✓ Candidates already exist, skipping...\n";
         }
 
+        // Finalize credentials log
+        $this->finalizeCredentialsLog();
+
         echo "\n✨ Database seeding completed successfully!\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        echo "📋 USER CREDENTIALS BY ROLE (Per ICLMS Specification):\n";
+        echo "🔐 SECURITY NOTICE:\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
-
-        echo "1. SUPER ADMIN (Full system access):\n";
-        echo "   Email: superadmin@btevta.gov.pk\n";
-        echo "   Password: SuperAdmin@123\n\n";
-
-        echo "2. ADMIN (Legacy super admin alias):\n";
-        echo "   Email: admin@btevta.gov.pk\n";
-        echo "   Password: Admin@123\n\n";
-
-        echo "3. PROJECT DIRECTOR (Oversight & reports):\n";
-        echo "   Email: director@btevta.gov.pk\n";
-        echo "   Password: Director@123\n\n";
-
-        echo "4. CAMPUS ADMIN (5 users - per campus):\n";
-        echo "   Email: admin-camp-XXX@btevta.gov.pk\n";
-        echo "   Password: CampusAdmin@123\n\n";
-
-        echo "5. TRAINER (3 users - per campus):\n";
-        echo "   Email: trainer-camp-XXX@btevta.gov.pk\n";
-        echo "   Password: Trainer@123\n\n";
-
-        echo "6. OEP (5 users - per OEP organization):\n";
-        echo "   Email: oep-XXX@btevta.gov.pk\n";
-        echo "   Password: OEP@123\n\n";
-
-        echo "7. VISA PARTNER (3 users):\n";
-        echo "   Email: visa-XXX@btevta.gov.pk\n";
-        echo "   Password: VisaPartner@123\n\n";
-
-        echo "8. VIEWER (Read-only reports):\n";
-        echo "   Email: viewer@btevta.gov.pk\n";
-        echo "   Password: Viewer@123\n\n";
-
-        echo "9. STAFF (General access):\n";
-        echo "   Email: staff@btevta.gov.pk\n";
-        echo "   Password: Staff@123\n\n";
-
+        echo "⚠️  Credentials have been saved to:\n";
+        echo "    " . $this->credentialsLogPath . "\n\n";
+        echo "⚠️  IMPORTANT SECURITY ACTIONS:\n";
+        echo "    1. Securely distribute credentials to users\n";
+        echo "    2. DELETE the credentials log file after distribution\n";
+        echo "    3. All users MUST change password on first login\n\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         echo "💡 TIP: To populate comprehensive test data for all modules, run:\n";
         echo "   php artisan db:seed --class=TestDataSeeder\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    }
+
+    /**
+     * Initialize the credentials log file
+     */
+    private function initializeCredentialsLog(): void
+    {
+        $header = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $header .= "WASL/BTEVTA - SEEDED USER CREDENTIALS\n";
+        $header .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n";
+        $header .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        $header .= "⚠️  SECURITY WARNING:\n";
+        $header .= "    - DELETE this file after distributing credentials\n";
+        $header .= "    - All users MUST change password on first login\n";
+        $header .= "    - Do NOT commit this file to version control\n\n";
+        $header .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        file_put_contents($this->credentialsLogPath, $header);
+
+        // Set restrictive permissions on the credentials file
+        chmod($this->credentialsLogPath, 0600);
+    }
+
+    /**
+     * Create a user with a secure random password
+     *
+     * @param array $userData User data including email, name, role, and optional relations
+     * @return User
+     */
+    private function createSecureUser(array $userData): User
+    {
+        // Generate a secure random password
+        $password = $this->generateSecurePassword();
+
+        $user = User::updateOrCreate(
+            ['email' => $userData['email']],
+            [
+                'name' => $userData['name'],
+                'password' => Hash::make($password),
+                'role' => $userData['role'],
+                'campus_id' => $userData['campus_id'] ?? null,
+                'oep_id' => $userData['oep_id'] ?? null,
+                'visa_partner_id' => $userData['visa_partner_id'] ?? null,
+                'is_active' => true,
+                'force_password_change' => true, // SECURITY: Force password change on first login
+            ]
+        );
+
+        // Store credential for logging
+        $this->credentials[] = [
+            'role' => $this->getRoleDisplayName($userData['role']),
+            'email' => $userData['email'],
+            'password' => $password,
+            'name' => $userData['name'],
+        ];
+
+        // Log to secure file immediately
+        $this->logCredential($userData['role'], $userData['email'], $password, $userData['name']);
+
+        return $user;
+    }
+
+    /**
+     * Generate a secure random password
+     *
+     * Format: XxxxXxxx@999 (2 uppercase, 6 lowercase, 1 special, 3 digits)
+     * This ensures the password meets strong password requirements
+     *
+     * @return string
+     */
+    private function generateSecurePassword(): string
+    {
+        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        $numbers = '0123456789';
+        $special = '@#$%&*!';
+
+        // Build password with guaranteed complexity
+        $password = '';
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)]; // 1 uppercase
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)]; // 2nd uppercase
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];    // 1 special
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];    // 3 numbers
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+
+        return $password;
+    }
+
+    /**
+     * Log a credential to the secure file
+     */
+    private function logCredential(string $role, string $email, string $password, string $name): void
+    {
+        $roleName = $this->getRoleDisplayName($role);
+        $entry = sprintf(
+            "[%s]\n  Name: %s\n  Email: %s\n  Password: %s\n\n",
+            $roleName,
+            $name,
+            $email,
+            $password
+        );
+
+        file_put_contents($this->credentialsLogPath, $entry, FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Finalize the credentials log
+     */
+    private function finalizeCredentialsLog(): void
+    {
+        $footer = "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $footer .= "Total users created: " . count($this->credentials) . "\n";
+        $footer .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $footer .= "\n⚠️  REMINDER: Delete this file after distributing credentials!\n";
+        $footer .= "    Command: rm " . $this->credentialsLogPath . "\n";
+
+        file_put_contents($this->credentialsLogPath, $footer, FILE_APPEND | LOCK_EX);
+
+        // Log to Laravel log for audit purposes (without passwords)
+        Log::info('Database seeded with secure credentials', [
+            'user_count' => count($this->credentials),
+            'credentials_file' => $this->credentialsLogPath,
+            'seeded_at' => now()->toISOString(),
+        ]);
+    }
+
+    /**
+     * Get display name for a role
+     */
+    private function getRoleDisplayName(string $role): string
+    {
+        return match ($role) {
+            User::ROLE_SUPER_ADMIN => 'Super Admin',
+            User::ROLE_ADMIN => 'Admin',
+            User::ROLE_PROJECT_DIRECTOR => 'Project Director',
+            User::ROLE_CAMPUS_ADMIN => 'Campus Admin',
+            User::ROLE_TRAINER => 'Trainer',
+            User::ROLE_OEP => 'OEP',
+            User::ROLE_VISA_PARTNER => 'Visa Partner',
+            User::ROLE_VIEWER => 'Viewer',
+            User::ROLE_STAFF => 'Staff',
+            default => ucfirst($role),
+        };
     }
 }

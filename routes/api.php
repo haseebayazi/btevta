@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\CandidateApiController;
 use App\Http\Controllers\Api\DepartureApiController;
 use App\Http\Controllers\Api\VisaProcessApiController;
+use App\Http\Controllers\HealthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,16 @@ use App\Http\Controllers\Api\VisaProcessApiController;
 | All routes automatically prefixed with /api
 |
 */
+
+// ========================================================================
+// Health Check Routes (No Authentication Required)
+// Used by load balancers and monitoring systems
+// ========================================================================
+
+Route::get('/health', [HealthController::class, 'check'])->name('health.check');
+Route::get('/health/detailed', [HealthController::class, 'detailed'])
+    ->middleware(['auth:sanctum', 'role:admin,super_admin'])
+    ->name('health.detailed');
 
 // ========================================================================
 // API v1 Routes

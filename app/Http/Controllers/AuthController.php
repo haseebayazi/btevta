@@ -233,4 +233,82 @@ class AuthController extends Controller
             ? redirect()->route('login')->with('success', 'Password reset successfully!')
             : back()->withErrors(['email' => [__($status)]]);
     }
+
+    /**
+     * Show the force password change form.
+     *
+     * This is displayed when a user has force_password_change=true,
+     * typically for seeded accounts or admin-initiated resets.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showForcePasswordChange()
+    {
+        // Double-check the user actually needs to change password
+        if (!auth()->user()->mustChangePassword()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.force-password-change');
+    }
+
+    /**
+     * Handle the force password change submission.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateForcePasswordChange(Request $request)
+    {
+        $user = auth()->user();
+
+        // Validate the user must change password
+        if (!$user->mustChangePassword()) {
+            return redirect()->route('dashboard');
+        }
+
+        $request->validate([
+            'current_password' => ['required', function ($attribute, $value, $fail) use ($user) {
+                if (!Hash::check($value, $user->password)) {
+                    $fail('The current password is incorrect.');
+                }
+            }],
+            'password' => [
+                'required',
+                'min:12',
+                'confirmed',
+                'different:current_password',
+                new StrongPassword,
+            ],
+        ], [
+            'password.different' => 'The new password must be different from your current password.',
+            'password.min' => 'The new password must be at least 12 characters.',
+        ]);
+
+        // Update the password
+        $user->forceFill([
+            'password' => Hash::make($request->password),
+            'password_changed_at' => now(),
+            'force_password_change' => false,
+            'password_force_changed_at' => now(),
+            // Reset lockout on password change
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+        ])->save();
+
+        // Log the activity
+        activity()
+            ->causedBy($user)
+            ->log('Completed mandatory password change');
+
+        Log::info('User completed mandatory password change', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'ip' => $request->ip(),
+        ]);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', 'Your password has been changed successfully. Welcome to the system!');
+    }
 }

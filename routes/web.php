@@ -60,6 +60,18 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // ========================================================================
+// FORCE PASSWORD CHANGE ROUTES
+// ========================================================================
+// These routes are accessible even when force_password_change is true.
+// The ForcePasswordChange middleware specifically allows these routes.
+Route::middleware(['auth'])->group(function () {
+    Route::get('/password/force-change', [AuthController::class, 'showForcePasswordChange'])
+        ->name('password.force-change');
+    Route::post('/password/force-change', [AuthController::class, 'updateForcePasswordChange'])
+        ->name('password.force-change.update');
+});
+
+// ========================================================================
 // SECURE FILE ACCESS ROUTES
 // ========================================================================
 // SECURITY: All private documents must be accessed through these routes

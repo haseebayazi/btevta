@@ -79,6 +79,8 @@ class User extends Authenticatable
         'failed_login_attempts',
         'locked_until',
         'password_changed_at',
+        'force_password_change',
+        'password_force_changed_at',
         'created_by',
         'updated_by',
     ];
@@ -95,6 +97,8 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'locked_until' => 'datetime',
         'password_changed_at' => 'datetime',
+        'force_password_change' => 'boolean',
+        'password_force_changed_at' => 'datetime',
         'failed_login_attempts' => 'integer',
     ];
 
@@ -153,6 +157,53 @@ class User extends Authenticatable
             return 0;
         }
         return now()->diffInMinutes($this->locked_until, false);
+    }
+
+    /**
+     * Check if user must change their password
+     *
+     * @return bool True if password change is required
+     */
+    public function mustChangePassword(): bool
+    {
+        return (bool) $this->force_password_change;
+    }
+
+    /**
+     * Mark that user has completed forced password change
+     *
+     * @return bool
+     */
+    public function completePasswordChange(): bool
+    {
+        $this->force_password_change = false;
+        $this->password_force_changed_at = now();
+        $this->password_changed_at = now();
+
+        return $this->save();
+    }
+
+    /**
+     * Force user to change password on next login
+     *
+     * @param string|null $reason Reason for forcing password change (for audit)
+     * @return bool
+     */
+    public function requirePasswordChange(?string $reason = null): bool
+    {
+        $this->force_password_change = true;
+
+        $result = $this->save();
+
+        if ($result && $reason) {
+            activity()
+                ->performedOn($this)
+                ->causedBy(auth()->user())
+                ->withProperties(['reason' => $reason])
+                ->log('Password change required');
+        }
+
+        return $result;
     }
 
     // ============================================================
@@ -459,5 +510,111 @@ class User extends Authenticatable
             self::ROLE_VIEWER => 'Viewer (Read-Only)',
             self::ROLE_STAFF => 'Staff',
         ];
+    }
+
+    // ============================================================
+    // BOOT METHOD
+    // ============================================================
+
+    /**
+     * Boot the model.
+     *
+     * Register observers and model events.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Register the password history observer
+        static::observe(\App\Observers\UserPasswordObserver::class);
+    }
+
+    // ============================================================
+    // PASSWORD HISTORY METHODS
+    // ============================================================
+
+    /**
+     * Check if a password was recently used.
+     *
+     * @param string $plainPassword The plain text password to check
+     * @return bool True if password was recently used
+     */
+    public function wasPasswordRecentlyUsed(string $plainPassword): bool
+    {
+        return PasswordHistory::wasRecentlyUsed($this->id, $plainPassword);
+    }
+
+    /**
+     * Get password expiry date based on role.
+     *
+     * @return \Carbon\Carbon|null
+     */
+    public function getPasswordExpiryDate(): ?\Carbon\Carbon
+    {
+        if (!$this->password_changed_at) {
+            return null;
+        }
+
+        $expiryDays = config("password.role_expiry_days.{$this->role}")
+            ?? config('password.expiry_days', 90);
+
+        if ($expiryDays <= 0) {
+            return null;
+        }
+
+        return $this->password_changed_at->copy()->addDays($expiryDays);
+    }
+
+    /**
+     * Check if password is expired.
+     *
+     * @return bool
+     */
+    public function isPasswordExpired(): bool
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return false;
+        }
+
+        return now()->greaterThan($expiryDate);
+    }
+
+    /**
+     * Check if password is expiring soon (within warning period).
+     *
+     * @return bool
+     */
+    public function isPasswordExpiringSoon(): bool
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return false;
+        }
+
+        $warningDays = config('password.expiry_warning_days', 14);
+        $warningDate = $expiryDate->copy()->subDays($warningDays);
+
+        return now()->greaterThanOrEqualTo($warningDate) && now()->lessThan($expiryDate);
+    }
+
+    /**
+     * Get days until password expires.
+     *
+     * @return int|null
+     */
+    public function getDaysUntilPasswordExpiry(): ?int
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return null;
+        }
+
+        $days = now()->diffInDays($expiryDate, false);
+
+        return $days > 0 ? $days : 0;
     }
 }
