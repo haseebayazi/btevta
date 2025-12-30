@@ -143,12 +143,22 @@ Access at: `http://localhost:8000`
 
 ## Quick Start Guide
 
-### Default Login Credentials
+### Initial Access
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | admin@btevta.gov.pk | password |
-| Campus Admin | campus@btevta.gov.pk | password |
+After running `php artisan db:seed`, administrative accounts are created automatically.
+
+> **Security Notice:** For security compliance, login credentials are displayed ONLY in the terminal during seeding and written to `storage/logs/seeder-credentials.log`. This file should be securely deleted after initial setup.
+
+> **Important:** All seeded accounts require **mandatory password change on first login**. The system will redirect you to the password change screen automatically.
+
+**Seeded Roles:**
+- Super Admin (`superadmin@btevta.gov.pk`)
+- Admin (`admin@btevta.gov.pk`)
+- Project Director (`director@btevta.gov.pk`)
+- Campus Admins (one per campus)
+- Trainers, OEP Users, Visa Partners, Viewer, Staff
+
+Contact your deployment administrator for initial credentials.
 
 ### First Steps After Login
 

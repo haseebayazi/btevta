@@ -79,6 +79,8 @@ class User extends Authenticatable
         'failed_login_attempts',
         'locked_until',
         'password_changed_at',
+        'force_password_change',
+        'password_force_changed_at',
         'created_by',
         'updated_by',
     ];
@@ -95,6 +97,8 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'locked_until' => 'datetime',
         'password_changed_at' => 'datetime',
+        'force_password_change' => 'boolean',
+        'password_force_changed_at' => 'datetime',
         'failed_login_attempts' => 'integer',
     ];
 
@@ -153,6 +157,53 @@ class User extends Authenticatable
             return 0;
         }
         return now()->diffInMinutes($this->locked_until, false);
+    }
+
+    /**
+     * Check if user must change their password
+     *
+     * @return bool True if password change is required
+     */
+    public function mustChangePassword(): bool
+    {
+        return (bool) $this->force_password_change;
+    }
+
+    /**
+     * Mark that user has completed forced password change
+     *
+     * @return bool
+     */
+    public function completePasswordChange(): bool
+    {
+        $this->force_password_change = false;
+        $this->password_force_changed_at = now();
+        $this->password_changed_at = now();
+
+        return $this->save();
+    }
+
+    /**
+     * Force user to change password on next login
+     *
+     * @param string|null $reason Reason for forcing password change (for audit)
+     * @return bool
+     */
+    public function requirePasswordChange(?string $reason = null): bool
+    {
+        $this->force_password_change = true;
+
+        $result = $this->save();
+
+        if ($result && $reason) {
+            activity()
+                ->performedOn($this)
+                ->causedBy(auth()->user())
+                ->withProperties(['reason' => $reason])
+                ->log('Password change required');
+        }
+
+        return $result;
     }
 
     // ============================================================

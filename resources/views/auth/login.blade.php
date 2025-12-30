@@ -117,15 +117,15 @@
                 </button>
             </form>
             
-            <!-- Demo Credentials Info (Development Only) -->
+            <!-- Development Notice (Development Only) -->
             @if(config('app.env') === 'local')
-            <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p class="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
-                <div class="text-xs text-blue-800 space-y-1">
-                    <p><strong>Admin:</strong> admin@btevta.gov.pk / Admin@123</p>
-                    <p><strong>Campus:</strong> ttc.rawalpindi.admin@btevta.gov.pk / Campus@123</p>
-                    <p><strong>OEP:</strong> info@alkhabeer.com / Oep@123</p>
-                </div>
+            <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p class="text-xs font-semibold text-yellow-900 mb-1">
+                    <i class="fas fa-info-circle mr-1"></i> Development Mode
+                </p>
+                <p class="text-xs text-yellow-800">
+                    Check <code class="bg-yellow-100 px-1 rounded">storage/logs/seeder-credentials.log</code> for seeded account credentials.
+                </p>
             </div>
             @endif
         </div>

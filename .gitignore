@@ -45,6 +45,9 @@ yarn-debug.log*
 yarn-error.log*
 /storage/logs/*.log
 
+# SECURITY: Seeder credentials file (contains passwords)
+/storage/logs/seeder-credentials.log
+
 # Temporary & Build files
 *.tmp
 *.temp
