@@ -217,15 +217,11 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('role:admin,campus_admin,instructor')->group(function () {
         Route::resource('training', TrainingController::class);
         Route::prefix('training')->name('training.')->group(function () {
-            // DEPRECATED ROUTES (Kept for backward compatibility - will be removed in future)
-            // TODO: Update frontend to use new routes and remove these
-            Route::get('/batches', [TrainingController::class, 'batches'])->name('batches'); // DEPRECATED: Use resource routes
-            Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance'); // DEPRECATED: Use mark-attendance
-            Route::post('/assessment', [TrainingController::class, 'recordAssessment'])->name('assessment'); // DEPRECATED: Use store-assessment
-            Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate'); // DEPRECATED: Use download-certificate
-            Route::get('/batch/{batch}/report', [TrainingController::class, 'batchReport'])->name('batch-report'); // DEPRECATED: Use batch-performance
+            // TRAINING ROUTES
+            // Legacy routes kept for backward compatibility
+            Route::post('/attendance', [TrainingController::class, 'markAttendance'])->name('attendance');
+            Route::post('/{candidate}/certificate', [TrainingController::class, 'generateCertificate'])->name('certificate');
 
-            // RECOMMENDED ROUTES (Use these in new code)
             Route::get('/attendance/form', [TrainingController::class, 'attendance'])->name('attendance-form');
             Route::post('/{candidate}/mark-attendance', [TrainingController::class, 'markAttendance'])->name('mark-attendance');
 
@@ -257,21 +253,6 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('role:admin,project_director,campus_admin,instructor,oep,visa_partner')->group(function () {
         Route::resource('visa-processing', VisaProcessingController::class);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
-            // DEPRECATED ROUTES: These methods don't exist in VisaProcessingController
-            // TODO: Implement these methods or remove from frontend if not used
-            // Route::post('/{candidate}/interview', [VisaProcessingController::class, 'recordInterview'])->name('interview');
-            // Route::post('/{candidate}/trade-test', [VisaProcessingController::class, 'recordTradeTest'])->name('trade-test');
-            // Route::post('/{candidate}/takamol', [VisaProcessingController::class, 'recordTakamol'])->name('takamol');
-            // Route::post('/{candidate}/medical', [VisaProcessingController::class, 'recordMedical'])->name('medical');
-            // Route::post('/{candidate}/enumber', [VisaProcessingController::class, 'recordEnumber'])->name('enumber');
-            // Route::post('/{candidate}/biometric', [VisaProcessingController::class, 'recordBiometric'])->name('biometric');
-            // Route::post('/{candidate}/visa', [VisaProcessingController::class, 'recordVisa'])->name('visa');
-
-            // DEPRECATED ROUTE: timelineReport method doesn't exist
-            // TODO: Implement or use 'timeline' route instead
-            // Route::get('/timeline-report', [VisaProcessingController::class, 'timelineReport'])
-            //     ->middleware('throttle:5,1')->name('timeline-report');
-
             // UPDATE ROUTES (Use these to modify existing records)
             Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
             Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
@@ -323,15 +304,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/absher', [DepartureController::class, 'recordAbsher'])->name('absher');
 
         // EMPLOYMENT & COMPLIANCE ROUTES
-        Route::post('/{candidate}/wps', [DepartureController::class, 'recordWps'])->name('wps'); // Preferred
-        // TODO: BROKEN ROUTE - recordQiwa method doesn't exist in controller (use recordWps instead)
-        // Route::post('/{candidate}/qiwa', [DepartureController::class, 'recordQiwa'])->name('qiwa'); // DEPRECATED: Use 'wps' instead
-        Route::post('/{candidate}/first-salary', [DepartureController::class, 'recordFirstSalary'])->name('first-salary'); // Preferred
-        // TODO: BROKEN ROUTE - recordSalary method doesn't exist in controller (use recordFirstSalary instead)
-        // Route::post('/{candidate}/salary', [DepartureController::class, 'recordSalary'])->name('salary'); // DEPRECATED: Use 'first-salary' instead
+        Route::post('/{candidate}/wps', [DepartureController::class, 'recordWps'])->name('wps');
+        Route::post('/{candidate}/first-salary', [DepartureController::class, 'recordFirstSalary'])->name('first-salary');
         Route::post('/{candidate}/90-day-compliance', [DepartureController::class, 'record90DayCompliance'])->name('90-day-compliance');
-        // TODO: BROKEN ROUTE - submitNinetyDayReport method doesn't exist in controller (use record90DayCompliance instead)
-        // Route::post('/{candidate}/ninety-day-report', [DepartureController::class, 'submitNinetyDayReport'])->name('ninety-day-report'); // Legacy
 
         // ISSUE TRACKING ROUTES
         Route::post('/{candidate}/issue', [DepartureController::class, 'reportIssue'])->name('report-issue');
@@ -340,9 +315,6 @@ Route::middleware(['auth'])->group(function () {
 
         // VIEW & MONITORING ROUTES
         Route::get('/{candidate}/timeline', [DepartureController::class, 'timeline'])->name('timeline');
-        // TODO: BROKEN ROUTE - pendingCompliance method doesn't exist in controller
-        // Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
-
         Route::get('/tracking/90-days', [DepartureController::class, 'tracking90Days'])->name('tracking-90-days');
         Route::get('/non-compliant', [DepartureController::class, 'nonCompliant'])->name('non-compliant');
         Route::get('/active-issues', [DepartureController::class, 'activeIssues'])->name('active-issues');
