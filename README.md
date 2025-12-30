@@ -4,7 +4,7 @@
 
 A comprehensive digital platform for managing the complete candidate lifecycle from BTEVTA listing through overseas deployment, post-departure tracking, and remittance management.
 
-**Version:** 1.3.0 | **Status:** Production Ready | **Last Updated:** December 2025
+**Version:** 1.4.0 | **Status:** Production Ready | **Last Updated:** December 2025
 
 ---
 
@@ -25,6 +25,7 @@ A comprehensive digital platform for managing the complete candidate lifecycle f
 - [Production Deployment](#production-deployment)
 - [Maintenance & Monitoring](#maintenance--monitoring)
 - [Troubleshooting](#troubleshooting)
+- [Developer Resources](#developer-resources)
 - [Changelog](#changelog)
 
 ---
@@ -1151,6 +1152,32 @@ The project includes comprehensive tests for:
 
 ## Changelog
 
+### Version 1.4.0 (December 2025) - Architecture & Code Quality
+
+**PHP 8.1+ Enums:**
+- `CandidateStatus` - Type-safe candidate workflow states
+- `TrainingStatus` - Training lifecycle management
+- `VisaStage` - Visa processing stages with metadata
+- `ComplaintPriority` - SLA-based priority levels
+- `ComplaintStatus` - Complaint workflow states
+
+**API Resources:**
+- `CandidateResource` - Consistent candidate JSON responses
+- `VisaProcessResource` - Structured visa data
+- `DepartureResource` - Departure tracking responses
+- `RemittanceResource` - Remittance data with formatting
+
+**Developer Documentation:**
+- Event/Listener architecture guide
+- OpenAPI 3.1 specification
+- README Developer Resources section
+- Code usage examples
+
+**Code Cleanup:**
+- Removed deprecated route comments
+- Cleaned up broken route references
+- Improved code organization
+
 ### Version 1.3.0 (December 2025) - Feature Enhancements
 
 **Real-time Notifications:**
@@ -1189,6 +1216,66 @@ The project includes comprehensive tests for:
 - Initial release
 - 10 core modules
 - Complete candidate lifecycle
+
+---
+
+## Developer Resources
+
+### Code Architecture
+
+The application follows modern PHP 8.1+ patterns:
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| **Enums** | `app/Enums/` | Type-safe status constants (CandidateStatus, VisaStage, etc.) |
+| **API Resources** | `app/Http/Resources/` | Consistent JSON API responses |
+| **Events** | `app/Events/` | Real-time broadcasting events |
+| **Services** | `app/Services/` | Business logic layer |
+
+### Documentation Files
+
+| Document | Description |
+|----------|-------------|
+| [`docs/EVENTS_AND_LISTENERS.md`](docs/EVENTS_AND_LISTENERS.md) | Event/Listener architecture and WebSocket setup |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | OpenAPI 3.1 specification for API |
+| [`docs/API_REMITTANCE.md`](docs/API_REMITTANCE.md) | Remittance API documentation |
+| [`docs/REMITTANCE_USER_GUIDE.md`](docs/REMITTANCE_USER_GUIDE.md) | Remittance module user guide |
+| [`docs/REMITTANCE_DEVELOPER_GUIDE.md`](docs/REMITTANCE_DEVELOPER_GUIDE.md) | Remittance module developer guide |
+| [`docs/REMITTANCE_SETUP_GUIDE.md`](docs/REMITTANCE_SETUP_GUIDE.md) | Remittance setup & configuration |
+| [`docs/REMITTANCE_ADMIN_MANUAL.md`](docs/REMITTANCE_ADMIN_MANUAL.md) | Administrator operations manual |
+| [`docs/TESTING_IMPROVEMENT_REPORT.md`](docs/TESTING_IMPROVEMENT_REPORT.md) | Test coverage and validation report |
+
+### Using Enums
+
+```php
+use App\Enums\CandidateStatus;
+
+// Get status with metadata
+$status = CandidateStatus::TRAINING;
+echo $status->label();  // "Training"
+echo $status->color();  // "warning"
+
+// Check transitions
+if ($status->canTransitionTo(CandidateStatus::VISA_PROCESS)) {
+    $candidate->update(['status' => CandidateStatus::VISA_PROCESS->value]);
+}
+
+// Get all active statuses for dropdown
+$options = CandidateStatus::toArray();
+```
+
+### Using API Resources
+
+```php
+use App\Http\Resources\CandidateResource;
+use App\Http\Resources\CandidateCollection;
+
+// Single resource
+return new CandidateResource($candidate);
+
+// Collection with pagination
+return new CandidateCollection(Candidate::paginate(20));
+```
 
 ---
 
