@@ -511,4 +511,110 @@ class User extends Authenticatable
             self::ROLE_STAFF => 'Staff',
         ];
     }
+
+    // ============================================================
+    // BOOT METHOD
+    // ============================================================
+
+    /**
+     * Boot the model.
+     *
+     * Register observers and model events.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Register the password history observer
+        static::observe(\App\Observers\UserPasswordObserver::class);
+    }
+
+    // ============================================================
+    // PASSWORD HISTORY METHODS
+    // ============================================================
+
+    /**
+     * Check if a password was recently used.
+     *
+     * @param string $plainPassword The plain text password to check
+     * @return bool True if password was recently used
+     */
+    public function wasPasswordRecentlyUsed(string $plainPassword): bool
+    {
+        return PasswordHistory::wasRecentlyUsed($this->id, $plainPassword);
+    }
+
+    /**
+     * Get password expiry date based on role.
+     *
+     * @return \Carbon\Carbon|null
+     */
+    public function getPasswordExpiryDate(): ?\Carbon\Carbon
+    {
+        if (!$this->password_changed_at) {
+            return null;
+        }
+
+        $expiryDays = config("password.role_expiry_days.{$this->role}")
+            ?? config('password.expiry_days', 90);
+
+        if ($expiryDays <= 0) {
+            return null;
+        }
+
+        return $this->password_changed_at->copy()->addDays($expiryDays);
+    }
+
+    /**
+     * Check if password is expired.
+     *
+     * @return bool
+     */
+    public function isPasswordExpired(): bool
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return false;
+        }
+
+        return now()->greaterThan($expiryDate);
+    }
+
+    /**
+     * Check if password is expiring soon (within warning period).
+     *
+     * @return bool
+     */
+    public function isPasswordExpiringSoon(): bool
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return false;
+        }
+
+        $warningDays = config('password.expiry_warning_days', 14);
+        $warningDate = $expiryDate->copy()->subDays($warningDays);
+
+        return now()->greaterThanOrEqualTo($warningDate) && now()->lessThan($expiryDate);
+    }
+
+    /**
+     * Get days until password expires.
+     *
+     * @return int|null
+     */
+    public function getDaysUntilPasswordExpiry(): ?int
+    {
+        $expiryDate = $this->getPasswordExpiryDate();
+
+        if (!$expiryDate) {
+            return null;
+        }
+
+        $days = now()->diffInDays($expiryDate, false);
+
+        return $days > 0 ? $days : 0;
+    }
 }
