@@ -11,15 +11,19 @@ A comprehensive digital platform for managing the complete candidate lifecycle f
 ## Table of Contents
 
 - [Overview](#overview)
+- [System Architecture](#system-architecture)
 - [Key Features](#key-features)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
+- [Environment Configuration](#environment-configuration)
 - [Quick Start Guide](#quick-start-guide)
 - [User Roles](#user-roles)
 - [Module Documentation](#module-documentation)
 - [API Reference](#api-reference)
 - [Tutorials](#tutorials)
 - [Security Features](#security-features)
+- [Production Deployment](#production-deployment)
+- [Maintenance & Monitoring](#maintenance--monitoring)
 - [Troubleshooting](#troubleshooting)
 - [Changelog](#changelog)
 
@@ -40,6 +44,107 @@ WASL (Workforce Abroad Skills & Linkages) is a Laravel-based enterprise applicat
 | Documents | PhpSpreadsheet, DomPDF |
 | Authentication | Laravel Sanctum |
 | Activity Logging | Spatie Activity Log |
+
+---
+
+## System Architecture
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              CLIENTS                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
+│  │   Browser    │  │  Mobile App  │  │  API Client  │                  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                  │
+└─────────┼─────────────────┼─────────────────┼───────────────────────────┘
+          │                 │                 │
+          └────────────────┬┴─────────────────┘
+                           │ HTTPS
+                           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         LOAD BALANCER / NGINX                            │
+│                    (SSL Termination, Static Assets)                      │
+└─────────────────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         LARAVEL APPLICATION                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
+│  │   Routes    │  │ Controllers │  │  Services   │  │   Models    │    │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
+│  │  Policies   │  │ Middleware  │  │   Events    │  │    Jobs     │    │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘
+          │                 │                 │
+          ▼                 ▼                 ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│     MySQL       │ │  Redis/Cache    │ │  File Storage   │
+│   (Primary DB)  │ │ (Sessions/Queue)│ │  (Documents)    │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+### Request Flow
+
+```
+1. Request → Nginx → Laravel
+2. Middleware: CORS → Session → CSRF → Auth → Role Check
+3. Controller → Service → Repository → Model
+4. Response (JSON/HTML) → Client
+```
+
+### Directory Structure
+
+```
+btevta/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/     # Request handlers (23 controllers)
+│   │   ├── Middleware/      # Auth, CSRF, Role, Security
+│   │   └── Requests/        # Form validation
+│   ├── Models/              # Eloquent models (15 models)
+│   ├── Policies/            # Authorization (23 policies)
+│   ├── Services/            # Business logic (14 services)
+│   ├── Observers/           # Model event handlers
+│   └── Rules/               # Custom validation rules
+├── config/                  # Application configuration
+├── database/
+│   ├── migrations/          # Database schema
+│   └── seeders/             # Initial data
+├── resources/views/         # Blade templates
+├── routes/
+│   ├── web.php              # Web routes
+│   └── api.php              # API routes
+└── storage/
+    ├── app/private/         # Secure document storage
+    └── logs/                # Application logs
+```
+
+### Database Schema Overview
+
+```
+Core Entities:
+├── users (9 roles, soft-delete)
+├── candidates (main entity, 15 statuses)
+├── campuses (training locations)
+├── trades (skill categories)
+├── batches (training groups)
+└── oeps (overseas employment promoters)
+
+Workflow Entities:
+├── screenings (3-call system)
+├── trainings (attendance, assessments)
+├── visa_processes (12-stage pipeline)
+├── departures (flight tracking)
+└── remittances (money transfers)
+
+Support Entities:
+├── complaints (SLA management)
+├── correspondences (communications)
+├── document_archives (versioned files)
+└── activity_log (audit trail)
+```
 
 ---
 
@@ -91,30 +196,65 @@ BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML, GD/Imagic
 
 ## Installation
 
-### 1. Clone Repository
+### Prerequisites Check
+
+Before installation, verify all requirements are met:
+
+```bash
+# Check PHP version (must be 8.2+)
+php -v
+
+# Check required PHP extensions
+php -m | grep -E 'pdo_mysql|gd|mbstring|openssl|bcmath|fileinfo|xml|ctype|tokenizer'
+
+# Check Composer version (must be 2.0+)
+composer -V
+
+# Check Node.js version (must be 18+)
+node -v
+
+# Check npm
+npm -v
+```
+
+### Step 1: Clone Repository
 
 ```bash
 git clone https://github.com/haseebayazi/btevta.git
 cd btevta
 ```
 
-### 2. Install Dependencies
+### Step 2: Install Dependencies
 
 ```bash
+# Install PHP dependencies
 composer install
+
+# Install Node dependencies and build assets
 npm install && npm run build
 ```
 
-### 3. Environment Setup
+### Step 3: Environment Setup
 
 ```bash
+# Copy environment file
 cp .env.example .env
+
+# Generate application key
 php artisan key:generate
 ```
 
-### 4. Configure Database
+### Step 4: Create Database
 
-Edit `.env` file:
+```bash
+# Connect to MySQL and create database
+mysql -u root -p -e "CREATE DATABASE btevta CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+### Step 5: Configure Environment
+
+Edit `.env` file with your database credentials:
+
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -124,20 +264,91 @@ DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
 
-### 5. Run Migrations & Seeders
+### Step 6: Run Migrations & Seeders
 
 ```bash
+# Run database migrations
 php artisan migrate
+
+# Seed initial data (creates admin accounts)
 php artisan db:seed
 ```
 
-### 6. Start Development Server
+> **Note:** Credentials are saved to `storage/logs/seeder-credentials.log`. Delete this file after noting the passwords.
+
+### Step 7: Create Storage Symlink
+
+```bash
+# Link storage to public directory (required for file uploads)
+php artisan storage:link
+```
+
+### Step 8: Set Permissions
+
+```bash
+# Set proper permissions for storage and cache
+chmod -R 775 storage bootstrap/cache
+```
+
+### Step 9: Start Development Server
 
 ```bash
 php artisan serve
 ```
 
 Access at: `http://localhost:8000`
+
+---
+
+## Environment Configuration
+
+### Development vs Production
+
+| Setting | Development | Production |
+|---------|-------------|------------|
+| `APP_ENV` | local | production |
+| `APP_DEBUG` | true | **false** |
+| `LOG_LEVEL` | debug | error |
+| `CACHE_DRIVER` | file | redis |
+| `SESSION_DRIVER` | file | redis |
+| `QUEUE_CONNECTION` | sync | redis |
+
+### Security Configuration
+
+```env
+# Password Policy (Government Standard)
+PASSWORD_MIN_LENGTH=12
+PASSWORD_REQUIRE_UPPERCASE=true
+PASSWORD_REQUIRE_LOWERCASE=true
+PASSWORD_REQUIRE_NUMBER=true
+PASSWORD_REQUIRE_SPECIAL=true
+PASSWORD_HISTORY_COUNT=5
+PASSWORD_EXPIRY_DAYS=90
+
+# Session Security
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
+
+# API Token Expiry (24 hours)
+SANCTUM_TOKEN_EXPIRATION=1440
+```
+
+### Mail Configuration
+
+```env
+# Gmail Example
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@btevta.gov.pk"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+> **Gmail Note:** Use an App Password, not your regular password. Enable 2FA and generate an App Password in Google Account settings.
 
 ---
 
@@ -354,11 +565,83 @@ Authorization: Bearer {token}
 
 ```
 ?page=1              # Pagination
-?per_page=25         # Items per page
+?per_page=25         # Items per page (max 100)
 ?status=training     # Filter by status
 ?campus_id=1         # Filter by campus
 ?trade_id=2          # Filter by trade
 ?search=john         # Search term
+?sort=created_at     # Sort field
+?order=desc          # Sort order (asc/desc)
+```
+
+### Rate Limiting
+
+API requests are rate-limited to prevent abuse:
+
+| Endpoint Type | Limit | Window |
+|--------------|-------|--------|
+| Authentication | 5 requests | 1 minute |
+| General API | 60 requests | 1 minute |
+| Bulk Operations | 10 requests | 1 minute |
+| Report Generation | 5 requests | 1 minute |
+| File Upload | 20 requests | 1 minute |
+
+**Rate Limit Headers:**
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1703900400
+```
+
+**Rate Limit Exceeded Response:**
+```json
+{
+    "message": "Too Many Attempts.",
+    "retry_after": 60
+}
+```
+HTTP Status: `429 Too Many Requests`
+
+### API Token Management
+
+Tokens expire after 24 hours (configurable via `SANCTUM_TOKEN_EXPIRATION`).
+
+```bash
+# Create new token
+POST /api/v1/tokens/create
+{
+    "token_name": "mobile-app",
+    "abilities": ["read", "write"]
+}
+
+# Revoke token
+DELETE /api/v1/tokens/{token_id}
+
+# List active tokens
+GET /api/v1/tokens
+```
+
+### Error Responses
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid input |
+| 401 | Unauthorized - Invalid/expired token |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource doesn't exist |
+| 422 | Validation Error - Invalid data |
+| 429 | Too Many Requests - Rate limited |
+| 500 | Server Error - Contact support |
+
+**Validation Error Example:**
+```json
+{
+    "message": "The given data was invalid.",
+    "errors": {
+        "email": ["The email field is required."],
+        "cnic": ["The cnic has already been taken."]
+    }
+}
 ```
 
 ---
@@ -546,6 +829,245 @@ Step 4: View Results
 - File access logging
 - Status change audit trail
 - Soft deletes for recovery
+
+### Password Policy (Government Standard)
+- Minimum 12 characters
+- Requires uppercase, lowercase, number, and special character
+- Password history (last 5 passwords blocked)
+- Password expiry (90 days default, 60 days for admin roles)
+- Common password detection
+- Forced password change on first login
+
+---
+
+## Production Deployment
+
+### Deployment Checklist
+
+```markdown
+Pre-Deployment:
+- [ ] Set APP_ENV=production
+- [ ] Set APP_DEBUG=false
+- [ ] Generate new APP_KEY for production
+- [ ] Configure production database (separate from dev)
+- [ ] Set up Redis for cache/session/queue
+- [ ] Configure mail service (SMTP)
+- [ ] Set up SSL certificate
+- [ ] Configure backup automation
+
+Security:
+- [ ] Change all default passwords
+- [ ] Enable 2FA for admin accounts
+- [ ] Configure firewall rules (ports 80, 443)
+- [ ] Set proper file permissions
+- [ ] Remove seeder-credentials.log
+- [ ] Review IP allowlisting if applicable
+
+Infrastructure:
+- [ ] Configure Nginx/Apache
+- [ ] Set up Supervisor for queue workers
+- [ ] Configure cron for scheduler
+- [ ] Set up monitoring (optional)
+- [ ] Configure log rotation
+
+Post-Deployment:
+- [ ] Run all migrations
+- [ ] Clear and rebuild caches
+- [ ] Test all critical workflows
+- [ ] Verify email notifications work
+- [ ] Test file upload/download
+```
+
+### Nginx Configuration
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name btevta.gov.pk www.btevta.gov.pk;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name btevta.gov.pk www.btevta.gov.pk;
+
+    root /var/www/btevta/public;
+    index index.php;
+
+    # SSL Configuration
+    ssl_certificate /etc/ssl/certs/btevta.crt;
+    ssl_certificate_key /etc/ssl/private/btevta.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Gzip Compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+
+    # Laravel Routing
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP Processing
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    # Deny access to sensitive files
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+
+    # Cache static assets
+    location ~* \.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### Queue Worker (Supervisor)
+
+Create `/etc/supervisor/conf.d/btevta-worker.conf`:
+
+```ini
+[program:btevta-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/btevta/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/www/btevta/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+```bash
+# Start supervisor
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start btevta-worker:*
+```
+
+### Task Scheduler (Cron)
+
+Add to crontab (`crontab -e`):
+
+```cron
+* * * * * cd /var/www/btevta && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Production Optimization
+
+```bash
+# Cache configuration
+php artisan config:cache
+
+# Cache routes
+php artisan route:cache
+
+# Cache views
+php artisan view:cache
+
+# Optimize autoloader
+composer install --optimize-autoloader --no-dev
+
+# Clear old caches first if updating
+php artisan optimize:clear && php artisan optimize
+```
+
+---
+
+## Maintenance & Monitoring
+
+### Health Check Endpoint
+
+```
+GET /up
+```
+
+Returns HTTP 200 if application is healthy.
+
+### Scheduled Tasks
+
+| Task | Schedule | Description |
+|------|----------|-------------|
+| Log Cleanup | Daily 1:00 AM | Prune logs older than 30 days |
+| Backup | Daily 2:00 AM | Database and file backup |
+| Password Expiry Check | Daily 6:00 AM | Notify users of expiring passwords |
+| SLA Breach Check | Every 15 min | Check complaint SLA compliance |
+| Cache Cleanup | Weekly | Clear expired cache entries |
+
+### Log Files
+
+| Log | Location | Purpose |
+|-----|----------|---------|
+| Application | `storage/logs/laravel.log` | General application logs |
+| Worker | `storage/logs/worker.log` | Queue worker logs |
+| Slow Queries | `storage/logs/slow-queries.log` | Database performance |
+| Security | `storage/logs/security.log` | Auth failures, suspicious activity |
+
+### Backup Strategy
+
+```bash
+# Database backup (daily)
+mysqldump -u root -p btevta > /backup/btevta_$(date +%Y%m%d).sql
+
+# Files backup (daily)
+tar -czf /backup/btevta_files_$(date +%Y%m%d).tar.gz /var/www/btevta/storage/app
+
+# Retention: Keep 30 days of backups
+find /backup -name "btevta_*.sql" -mtime +30 -delete
+find /backup -name "btevta_files_*.tar.gz" -mtime +30 -delete
+```
+
+### Monitoring Commands
+
+```bash
+# Check queue status
+php artisan queue:monitor redis:default
+
+# View failed jobs
+php artisan queue:failed
+
+# Retry failed jobs
+php artisan queue:retry all
+
+# Clear failed jobs
+php artisan queue:flush
+
+# Check scheduler status
+php artisan schedule:list
+```
+
+### Maintenance Mode
+
+```bash
+# Enable maintenance mode
+php artisan down --render="errors::503" --secret="maintenance-bypass-token"
+
+# Access during maintenance (add to URL)
+https://btevta.gov.pk/maintenance-bypass-token
+
+# Disable maintenance mode
+php artisan up
+```
 
 ---
 
