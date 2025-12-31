@@ -260,6 +260,16 @@ class Candidate extends Model
     }
 
     /**
+     * Get all training classes the candidate is enrolled in.
+     */
+    public function trainingClasses()
+    {
+        return $this->belongsToMany(TrainingClass::class, 'class_enrollments', 'candidate_id', 'training_class_id')
+                    ->withPivot('enrollment_date', 'status', 'remarks', 'enrolled_by')
+                    ->withTimestamps();
+    }
+
+    /**
      * Get the latest training certificate for the candidate.
      * Alias for trainingCertificates - returns the most recent certificate.
      */
