@@ -469,89 +469,42 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 **Tasks:**
 
 ```
-[ ] 4.1.1 Create CampusEquipmentPolicy
-    File: app/Policies/CampusEquipmentPolicy.php
-    php artisan make:policy CampusEquipmentPolicy --model=CampusEquipment
-
-[ ] 4.1.2 Create CampusKpiPolicy
-    File: app/Policies/CampusKpiPolicy.php
-
-[ ] 4.1.3 Create ComplaintEvidencePolicy
-    File: app/Policies/ComplaintEvidencePolicy.php
-
-[ ] 4.1.4 Create ComplaintUpdatePolicy
-    File: app/Policies/ComplaintUpdatePolicy.php
-
-[ ] 4.1.5 Create EquipmentUsageLogPolicy
-    File: app/Policies/EquipmentUsageLogPolicy.php
-
-[ ] 4.1.6 Create NextOfKinPolicy
-    File: app/Policies/NextOfKinPolicy.php
-
-[ ] 4.1.7 Create PasswordHistoryPolicy
-    File: app/Policies/PasswordHistoryPolicy.php
-
-[ ] 4.1.8 Create RegistrationDocumentPolicy
-    File: app/Policies/RegistrationDocumentPolicy.php
-
-[ ] 4.1.9 Create RemittanceReceiptPolicy
-    File: app/Policies/RemittanceReceiptPolicy.php
-
-[ ] 4.1.10 Create RemittanceUsageBreakdownPolicy
-    File: app/Policies/RemittanceUsageBreakdownPolicy.php
-
-[ ] 4.1.11 Create SystemSettingPolicy
-    File: app/Policies/SystemSettingPolicy.php
-
-[ ] 4.1.12 Create TrainingAssessmentPolicy
-    File: app/Policies/TrainingAssessmentPolicy.php
-
-[ ] 4.1.13 Create TrainingAttendancePolicy
-    File: app/Policies/TrainingAttendancePolicy.php
-
-[ ] 4.1.14 Create TrainingCertificatePolicy
-    File: app/Policies/TrainingCertificatePolicy.php
-
-[ ] 4.1.15 Create TrainingSchedulePolicy
-    File: app/Policies/TrainingSchedulePolicy.php
-
-[ ] 4.1.16 Create UndertakingPolicy
-    File: app/Policies/UndertakingPolicy.php
-
-[ ] 4.1.17 Create VisaPartnerPolicy
-    File: app/Policies/VisaPartnerPolicy.php
+[x] 4.1.1 Create CampusEquipmentPolicy ✅ COMPLETED
+[x] 4.1.2 Create CampusKpiPolicy ✅ COMPLETED
+[x] 4.1.3 Create ComplaintEvidencePolicy ✅ COMPLETED
+[x] 4.1.4 Create ComplaintUpdatePolicy ✅ COMPLETED
+[x] 4.1.5 Create EquipmentUsageLogPolicy ✅ COMPLETED
+[x] 4.1.6 Create NextOfKinPolicy ✅ COMPLETED
+[x] 4.1.7 Create PasswordHistoryPolicy ✅ COMPLETED
+[x] 4.1.8 Create RegistrationDocumentPolicy ✅ COMPLETED
+[x] 4.1.9 Create RemittanceReceiptPolicy ✅ COMPLETED
+[x] 4.1.10 Create RemittanceUsageBreakdownPolicy ✅ COMPLETED
+[x] 4.1.11 Create SystemSettingPolicy ✅ COMPLETED
+[x] 4.1.12 Create TrainingAssessmentPolicy ✅ COMPLETED
+[x] 4.1.13 Create TrainingAttendancePolicy ✅ COMPLETED
+[x] 4.1.14 Create TrainingCertificatePolicy ✅ COMPLETED
+[x] 4.1.15 Create TrainingSchedulePolicy ✅ COMPLETED
+[x] 4.1.16 Create UndertakingPolicy ✅ COMPLETED
+[x] 4.1.17 Create VisaPartnerPolicy ✅ COMPLETED
 ```
+
+All 17 policies created with role-based access control:
+- Super admin: Full access
+- Project director: Full access to most resources
+- Campus admin: Access to their campus resources only
+- Instructor: Access to training resources
+- OEP: Access to remittance resources
+- Viewer: Read-only access
 
 ### 4.2 Register All Policies
 
-**File:** `app/Providers/AuthServiceProvider.php`
-
-**Tasks:**
+**Note:** Laravel 11 uses automatic policy discovery. Policies are auto-registered if they:
+1. Are in `App\Policies` namespace
+2. Follow naming convention: `{Model}Policy` (e.g., `CampusEquipmentPolicy` for `CampusEquipment`)
 
 ```
-[ ] 4.2.1 Add policy mappings
-    protected $policies = [
-        // Existing policies...
-
-        // New policies
-        CampusEquipment::class => CampusEquipmentPolicy::class,
-        CampusKpi::class => CampusKpiPolicy::class,
-        ComplaintEvidence::class => ComplaintEvidencePolicy::class,
-        ComplaintUpdate::class => ComplaintUpdatePolicy::class,
-        EquipmentUsageLog::class => EquipmentUsageLogPolicy::class,
-        NextOfKin::class => NextOfKinPolicy::class,
-        PasswordHistory::class => PasswordHistoryPolicy::class,
-        RegistrationDocument::class => RegistrationDocumentPolicy::class,
-        RemittanceReceipt::class => RemittanceReceiptPolicy::class,
-        RemittanceUsageBreakdown::class => RemittanceUsageBreakdownPolicy::class,
-        SystemSetting::class => SystemSettingPolicy::class,
-        TrainingAssessment::class => TrainingAssessmentPolicy::class,
-        TrainingAttendance::class => TrainingAttendancePolicy::class,
-        TrainingCertificate::class => TrainingCertificatePolicy::class,
-        TrainingSchedule::class => TrainingSchedulePolicy::class,
-        Undertaking::class => UndertakingPolicy::class,
-        VisaPartner::class => VisaPartnerPolicy::class,
-    ];
+[x] 4.2.1 Auto-discovery enabled - No manual registration needed
+    ✅ COMPLETED - Laravel 11 auto-discovers policies based on naming convention
 ```
 
 ### 4.3 Add Authorization to EquipmentController
