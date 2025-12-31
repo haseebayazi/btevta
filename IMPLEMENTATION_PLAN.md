@@ -492,6 +492,278 @@ routes/api.php
 
 ---
 
-*Plan Version: 1.0*
+## Phase 6: Runtime Error & Bug Fixes (BLOCKING)
+
+**Priority:** 🔴 CRITICAL - Must complete before deployment
+**Impact:** Prevents crashes, data corruption, and security vulnerabilities
+**Audit Date:** 2025-12-31
+
+### Already Completed ✅
+
+| Issue | File | Status |
+|-------|------|--------|
+| Missing `registration.verify` route | `routes/web.php` | ✅ Fixed |
+| MD5 token vulnerability | `RegistrationService.php` | ✅ Fixed (SHA-256 + signed URLs) |
+| Carbon date mutation bug | `DepartureService.php:350` | ✅ Fixed (copy()->addDays()) |
+
+---
+
+### 6.1 Fix array_search False Bug in ComplaintService
+**Priority:** 🔴 CRITICAL
+**File:** `app/Services/ComplaintService.php`
+**Risk:** Wrong priority escalation for invalid priorities
+
+**Find (around line 369-371):**
+```php
+$priorities = ['low', 'medium', 'high', 'critical'];
+$currentIndex = array_search($complaint->priority, $priorities);
+$nextIndex = min($currentIndex + 1, count($priorities) - 1);
+```
+
+**Replace with:**
+```php
+$priorities = ['low', 'medium', 'high', 'critical'];
+$currentIndex = array_search($complaint->priority, $priorities);
+if ($currentIndex === false) {
+    throw new \InvalidArgumentException("Invalid priority: {$complaint->priority}");
+}
+$nextIndex = min($currentIndex + 1, count($priorities) - 1);
+```
+
+---
+
+### 6.2 Fix Predictable uniqid() in VisaProcessingService
+**Priority:** 🔴 CRITICAL
+**File:** `app/Services/VisaProcessingService.php`
+**Risk:** Attackers can predict appointment IDs
+
+**Find:**
+```php
+$appointmentId = uniqid();
+```
+
+**Replace with:**
+```php
+$appointmentId = \Illuminate\Support\Str::uuid()->toString();
+```
+
+---
+
+### 6.3 Add auth() Null Checks in Services
+**Priority:** 🔴 CRITICAL
+**Files:**
+- `app/Services/ComplaintService.php`
+- `app/Services/DepartureService.php`
+- `app/Services/DocumentArchiveService.php`
+
+**Pattern to find:**
+```php
+auth()->id()
+auth()->user()
+```
+
+**Replace with (choose based on context):**
+```php
+// When auth is required (throws on null):
+auth()->id() ?? throw new \RuntimeException('User not authenticated')
+
+// When auth is optional (allows null):
+auth()->check() ? auth()->id() : null
+```
+
+---
+
+### 6.4 Fix SecureFileController Authorization
+**Priority:** 🔴 CRITICAL
+**File:** `app/Http/Controllers/SecureFileController.php`
+
+**Add after finding the document:**
+```php
+// Verify user can access this document
+if ($document->candidate_id) {
+    $candidate = \App\Models\Candidate::find($document->candidate_id);
+    if ($candidate) {
+        $this->authorize('view', $candidate);
+    }
+}
+```
+
+---
+
+### 6.5 Add Database Transactions to Bulk Operations
+**Priority:** 🟠 HIGH
+**File:** `app/Http/Controllers/BulkOperationsController.php`
+
+**Wrap updateStatus method:**
+```php
+public function updateStatus(Request $request)
+{
+    DB::beginTransaction();
+    try {
+        // existing code
+        DB::commit();
+        return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+```
+
+---
+
+### 6.6 Add Database Transaction to ImportController
+**Priority:** 🟠 HIGH
+**File:** `app/Http/Controllers/ImportController.php`
+
+**Wrap importCandidates method:**
+```php
+public function importCandidates(Request $request)
+{
+    DB::beginTransaction();
+    try {
+        // existing import logic
+        DB::commit();
+    } catch (\Exception $e) {
+        DB::rollBack();
+        throw $e;
+    }
+}
+```
+
+---
+
+### 6.7 Fix N+1 Query in DepartureService
+**Priority:** 🟠 HIGH
+**File:** `app/Services/DepartureService.php`
+
+**In get90DayComplianceReport method, add eager loading:**
+```php
+$departures = $query->with([
+    'candidate.oep',
+    'candidate.trade',
+    'candidate.campus'
+])->get();
+```
+
+---
+
+### 6.8 Fix N+1 Query in ComplaintService
+**Priority:** 🟠 HIGH
+**File:** `app/Services/ComplaintService.php`
+
+**Add eager loading to getOverdue():**
+```php
+$complaints = Complaint::with(['candidate', 'assignee', 'campus', 'oep'])
+    ->overdue()
+    ->get();
+```
+
+---
+
+### 6.9 Add DocumentArchiveController Authorization
+**Priority:** 🟠 HIGH
+**File:** `app/Http/Controllers/DocumentArchiveController.php`
+
+**In download method:**
+```php
+public function download(DocumentArchive $document)
+{
+    $this->authorize('view', $document);
+    // ... rest of download logic
+}
+```
+
+---
+
+### 6.10 Add E-Number Validation
+**Priority:** 🟡 MEDIUM
+**File:** `app/Http/Controllers/VisaProcessingController.php`
+
+**In updateEnumber method:**
+```php
+$validated = $request->validate([
+    'enumber' => 'nullable|string|max:50|regex:/^E[0-9]+$/',
+    'enumber_date' => 'required|date',
+    'enumber_status' => 'required|in:pending,generated,verified',
+]);
+```
+
+---
+
+### 6.11 Add Iqama Number Validation
+**Priority:** 🟡 MEDIUM
+**File:** `app/Http/Controllers/DepartureController.php`
+
+**In recordIqama method:**
+```php
+$validated = $request->validate([
+    'iqama_number' => 'required|digits:10',
+    'iqama_issue_date' => 'required|date',
+    'iqama_expiry_date' => 'nullable|date|after:iqama_issue_date',
+]);
+```
+
+---
+
+### 6.12 Fix Blade Null Check Issue
+**Priority:** 🟡 MEDIUM
+**File:** `resources/views/candidates/show.blade.php`
+
+**Line 175 - Change:**
+```blade
+{{ $candidate->user->name }}
+```
+
+**To:**
+```blade
+{{ $candidate->user?->name ?? 'System' }}
+```
+
+---
+
+## Phase 6 Implementation Checklist
+
+### Critical (Week 1)
+- [ ] 6.1 - Fix array_search bug
+- [ ] 6.2 - Fix uniqid() vulnerability
+- [ ] 6.3 - Add auth() null checks
+- [ ] 6.4 - Fix SecureFileController
+
+### High Priority (Week 1-2)
+- [ ] 6.5 - BulkOperationsController transactions
+- [ ] 6.6 - ImportController transactions
+- [ ] 6.7 - DepartureService N+1 fix
+- [ ] 6.8 - ComplaintService N+1 fix
+- [ ] 6.9 - DocumentArchiveController auth
+
+### Medium Priority (Week 2)
+- [ ] 6.10 - E-Number validation
+- [ ] 6.11 - Iqama validation
+- [ ] 6.12 - Blade null checks
+
+---
+
+## Updated Files Summary for Phase 6
+
+### Files to Modify (10 files)
+```
+app/Services/ComplaintService.php          (6.1, 6.3, 6.8)
+app/Services/VisaProcessingService.php     (6.2)
+app/Services/DepartureService.php          (6.3, 6.7)
+app/Services/DocumentArchiveService.php    (6.3)
+app/Http/Controllers/SecureFileController.php       (6.4)
+app/Http/Controllers/BulkOperationsController.php   (6.5)
+app/Http/Controllers/ImportController.php          (6.6)
+app/Http/Controllers/DocumentArchiveController.php (6.9)
+app/Http/Controllers/VisaProcessingController.php  (6.10)
+app/Http/Controllers/DepartureController.php       (6.11)
+resources/views/candidates/show.blade.php          (6.12)
+```
+
+---
+
+*Plan Version: 1.1*
 *Created: December 2025*
-*Target Completion: 6 weeks*
+*Updated: 2025-12-31 (Added Phase 6 Runtime Error Fixes)*
+*Target Completion: 6-7 weeks*
