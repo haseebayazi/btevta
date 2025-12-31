@@ -347,7 +347,9 @@ class DepartureService
 
         $departureDate = Carbon::parse($departure->departure_date);
         $daysSinceDeparture = $departureDate->diffInDays(now());
-        $complianceDeadline = $departureDate->addDays(90);
+        // AUDIT FIX: Use copy() to prevent mutating the original $departureDate
+        // Without copy(), addDays() modifies $departureDate in place causing bugs
+        $complianceDeadline = $departureDate->copy()->addDays(90);
         $daysRemaining = Carbon::now()->diffInDays($complianceDeadline, false);
 
         // Check compliance items

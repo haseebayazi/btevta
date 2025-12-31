@@ -219,6 +219,13 @@ Route::middleware(['auth'])->group(function () {
 
         // PHASE 3 IMPROVEMENTS: Transition to training phase
         Route::post('/{candidate}/start-training', [RegistrationController::class, 'startTraining'])->name('start-training');
+
+        // AUDIT FIX: QR code verification route - referenced by RegistrationService::generateQRCode()
+        // This is a PUBLIC route that verifies registration documents via QR code scan
+        Route::get('/verify/{id}/{token}', [RegistrationController::class, 'verifyQRCode'])
+            ->name('verify')
+            ->middleware('signed')
+            ->withoutMiddleware('auth');
     });
 
     // ========================================================================
