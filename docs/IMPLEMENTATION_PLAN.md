@@ -893,17 +893,45 @@ All 17 policies created with role-based access control:
 **Tasks:**
 
 ```
-[ ] 6.1.1 Create tests for all new policies
-    File: tests/Unit/Policies/*PolicyTest.php
+[x] 6.1.1 Create tests for all new policies
+    ✅ COMPLETED - Created comprehensive policy test suites:
 
-    For each policy, test:
-    - viewAny for each role
-    - view for owner/non-owner
-    - create permissions
-    - update permissions (own vs others)
-    - delete permissions
-    - Campus isolation for campus_admin
-    - OEP isolation for oep role
+    - tests/Unit/CampusEquipmentPolicyTest.php (19 tests)
+      Tests for super_admin, project_director, campus_admin, instructor, viewer roles
+      Campus isolation, log usage, view reports permissions
+
+    - tests/Unit/TrainingPoliciesTest.php (15 tests)
+      TrainingAssessmentPolicy, TrainingAttendancePolicy
+      TrainingCertificatePolicy, TrainingSchedulePolicy
+      Instructor ownership, bulk record, certificate revocation
+
+    - tests/Unit/RegistrationPoliciesTest.php (13 tests)
+      NextOfKinPolicy, RegistrationDocumentPolicy, UndertakingPolicy
+      Campus isolation, document verification, download permissions
+
+    - tests/Unit/RemittancePoliciesTest.php (12 tests)
+      RemittanceReceiptPolicy, RemittanceUsageBreakdownPolicy
+      OEP isolation for assigned candidates
+
+    - tests/Unit/ComplaintPoliciesTest.php (11 tests)
+      ComplaintEvidencePolicy, ComplaintUpdatePolicy
+      Campus isolation, evidence upload, update creation
+
+    - tests/Unit/SystemPoliciesTest.php (17 tests)
+      SystemSettingPolicy, VisaPartnerPolicy, CampusKpiPolicy
+      PasswordHistoryPolicy, EquipmentUsageLogPolicy
+      Super-admin only operations, campus isolation
+
+[x] 6.1.2 Create supporting factories
+    ✅ COMPLETED - Created 18 new model factories:
+    - CampusEquipmentFactory, TrainingAssessmentFactory
+    - TrainingAttendanceFactory, TrainingCertificateFactory
+    - TrainingScheduleFactory, NextOfKinFactory
+    - RegistrationDocumentFactory, UndertakingFactory
+    - RemittanceReceiptFactory, RemittanceUsageBreakdownFactory
+    - ComplaintFactory, ComplaintEvidenceFactory, ComplaintUpdateFactory
+    - SystemSettingFactory, VisaPartnerFactory, CampusKpiFactory
+    - PasswordHistoryFactory, EquipmentUsageLogFactory
 ```
 
 ### 6.2 Controller Tests (25 Controllers)
