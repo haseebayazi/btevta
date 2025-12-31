@@ -53,6 +53,8 @@ class Candidate extends Model
         'status',
         'photo_path',
         'remarks',
+        'at_risk_reason',
+        'at_risk_since',
         'created_by',
         'updated_by'
     ];
@@ -70,6 +72,7 @@ class Candidate extends Model
         'created_by' => 'integer',
         'updated_by' => 'integer',
         'deleted_at' => 'datetime',
+        'at_risk_since' => 'datetime',
     ];
 
     /**
