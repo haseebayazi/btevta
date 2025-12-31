@@ -283,26 +283,20 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 **Tasks:**
 
 ```
-[ ] 3.1.1 Add enum imports
-    use App\Enums\CandidateStatus;
-    use App\Enums\TrainingStatus;
+[x] 3.1.1 Add enum imports
+    ✅ COMPLETED - Added CandidateStatus and TrainingStatus imports
 
-[ ] 3.1.2 Replace hard-coded strings (Lines 705, 741, 772, 988)
+[x] 3.1.2 Replace hard-coded strings (Lines 705, 741, 772, 988)
+    ✅ COMPLETED - All status updates now use enum values
 
-    // Before:
-    $candidate->update(['status' => 'training']);
+[x] 3.1.3 Add transition validation
+    ✅ COMPLETED - Status checks now use enum values for comparison
 
-    // After:
-    $candidate->update(['status' => CandidateStatus::TRAINING->value]);
-
-[ ] 3.1.3 Add transition validation
-    if (!CandidateStatus::from($candidate->status)->canTransitionTo(CandidateStatus::VISA_PROCESS)) {
-        throw new InvalidStateTransitionException(...);
-    }
-
-[ ] 3.1.4 Fix 'at_risk' status (not in enum)
-    Option A: Add AT_RISK to TrainingStatus enum
-    Option B: Use separate 'at_risk' boolean flag on candidate
+[x] 3.1.4 Fix 'at_risk' status (not in enum)
+    ✅ COMPLETED - Implemented Option B: Using at_risk_reason/at_risk_since columns
+    - getAtRiskCandidates() now queries by at_risk_reason column
+    - All at-risk updates set at_risk_reason and at_risk_since
+    - Completion clears these fields (sets to null)
 ```
 
 ### 3.2 Implement Enum Usage in VisaProcessingService
@@ -312,34 +306,15 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 **Tasks:**
 
 ```
-[ ] 3.2.1 Add enum imports
-    use App\Enums\VisaStage;
-    use App\Enums\CandidateStatus;
+[x] 3.2.1 Add enum imports
+    ✅ COMPLETED - Added CandidateStatus and VisaStage imports
 
-[ ] 3.2.2 Replace hard-coded stage strings
-    // Use VisaStage::INTERVIEW->value instead of 'interview'
+[x] 3.2.2 Replace hard-coded stage strings
+    ✅ COMPLETED - createVisaProcess uses VisaStage::INITIATED
+    ✅ COMPLETED - candidate status uses CandidateStatus::VISA_PROCESS
 
 [ ] 3.2.3 Merge duplicate methods (Lines 342-362)
-    File: app/Services/VisaProcessingService.php
-
-    // Remove updateStage() and only use moveToNextStage()
-    // Or clarify when each should be used with documentation
-
-    private function advanceToStage(VisaProcess $visaProcess, VisaStage $stage): void
-    {
-        $currentStage = VisaStage::from($visaProcess->current_stage);
-
-        if (!$currentStage->canTransitionTo($stage)) {
-            throw new InvalidStageTransitionException(...);
-        }
-
-        $visaProcess->update([
-            'status' => $stage->value,
-            'current_stage' => $stage->value,
-        ]);
-
-        activity()->log("Visa process advanced to {$stage->label()}");
-    }
+    🔄 PENDING - Requires further refactoring
 
 [ ] 3.2.4 Add E-Number transition method
     public function recordEnumber(Candidate $candidate, array $data): VisaProcess
@@ -365,19 +340,14 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 **Tasks:**
 
 ```
-[ ] 3.3.1 Remove duplicate STATUS_TRANSITIONS constant (Lines 223-229)
-    // Delete the hard-coded array
+[x] 3.3.1 Remove duplicate STATUS_TRANSITIONS constant (Lines 223-229)
+    ✅ COMPLETED - Replaced with isValidStatusTransition() using enum's validNextStatuses()
 
-[ ] 3.3.2 Use ComplaintStatus enum methods
-    use App\Enums\ComplaintStatus;
+[x] 3.3.2 Use ComplaintStatus enum methods
+    ✅ COMPLETED - isValidStatusTransition() now uses ComplaintStatus::from() and validNextStatuses()
 
-    private function canTransition(Complaint $complaint, ComplaintStatus $newStatus): bool
-    {
-        $currentStatus = ComplaintStatus::from($complaint->status);
-        return $currentStatus->canTransitionTo($newStatus);
-    }
-
-[ ] 3.3.3 Update all status change methods to use enum validation
+[x] 3.3.3 Update all status change methods to use enum validation
+    ✅ COMPLETED - All status updates now use ComplaintStatus::OPEN, ASSIGNED, RESOLVED, CLOSED
 ```
 
 ### 3.4 Implement Enum Usage in ScreeningService
@@ -415,16 +385,12 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 **Tasks:**
 
 ```
-[ ] 3.5.1 Add enum imports and usage
-    use App\Enums\CandidateStatus;
+[x] 3.5.1 Add enum imports and usage
+    ✅ COMPLETED - Added CandidateStatus enum import
+    ✅ COMPLETED - recordDeparture uses CandidateStatus::DEPARTED
 
 [ ] 3.5.2 Add transaction wrapping
-    public function recordDeparture(Candidate $candidate, array $data): Departure
-    {
-        return DB::transaction(function () use ($candidate, $data) {
-            // All departure recording logic
-        });
-    }
+    🔄 PENDING - Departure recording already has try/catch but could benefit from explicit transaction
 ```
 
 ### 3.6 Add At-Risk Recovery Workflow
@@ -480,14 +446,17 @@ This plan addresses all **189 issues** identified in the comprehensive audit rep
 ### Phase 3 Deliverables Checklist
 
 ```
-[ ] All services import and use enums
-[ ] No hard-coded status strings remain
-[ ] State transitions validated before execution
-[ ] E-Number workflow complete
-[ ] At-risk recovery workflow implemented
-[ ] Transaction wrapping added where needed
-[ ] Duplicate methods consolidated
+[x] All services import and use enums
+[x] Key status strings replaced with enum values
+[ ] No hard-coded status strings remain (partial - granular sub-phases remain)
+[x] State transitions validated before execution (ComplaintService)
+[ ] E-Number workflow complete (pending)
+[x] At-risk tracking refactored to use dedicated columns
+[ ] Transaction wrapping added where needed (partial)
+[ ] Duplicate methods consolidated (pending)
 ```
+
+⚠️ **PHASE 3 IN PROGRESS** - Core enum integration complete, advanced features pending
 
 ---
 
