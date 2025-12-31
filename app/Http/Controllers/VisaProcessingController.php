@@ -408,10 +408,13 @@ class VisaProcessingController extends Controller
                 ->with('error', 'Prerequisites not met: ' . implode(', ', $prereqErrors));
         }
 
+        // AUDIT FIX: Added regex validation for E-number format
         $validated = $request->validate([
-            'enumber' => 'nullable|string|max:50',
+            'enumber' => ['nullable', 'string', 'max:50', 'regex:/^E?[0-9]{6,15}$/i'],
             'enumber_date' => 'required|date',
             'enumber_status' => 'required|in:pending,generated,verified',
+        ], [
+            'enumber.regex' => 'E-Number must be 6-15 digits, optionally prefixed with "E".',
         ]);
 
         try {

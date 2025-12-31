@@ -312,10 +312,11 @@ class DepartureService
         $logs = $departure->communication_logs ? json_decode($departure->communication_logs, true) : [];
         
         // Add new log
+        // AUDIT FIX: Use null-safe operator to prevent null reference exception
         $logs[] = [
             'date' => $data['date'] ?? now()->toDateString(),
             'type' => $data['type'] ?? 'phone', // phone, email, whatsapp
-            'contacted_by' => $data['contacted_by'] ?? auth()->user()->name,
+            'contacted_by' => $data['contacted_by'] ?? auth()->user()?->name ?? 'System',
             'summary' => $data['summary'],
             'issues_reported' => $data['issues_reported'] ?? null,
             'follow_up_required' => $data['follow_up_required'] ?? false,

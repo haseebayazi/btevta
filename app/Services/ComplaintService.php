@@ -387,13 +387,22 @@ class ComplaintService
 
     /**
      * Increase priority for escalation
+     * AUDIT FIX: Added strict false check for array_search to prevent bug
+     * where false (not found) evaluates to 0 in arithmetic
      */
     private function increasePriority($currentPriority): string
     {
         $priorities = ['low', 'normal', 'high', 'urgent', 'critical'];
-        $currentIndex = array_search($currentPriority, $priorities);
+        $currentIndex = array_search($currentPriority, $priorities, true);
+
+        // AUDIT FIX: Handle case where priority is not found in array
+        if ($currentIndex === false) {
+            // Default to 'high' if current priority is invalid
+            return 'high';
+        }
+
         $newIndex = min($currentIndex + 1, count($priorities) - 1);
-        
+
         return $priorities[$newIndex];
     }
 

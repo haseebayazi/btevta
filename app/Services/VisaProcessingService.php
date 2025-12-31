@@ -245,10 +245,14 @@ class VisaProcessingService
 
     /**
      * Generate Etimad appointment ID
+     * AUDIT FIX: Replaced uniqid() with cryptographically secure random bytes
+     * uniqid() is time-based and predictable, making IDs guessable
      */
     private function generateEtimadAppointmentId()
     {
-        return 'ETM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        // Use cryptographically secure random bytes instead of predictable uniqid()
+        $randomPart = strtoupper(bin2hex(random_bytes(3))); // 6 hex chars
+        return 'ETM-' . date('Ymd') . '-' . $randomPart;
     }
 
     /**
