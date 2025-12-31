@@ -963,25 +963,46 @@ All 17 policies created with role-based access control:
 **Tasks:**
 
 ```
-[ ] 6.3.1 CandidateDeduplicationService tests
-    File: tests/Unit/Services/CandidateDeduplicationServiceTest.php
+[x] 6.3.1 CandidateDeduplicationService tests
+    File: tests/Unit/CandidateDeduplicationServiceTest.php
+    ✅ COMPLETED - 16 tests covering:
+    - CNIC duplicate detection (exact, with dashes)
+    - Name + DOB matching
+    - Phone number matching with name similarity
+    - BTEVTA ID duplicate detection
+    - Name similarity calculation (Jaro-Winkler)
+    - Batch import with deduplication
+    - Duplicate statistics
+    - Merge duplicate candidates
 
-    - Test duplicate detection by CNIC
-    - Test duplicate detection by phone
-    - Test duplicate detection by name+DOB
-    - Test merge functionality
+[x] 6.3.2 DepartureService tests
+    File: tests/Unit/DepartureServiceTest.php
+    ✅ COMPLETED - 18 tests covering:
+    - Departure stages and constants
+    - Pre-departure briefing recording
+    - Departure recording with status update
+    - Iqama number recording
+    - 90-day compliance calculation
+    - Compliance items tracking
+    - Overdue compliance detection
+    - Salary confirmation
+    - Communication logs
+    - Compliance checklists
+    - Departure timeline generation
 
-[ ] 6.3.2 DepartureService tests
-    File: tests/Unit/Services/DepartureServiceTest.php
+[x] 6.3.3 RegistrationService tests
+    File: tests/Unit/RegistrationServiceTest.php
+    ✅ COMPLETED - 12 tests covering:
+    - Required documents list
+    - Document completeness checks
+    - Undertaking content generation
+    - Document validation
+    - OEP allocation
+    - Registration summary creation
 
-    - Test departure recording
-    - Test compliance tracking
-    - Test 90-day monitoring
-
-[ ] 6.3.3 DocumentArchiveService tests
-[ ] 6.3.4 GlobalSearchService tests
-[ ] 6.3.5 RegistrationService tests
-[ ] 6.3.6 ReportingService tests
+[ ] 6.3.4 DocumentArchiveService tests - Pending
+[ ] 6.3.5 GlobalSearchService tests - Pending
+[ ] 6.3.6 ReportingService tests - Pending
 ```
 
 ### 6.4 Integration Tests
