@@ -312,10 +312,11 @@ class DepartureService
         $logs = $departure->communication_logs ? json_decode($departure->communication_logs, true) : [];
         
         // Add new log
+        // AUDIT FIX: Use null-safe operator to prevent null reference exception
         $logs[] = [
             'date' => $data['date'] ?? now()->toDateString(),
             'type' => $data['type'] ?? 'phone', // phone, email, whatsapp
-            'contacted_by' => $data['contacted_by'] ?? auth()->user()->name,
+            'contacted_by' => $data['contacted_by'] ?? auth()->user()?->name ?? 'System',
             'summary' => $data['summary'],
             'issues_reported' => $data['issues_reported'] ?? null,
             'follow_up_required' => $data['follow_up_required'] ?? false,
@@ -347,7 +348,9 @@ class DepartureService
 
         $departureDate = Carbon::parse($departure->departure_date);
         $daysSinceDeparture = $departureDate->diffInDays(now());
-        $complianceDeadline = $departureDate->addDays(90);
+        // AUDIT FIX: Use copy() to prevent mutating the original $departureDate
+        // Without copy(), addDays() modifies $departureDate in place causing bugs
+        $complianceDeadline = $departureDate->copy()->addDays(90);
         $daysRemaining = Carbon::now()->diffInDays($complianceDeadline, false);
 
         // Check compliance items

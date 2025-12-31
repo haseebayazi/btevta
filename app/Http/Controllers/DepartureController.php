@@ -154,11 +154,14 @@ class DepartureController extends Controller
     {
         $this->authorize('recordIqama', Departure::class);
 
+        // AUDIT FIX: Added proper validation for Saudi Iqama number (10 digits starting with 1 or 2)
         $validated = $request->validate([
-            'iqama_number' => 'required|string|max:50',
+            'iqama_number' => ['required', 'string', 'regex:/^[12][0-9]{9}$/'],
             'iqama_issue_date' => 'required|date',
             'iqama_expiry_date' => 'nullable|date|after:iqama_issue_date',
             'post_arrival_medical' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ], [
+            'iqama_number.regex' => 'Iqama number must be 10 digits starting with 1 or 2.',
         ]);
 
         try {

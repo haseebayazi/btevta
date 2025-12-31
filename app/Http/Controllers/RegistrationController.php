@@ -538,6 +538,57 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Verify registration via QR code (public route).
+     * AUDIT FIX: Added this method for QR code verification from undertaking PDFs.
+     * Uses signed URLs for tamper-proof verification.
+     *
+     * @param int $id Candidate ID
+     * @param string $token Verification token (SHA-256 hash)
+     */
+    public function verifyQRCode(Request $request, $id, $token)
+    {
+        // Find the candidate
+        $candidate = Candidate::with(['campus', 'trade', 'documents', 'undertakings'])
+            ->find($id);
+
+        if (!$candidate) {
+            return response()->view('registration.verify-result', [
+                'success' => false,
+                'message' => 'Candidate not found.',
+            ], 404);
+        }
+
+        // Verify the token matches the expected hash
+        $expectedToken = hash('sha256', $candidate->id . $candidate->cnic . config('app.key'));
+
+        if (!hash_equals($expectedToken, $token)) {
+            return response()->view('registration.verify-result', [
+                'success' => false,
+                'message' => 'Invalid verification token.',
+            ], 403);
+        }
+
+        // Verification successful - return candidate registration status
+        $registrationComplete = $candidate->status !== 'new' && $candidate->status !== 'screening';
+
+        return view('registration.verify-result', [
+            'success' => true,
+            'candidate' => [
+                'name' => $candidate->name,
+                'btevta_id' => $candidate->btevta_id,
+                'status' => $candidate->status,
+                'campus' => $candidate->campus?->name ?? 'Not Assigned',
+                'trade' => $candidate->trade?->name ?? 'Not Assigned',
+                'registration_date' => $candidate->registration_date?->format('d M, Y'),
+            ],
+            'registration_complete' => $registrationComplete,
+            'message' => $registrationComplete
+                ? 'Registration verified successfully.'
+                : 'Registration is pending or incomplete.',
+        ]);
+    }
+
+    /**
      * Get document type label.
      */
     private function getDocumentLabel($type)

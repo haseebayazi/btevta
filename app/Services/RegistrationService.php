@@ -195,18 +195,22 @@ class RegistrationService
 
     /**
      * Generate QR code for verification
+     * AUDIT FIX: Use cryptographically secure signed URLs instead of predictable MD5 hash
      */
     protected function generateQRCode($candidate): string
     {
-        // This would generate a QR code for document verification
-        // You can use a package like simplesoftwareio/simple-qrcode
-        $verificationUrl = route('registration.verify', [
-            'id' => $candidate->id,
-            'token' => md5($candidate->id . $candidate->cnic)
-        ]);
-        
-        // Return base64 encoded QR code image
-        // For now, returning the URL
+        // SECURITY: Use Laravel's signed URL feature for tamper-proof verification
+        // This generates a URL with a cryptographic signature that expires
+        $verificationUrl = \Illuminate\Support\Facades\URL::signedRoute(
+            'registration.verify',
+            [
+                'id' => $candidate->id,
+                'token' => hash('sha256', $candidate->id . $candidate->cnic . config('app.key'))
+            ],
+            now()->addDays(365) // Signature valid for 1 year
+        );
+
+        // Return signed URL for QR code generation
         return $verificationUrl;
     }
 
