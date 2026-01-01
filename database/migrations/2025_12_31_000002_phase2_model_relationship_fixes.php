@@ -76,9 +76,9 @@ return new class extends Migration
             });
         }
 
-        // Add soft deletes to remittance_usage_breakdowns
-        if (Schema::hasTable('remittance_usage_breakdowns') && !Schema::hasColumn('remittance_usage_breakdowns', 'deleted_at')) {
-            Schema::table('remittance_usage_breakdowns', function (Blueprint $table) {
+        // Add soft deletes to remittance_usage_breakdown (singular - correct table name)
+        if (Schema::hasTable('remittance_usage_breakdown') && !Schema::hasColumn('remittance_usage_breakdown', 'deleted_at')) {
+            Schema::table('remittance_usage_breakdown', function (Blueprint $table) {
                 $table->softDeletes();
             });
         }
@@ -155,8 +155,8 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('remittance_usage_breakdowns') && Schema::hasColumn('remittance_usage_breakdowns', 'deleted_at')) {
-            Schema::table('remittance_usage_breakdowns', function (Blueprint $table) {
+        if (Schema::hasTable('remittance_usage_breakdown') && Schema::hasColumn('remittance_usage_breakdown', 'deleted_at')) {
+            Schema::table('remittance_usage_breakdown', function (Blueprint $table) {
                 $table->dropSoftDeletes();
             });
         }
