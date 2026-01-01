@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\VisaProcess;
 use App\Models\Candidate;
+use App\Enums\CandidateStatus;
+use App\Enums\VisaStage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -503,12 +505,13 @@ class VisaProcessingService
                 'interview_date' => $data['interview_date'] ?? null,
                 'interview_status' => $data['interview_status'] ?? 'pending',
                 'interview_remarks' => $data['interview_remarks'] ?? null,
-                'overall_status' => 'initiated',
+                'overall_status' => VisaStage::INITIATED->value,
+                'current_stage' => VisaStage::INITIATED->value,
             ]);
 
-            // Update candidate status
+            // Update candidate status to VISA_PROCESS
             $candidate = Candidate::findOrFail($candidateId);
-            $candidate->update(['status' => 'visa_processing']);
+            $candidate->update(['status' => CandidateStatus::VISA_PROCESS->value]);
 
             // Log activity
             activity()

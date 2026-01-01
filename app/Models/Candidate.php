@@ -53,6 +53,8 @@ class Candidate extends Model
         'status',
         'photo_path',
         'remarks',
+        'at_risk_reason',
+        'at_risk_since',
         'created_by',
         'updated_by'
     ];
@@ -70,6 +72,7 @@ class Candidate extends Model
         'created_by' => 'integer',
         'updated_by' => 'integer',
         'deleted_at' => 'datetime',
+        'at_risk_since' => 'datetime',
     ];
 
     /**
@@ -257,6 +260,16 @@ class Candidate extends Model
     public function trainingCertificates()
     {
         return $this->hasMany(TrainingCertificate::class);
+    }
+
+    /**
+     * Get all training classes the candidate is enrolled in.
+     */
+    public function trainingClasses()
+    {
+        return $this->belongsToMany(TrainingClass::class, 'class_enrollments', 'candidate_id', 'training_class_id')
+                    ->withPivot('enrollment_date', 'status', 'remarks', 'enrolled_by')
+                    ->withTimestamps();
     }
 
     /**

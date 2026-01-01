@@ -52,12 +52,23 @@ class RemittanceBeneficiary extends Model
 
     /**
      * Get remittances where this beneficiary was the receiver.
-     * Note: Links by receiver_name text field for flexible matching.
-     * For strict foreign key relationships, add beneficiary_id to remittances table.
+     * PHASE 2 FIX: Now uses proper beneficiary_id foreign key.
+     *
+     * @see database/migrations/2025_12_31_000002_phase2_model_relationship_fixes.php
      */
     public function remittances()
     {
         return $this->hasMany(Remittance::class, 'beneficiary_id');
+    }
+
+    /**
+     * Get remittances by receiver name (legacy text-based matching).
+     * Use remittances() for proper FK relationship instead.
+     */
+    public function remittancesByName()
+    {
+        return Remittance::where('candidate_id', $this->candidate_id)
+            ->where('receiver_name', $this->full_name);
     }
 
     // Scopes

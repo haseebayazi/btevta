@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Departure;
 use App\Models\Candidate;
+use App\Enums\CandidateStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -114,7 +115,7 @@ class DepartureService
         if (!$candidate) {
             throw new \Exception("Candidate not found with ID: {$candidateId}");
         }
-        $candidate->update(['status' => 'departed']);
+        $candidate->update(['status' => CandidateStatus::DEPARTED->value]);
 
         // Log activity
         activity()

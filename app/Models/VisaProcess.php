@@ -171,9 +171,31 @@ class VisaProcess extends Model
         return $this->belongsTo(VisaPartner::class);
     }
 
+    /**
+     * Get the OEP through the candidate relationship.
+     * PHASE 2 FIX: Use HasOneThrough with correct key ordering.
+     *
+     * Note: For direct access, use $visaProcess->candidate->oep instead.
+     *
+     * @see docs/IMPLEMENTATION_PLAN.md - Phase 2.3
+     */
     public function oep()
     {
-        return $this->hasOneThrough(Oep::class, Candidate::class, 'id', 'id', 'candidate_id', 'oep_id');
+        // HasOneThrough requires correct key ordering:
+        // 1st arg: Final model we want (Oep)
+        // 2nd arg: Intermediate model (Candidate)
+        // 3rd arg: FK on intermediate table (candidates.id matches visa_processes.candidate_id)
+        // 4th arg: FK on final table (oeps.id)
+        // 5th arg: Local key on this model (visa_processes.candidate_id)
+        // 6th arg: Local key on intermediate model (candidates.oep_id)
+        return $this->hasOneThrough(
+            Oep::class,
+            Candidate::class,
+            'id',           // candidates.id
+            'id',           // oeps.id
+            'candidate_id', // visa_processes.candidate_id
+            'oep_id'        // candidates.oep_id
+        );
     }
 
     public function creator()

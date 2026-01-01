@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Complaint;
 use App\Models\Candidate;
+use App\Enums\ComplaintStatus;
+use App\Enums\ComplaintPriority;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -109,7 +111,7 @@ class ComplaintService
             'registered_at' => now(),
             'registered_by' => $data['registered_by'] ?? auth()->id(),
             'user_id' => $data['user_id'] ?? auth()->id(),
-            'status' => 'open',
+            'status' => ComplaintStatus::OPEN->value,
             'sla_days' => $slaDays,
             'sla_due_date' => $slaDueDate,
             'escalation_level' => 0,
@@ -201,7 +203,7 @@ class ComplaintService
         $complaint->update([
             'assigned_to' => $assignedToUserId,
             'assigned_at' => now(),
-            'status' => 'assigned',
+            'status' => ComplaintStatus::ASSIGNED->value,
             'assignment_remarks' => $remarks,
         ]);
 
@@ -218,23 +220,32 @@ class ComplaintService
     }
 
     /**
-     * Valid status transitions for complaint workflow
-     */
-    const STATUS_TRANSITIONS = [
-        'open' => ['assigned', 'in_progress', 'resolved'],
-        'assigned' => ['in_progress', 'resolved', 'open'],
-        'in_progress' => ['resolved', 'assigned'],
-        'resolved' => ['closed', 'open'], // Can reopen from resolved
-        'closed' => ['open'], // Can reopen from closed
-    ];
-
-    /**
-     * Validate if a status transition is allowed
+     * Validate if a status transition is allowed using ComplaintStatus enum
      */
     protected function isValidStatusTransition(string $currentStatus, string $newStatus): bool
     {
-        $allowedTransitions = self::STATUS_TRANSITIONS[$currentStatus] ?? [];
-        return in_array($newStatus, $allowedTransitions);
+        try {
+            $currentEnum = ComplaintStatus::from($currentStatus);
+            $newEnum = ComplaintStatus::from($newStatus);
+
+            $validNext = $currentEnum->validNextStatuses();
+            return in_array($newEnum, $validNext);
+        } catch (\ValueError $e) {
+            return false; // Invalid enum value
+        }
+    }
+
+    /**
+     * Get allowed transitions for a status (for error messages)
+     */
+    protected function getAllowedTransitions(string $status): array
+    {
+        try {
+            $enum = ComplaintStatus::from($status);
+            return array_map(fn($s) => $s->value, $enum->validNextStatuses());
+        } catch (\ValueError $e) {
+            return [];
+        }
     }
 
     /**
@@ -246,7 +257,8 @@ class ComplaintService
 
         // Validate status transition
         if (!$this->isValidStatusTransition($complaint->status, $status)) {
-            throw new \Exception("Invalid status transition from '{$complaint->status}' to '{$status}'. Allowed: " . implode(', ', self::STATUS_TRANSITIONS[$complaint->status] ?? []));
+            $allowed = $this->getAllowedTransitions($complaint->status);
+            throw new \Exception("Invalid status transition from '{$complaint->status}' to '{$status}'. Allowed: " . implode(', ', $allowed));
         }
 
         $complaint->update([
@@ -256,7 +268,7 @@ class ComplaintService
         ]);
 
         // If status is in_progress, start tracking
-        if ($status === 'in_progress' && !$complaint->in_progress_at) {
+        if ($status === ComplaintStatus::IN_PROGRESS->value && !$complaint->in_progress_at) {
             $complaint->update(['in_progress_at' => now()]);
         }
 
@@ -308,7 +320,7 @@ class ComplaintService
         $complaint = Complaint::findOrFail($complaintId);
         
         $complaint->update([
-            'status' => 'resolved',
+            'status' => ComplaintStatus::RESOLVED->value,
             'resolved_at' => now(),
             'resolved_by' => auth()->id(),
             'resolution_details' => $data['resolution_details'],
@@ -336,12 +348,12 @@ class ComplaintService
     {
         $complaint = Complaint::findOrFail($complaintId);
         
-        if ($complaint->status !== 'resolved') {
+        if ($complaint->status !== ComplaintStatus::RESOLVED->value) {
             throw new \Exception('Complaint must be resolved before closing');
         }
-        
+
         $complaint->update([
-            'status' => 'closed',
+            'status' => ComplaintStatus::CLOSED->value,
             'closed_at' => now(),
             'closed_by' => auth()->id(),
             'closure_remarks' => $closureRemarks,
@@ -790,12 +802,12 @@ class ComplaintService
     {
         $complaint = Complaint::findOrFail($complaintId);
 
-        if (!in_array($complaint->status, ['resolved', 'closed'])) {
+        if (!in_array($complaint->status, [ComplaintStatus::RESOLVED->value, ComplaintStatus::CLOSED->value])) {
             throw new \Exception("Can only reopen resolved or closed complaints");
         }
 
         $complaint->update([
-            'status' => 'open',
+            'status' => ComplaintStatus::OPEN->value,
             'reopened_at' => now(),
             'reopened_by' => auth()->id(),
         ]);

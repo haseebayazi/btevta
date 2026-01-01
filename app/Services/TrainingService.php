@@ -7,6 +7,8 @@ use App\Models\Batch;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
 use App\Models\TrainingCertificate;
+use App\Enums\CandidateStatus;
+use App\Enums\TrainingStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -101,8 +103,8 @@ class TrainingService
             $batch->candidates()->update([
                 'training_start_date' => $startDate,
                 'training_end_date' => $endDate,
-                'training_status' => 'ongoing',
-                'status' => 'in_training',
+                'training_status' => TrainingStatus::ONGOING->value,
+                'status' => CandidateStatus::TRAINING->value,
             ]);
 
             // Log activity
@@ -180,8 +182,11 @@ class TrainingService
         $attendanceStats = $this->getAttendanceStatistics($candidateId);
 
         if ($attendanceStats['percentage'] < $threshold) {
+            // Mark candidate as at-risk using dedicated columns (not training_status enum)
+            // 'at_risk' is tracked via at_risk_reason/at_risk_since columns, not enum
             $candidate->update([
-                'training_status' => 'at_risk',
+                'at_risk_reason' => "Attendance below threshold: {$attendanceStats['percentage']}% (required: {$threshold}%)",
+                'at_risk_since' => now(),
             ]);
 
             // Log warning
@@ -295,20 +300,24 @@ class TrainingService
         if ($assessmentType === 'final') {
             if ($result === 'pass') {
                 $candidate->update([
-                    'training_status' => 'completed',
-                    'status' => 'training_completed',
+                    'training_status' => TrainingStatus::COMPLETED->value,
+                    'status' => CandidateStatus::VISA_PROCESS->value,
+                    'at_risk_reason' => null, // Clear at-risk flag on completion
+                    'at_risk_since' => null,
                 ]);
 
                 // Generate certificate
                 $this->generateCertificate($candidateId);
             } else {
                 $candidate->update([
-                    'training_status' => 'failed',
+                    'training_status' => TrainingStatus::FAILED->value,
                 ]);
             }
         } elseif ($result === 'fail') {
+            // Mark as at-risk using dedicated columns
             $candidate->update([
-                'training_status' => 'at_risk',
+                'at_risk_reason' => "Failed {$assessmentType} assessment",
+                'at_risk_since' => now(),
             ]);
         }
     }
@@ -612,10 +621,11 @@ class TrainingService
 
     /**
      * Get at-risk candidates
+     * Candidates are considered at-risk if they have an at_risk_reason set
      */
     public function getAtRiskCandidates($batchId = null)
     {
-        $query = Candidate::where('training_status', 'at_risk')
+        $query = Candidate::whereNotNull('at_risk_reason')
             ->with(['batch', 'trade', 'campus']);
 
         if ($batchId) {
@@ -702,8 +712,8 @@ class TrainingService
                 // Assign to batch
                 $candidate->update([
                     'batch_id' => $batchId,
-                    'status' => 'training',
-                    'training_status' => 'in_progress',
+                    'status' => CandidateStatus::TRAINING->value,
+                    'training_status' => TrainingStatus::IN_PROGRESS->value,
                     'training_start_date' => $batch->start_date ?? now(),
                 ]);
 
@@ -738,7 +748,7 @@ class TrainingService
         $candidate = Candidate::with(['batch', 'certificate'])->findOrFail($candidateId);
 
         // Validate candidate is in training
-        if ($candidate->status !== 'training') {
+        if ($candidate->status !== CandidateStatus::TRAINING->value) {
             throw new \Exception("Candidate is not in training. Current status: {$candidate->status}");
         }
 
@@ -769,9 +779,11 @@ class TrainingService
         try {
             // Update candidate status
             $candidate->update([
-                'status' => 'visa_process',
-                'training_status' => 'completed',
+                'status' => CandidateStatus::VISA_PROCESS->value,
+                'training_status' => TrainingStatus::COMPLETED->value,
                 'training_end_date' => now(),
+                'at_risk_reason' => null, // Clear at-risk flag
+                'at_risk_since' => null,
                 'remarks' => $remarks ? ($candidate->remarks . "\n" . $remarks) : $candidate->remarks,
             ]);
 
