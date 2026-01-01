@@ -52,107 +52,116 @@ class DepartureService
 
     /**
      * Record pre-departure briefing
+     * AUDIT FIX: Wrapped in DB transaction for atomicity
      */
     public function recordPreDepartureBriefing($candidateId, $data)
     {
-        $departure = Departure::firstOrCreate(
-            ['candidate_id' => $candidateId],
-            [
-                'pre_briefing_date' => $data['briefing_date'],
-                'pre_briefing_conducted_by' => $data['conducted_by'] ?? auth()->id(),
-                'briefing_topics' => $data['topics'] ?? null,
-                'briefing_remarks' => $data['remarks'] ?? null,
-                'current_stage' => 'pre_briefing',
-            ]
-        );
+        return DB::transaction(function () use ($candidateId, $data) {
+            $departure = Departure::firstOrCreate(
+                ['candidate_id' => $candidateId],
+                [
+                    'pre_briefing_date' => $data['briefing_date'],
+                    'pre_briefing_conducted_by' => $data['conducted_by'] ?? auth()->id(),
+                    'briefing_topics' => $data['topics'] ?? null,
+                    'briefing_remarks' => $data['remarks'] ?? null,
+                    'current_stage' => 'pre_briefing',
+                ]
+            );
 
-        if (!$departure->wasRecentlyCreated) {
-            $departure->update([
-                'pre_briefing_date' => $data['briefing_date'],
-                'pre_briefing_conducted_by' => $data['conducted_by'] ?? auth()->id(),
-                'briefing_topics' => $data['topics'] ?? null,
-                'briefing_remarks' => $data['remarks'] ?? null,
-            ]);
-        }
+            if (!$departure->wasRecentlyCreated) {
+                $departure->update([
+                    'pre_briefing_date' => $data['briefing_date'],
+                    'pre_briefing_conducted_by' => $data['conducted_by'] ?? auth()->id(),
+                    'briefing_topics' => $data['topics'] ?? null,
+                    'briefing_remarks' => $data['remarks'] ?? null,
+                ]);
+            }
 
-        // Update candidate status with NULL CHECK
-        $candidate = Candidate::find($candidateId);
-        if (!$candidate) {
-            throw new \Exception("Candidate not found with ID: {$candidateId}");
-        }
-        $candidate->update(['status' => 'pre_briefing_completed']);
+            // Update candidate status with NULL CHECK
+            $candidate = Candidate::find($candidateId);
+            if (!$candidate) {
+                throw new \Exception("Candidate not found with ID: {$candidateId}");
+            }
+            $candidate->update(['status' => 'pre_briefing_completed']);
 
-        // Log activity
-        activity()
-            ->performedOn($departure)
-            ->causedBy(auth()->user())
-            ->log("Pre-departure briefing recorded");
+            // Log activity
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log("Pre-departure briefing recorded");
 
-        return $departure;
+            return $departure;
+        });
     }
 
     /**
      * Record departure
+     * AUDIT FIX: Wrapped in DB transaction for atomicity
      */
     public function recordDeparture($candidateId, $data)
     {
-        $departure = Departure::firstOrCreate(
-            ['candidate_id' => $candidateId]
-        );
+        return DB::transaction(function () use ($candidateId, $data) {
+            $departure = Departure::firstOrCreate(
+                ['candidate_id' => $candidateId]
+            );
 
-        $departure->update([
-            'departure_date' => $data['departure_date'],
-            'flight_number' => $data['flight_number'] ?? null,
-            'airport' => $data['airport'] ?? null,
-            'destination' => $data['destination'] ?? 'Saudi Arabia',
-            'country_code' => $data['country_code'] ?? 'SA',
-            'departure_remarks' => $data['remarks'] ?? null,
-            'current_stage' => 'departed',
-        ]);
+            $departure->update([
+                'departure_date' => $data['departure_date'],
+                'flight_number' => $data['flight_number'] ?? null,
+                'airport' => $data['airport'] ?? null,
+                'destination' => $data['destination'] ?? 'Saudi Arabia',
+                'country_code' => $data['country_code'] ?? 'SA',
+                'departure_remarks' => $data['remarks'] ?? null,
+                'current_stage' => 'departed',
+            ]);
 
-        // Update candidate status with NULL CHECK
-        $candidate = Candidate::find($candidateId);
-        if (!$candidate) {
-            throw new \Exception("Candidate not found with ID: {$candidateId}");
-        }
-        $candidate->update(['status' => CandidateStatus::DEPARTED->value]);
+            // Update candidate status with NULL CHECK
+            $candidate = Candidate::find($candidateId);
+            if (!$candidate) {
+                throw new \Exception("Candidate not found with ID: {$candidateId}");
+            }
+            $candidate->update(['status' => CandidateStatus::DEPARTED->value]);
 
-        // Log activity
-        activity()
-            ->performedOn($departure)
-            ->causedBy(auth()->user())
-            ->log("Departure recorded for {$data['departure_date']}");
+            // Log activity
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log("Departure recorded for {$data['departure_date']}");
 
-        return $departure;
+            return $departure;
+        });
     }
 
     /**
      * Record Iqama number
+     * AUDIT FIX: Wrapped in DB transaction for atomicity
      */
     public function recordIqama($departureId, $iqamaNumber, $issueDate = null, $expiryDate = null)
     {
-        $departure = Departure::findOrFail($departureId);
+        return DB::transaction(function () use ($departureId, $iqamaNumber, $issueDate, $expiryDate) {
+            $departure = Departure::findOrFail($departureId);
 
-        $departure->update([
-            'iqama_number' => $iqamaNumber,
-            'iqama_issue_date' => $issueDate ?? now(),
-            'iqama_expiry_date' => $expiryDate,
-            'current_stage' => 'iqama_issued',
-        ]);
+            $departure->update([
+                'iqama_number' => $iqamaNumber,
+                'iqama_issue_date' => $issueDate ?? now(),
+                'iqama_expiry_date' => $expiryDate,
+                'current_stage' => 'iqama_issued',
+            ]);
 
-        // Update candidate status with NULL CHECK
-        if (!$departure->candidate) {
-            throw new \Exception("Departure {$departureId} has no associated candidate");
-        }
-        $departure->candidate->update(['status' => 'iqama_issued']);
+            // Update candidate status with NULL CHECK
+            if (!$departure->candidate) {
+                throw new \Exception("Departure {$departureId} has no associated candidate");
+            }
+            $departure->candidate->update(['status' => 'iqama_issued']);
 
-        // Log activity
-        activity()
-            ->performedOn($departure)
-            ->causedBy(auth()->user())
-            ->log("Iqama number recorded: {$iqamaNumber}");
+            // Log activity
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log("Iqama number recorded: {$iqamaNumber}");
 
-        return $departure;
+            return $departure;
+        });
     }
 
     /**

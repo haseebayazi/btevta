@@ -32,6 +32,10 @@ class Instructor extends Model
     protected $casts = [
         'joining_date' => 'date',
         'experience_years' => 'integer',
+        'campus_id' => 'integer',
+        'trade_id' => 'integer',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

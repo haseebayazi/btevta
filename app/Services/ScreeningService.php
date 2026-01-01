@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CandidateScreening;
 use App\Models\Candidate;
 use App\Models\Undertaking;
+use App\Enums\CandidateStatus;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 

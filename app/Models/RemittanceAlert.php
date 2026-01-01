@@ -53,6 +53,11 @@ class RemittanceAlert extends Model
         'is_read' => 'boolean',
         'is_resolved' => 'boolean',
         'resolved_at' => 'datetime',
+        'candidate_id' => 'integer',
+        'remittance_id' => 'integer',
+        'resolved_by' => 'integer',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
     ];
 
     // Relationships
