@@ -101,11 +101,11 @@ WASL (Workforce Abroad Skills & Linkages) is a Laravel-based enterprise applicat
 btevta/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/     # Request handlers (23 controllers)
+│   │   ├── Controllers/     # Request handlers (30 controllers)
 │   │   ├── Middleware/      # Auth, CSRF, Role, Security
 │   │   └── Requests/        # Form validation
-│   ├── Models/              # Eloquent models (15 models)
-│   ├── Policies/            # Authorization (23 policies)
+│   ├── Models/              # Eloquent models (34 models)
+│   ├── Policies/            # Authorization (40 policies)
 │   ├── Services/            # Business logic (14 services)
 │   ├── Observers/           # Model event handlers
 │   └── Rules/               # Custom validation rules
@@ -807,7 +807,7 @@ Step 4: View Results
 - Account lockout (5 failed attempts, 15-min cooldown)
 - Session regeneration on login
 - Role-based access control (RBAC)
-- Policy-based authorization (23 policies)
+- Policy-based authorization (40 policies)
 - API authentication via Sanctum
 
 ### Input Protection
