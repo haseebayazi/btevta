@@ -939,23 +939,52 @@ All 17 policies created with role-based access control:
 **Tasks:**
 
 ```
-[ ] 6.2.1 ActivityLogController tests
-[ ] 6.2.2 BatchController tests
-[ ] 6.2.3 BulkOperationsController tests (CRITICAL)
-[ ] 6.2.4 CampusController tests
-[ ] 6.2.5 ComplaintController tests
-[ ] 6.2.6 CorrespondenceController tests
-[ ] 6.2.7 DashboardController tests
-[ ] 6.2.8 DocumentArchiveController tests
-[ ] 6.2.9 EquipmentController tests
-[ ] 6.2.10 HealthController tests
-[ ] 6.2.11 ImportController tests (CRITICAL)
-[ ] 6.2.12 InstructorController tests
-[ ] 6.2.13 OepController tests
-[ ] 6.2.14 ReportController tests (CRITICAL)
-[ ] 6.2.15 TradeController tests
-[ ] 6.2.16 TrainingClassController tests
-[ ] 6.2.17-6.2.25 Remaining controllers
+[x] 6.2.1 BulkOperationsController tests (CRITICAL)
+    File: tests/Feature/BulkOperationsControllerTest.php
+    ✅ COMPLETED - 22 tests covering:
+    - Bulk status update with permission checks
+    - Batch assignment with capacity validation
+    - Campus assignment (clears batch)
+    - Export with format validation
+    - Bulk delete (admin only, skips departed)
+    - Bulk notifications
+
+[x] 6.2.2 VisaProcessingController tests (CRITICAL)
+    File: tests/Feature/VisaProcessingControllerTest.php
+    ✅ COMPLETED - 30 tests covering:
+    - Visa process CRUD operations
+    - Stage updates (interview, trade test, medical, biometric, enumber)
+    - Prerequisite validation between stages
+    - Document uploads (travel plan, GAMCA, Takamol)
+    - Complete and delete visa process
+    - Timeline and overdue views
+    - Authorization checks
+
+[x] 6.2.3 RegistrationController tests
+    File: tests/Feature/RegistrationControllerTest.php
+    ✅ COMPLETED - 28 tests covering:
+    - Document upload with type/size validation
+    - Next of kin with CNIC validation
+    - Undertaking management
+    - Registration completion requirements
+    - Document verification and rejection
+    - Training start workflow
+    - QR code verification
+    - Campus isolation for campus_admin
+
+[x] 6.2.4 ComplaintController tests
+    File: tests/Feature/ComplaintControllerTest.php
+    ✅ COMPLETED - 35 tests covering:
+    - Complaint CRUD with category/priority validation
+    - Assignment workflow
+    - Update and evidence management
+    - Escalation and resolution
+    - Close and reopen functionality
+    - Statistics and analytics
+    - SLA report and export
+    - Authorization checks
+
+[ ] 6.2.5-6.2.25 Remaining controllers pending
 ```
 
 ### 6.3 Service Tests (6 Untested Services)
@@ -1000,9 +1029,53 @@ All 17 policies created with role-based access control:
     - OEP allocation
     - Registration summary creation
 
-[ ] 6.3.4 DocumentArchiveService tests - Pending
-[ ] 6.3.5 GlobalSearchService tests - Pending
-[ ] 6.3.6 ReportingService tests - Pending
+[x] 6.3.4 DocumentArchiveService tests
+    File: tests/Unit/DocumentArchiveServiceTest.php
+    ✅ COMPLETED - 20 tests covering:
+    - Document upload and versioning
+    - Version history tracking
+    - Search with filters (date range, type, campus)
+    - Expiring/expired document detection
+    - Missing document identification
+    - Statistics and bulk operations
+    - Cleanup old versions
+
+[x] 6.3.5 GlobalSearchService tests
+    File: tests/Unit/GlobalSearchServiceTest.php
+    ✅ COMPLETED - 18 tests covering:
+    - Empty/whitespace term handling
+    - Candidate search by name/CNIC
+    - Batch, Trade, Campus, OEP search
+    - Role-based filtering (campus_admin isolation)
+    - Multiple type search
+    - Result structure validation
+    - Limit and count functionality
+
+[x] 6.3.6 ReportingService tests
+    File: tests/Unit/ReportingServiceTest.php
+    ✅ COMPLETED - 25 tests covering:
+    - Candidate pipeline report
+    - Conversion rate calculations
+    - Training report with batch/attendance stats
+    - Visa processing report
+    - Compliance report (departure, remittance, complaints)
+    - Custom report builder with filters
+    - Filter operators (equals, contains, in, between)
+    - Available filters per report type
+    - Report caching
+
+[x] 6.3.7 ScreeningService tests
+    File: tests/Unit/ScreeningServiceTest.php
+    ✅ COMPLETED - 32 tests covering:
+    - Undertaking content generation
+    - Call logs parsing
+    - Screening report generation with filters
+    - Auto-scheduling next screening
+    - Eligibility checks with prerequisites
+    - 3-call workflow (record attempts, progress stages)
+    - Callback and appointment management
+    - Response rate analytics
+    - Bulk stage updates
 ```
 
 ### 6.4 Integration Tests
