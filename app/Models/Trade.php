@@ -23,7 +23,9 @@ class Trade extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'duration_months' => 'integer'
+        'duration_months' => 'integer',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
     ];
 
     public function candidates()

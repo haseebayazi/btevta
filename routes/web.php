@@ -40,6 +40,17 @@ use App\Http\Controllers\EquipmentController;
 |--------------------------------------------------------------------------
 */
 
+// ========================================================================
+// HEALTH CHECK ROUTE (Public - No Authentication)
+// Used by load balancers and monitoring systems
+// ========================================================================
+Route::get('/up', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+    ]);
+})->name('health.up');
+
 // Authentication Routes
 // SECURITY FIX: Added guest middleware to prevent authenticated users from accessing auth pages
 Route::get('/', function () {

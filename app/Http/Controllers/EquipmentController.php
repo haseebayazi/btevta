@@ -12,6 +12,8 @@ class EquipmentController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', CampusEquipment::class);
+
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
 
@@ -54,6 +56,8 @@ class EquipmentController extends Controller
 
     public function create()
     {
+        $this->authorize('create', CampusEquipment::class);
+
         $user = auth()->user();
         $campuses = $user->role === 'campus_admin'
             ? Campus::where('id', $user->campus_id)->pluck('name', 'id')
@@ -67,6 +71,8 @@ class EquipmentController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', CampusEquipment::class);
+
         $validated = $request->validate([
             'campus_id' => 'required|exists:campuses,id',
             'name' => 'required|string|max:255',
@@ -95,6 +101,8 @@ class EquipmentController extends Controller
 
     public function show(CampusEquipment $equipment)
     {
+        $this->authorize('view', $equipment);
+
         $equipment->load(['campus', 'creator', 'updater', 'usageLogs' => function ($q) {
             $q->latest()->limit(10);
         }]);
@@ -115,6 +123,8 @@ class EquipmentController extends Controller
 
     public function edit(CampusEquipment $equipment)
     {
+        $this->authorize('update', $equipment);
+
         $user = auth()->user();
         $campuses = $user->role === 'campus_admin'
             ? Campus::where('id', $user->campus_id)->pluck('name', 'id')
@@ -129,6 +139,8 @@ class EquipmentController extends Controller
 
     public function update(Request $request, CampusEquipment $equipment)
     {
+        $this->authorize('update', $equipment);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|in:' . implode(',', array_keys(CampusEquipment::CATEGORIES)),
@@ -156,6 +168,8 @@ class EquipmentController extends Controller
 
     public function destroy(CampusEquipment $equipment)
     {
+        $this->authorize('delete', $equipment);
+
         $equipment->delete();
         return redirect()->route('equipment.index')
             ->with('success', 'Equipment deleted successfully.');
@@ -163,6 +177,8 @@ class EquipmentController extends Controller
 
     public function logUsage(Request $request, CampusEquipment $equipment)
     {
+        $this->authorize('logUsage', $equipment);
+
         $validated = $request->validate([
             'batch_id' => 'nullable|exists:batches,id',
             'usage_type' => 'required|in:' . implode(',', array_keys(EquipmentUsageLog::USAGE_TYPES)),
@@ -192,6 +208,8 @@ class EquipmentController extends Controller
 
     public function endUsage(Request $request, CampusEquipment $equipment, EquipmentUsageLog $log)
     {
+        $this->authorize('update', $log);
+
         if ($log->equipment_id !== $equipment->id) {
             abort(404);
         }
@@ -216,6 +234,8 @@ class EquipmentController extends Controller
 
     public function utilizationReport(Request $request)
     {
+        $this->authorize('viewReports', CampusEquipment::class);
+
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
 

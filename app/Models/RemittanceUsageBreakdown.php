@@ -48,6 +48,9 @@ class RemittanceUsageBreakdown extends Model
         'amount' => 'decimal:2',
         'percentage' => 'decimal:2',
         'has_proof' => 'boolean',
+        'remittance_id' => 'integer',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
     ];
 
     // Relationships

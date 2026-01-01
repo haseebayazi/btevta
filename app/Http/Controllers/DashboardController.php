@@ -24,6 +24,11 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // AUDIT FIX: Add authorization check for dashboard access
+        if (!$user->hasAnyRole(['super_admin', 'admin', 'project_director', 'campus_admin', 'instructor', 'trainer', 'oep', 'visa_partner', 'viewer'])) {
+            abort(403, 'Unauthorized access to dashboard.');
+        }
+
         // Role-based data filtering
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         $oepFilter = $user->role === 'oep' ? $user->oep_id : null;
@@ -217,10 +222,17 @@ class DashboardController extends Controller
 
     /**
      * Compliance Monitoring Dashboard
+     * AUDIT FIX: Add authorization check for compliance monitoring access
      */
     public function complianceMonitoring(Request $request)
     {
         $user = auth()->user();
+
+        // Only admin roles can access compliance monitoring
+        if (!$user->hasAnyRole(['super_admin', 'admin', 'project_director', 'campus_admin'])) {
+            abort(403, 'Unauthorized access to compliance monitoring.');
+        }
+
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
 
         // Document Compliance
