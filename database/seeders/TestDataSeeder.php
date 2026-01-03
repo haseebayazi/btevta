@@ -25,6 +25,11 @@ use Illuminate\Support\Str;
 class TestDataSeeder extends Seeder
 {
     /**
+     * Store credentials for logging
+     */
+    private array $credentials = [];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -94,24 +99,87 @@ class TestDataSeeder extends Seeder
         $this->seedDocumentArchive($candidates);
         $this->command->info('✓ Document archive created');
 
+        // 16. Log credentials
+        $this->logCredentials();
+
         $this->command->info('🎉 All test data seeded successfully!');
+    }
+
+    /**
+     * Log seeded credentials to file and display in terminal
+     */
+    private function logCredentials(): void
+    {
+        if (empty($this->credentials)) {
+            return;
+        }
+
+        $logPath = storage_path('logs/seeder-credentials.log');
+        $content = "=== BTEVTA Test Data Seeder Credentials ===\n";
+        $content .= "Generated: " . now()->toDateTimeString() . "\n";
+        $content .= "Environment: " . app()->environment() . "\n";
+        $content .= str_repeat('=', 50) . "\n\n";
+
+        $this->command->newLine();
+        $this->command->warn('╔══════════════════════════════════════════════════════════════╗');
+        $this->command->warn('║          SEEDED ACCOUNT CREDENTIALS                          ║');
+        $this->command->warn('║   ⚠️  SAVE THESE CREDENTIALS - SHOWN ONLY ONCE ⚠️             ║');
+        $this->command->warn('╚══════════════════════════════════════════════════════════════╝');
+        $this->command->newLine();
+
+        foreach ($this->credentials as $cred) {
+            $content .= "Role: {$cred['role']}\n";
+            $content .= "Name: {$cred['name']}\n";
+            $content .= "Email: {$cred['email']}\n";
+            $content .= "Password: {$cred['password']}\n";
+            $content .= str_repeat('-', 40) . "\n\n";
+
+            $this->command->line("  <fg=cyan>{$cred['role']}</>");
+            $this->command->line("  Email:    <fg=green>{$cred['email']}</>");
+            $this->command->line("  Password: <fg=yellow>{$cred['password']}</>");
+            $this->command->newLine();
+        }
+
+        $content .= "\n⚠️  SECURITY WARNING: Delete this file after noting the credentials!\n";
+        $content .= "File: {$logPath}\n";
+
+        file_put_contents($logPath, $content);
+
+        $this->command->warn("Credentials saved to: {$logPath}");
+        $this->command->warn("⚠️  DELETE THIS FILE AFTER SAVING THE CREDENTIALS!");
+        $this->command->newLine();
     }
 
     private function seedUsers($campuses)
     {
         $users = [];
 
+        // Generate secure password for admin
+        $adminPassword = Str::random(12);
+
         // Admin user - use firstOrCreate to avoid duplicate errors
+        $adminUser = User::where('email', 'admin@btevta.gov.pk')->first();
+        $isNewAdmin = !$adminUser;
+
         $users['admin'] = User::firstOrCreate(
             ['email' => 'admin@btevta.gov.pk'],
             [
                 'name' => 'System Administrator',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($adminPassword),
                 'role' => 'admin',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
         );
+
+        if ($isNewAdmin) {
+            $this->credentials[] = [
+                'role' => 'Admin',
+                'name' => 'System Administrator',
+                'email' => 'admin@btevta.gov.pk',
+                'password' => $adminPassword,
+            ];
+        }
 
         // Campus admins (one for each major campus)
         $campusAdmins = [
@@ -121,55 +189,65 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($campusAdmins as $index => $admin) {
+            $existingUser = User::where('email', $admin['email'])->first();
+            $isNewUser = !$existingUser;
+            $password = Str::random(12);
+
             $users["campus_admin_$index"] = User::firstOrCreate(
                 ['email' => $admin['email']],
                 [
                     'name' => $admin['name'],
-                    'password' => Hash::make('password'),
+                    'password' => Hash::make($password),
                     'role' => 'campus_admin',
                     'campus_id' => $campuses[$admin['campus_index']]->id,
                     'is_active' => true,
                     'email_verified_at' => now(),
                 ]
             );
+
+            if ($isNewUser) {
+                $this->credentials[] = [
+                    'role' => 'Campus Admin',
+                    'name' => $admin['name'],
+                    'email' => $admin['email'],
+                    'password' => $password,
+                ];
+            }
         }
 
         // Regular users
-        $users['user1'] = User::firstOrCreate(
-            ['email' => 'ahmed@btevta.gov.pk'],
-            [
-                'name' => 'Muhammad Ahmed',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[0]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+        $regularUsers = [
+            ['name' => 'Muhammad Ahmed', 'email' => 'ahmed@btevta.gov.pk', 'campus_index' => 0],
+            ['name' => 'Fatima Khan', 'email' => 'fatima@btevta.gov.pk', 'campus_index' => 1],
+            ['name' => 'Ali Raza', 'email' => 'ali@btevta.gov.pk', 'campus_index' => 2],
+        ];
 
-        $users['user2'] = User::firstOrCreate(
-            ['email' => 'fatima@btevta.gov.pk'],
-            [
-                'name' => 'Fatima Khan',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[1]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+        foreach ($regularUsers as $index => $userData) {
+            $existingUser = User::where('email', $userData['email'])->first();
+            $isNewUser = !$existingUser;
+            $password = Str::random(12);
 
-        $users['user3'] = User::firstOrCreate(
-            ['email' => 'ali@btevta.gov.pk'],
-            [
-                'name' => 'Ali Raza',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[2]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+            $users["user" . ($index + 1)] = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'password' => Hash::make($password),
+                    'role' => 'user',
+                    'campus_id' => $campuses[$userData['campus_index']]->id,
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            if ($isNewUser) {
+                $this->credentials[] = [
+                    'role' => 'User',
+                    'name' => $userData['name'],
+                    'email' => $userData['email'],
+                    'password' => $password,
+                ];
+            }
+        }
 
         return $users;
     }
