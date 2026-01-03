@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 /**
  * AUDIT FIX: Add missing database constraints identified during system audit
@@ -11,9 +12,39 @@ use Illuminate\Support\Facades\Schema;
  * - DB-001: Missing FK users.visa_partner_id → visa_partners
  * - DB-002: Missing class_enrollments pivot table
  * - DB-004: Missing indexes on remittances table
+ *
+ * Updated for Laravel 11 compatibility (removed deprecated Doctrine methods)
  */
 return new class extends Migration
 {
+    /**
+     * Check if an index exists on a table (Laravel 11 compatible)
+     */
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $indexes = Schema::getIndexes($table);
+        foreach ($indexes as $index) {
+            if ($index['name'] === $indexName) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a foreign key exists on a table (Laravel 11 compatible)
+     */
+    private function foreignKeyExists(string $table, string $foreignKeyName): bool
+    {
+        $foreignKeys = Schema::getForeignKeys($table);
+        foreach ($foreignKeys as $fk) {
+            if ($fk['name'] === $foreignKeyName) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Run the migrations.
      */
@@ -28,21 +59,13 @@ return new class extends Migration
                     ->on('visa_partners')
                     ->onDelete('set null');
             });
-        } else {
+        } elseif (!$this->foreignKeyExists('users', 'users_visa_partner_id_foreign')) {
             // Column exists but FK may be missing - add FK only
             Schema::table('users', function (Blueprint $table) {
-                // Check if foreign key already exists before adding
-                $foreignKeys = collect(Schema::getConnection()->getDoctrineSchemaManager()
-                    ->listTableForeignKeys('users'))
-                    ->pluck('name')
-                    ->toArray();
-
-                if (!in_array('users_visa_partner_id_foreign', $foreignKeys)) {
-                    $table->foreign('visa_partner_id')
-                        ->references('id')
-                        ->on('visa_partners')
-                        ->onDelete('set null');
-                }
+                $table->foreign('visa_partner_id')
+                    ->references('id')
+                    ->on('visa_partners')
+                    ->onDelete('set null');
             });
         }
 
@@ -84,46 +107,39 @@ return new class extends Migration
         }
 
         // 3. Add missing indexes on remittances table for performance
-        Schema::table('remittances', function (Blueprint $table) {
-            // Check if indexes don't exist before adding
-            $indexes = collect(Schema::getConnection()->getDoctrineSchemaManager()
-                ->listTableIndexes('remittances'))
-                ->keys()
-                ->toArray();
+        $addCandidateIndex = !$this->indexExists('remittances', 'remittances_candidate_id_index') &&
+                             !$this->indexExists('remittances', 'remittances_candidate_id_foreign');
+        $addStatusIndex = !$this->indexExists('remittances', 'remittances_status_index');
+        $addHasProofIndex = !$this->indexExists('remittances', 'remittances_has_proof_index');
+        $addFirstRemittanceIndex = !$this->indexExists('remittances', 'remittances_is_first_remittance_index');
+        $addYearMonthIndex = !$this->indexExists('remittances', 'remittances_year_month_index');
 
-            if (!in_array('remittances_candidate_id_index', $indexes) &&
-                !in_array('remittances_candidate_id_foreign', $indexes)) {
-                $table->index('candidate_id');
-            }
-
-            if (!in_array('remittances_status_index', $indexes)) {
-                $table->index('status');
-            }
-
-            if (!in_array('remittances_has_proof_index', $indexes)) {
-                $table->index('has_proof');
-            }
-
-            if (!in_array('remittances_is_first_remittance_index', $indexes)) {
-                $table->index('is_first_remittance');
-            }
-
-            if (!in_array('remittances_year_month_index', $indexes)) {
-                $table->index(['year', 'month']);
-            }
-        });
+        if ($addCandidateIndex || $addStatusIndex || $addHasProofIndex || $addFirstRemittanceIndex || $addYearMonthIndex) {
+            Schema::table('remittances', function (Blueprint $table) use ($addCandidateIndex, $addStatusIndex, $addHasProofIndex, $addFirstRemittanceIndex, $addYearMonthIndex) {
+                if ($addCandidateIndex) {
+                    $table->index('candidate_id');
+                }
+                if ($addStatusIndex) {
+                    $table->index('status');
+                }
+                if ($addHasProofIndex) {
+                    $table->index('has_proof');
+                }
+                if ($addFirstRemittanceIndex) {
+                    $table->index('is_first_remittance');
+                }
+                if ($addYearMonthIndex) {
+                    $table->index(['year', 'month']);
+                }
+            });
+        }
 
         // 4. Add composite index for common candidate queries
-        Schema::table('candidates', function (Blueprint $table) {
-            $indexes = collect(Schema::getConnection()->getDoctrineSchemaManager()
-                ->listTableIndexes('candidates'))
-                ->keys()
-                ->toArray();
-
-            if (!in_array('candidates_status_training_status_index', $indexes)) {
+        if (!$this->indexExists('candidates', 'candidates_status_training_status_index')) {
+            Schema::table('candidates', function (Blueprint $table) {
                 $table->index(['status', 'training_status']);
-            }
-        });
+            });
+        }
     }
 
     /**
@@ -132,25 +148,47 @@ return new class extends Migration
     public function down(): void
     {
         // Remove indexes from candidates
-        Schema::table('candidates', function (Blueprint $table) {
-            $table->dropIndex(['status', 'training_status']);
-        });
+        if ($this->indexExists('candidates', 'candidates_status_training_status_index')) {
+            Schema::table('candidates', function (Blueprint $table) {
+                $table->dropIndex(['status', 'training_status']);
+            });
+        }
 
         // Remove indexes from remittances
-        Schema::table('remittances', function (Blueprint $table) {
-            $table->dropIndex(['year', 'month']);
-            $table->dropIndex(['is_first_remittance']);
-            $table->dropIndex(['has_proof']);
-            $table->dropIndex(['status']);
-            $table->dropIndex(['candidate_id']);
-        });
+        $dropYearMonthIndex = $this->indexExists('remittances', 'remittances_year_month_index');
+        $dropFirstRemittanceIndex = $this->indexExists('remittances', 'remittances_is_first_remittance_index');
+        $dropHasProofIndex = $this->indexExists('remittances', 'remittances_has_proof_index');
+        $dropStatusIndex = $this->indexExists('remittances', 'remittances_status_index');
+        $dropCandidateIndex = $this->indexExists('remittances', 'remittances_candidate_id_index');
+
+        if ($dropYearMonthIndex || $dropFirstRemittanceIndex || $dropHasProofIndex || $dropStatusIndex || $dropCandidateIndex) {
+            Schema::table('remittances', function (Blueprint $table) use ($dropYearMonthIndex, $dropFirstRemittanceIndex, $dropHasProofIndex, $dropStatusIndex, $dropCandidateIndex) {
+                if ($dropYearMonthIndex) {
+                    $table->dropIndex(['year', 'month']);
+                }
+                if ($dropFirstRemittanceIndex) {
+                    $table->dropIndex(['is_first_remittance']);
+                }
+                if ($dropHasProofIndex) {
+                    $table->dropIndex(['has_proof']);
+                }
+                if ($dropStatusIndex) {
+                    $table->dropIndex(['status']);
+                }
+                if ($dropCandidateIndex) {
+                    $table->dropIndex(['candidate_id']);
+                }
+            });
+        }
 
         // Drop class_enrollments table
         Schema::dropIfExists('class_enrollments');
 
         // Remove visa_partner FK from users (keep column for data preservation)
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['visa_partner_id']);
-        });
+        if ($this->foreignKeyExists('users', 'users_visa_partner_id_foreign')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign(['visa_partner_id']);
+            });
+        }
     }
 };
