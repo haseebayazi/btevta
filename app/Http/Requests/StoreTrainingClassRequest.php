@@ -8,10 +8,23 @@ class StoreTrainingClassRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * AUDIT FIX: Changed from simple auth()->check() to proper role-based authorization.
+     * Previously any authenticated user could create training classes.
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Only admins, campus admins, and trainers can create training classes
+        return $user->isSuperAdmin() ||
+               $user->isProjectDirector() ||
+               $user->isCampusAdmin() ||
+               $user->isTrainer();
     }
 
     /**

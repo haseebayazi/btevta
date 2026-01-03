@@ -8,10 +8,25 @@ class StoreComplaintRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * AUDIT FIX: Changed from simple auth()->check() to proper role-based authorization.
+     * Previously any authenticated user could create complaints.
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Check if user has permission to create complaints
+        // Super admins, project directors, campus admins, and OEPs can create complaints
+        return $user->isSuperAdmin() ||
+               $user->isProjectDirector() ||
+               $user->isCampusAdmin() ||
+               $user->isOep() ||
+               $user->isViewer(); // Viewers can file complaints on behalf of candidates
     }
 
     /**

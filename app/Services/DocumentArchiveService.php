@@ -666,36 +666,37 @@ class DocumentArchiveService
     /**
      * Upload new version of existing document
      * ADDED - Called by controller line 184-188
+     * AUDIT FIX: Corrected field names to match model schema
      */
     public function uploadNewVersion($documentId, $file, $versionNotes = null): DocumentArchive
     {
         $oldDocument = DocumentArchive::findOrFail($documentId);
 
         // Archive the old version
+        // AUDIT FIX: Changed 'is_current_version' to 'is_current'
         $oldDocument->update([
-            'is_current_version' => false,
+            'is_current' => false,
+            'archived_at' => now(),
         ]);
 
         // Store new file
         $path = $file->store("archive/{$oldDocument->document_type}", 'public');
 
         // Create new version
+        // AUDIT FIX: Corrected field names - 'document_path' not 'file_path', 'is_current' not 'is_current_version'
         $newVersion = DocumentArchive::create([
             'candidate_id' => $oldDocument->candidate_id,
             'campus_id' => $oldDocument->campus_id,
+            'trade_id' => $oldDocument->trade_id,
             'oep_id' => $oldDocument->oep_id,
-            'document_category' => $oldDocument->document_category,
             'document_type' => $oldDocument->document_type,
             'document_name' => $oldDocument->document_name,
-            'document_number' => $oldDocument->document_number,
-            'file_path' => $path,
-            'file_type' => $file->getClientOriginalExtension(),
+            'document_path' => $path,
+            'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
             'version' => $oldDocument->version + 1,
             'uploaded_by' => auth()->id(),
-            'is_current_version' => true,
-            'replaces_document_id' => $oldDocument->id,
-            'issue_date' => $oldDocument->issue_date,
+            'is_current' => true,
             'expiry_date' => $oldDocument->expiry_date,
             'description' => $versionNotes ?? $oldDocument->description,
         ]);
@@ -713,12 +714,13 @@ class DocumentArchiveService
     /**
      * Get all documents for a candidate
      * ADDED - Called by controller line 343
+     * AUDIT FIX: Changed 'is_current_version' to 'is_current'
      */
     public function getCandidateDocuments($candidateId): \Illuminate\Database\Eloquent\Collection
     {
-        return DocumentArchive::with(['uploader'])
+        return DocumentArchive::with(['uploadedByUser'])
             ->where('candidate_id', $candidateId)
-            ->where('is_current_version', true)
+            ->where('is_current', true)
             ->orderBy('document_type')
             ->get();
     }
@@ -750,12 +752,16 @@ class DocumentArchiveService
     /**
      * Archive a document (soft delete)
      * ADDED - Called by controller line 429
+     * AUDIT FIX: Changed 'is_current_version' to 'is_current'
      */
     public function archiveDocument($documentId): bool
     {
         $document = DocumentArchive::findOrFail($documentId);
 
-        $document->update(['is_current_version' => false]);
+        $document->update([
+            'is_current' => false,
+            'archived_at' => now(),
+        ]);
         $document->delete();
 
         // Log activity
@@ -770,13 +776,17 @@ class DocumentArchiveService
     /**
      * Restore an archived document
      * ADDED - Called by controller line 443
+     * AUDIT FIX: Changed 'is_current_version' to 'is_current'
      */
     public function restoreDocument($documentId): DocumentArchive
     {
         $document = DocumentArchive::withTrashed()->findOrFail($documentId);
 
         $document->restore();
-        $document->update(['is_current_version' => true]);
+        $document->update([
+            'is_current' => true,
+            'archived_at' => null,
+        ]);
 
         // Log activity
         activity()
@@ -790,14 +800,16 @@ class DocumentArchiveService
     /**
      * Permanently delete a document
      * ADDED - Called by controller line 458
+     * AUDIT FIX: Changed 'file_path' to 'document_path'
      */
     public function deleteDocument($documentId): bool
     {
         $document = DocumentArchive::withTrashed()->findOrFail($documentId);
 
         // Delete physical file
-        if (Storage::disk('public')->exists($document->file_path)) {
-            Storage::disk('public')->delete($document->file_path);
+        // AUDIT FIX: Changed 'file_path' to 'document_path'
+        if (Storage::disk('public')->exists($document->document_path)) {
+            Storage::disk('public')->delete($document->document_path);
         }
 
         // Log activity before deletion

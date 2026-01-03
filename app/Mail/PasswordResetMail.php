@@ -8,23 +8,44 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Password;
 
+/**
+ * AUDIT FIX: Rewritten to use password reset tokens instead of sending plaintext passwords.
+ * Sending passwords via email is an OWASP violation (A07:2021 - Identification and Authentication Failures).
+ *
+ * Previous implementation sent the actual password in the email which could be:
+ * - Intercepted in transit
+ * - Stored in email logs
+ * - Visible in recipient's inbox indefinitely
+ *
+ * New implementation sends a secure, time-limited reset link instead.
+ */
 class PasswordResetMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $user;
-    public $newPassword;
-    public $resetBy;
+    public User $user;
+    public User $resetBy;
+    public string $resetToken;
+    public string $resetUrl;
 
     /**
      * Create a new message instance.
+     *
+     * @param User $user The user whose password is being reset
+     * @param User $resetBy The admin who initiated the reset
+     * @param string $resetToken The password reset token
      */
-    public function __construct(User $user, string $newPassword, User $resetBy)
+    public function __construct(User $user, User $resetBy, string $resetToken)
     {
         $this->user = $user;
-        $this->newPassword = $newPassword;
         $this->resetBy = $resetBy;
+        $this->resetToken = $resetToken;
+        $this->resetUrl = url(route('password.reset', [
+            'token' => $resetToken,
+            'email' => $user->email,
+        ], false));
     }
 
     /**
@@ -33,7 +54,7 @@ class PasswordResetMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Password Reset - BTEVTA System',
+            subject: 'Password Reset Request - BTEVTA System',
         );
     }
 

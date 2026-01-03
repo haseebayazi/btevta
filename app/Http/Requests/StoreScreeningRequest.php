@@ -8,10 +8,23 @@ class StoreScreeningRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * AUDIT FIX: Changed from simple auth()->check() to proper role-based authorization.
+     * Previously any authenticated user could create screenings.
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Only authorized staff can create screening records
+        return $user->isSuperAdmin() ||
+               $user->isProjectDirector() ||
+               $user->isCampusAdmin() ||
+               $user->isOep();
     }
 
     /**

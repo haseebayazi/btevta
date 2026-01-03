@@ -8,10 +8,22 @@ class StoreInstructorRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * AUDIT FIX: Changed from simple auth()->check() to proper role-based authorization.
+     * Previously any authenticated user could create instructors.
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Only admins and campus admins can create instructors
+        return $user->isSuperAdmin() ||
+               $user->isProjectDirector() ||
+               $user->isCampusAdmin();
     }
 
     /**

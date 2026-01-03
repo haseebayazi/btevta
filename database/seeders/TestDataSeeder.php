@@ -22,17 +22,38 @@ use App\Models\DocumentArchive;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+/**
+ * AUDIT FIX: Added environment protection and secure password generation.
+ * This seeder will refuse to run in production to prevent weak password creation.
+ */
 class TestDataSeeder extends Seeder
 {
+    /**
+     * Store generated passwords for display at the end
+     */
+    private array $generatedPasswords = [];
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        // Clear existing data (optional - comment out if you want to keep existing data)
-        // $this->clearExistingData();
+        // AUDIT FIX: Production environment protection
+        if (app()->environment('production')) {
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->error('🚨 SECURITY BLOCK: TestDataSeeder cannot run in production environment!');
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->error('This seeder creates test users with generated passwords.');
+            $this->command->error('Running it in production would create security vulnerabilities.');
+            $this->command->error('');
+            $this->command->error('If you need to create admin users in production, use:');
+            $this->command->error('  php artisan admin:reset-password');
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            return;
+        }
 
         $this->command->info('Starting to seed test data...');
+        $this->command->warn('⚠️  Environment: ' . app()->environment());
 
         // 1. Create Campuses FIRST (needed for user campus_id references)
         $campuses = $this->seedCampuses();
@@ -95,23 +116,44 @@ class TestDataSeeder extends Seeder
         $this->command->info('✓ Document archive created');
 
         $this->command->info('🎉 All test data seeded successfully!');
+
+        // AUDIT FIX: Display generated passwords at the end
+        if (!empty($this->generatedPasswords)) {
+            $this->command->newLine();
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->warn('📋 GENERATED USER CREDENTIALS (SAVE THESE NOW!)');
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            foreach ($this->generatedPasswords as $email => $password) {
+                $this->command->info("   {$email} => {$password}");
+            }
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->warn('⚠️  These passwords will not be shown again!');
+            $this->command->newLine();
+        }
     }
 
+    /**
+     * AUDIT FIX: Seed users with secure random passwords
+     */
     private function seedUsers($campuses)
     {
         $users = [];
 
         // Admin user - use firstOrCreate to avoid duplicate errors
+        $adminPassword = $this->generateSecurePassword();
         $users['admin'] = User::firstOrCreate(
             ['email' => 'admin@btevta.gov.pk'],
             [
                 'name' => 'System Administrator',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($adminPassword),
                 'role' => 'admin',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
         );
+        if ($users['admin']->wasRecentlyCreated) {
+            $this->generatedPasswords['admin@btevta.gov.pk'] = $adminPassword;
+        }
 
         // Campus admins (one for each major campus)
         $campusAdmins = [
@@ -121,57 +163,58 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($campusAdmins as $index => $admin) {
+            $password = $this->generateSecurePassword();
             $users["campus_admin_$index"] = User::firstOrCreate(
                 ['email' => $admin['email']],
                 [
                     'name' => $admin['name'],
-                    'password' => Hash::make('password'),
+                    'password' => Hash::make($password),
                     'role' => 'campus_admin',
                     'campus_id' => $campuses[$admin['campus_index']]->id,
                     'is_active' => true,
                     'email_verified_at' => now(),
                 ]
             );
+            if ($users["campus_admin_$index"]->wasRecentlyCreated) {
+                $this->generatedPasswords[$admin['email']] = $password;
+            }
         }
 
         // Regular users
-        $users['user1'] = User::firstOrCreate(
-            ['email' => 'ahmed@btevta.gov.pk'],
-            [
-                'name' => 'Muhammad Ahmed',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[0]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+        $regularUsers = [
+            ['name' => 'Muhammad Ahmed', 'email' => 'ahmed@btevta.gov.pk', 'campus_index' => 0],
+            ['name' => 'Fatima Khan', 'email' => 'fatima@btevta.gov.pk', 'campus_index' => 1],
+            ['name' => 'Ali Raza', 'email' => 'ali@btevta.gov.pk', 'campus_index' => 2],
+        ];
 
-        $users['user2'] = User::firstOrCreate(
-            ['email' => 'fatima@btevta.gov.pk'],
-            [
-                'name' => 'Fatima Khan',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[1]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $users['user3'] = User::firstOrCreate(
-            ['email' => 'ali@btevta.gov.pk'],
-            [
-                'name' => 'Ali Raza',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'campus_id' => $campuses[2]->id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+        foreach ($regularUsers as $index => $userData) {
+            $password = $this->generateSecurePassword();
+            $users["user" . ($index + 1)] = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'password' => Hash::make($password),
+                    'role' => 'user',
+                    'campus_id' => $campuses[$userData['campus_index']]->id,
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
+            );
+            if ($users["user" . ($index + 1)]->wasRecentlyCreated) {
+                $this->generatedPasswords[$userData['email']] = $password;
+            }
+        }
 
         return $users;
+    }
+
+    /**
+     * Generate a secure random password for test users.
+     * AUDIT FIX: Replaces hardcoded 'password' with secure random passwords.
+     */
+    private function generateSecurePassword(): string
+    {
+        return Str::random(12) . rand(10, 99) . '!';
     }
 
     private function seedCampuses()

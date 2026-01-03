@@ -318,70 +318,74 @@ class NotificationService
 
     /**
      * Send SMS notification
+     *
+     * AUDIT FIX: Throws exception until SMS gateway is properly integrated.
+     * Previously returned fake success which could cause missed critical notifications.
      */
     private function sendSMS($recipient, $notificationData)
     {
         $phone = is_object($recipient) ? $recipient->phone : $recipient;
-        
+
         if (empty($phone)) {
             throw new \Exception('Phone number not provided');
         }
 
         // Format phone for SMS gateway
         $phone = $this->formatPhoneNumber($phone);
-        
-        // Here you would integrate with SMS gateway (e.g., Twilio, Nexmo, local SMS provider)
-        // For now, we'll just log it
-        
-        // Example: $this->smsGateway->send($phone, $notificationData['message']);
-        
-        activity()
-            ->withProperties([
-                'phone' => $phone,
-                'message' => $notificationData['message'],
-            ])
-            ->log('SMS sent');
 
-        return [
-            'success' => true,
-            'channel' => 'sms',
-            'recipient' => $phone,
-            'sent_at' => now(),
-            'note' => 'SMS gateway integration pending',
-        ];
+        // Check if SMS gateway is configured
+        if (!config('services.sms.enabled', false)) {
+            // Log the attempt for audit purposes
+            Log::warning('SMS notification attempted but gateway not configured', [
+                'phone' => $phone,
+                'type' => $notificationData['type'] ?? 'unknown',
+            ]);
+
+            throw new \Exception('SMS gateway not configured. Please configure SMS service in config/services.php');
+        }
+
+        // TODO: Integrate with SMS gateway (e.g., Twilio, Nexmo, local SMS provider)
+        // Example implementation:
+        // $smsGateway = app(SmsGatewayInterface::class);
+        // $result = $smsGateway->send($phone, $notificationData['message']);
+
+        throw new \Exception('SMS gateway integration not yet implemented. Contact system administrator.');
     }
 
     /**
      * Send WhatsApp notification
+     *
+     * AUDIT FIX: Throws exception until WhatsApp API is properly integrated.
+     * Previously returned fake success which could cause missed critical notifications.
      */
     private function sendWhatsApp($recipient, $notificationData)
     {
         $phone = is_object($recipient) ? $recipient->phone : $recipient;
-        
+
         if (empty($phone)) {
             throw new \Exception('Phone number not provided');
         }
 
         // Format phone for WhatsApp
         $phone = $this->formatPhoneNumber($phone);
-        
-        // Here you would integrate with WhatsApp Business API
-        // For now, we'll just log it
-        
-        activity()
-            ->withProperties([
-                'phone' => $phone,
-                'message' => $notificationData['message'],
-            ])
-            ->log('WhatsApp message queued');
 
-        return [
-            'success' => true,
-            'channel' => 'whatsapp',
-            'recipient' => $phone,
-            'sent_at' => now(),
-            'note' => 'WhatsApp API integration pending',
-        ];
+        // Check if WhatsApp API is configured
+        if (!config('services.whatsapp.enabled', false)) {
+            // Log the attempt for audit purposes
+            Log::warning('WhatsApp notification attempted but API not configured', [
+                'phone' => $phone,
+                'type' => $notificationData['type'] ?? 'unknown',
+            ]);
+
+            throw new \Exception('WhatsApp API not configured. Please configure WhatsApp Business API in config/services.php');
+        }
+
+        // TODO: Integrate with WhatsApp Business API
+        // Example implementation:
+        // $whatsappClient = app(WhatsAppBusinessClient::class);
+        // $result = $whatsappClient->sendMessage($phone, $notificationData['message']);
+
+        throw new \Exception('WhatsApp API integration not yet implemented. Contact system administrator.');
     }
 
     /**
