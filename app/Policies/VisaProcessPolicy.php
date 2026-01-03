@@ -64,9 +64,14 @@ class VisaProcessPolicy
             return $visaProcess->candidate->oep_id === $user->oep_id;
         }
 
-        // Trainers/Instructors can view
+        // AUDIT FIX: Trainers can only view visa processes for candidates in their campus
+        // Previously returned true for all trainers (security bypass)
         if ($user->isTrainer()) {
-            return true;
+            if (!$visaProcess || !$visaProcess->candidate) {
+                return false;
+            }
+            // Trainers can only view visa processes for candidates in their campus
+            return $user->campus_id && $visaProcess->candidate->campus_id === $user->campus_id;
         }
 
         return false;

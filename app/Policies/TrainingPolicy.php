@@ -41,26 +41,27 @@ class TrainingPolicy
 
         // Campus admin can only view training from their campus
         if ($user->isCampusAdmin() && $user->campus_id) {
-            // Check if training has campus_id property
-            if (property_exists($training, 'campus_id') || isset($training->campus_id)) {
+            // AUDIT FIX: Removed fallback 'return true' - require campus_id check
+            if (isset($training->campus_id)) {
                 return $training->campus_id === $user->campus_id;
             }
-            return true;
+            // If training doesn't have campus_id, deny access for security
+            return false;
         }
 
-        // Trainers can view all trainings they're assigned to or from their campus
+        // Trainers can view trainings they're assigned to or from their campus
         if ($user->isTrainer()) {
             // Check if trainer is assigned to this training
-            if (property_exists($training, 'trainer_id') || isset($training->trainer_id)) {
-                if ($training->trainer_id === $user->id) {
-                    return true;
-                }
+            if (isset($training->trainer_id) && $training->trainer_id === $user->id) {
+                return true;
             }
-            // Also allow if in same campus
+            // AUDIT FIX: Removed fallback 'return true' - require campus validation
+            // Allow only if in same campus
             if ($user->campus_id && isset($training->campus_id)) {
                 return $training->campus_id === $user->campus_id;
             }
-            return true;
+            // If no campus assignment, deny access
+            return false;
         }
 
         return false;
@@ -141,9 +142,14 @@ class TrainingPolicy
             return true;
         }
 
-        // Campus admin can update assessments from their campus
+        // AUDIT FIX: Campus admin can update assessments from their campus only
+        // Previously returned true without campus validation
         if ($user->isCampusAdmin() && $user->campus_id) {
-            return true;
+            if ($assessment && isset($assessment->campus_id)) {
+                return $assessment->campus_id === $user->campus_id;
+            }
+            // Allow if no assessment provided (for create-like operations)
+            return $assessment === null;
         }
 
         // Trainers can update their own assessments
