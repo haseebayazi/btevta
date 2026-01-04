@@ -22,7 +22,7 @@ class CampusPolicy
         }
 
         // Campus admin can only view their own campus
-        if ($user->isCampusAdmin() && $user->campus_id === $campus->id) {
+        if ($user->isCampusAdmin() && $user->campus_id && $user->campus_id === $campus->id) {
             return true;
         }
 

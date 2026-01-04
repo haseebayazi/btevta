@@ -22,7 +22,7 @@ class CampusKpiPolicy
         }
 
         // Campus admin can view KPIs from their campus
-        if ($user->isCampusAdmin() && $user->campus_id === $kpi->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id && $user->campus_id === $kpi->campus_id) {
             return true;
         }
 

@@ -22,7 +22,7 @@ class CampusEquipmentPolicy
         }
 
         // Campus admin can only view equipment from their campus
-        if ($user->isCampusAdmin() && $user->campus_id === $equipment->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id && $user->campus_id === $equipment->campus_id) {
             return true;
         }
 
@@ -41,7 +41,7 @@ class CampusEquipmentPolicy
         }
 
         // Campus admin can update their campus equipment
-        if ($user->isCampusAdmin() && $user->campus_id === $equipment->campus_id) {
+        if ($user->isCampusAdmin() && $user->campus_id && $user->campus_id === $equipment->campus_id) {
             return true;
         }
 
@@ -60,7 +60,7 @@ class CampusEquipmentPolicy
         }
 
         // Campus admin and instructors can log usage for their campus
-        if (($user->isCampusAdmin() || $user->isInstructor()) && $user->campus_id === $equipment->campus_id) {
+        if (($user->isCampusAdmin() || $user->isInstructor()) && $user->campus_id && $user->campus_id === $equipment->campus_id) {
             return true;
         }
 
