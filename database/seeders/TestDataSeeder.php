@@ -29,9 +29,9 @@ use Illuminate\Support\Str;
 class TestDataSeeder extends Seeder
 {
     /**
-     * Store generated passwords for display at the end
+     * Store credentials for logging
      */
-    private array $generatedPasswords = [];
+    private array $credentials = [];
 
     /**
      * Run the database seeds.
@@ -115,6 +115,9 @@ class TestDataSeeder extends Seeder
         $this->seedDocumentArchive($candidates);
         $this->command->info('✓ Document archive created');
 
+        // 16. Log credentials
+        $this->logCredentials();
+
         $this->command->info('🎉 All test data seeded successfully!');
 
         // AUDIT FIX: Display generated passwords at the end
@@ -133,14 +136,61 @@ class TestDataSeeder extends Seeder
     }
 
     /**
-     * AUDIT FIX: Seed users with secure random passwords
+     * Log seeded credentials to file and display in terminal
      */
+    private function logCredentials(): void
+    {
+        if (empty($this->credentials)) {
+            return;
+        }
+
+        $logPath = storage_path('logs/seeder-credentials.log');
+        $content = "=== BTEVTA Test Data Seeder Credentials ===\n";
+        $content .= "Generated: " . now()->toDateTimeString() . "\n";
+        $content .= "Environment: " . app()->environment() . "\n";
+        $content .= str_repeat('=', 50) . "\n\n";
+
+        $this->command->newLine();
+        $this->command->warn('╔══════════════════════════════════════════════════════════════╗');
+        $this->command->warn('║          SEEDED ACCOUNT CREDENTIALS                          ║');
+        $this->command->warn('║   ⚠️  SAVE THESE CREDENTIALS - SHOWN ONLY ONCE ⚠️             ║');
+        $this->command->warn('╚══════════════════════════════════════════════════════════════╝');
+        $this->command->newLine();
+
+        foreach ($this->credentials as $cred) {
+            $content .= "Role: {$cred['role']}\n";
+            $content .= "Name: {$cred['name']}\n";
+            $content .= "Email: {$cred['email']}\n";
+            $content .= "Password: {$cred['password']}\n";
+            $content .= str_repeat('-', 40) . "\n\n";
+
+            $this->command->line("  <fg=cyan>{$cred['role']}</>");
+            $this->command->line("  Email:    <fg=green>{$cred['email']}</>");
+            $this->command->line("  Password: <fg=yellow>{$cred['password']}</>");
+            $this->command->newLine();
+        }
+
+        $content .= "\n⚠️  SECURITY WARNING: Delete this file after noting the credentials!\n";
+        $content .= "File: {$logPath}\n";
+
+        file_put_contents($logPath, $content);
+
+        $this->command->warn("Credentials saved to: {$logPath}");
+        $this->command->warn("⚠️  DELETE THIS FILE AFTER SAVING THE CREDENTIALS!");
+        $this->command->newLine();
+    }
+
     private function seedUsers($campuses)
     {
         $users = [];
 
+        // Generate secure password for admin
+        $adminPassword = Str::random(12);
+
         // Admin user - use firstOrCreate to avoid duplicate errors
-        $adminPassword = $this->generateSecurePassword();
+        $adminUser = User::where('email', 'admin@btevta.gov.pk')->first();
+        $isNewAdmin = !$adminUser;
+
         $users['admin'] = User::firstOrCreate(
             ['email' => 'admin@btevta.gov.pk'],
             [
@@ -155,6 +205,15 @@ class TestDataSeeder extends Seeder
             $this->generatedPasswords['admin@btevta.gov.pk'] = $adminPassword;
         }
 
+        if ($isNewAdmin) {
+            $this->credentials[] = [
+                'role' => 'Admin',
+                'name' => 'System Administrator',
+                'email' => 'admin@btevta.gov.pk',
+                'password' => $adminPassword,
+            ];
+        }
+
         // Campus admins (one for each major campus)
         $campusAdmins = [
             ['name' => 'Lahore Campus Admin', 'email' => 'lahore@btevta.gov.pk', 'campus_index' => 0],
@@ -163,7 +222,10 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($campusAdmins as $index => $admin) {
-            $password = $this->generateSecurePassword();
+            $existingUser = User::where('email', $admin['email'])->first();
+            $isNewUser = !$existingUser;
+            $password = Str::random(12);
+
             $users["campus_admin_$index"] = User::firstOrCreate(
                 ['email' => $admin['email']],
                 [
@@ -175,8 +237,14 @@ class TestDataSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
-            if ($users["campus_admin_$index"]->wasRecentlyCreated) {
-                $this->generatedPasswords[$admin['email']] = $password;
+
+            if ($isNewUser) {
+                $this->credentials[] = [
+                    'role' => 'Campus Admin',
+                    'name' => $admin['name'],
+                    'email' => $admin['email'],
+                    'password' => $password,
+                ];
             }
         }
 
@@ -188,7 +256,10 @@ class TestDataSeeder extends Seeder
         ];
 
         foreach ($regularUsers as $index => $userData) {
-            $password = $this->generateSecurePassword();
+            $existingUser = User::where('email', $userData['email'])->first();
+            $isNewUser = !$existingUser;
+            $password = Str::random(12);
+
             $users["user" . ($index + 1)] = User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
@@ -200,8 +271,14 @@ class TestDataSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
-            if ($users["user" . ($index + 1)]->wasRecentlyCreated) {
-                $this->generatedPasswords[$userData['email']] = $password;
+
+            if ($isNewUser) {
+                $this->credentials[] = [
+                    'role' => 'User',
+                    'name' => $userData['name'],
+                    'email' => $userData['email'],
+                    'password' => $password,
+                ];
             }
         }
 
