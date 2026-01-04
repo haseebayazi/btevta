@@ -32,7 +32,7 @@ This comprehensive **100% file-by-file audit** analyzed **203 PHP files**, **40 
 | # | Issue | File(s) | Fix Applied |
 |---|-------|---------|-------------|
 | 1 | Fake SMS/WhatsApp success | `NotificationService.php` | Now throws exceptions until gateway configured |
-| 2 | Field name mismatches | `DocumentArchiveService.php` | Fixed 7 methods: `is_current`, `document_path` |
+| 2 | Field name mismatches | `DocumentArchiveService.php` | Uses correct columns: `is_current_version`, `file_path` |
 | 3 | Global search bypass | `UserPolicy.php` | Added proper role-based authorization |
 | 4 | Dead events | `NewComplaintRegistered.php`, `DashboardStatsUpdated.php` | Removed dead code files |
 | 5 | Hardcoded password | `ResetAdminPassword.php` | Generates secure random passwords |
