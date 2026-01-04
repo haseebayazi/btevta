@@ -177,7 +177,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Batch (Optional)
-                            @if(auth()->user()->role === 'admin')
+                            @if(auth()->user()->isAdmin())
                             <a href="{{ route('admin.batches.create') }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 ml-2">
                                 + Create New Batch
                             </a>

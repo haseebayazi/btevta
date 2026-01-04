@@ -137,7 +137,7 @@
                             @enderror
                         </div>
 
-                        @if(auth()->user()->role == 'admin')
+                        @if(auth()->user()->isAdmin())
                         <div class="form-group md:col-span-2">
                             <label for="admin_notes">Admin Notes (Internal Only)</label>
                             <textarea id="admin_notes"

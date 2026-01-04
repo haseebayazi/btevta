@@ -49,6 +49,8 @@ class PurgeOldData extends Command
 
     /**
      * Execute the console command.
+     *
+     * AUDIT FIX: Enhanced production environment protection.
      */
     public function handle(): int
     {
@@ -60,6 +62,31 @@ class PurgeOldData extends Command
         $this->info('  DATA RETENTION PURGE - Government Compliance');
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
+        // AUDIT FIX: Production environment protection
+        if (app()->environment('production')) {
+            $this->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->error('  ⚠️  WARNING: PRODUCTION ENVIRONMENT DETECTED!');
+            $this->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->newLine();
+
+            if (!$dryRun && !$this->option('force')) {
+                $this->warn('This command will PERMANENTLY DELETE data from production.');
+                $this->warn('It is STRONGLY recommended to run with --dry-run first.');
+                $this->newLine();
+
+                if (!$this->confirm('Are you ABSOLUTELY SURE you want to proceed in PRODUCTION?')) {
+                    $this->info('Operation cancelled.');
+                    return Command::SUCCESS;
+                }
+
+                // Double confirmation for production
+                if (!$this->confirm('Please confirm again - this action CANNOT be undone')) {
+                    $this->info('Operation cancelled.');
+                    return Command::SUCCESS;
+                }
+            }
+        }
+
         if ($dryRun) {
             $this->warn('  DRY RUN MODE - No data will be deleted');
         }
@@ -67,10 +94,11 @@ class PurgeOldData extends Command
         $this->newLine();
         $this->info("Retention period: {$days} days");
         $this->info("Purge type: {$type}");
+        $this->info("Environment: " . app()->environment());
         $this->newLine();
 
-        // Confirmation unless forced
-        if (!$dryRun && !$this->option('force')) {
+        // Confirmation unless forced (non-production)
+        if (!$dryRun && !$this->option('force') && !app()->environment('production')) {
             if (!$this->confirm('This will permanently delete old data. Continue?')) {
                 $this->info('Operation cancelled.');
                 return Command::SUCCESS;
