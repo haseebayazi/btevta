@@ -6,6 +6,7 @@ use App\Models\Candidate;
 use App\Models\RegistrationDocument;
 use App\Models\NextOfKin;
 use App\Models\Undertaking;
+use App\Enums\CandidateStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -309,8 +310,8 @@ class RegistrationController extends Controller
 
             DB::beginTransaction();
 
-            // Update candidate status
-            $candidate->status = 'registered';
+            // AUDIT FIX: Use CandidateStatus enum instead of hardcoded string
+            $candidate->status = CandidateStatus::REGISTERED->value;
             $candidate->registration_date = now();
             $candidate->save();
 
@@ -495,8 +496,8 @@ class RegistrationController extends Controller
     {
         $this->authorize('update', $candidate);
 
-        // Verify candidate is in REGISTERED status
-        if ($candidate->status !== 'registered') {
+        // AUDIT FIX: Use CandidateStatus enum for status comparison
+        if ($candidate->status !== CandidateStatus::REGISTERED->value) {
             return back()->with('error', 'Only registered candidates can start training. Current status: ' . $candidate->status);
         }
 
@@ -511,8 +512,8 @@ class RegistrationController extends Controller
             // Assign to batch
             $candidate->batch_id = $validated['batch_id'];
 
-            // Update status to training
-            $candidate->status = 'training';
+            // AUDIT FIX: Use CandidateStatus enum instead of hardcoded string
+            $candidate->status = CandidateStatus::TRAINING->value;
             $candidate->training_status = 'in_progress';
             $candidate->training_start_date = now();
             $candidate->save();

@@ -49,18 +49,34 @@ class SecurityHeaders
         }
 
         // Content Security Policy (CSP) - Mitigates XSS, clickjacking, and other injection attacks
-        // This is a permissive policy to avoid breaking existing functionality
-        // Adjust based on your application's specific needs
+        //
+        // AUDIT NOTE: 'unsafe-inline' is currently required for:
+        // - Blade templates with inline onclick handlers
+        // - Alpine.js x-on directives
+        // - Inline styles from Tailwind utilities
+        //
+        // FUTURE HARDENING (P2):
+        // 1. Use nonce-based CSP: Generate per-request nonces in middleware
+        // 2. Move inline scripts to external files
+        // 3. Use CSP-compatible JS frameworks
+        // 4. Replace inline styles with CSS classes
+        //
+        // Generate a nonce for strict CSP (for future use)
+        $nonce = base64_encode(random_bytes(16));
+        $request->attributes->set('csp_nonce', $nonce);
+
         $cspDirectives = [
             "default-src 'self'",  // By default, only allow resources from same origin
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com",  // Allow inline scripts and CDNs (removed unsafe-eval for security)
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  // Allow inline styles and Google Fonts
+            // AUDIT FIX: Added nonce support alongside unsafe-inline for gradual migration
+            "script-src 'self' 'unsafe-inline' 'nonce-{$nonce}' https://cdn.jsdelivr.net https://cdn.tailwindcss.com",
+            "style-src 'self' 'unsafe-inline' 'nonce-{$nonce}' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com data:",  // Allow fonts from Google and data URIs
             "img-src 'self' data: https:",  // Allow images from same origin, data URIs, and HTTPS sources
             "connect-src 'self'",  // AJAX, WebSocket, EventSource only to same origin
-            "frame-ancestors 'self'",  // Prevent embedding in iframes from other domains (same as X-Frame-Options)
+            "frame-ancestors 'self'",  // Prevent embedding in iframes from other domains
             "base-uri 'self'",  // Prevent base tag hijacking
             "form-action 'self'",  // Forms can only submit to same origin
+            "upgrade-insecure-requests",  // Upgrade HTTP to HTTPS for mixed content
         ];
 
         $response->headers->set('Content-Security-Policy', implode('; ', $cspDirectives));

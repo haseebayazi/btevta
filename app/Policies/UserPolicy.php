@@ -60,10 +60,21 @@ class UserPolicy
         return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
+    /**
+     * Determine if the user can use global search.
+     *
+     * AUDIT FIX: Previously returned true for all users which bypassed authorization.
+     * Now properly checks user roles to ensure only authorized users can search.
+     */
     public function globalSearch(User $user): bool
     {
-        // All authenticated users can use global search
-        // Authorization is then applied per entity type in the service
-        return true;
+        // Only authorized roles can use global search
+        // Search results are further filtered by entity-level authorization in the service
+        return $user->isSuperAdmin() ||
+               $user->isProjectDirector() ||
+               $user->isCampusAdmin() ||
+               $user->isOep() ||
+               $user->isViewer() ||
+               $user->isTrainer();
     }
 }

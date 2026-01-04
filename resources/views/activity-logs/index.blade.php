@@ -163,7 +163,7 @@
     </div>
 
     <!-- Cleanup Section (Super Admin Only) -->
-    @if(auth()->user()->role === 'super_admin')
+    @if(auth()->user()->isSuperAdmin())
     <div class="card mt-4">
         <div class="card-header bg-danger text-white">
             <h5 class="mb-0"><i class="fas fa-trash"></i> Cleanup Old Logs</h5>

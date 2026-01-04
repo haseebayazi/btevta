@@ -86,7 +86,7 @@
                     <a href="{{ route('complaints.show', $complaint) }}" class="btn btn-sm btn-primary">
                         <i class="fas fa-eye mr-1"></i>View
                     </a>
-                    @if(auth()->user()->role == 'admin')
+                    @if(auth()->user()->isAdmin())
                     <a href="{{ route('complaints.edit', $complaint) }}" class="btn btn-sm btn-secondary">
                         <i class="fas fa-edit"></i>
                     </a>

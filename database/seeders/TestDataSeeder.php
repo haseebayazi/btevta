@@ -22,6 +22,10 @@ use App\Models\DocumentArchive;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+/**
+ * AUDIT FIX: Added environment protection and secure password generation.
+ * This seeder will refuse to run in production to prevent weak password creation.
+ */
 class TestDataSeeder extends Seeder
 {
     /**
@@ -34,10 +38,22 @@ class TestDataSeeder extends Seeder
      */
     public function run(): void
     {
-        // Clear existing data (optional - comment out if you want to keep existing data)
-        // $this->clearExistingData();
+        // AUDIT FIX: Production environment protection
+        if (app()->environment('production')) {
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->error('🚨 SECURITY BLOCK: TestDataSeeder cannot run in production environment!');
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->error('This seeder creates test users with generated passwords.');
+            $this->command->error('Running it in production would create security vulnerabilities.');
+            $this->command->error('');
+            $this->command->error('If you need to create admin users in production, use:');
+            $this->command->error('  php artisan admin:reset-password');
+            $this->command->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            return;
+        }
 
         $this->command->info('Starting to seed test data...');
+        $this->command->warn('⚠️  Environment: ' . app()->environment());
 
         // 1. Create Campuses FIRST (needed for user campus_id references)
         $campuses = $this->seedCampuses();
@@ -103,6 +119,20 @@ class TestDataSeeder extends Seeder
         $this->logCredentials();
 
         $this->command->info('🎉 All test data seeded successfully!');
+
+        // AUDIT FIX: Display generated passwords at the end
+        if (!empty($this->generatedPasswords)) {
+            $this->command->newLine();
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->warn('📋 GENERATED USER CREDENTIALS (SAVE THESE NOW!)');
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            foreach ($this->generatedPasswords as $email => $password) {
+                $this->command->info("   {$email} => {$password}");
+            }
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->warn('⚠️  These passwords will not be shown again!');
+            $this->command->newLine();
+        }
     }
 
     /**
@@ -171,6 +201,9 @@ class TestDataSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+        if ($users['admin']->wasRecentlyCreated) {
+            $this->generatedPasswords['admin@btevta.gov.pk'] = $adminPassword;
+        }
 
         if ($isNewAdmin) {
             $this->credentials[] = [
@@ -250,6 +283,15 @@ class TestDataSeeder extends Seeder
         }
 
         return $users;
+    }
+
+    /**
+     * Generate a secure random password for test users.
+     * AUDIT FIX: Replaces hardcoded 'password' with secure random passwords.
+     */
+    private function generateSecurePassword(): string
+    {
+        return Str::random(12) . rand(10, 99) . '!';
     }
 
     private function seedCampuses()
@@ -695,6 +737,7 @@ class TestDataSeeder extends Seeder
                     $amountPKR = rand(50000, 200000);
                     $exchangeRate = rand(4, 5) + (rand(0, 99) / 100);
                     $amountSAR = round($amountPKR / $exchangeRate, 2);
+                    $transferDate = now()->subDays(rand(30, 180));
 
                     Remittance::create([
                         'candidate_id' => $candidate->id,
@@ -706,7 +749,9 @@ class TestDataSeeder extends Seeder
                         'amount_foreign' => $amountSAR,
                         'foreign_currency' => 'SAR',
                         'exchange_rate' => $exchangeRate,
-                        'transfer_date' => now()->subDays(rand(30, 180)),
+                        'transfer_date' => $transferDate,
+                        'year' => $transferDate->year,      // Required column
+                        'month' => $transferDate->month,    // Required column
                         'transfer_method' => ['Bank Transfer', 'Money Exchange', 'Digital Wallet'][rand(0, 2)],
                         'sender_name' => $candidate->name,
                         'sender_location' => ['Riyadh', 'Jeddah', 'Dammam'][rand(0, 2)],
@@ -783,6 +828,10 @@ class TestDataSeeder extends Seeder
         return $cityToProvince[$city] ?? 'Punjab';
     }
 
+    /**
+     * Clear existing data (not used by default - call manually if needed).
+     * NOTE: This method uses truncate which ignores foreign key constraints.
+     */
     private function clearExistingData()
     {
         $this->command->warn('Clearing existing test data...');
@@ -793,12 +842,12 @@ class TestDataSeeder extends Seeder
         Correspondence::truncate();
         Complaint::truncate();
         Departure::truncate();
-        VisaProcessing::truncate();
+        VisaProcess::truncate();  // Fixed: was VisaProcessing
         Undertaking::truncate();
         NextOfKin::truncate();
         RegistrationDocument::truncate();
         CandidateScreening::truncate();
-        CandidateTraining::truncate();
+        // CandidateTraining::truncate();  // Model doesn't exist
         Candidate::truncate();
         Batch::truncate();
         Trade::truncate();

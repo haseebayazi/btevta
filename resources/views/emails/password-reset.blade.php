@@ -26,21 +26,29 @@
             border: 1px solid #ddd;
             border-top: none;
         }
-        .password-box {
-            background-color: #fff;
-            border: 2px solid #3498db;
+        .button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
             border-radius: 5px;
-            padding: 15px;
             margin: 20px 0;
-            text-align: center;
-            font-size: 24px;
+            font-size: 16px;
             font-weight: bold;
-            color: #2c3e50;
-            letter-spacing: 2px;
+        }
+        .button:hover {
+            background-color: #2980b9;
         }
         .info-box {
             background-color: #fff3cd;
             border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .security-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
             padding: 15px;
             margin: 20px 0;
         }
@@ -52,20 +60,19 @@
             color: #7f8c8d;
             border-radius: 0 0 5px 5px;
         }
-        .button {
-            display: inline-block;
-            background-color: #3498db;
-            color: white;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
         ul {
             padding-left: 20px;
         }
         li {
             margin: 10px 0;
+        }
+        .link-fallback {
+            word-break: break-all;
+            font-size: 12px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -78,35 +85,31 @@
     <div class="content">
         <h2>Hello {{ $user->name }},</h2>
 
-        <p>Your password has been reset by <strong>{{ $resetBy->name }}</strong> ({{ $resetBy->role }}).</p>
+        <p>A password reset has been requested for your account by <strong>{{ $resetBy->name }}</strong> ({{ $resetBy->role }}).</p>
 
-        <p>Your new temporary password is:</p>
-
-        <div class="password-box">
-            {{ $newPassword }}
+        <div class="security-box">
+            <strong>Security Notice:</strong>
+            <p>For your security, we no longer send passwords via email. Instead, please use the secure link below to set a new password of your choice.</p>
         </div>
-
-        <div class="info-box">
-            <strong>⚠️ Important Security Information:</strong>
-            <ul>
-                <li>This is a temporary password. Please change it immediately after logging in.</li>
-                <li>Do not share this password with anyone.</li>
-                <li>The password is case-sensitive.</li>
-                <li>For your security, this email will not be sent again.</li>
-            </ul>
-        </div>
-
-        <p><strong>How to change your password:</strong></p>
-        <ol>
-            <li>Log in to the BTEVTA system using the temporary password above</li>
-            <li>Go to your Profile/Settings page</li>
-            <li>Click on "Change Password"</li>
-            <li>Enter your temporary password and choose a new secure password</li>
-        </ol>
 
         <p style="text-align: center;">
-            <a href="{{ config('app.url') }}/login" class="button">Login to BTEVTA System</a>
+            <a href="{{ $resetUrl }}" class="button">Reset My Password</a>
         </p>
+
+        <p class="link-fallback">
+            <strong>If the button doesn't work, copy and paste this link into your browser:</strong><br>
+            {{ $resetUrl }}
+        </p>
+
+        <div class="info-box">
+            <strong>Important Information:</strong>
+            <ul>
+                <li>This link will expire in <strong>60 minutes</strong></li>
+                <li>This link can only be used once</li>
+                <li>After clicking the link, you will be prompted to create a new password</li>
+                <li>Choose a strong password with at least 8 characters</li>
+            </ul>
+        </div>
 
         <p><strong>Your Account Details:</strong></p>
         <ul>
@@ -115,15 +118,15 @@
             @if($user->campus)
             <li><strong>Campus:</strong> {{ $user->campus->name }}</li>
             @endif
-            <li><strong>Reset Date:</strong> {{ now()->format('F d, Y h:i A') }}</li>
+            <li><strong>Reset Requested:</strong> {{ now()->format('F d, Y h:i A') }}</li>
         </ul>
 
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
 
         <p style="font-size: 14px; color: #666;">
-            If you did not request this password reset or have concerns about your account security,
-            please contact the system administrator immediately at
-            <a href="mailto:admin@btevta.gov.pk">admin@btevta.gov.pk</a>
+            <strong>Did you not request this reset?</strong><br>
+            If you did not request this password reset, please contact the system administrator immediately at
+            <a href="mailto:admin@btevta.gov.pk">admin@btevta.gov.pk</a>. Your account may be at risk.
         </p>
     </div>
 
@@ -135,7 +138,7 @@
         </p>
         <p style="margin-top: 15px;">
             This is an automated email. Please do not reply to this message.<br>
-            © {{ date('Y') }} BTEVTA. All rights reserved.
+            &copy; {{ date('Y') }} BTEVTA. All rights reserved.
         </p>
     </div>
 </body>

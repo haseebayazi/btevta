@@ -75,7 +75,7 @@ class DocumentArchiveService
 
             // Archive the old version (soft delete)
             $existingDoc->update([
-                'is_current' => false,
+                'is_current_version' => false,
                 'archived_at' => now(),
             ]);
         }
@@ -95,11 +95,11 @@ class DocumentArchiveService
             'oep_id' => $data['oep_id'] ?? null,
             'document_type' => $data['document_type'],
             'document_name' => $data['document_name'] ?? $file->getClientOriginalName(),
-            'document_path' => $path,
+            'file_path' => $path,
             'version' => $version,
             'expiry_date' => $data['expiry_date'] ?? null,
             'uploaded_by' => auth()->id(),
-            'is_current' => true,
+            'is_current_version' => true,
             'file_size' => $file->getSize(),
             'mime_type' => $file->getMimeType(),
             'description' => $data['description'] ?? null,
@@ -144,7 +144,7 @@ class DocumentArchiveService
         $this->logAccess($document, 'download');
         
         return [
-            'path' => Storage::disk('public')->path($document->document_path),
+            'path' => Storage::disk('public')->path($document->file_path),
             'name' => $document->document_name,
             'mime_type' => $document->mime_type,
         ];
@@ -189,13 +189,13 @@ class DocumentArchiveService
         // Find current version
         $currentDoc = DocumentArchive::where('candidate_id', $document->candidate_id)
             ->where('document_type', $document->document_type)
-            ->where('is_current', true)
+            ->where('is_current_version', true)
             ->first();
 
         if ($currentDoc) {
             // Archive current version
             $currentDoc->update([
-                'is_current' => false,
+                'is_current_version' => false,
                 'archived_at' => now(),
             ]);
         }
@@ -203,7 +203,7 @@ class DocumentArchiveService
         // Restore old version as current
         $document->restore();
         $document->update([
-            'is_current' => true,
+            'is_current_version' => true,
             'version' => ($currentDoc ? $currentDoc->version : 0) + 1,
         ]);
 
@@ -222,7 +222,7 @@ class DocumentArchiveService
     public function searchDocuments($filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = DocumentArchive::with(['candidate', 'campus', 'trade', 'oep', 'uploadedByUser'])
-            ->where('is_current', true);
+            ->where('is_current_version', true);
 
         // Candidate filter
         if (!empty($filters['candidate_id'])) {
@@ -286,7 +286,7 @@ class DocumentArchiveService
         $today = Carbon::now();
 
         return DocumentArchive::with(['candidate', 'campus'])
-            ->where('is_current', true)
+            ->where('is_current_version', true)
             ->whereNotNull('expiry_date')
             ->whereDate('expiry_date', '>=', $today)
             ->whereDate('expiry_date', '<=', $alertDate)
@@ -320,7 +320,7 @@ class DocumentArchiveService
     public function getExpiredDocuments(): \Illuminate\Support\Collection
     {
         return DocumentArchive::with(['candidate', 'campus'])
-            ->where('is_current', true)
+            ->where('is_current_version', true)
             ->whereNotNull('expiry_date')
             ->whereDate('expiry_date', '<', Carbon::now())
             ->orderBy('expiry_date', 'asc')
@@ -347,7 +347,7 @@ class DocumentArchiveService
         
         // Get existing documents
         $existingDocs = DocumentArchive::where('candidate_id', $candidateId)
-            ->where('is_current', true)
+            ->where('is_current_version', true)
             ->pluck('document_type')
             ->toArray();
         
@@ -402,7 +402,7 @@ class DocumentArchiveService
      */
     public function getStatistics($filters = []): array
     {
-        $query = DocumentArchive::where('is_current', true);
+        $query = DocumentArchive::where('is_current_version', true);
 
         // Apply filters
         if (!empty($filters['from_date'])) {
@@ -529,7 +529,7 @@ class DocumentArchiveService
         // Get all document types for each candidate
         $documentGroups = DocumentArchive::withTrashed()
             ->whereNotNull('candidate_id')
-            ->where('is_current', false)
+            ->where('is_current_version', false)
             ->where('archived_at', '<', $cutoffDate)
             ->get()
             ->groupBy(function($doc) {
@@ -545,11 +545,11 @@ class DocumentArchiveService
             foreach ($toDelete as $document) {
                 // ERROR HANDLING: Permanently delete file with error handling
                 try {
-                    if (Storage::disk('public')->exists($document->document_path)) {
-                        Storage::disk('public')->delete($document->document_path);
+                    if (Storage::disk('public')->exists($document->file_path)) {
+                        Storage::disk('public')->delete($document->file_path);
                     }
                 } catch (\Exception $e) {
-                    \Log::warning("Failed to delete file: {$document->document_path}", ['error' => $e->getMessage()]);
+                    \Log::warning("Failed to delete file: {$document->file_path}", ['error' => $e->getMessage()]);
                     // Continue with database deletion even if file deletion fails
                 }
 
@@ -571,7 +571,7 @@ class DocumentArchiveService
     public function generateVerificationReport($filters = []): array
     {
         $query = Candidate::with(['documentArchives' => function($q) {
-            $q->where('is_current', true);
+            $q->where('is_current_version', true);
         }]);
 
         // Apply filters
@@ -666,6 +666,7 @@ class DocumentArchiveService
     /**
      * Upload new version of existing document
      * ADDED - Called by controller line 184-188
+     * AUDIT FIX: Corrected field names to match model schema
      */
     public function uploadNewVersion($documentId, $file, $versionNotes = null): DocumentArchive
     {
@@ -674,6 +675,7 @@ class DocumentArchiveService
         // Archive the old version
         $oldDocument->update([
             'is_current_version' => false,
+            'archived_at' => now(),
         ]);
 
         // Store new file
@@ -683,19 +685,16 @@ class DocumentArchiveService
         $newVersion = DocumentArchive::create([
             'candidate_id' => $oldDocument->candidate_id,
             'campus_id' => $oldDocument->campus_id,
+            'trade_id' => $oldDocument->trade_id,
             'oep_id' => $oldDocument->oep_id,
-            'document_category' => $oldDocument->document_category,
             'document_type' => $oldDocument->document_type,
             'document_name' => $oldDocument->document_name,
-            'document_number' => $oldDocument->document_number,
             'file_path' => $path,
-            'file_type' => $file->getClientOriginalExtension(),
+            'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
             'version' => $oldDocument->version + 1,
             'uploaded_by' => auth()->id(),
             'is_current_version' => true,
-            'replaces_document_id' => $oldDocument->id,
-            'issue_date' => $oldDocument->issue_date,
             'expiry_date' => $oldDocument->expiry_date,
             'description' => $versionNotes ?? $oldDocument->description,
         ]);
@@ -716,7 +715,7 @@ class DocumentArchiveService
      */
     public function getCandidateDocuments($candidateId): \Illuminate\Database\Eloquent\Collection
     {
-        return DocumentArchive::with(['uploader'])
+        return DocumentArchive::with(['uploadedByUser'])
             ->where('candidate_id', $candidateId)
             ->where('is_current_version', true)
             ->orderBy('document_type')
@@ -755,7 +754,10 @@ class DocumentArchiveService
     {
         $document = DocumentArchive::findOrFail($documentId);
 
-        $document->update(['is_current_version' => false]);
+        $document->update([
+            'is_current_version' => false,
+            'archived_at' => now(),
+        ]);
         $document->delete();
 
         // Log activity
@@ -776,7 +778,10 @@ class DocumentArchiveService
         $document = DocumentArchive::withTrashed()->findOrFail($documentId);
 
         $document->restore();
-        $document->update(['is_current_version' => true]);
+        $document->update([
+            'is_current_version' => true,
+            'archived_at' => null,
+        ]);
 
         // Log activity
         activity()

@@ -50,25 +50,39 @@ class ScreeningService
 
     /**
      * Get call logs for a screening
+     *
+     * AUDIT FIX: Replaced fragile string parsing with proper field-based approach.
+     * Previously parsed remarks text looking for 'Call' which was unreliable.
+     * Now uses the dedicated call_1/2/3 fields from the 3-call workflow.
      */
     public function getCallLogs($screening): array
     {
-        // This would typically fetch from a call_logs table
-        // For now, we'll parse from remarks
         $logs = [];
-        
-        if ($screening->remarks) {
-            $lines = explode("\n", $screening->remarks);
-            foreach ($lines as $line) {
-                if (strpos($line, 'Call') !== false) {
-                    $logs[] = [
-                        'timestamp' => Carbon::parse(substr($line, 0, 19)),
-                        'details' => $line
-                    ];
-                }
+
+        // Build logs from the dedicated call fields (3-call workflow)
+        for ($i = 1; $i <= 3; $i++) {
+            $atField = "call_{$i}_at";
+            $outcomeField = "call_{$i}_outcome";
+            $notesField = "call_{$i}_notes";
+            $byField = "call_{$i}_by";
+
+            if ($screening->$atField) {
+                $logs[] = [
+                    'call_number' => $i,
+                    'timestamp' => Carbon::parse($screening->$atField),
+                    'outcome' => $screening->$outcomeField ?? 'unknown',
+                    'notes' => $screening->$notesField ?? '',
+                    'by_user_id' => $screening->$byField ?? null,
+                    'details' => sprintf(
+                        'Call %d: %s at %s',
+                        $i,
+                        self::CALL_OUTCOMES[$screening->$outcomeField] ?? $screening->$outcomeField ?? 'Unknown',
+                        Carbon::parse($screening->$atField)->format('Y-m-d H:i')
+                    ),
+                ];
             }
         }
-        
+
         return $logs;
     }
 

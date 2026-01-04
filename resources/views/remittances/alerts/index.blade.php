@@ -12,7 +12,7 @@
             <p class="text-gray-600 mt-1">Automated alerts for remittance issues and anomalies</p>
         </div>
         <div class="flex items-center space-x-3">
-            @if(Auth::user()->role === 'admin')
+            @if(Auth::user()->isAdmin())
             <button onclick="document.getElementById('generate-form').submit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg inline-flex items-center">
                 <i class="fas fa-sync mr-2"></i>
                 Generate Alerts
