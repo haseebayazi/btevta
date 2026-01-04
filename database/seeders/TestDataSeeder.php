@@ -660,6 +660,7 @@ class TestDataSeeder extends Seeder
                     $amountPKR = rand(50000, 200000);
                     $exchangeRate = rand(4, 5) + (rand(0, 99) / 100);
                     $amountSAR = round($amountPKR / $exchangeRate, 2);
+                    $transferDate = now()->subDays(rand(30, 180));
 
                     Remittance::create([
                         'candidate_id' => $candidate->id,
@@ -671,7 +672,9 @@ class TestDataSeeder extends Seeder
                         'amount_foreign' => $amountSAR,
                         'foreign_currency' => 'SAR',
                         'exchange_rate' => $exchangeRate,
-                        'transfer_date' => now()->subDays(rand(30, 180)),
+                        'transfer_date' => $transferDate,
+                        'year' => $transferDate->year,      // Required column
+                        'month' => $transferDate->month,    // Required column
                         'transfer_method' => ['Bank Transfer', 'Money Exchange', 'Digital Wallet'][rand(0, 2)],
                         'sender_name' => $candidate->name,
                         'sender_location' => ['Riyadh', 'Jeddah', 'Dammam'][rand(0, 2)],
@@ -748,6 +751,10 @@ class TestDataSeeder extends Seeder
         return $cityToProvince[$city] ?? 'Punjab';
     }
 
+    /**
+     * Clear existing data (not used by default - call manually if needed).
+     * NOTE: This method uses truncate which ignores foreign key constraints.
+     */
     private function clearExistingData()
     {
         $this->command->warn('Clearing existing test data...');
@@ -758,12 +765,12 @@ class TestDataSeeder extends Seeder
         Correspondence::truncate();
         Complaint::truncate();
         Departure::truncate();
-        VisaProcessing::truncate();
+        VisaProcess::truncate();  // Fixed: was VisaProcessing
         Undertaking::truncate();
         NextOfKin::truncate();
         RegistrationDocument::truncate();
         CandidateScreening::truncate();
-        CandidateTraining::truncate();
+        // CandidateTraining::truncate();  // Model doesn't exist
         Candidate::truncate();
         Batch::truncate();
         Trade::truncate();
