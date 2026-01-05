@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Candidate;
 use App\Models\CandidateScreening;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ScreeningController extends Controller
@@ -14,8 +15,15 @@ class ScreeningController extends Controller
         $this->authorize('viewAny', CandidateScreening::class);
 
         // FIXED: Optimized N+1 query by using join instead of nested whereHas
-        $screenings = CandidateScreening::with('candidate')
-            ->when($request->search, function($q) use ($request) {
+        $query = CandidateScreening::with('candidate');
+
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        }
+
+        $screenings = $query->when($request->search, function($q) use ($request) {
                 // Escape special LIKE characters to prevent SQL LIKE injection
                 $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
                 $q->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
@@ -35,9 +43,16 @@ class ScreeningController extends Controller
     {
         $this->authorize('viewAny', CandidateScreening::class);
 
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $query = Candidate::where('status', 'screening');
+
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
+
         // AUDIT FIX: Added pagination to prevent memory issues with large datasets
-        $candidates = Candidate::where('status', 'screening')
-            ->withCount('screenings')
+        $candidates = $query->withCount('screenings')
             ->having('screenings_count', '<', 3)
             ->latest()
             ->paginate(20);
@@ -49,10 +64,16 @@ class ScreeningController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
-        // AUDIT FIX: Limit dropdown results for performance
-        $candidates = Candidate::whereIn('status', ['new', 'screening'])
-            ->select('id', 'name', 'btevta_id')
-            ->orderBy('name')
+        // AUDIT FIX: Apply campus filtering and limit dropdown results for performance
+        $query = Candidate::whereIn('status', ['new', 'screening'])
+            ->select('id', 'name', 'btevta_id');
+
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
+
+        $candidates = $query->orderBy('name')
             ->limit(200)
             ->get();
 
@@ -410,8 +431,15 @@ class ScreeningController extends Controller
             // Escape special LIKE characters to prevent SQL LIKE injection
             $escapedSearch = $request->search ? str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search) : null;
 
-            $screenings = CandidateScreening::with('candidate')
-                ->when($escapedSearch, function($q) use ($escapedSearch) {
+            $query = CandidateScreening::with('candidate');
+
+            // AUDIT FIX: Apply campus filtering for campus admin users
+            $user = Auth::user();
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            }
+
+            $screenings = $query->when($escapedSearch, function($q) use ($escapedSearch) {
                     $q->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
                       ->where(function($sq) use ($escapedSearch) {
                           $sq->where('candidates.name', 'like', '%'.$escapedSearch.'%')
