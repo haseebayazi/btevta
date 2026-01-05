@@ -7,6 +7,7 @@ use App\Models\Candidate;
 use App\Services\DocumentArchiveService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 
@@ -33,6 +34,12 @@ class DocumentArchiveController extends Controller
         $query = DocumentArchive::with(['candidate', 'uploader'])
             ->where('is_current_version', true);
 
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        }
+
         // Apply filters
         if ($request->filled('document_category')) {
             $query->where('document_category', $request->document_category);
@@ -56,8 +63,13 @@ class DocumentArchiveController extends Controller
         }
 
         $documents = $query->latest('uploaded_at')->paginate(20);
-        // AUDIT FIX: Limit dropdown for performance
-        $candidates = Candidate::select('id', 'name', 'cnic')->limit(200)->get();
+
+        // AUDIT FIX: Filter candidates dropdown by campus for campus admins
+        $candidatesQuery = Candidate::select('id', 'name', 'cnic');
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $candidatesQuery->where('campus_id', $user->campus_id);
+        }
+        $candidates = $candidatesQuery->limit(200)->get();
 
         return view('document-archive.index', compact('documents', 'candidates'));
     }
@@ -69,8 +81,13 @@ class DocumentArchiveController extends Controller
     {
         $this->authorize('create', DocumentArchive::class);
 
-        // AUDIT FIX: Limit dropdown for performance
-        $candidates = Candidate::select('id', 'name', 'cnic')->limit(200)->get();
+        // AUDIT FIX: Filter candidates dropdown by campus for campus admins
+        $candidatesQuery = Candidate::select('id', 'name', 'cnic');
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $candidatesQuery->where('campus_id', $user->campus_id);
+        }
+        $candidates = $candidatesQuery->limit(200)->get();
 
         return view('document-archive.create', compact('candidates'));
     }

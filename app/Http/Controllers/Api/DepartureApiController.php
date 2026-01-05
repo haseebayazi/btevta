@@ -7,6 +7,7 @@ use App\Models\Departure;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -103,21 +104,34 @@ class DepartureApiController extends Controller
         $data = $validator->validated();
         $data['recorded_by'] = auth()->id();
 
-        $departure = Departure::create($data);
+        // AUDIT FIX: Wrap departure creation and status update in transaction
+        try {
+            DB::beginTransaction();
 
-        // Update candidate status
-        $candidate->update(['status' => Candidate::STATUS_DEPARTED]);
+            $departure = Departure::create($data);
 
-        activity()
-            ->performedOn($departure)
-            ->causedBy(auth()->user())
-            ->log('Departure recorded via API');
+            // Update candidate status
+            $candidate->update(['status' => Candidate::STATUS_DEPARTED]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Departure recorded successfully',
-            'data' => $departure,
-        ], 201);
+            DB::commit();
+
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log('Departure recorded via API');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Departure recorded successfully',
+                'data' => $departure,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record departure: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -169,7 +183,17 @@ class DepartureApiController extends Controller
     {
         $this->authorize('viewAny', Departure::class);
 
-        $stats = Departure::selectRaw('
+        // AUDIT FIX: Apply campus/OEP filtering for statistics
+        $query = Departure::query();
+        $user = auth()->user();
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->isOep() && $user->oep_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        }
+
+        $stats = $query->selectRaw('
             COUNT(*) as total_departures,
             SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_count,
             SUM(CASE WHEN iqama_number IS NOT NULL THEN 1 ELSE 0 END) as with_iqama,

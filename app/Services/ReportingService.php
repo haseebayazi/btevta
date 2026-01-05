@@ -15,6 +15,7 @@ use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
@@ -67,6 +68,137 @@ class ReportingService
     const CACHE_DURATION = 15;
 
     // =========================================================================
+    // AUDIT FIX: ROLE-BASED ACCESS CONTROL
+    // =========================================================================
+
+    /**
+     * Get role-based filter constraints for the current user.
+     *
+     * AUDIT FIX: This ensures campus admins only see their campus data,
+     * OEP users only see their OEP data, preventing cross-tenant data leakage.
+     *
+     * @return array Filter constraints based on user role
+     */
+    protected function getRoleBasedFilters(): array
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return [];
+        }
+
+        // Super admins and project directors can see all data
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return [];
+        }
+
+        $filters = [];
+
+        // Campus admins can only see their campus data
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $filters['campus_id'] = $user->campus_id;
+        }
+
+        // OEP users can only see their OEP data
+        if ($user->role === 'oep' && $user->oep_id) {
+            $filters['oep_id'] = $user->oep_id;
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Merge user-provided filters with role-based access constraints.
+     *
+     * AUDIT FIX: Role-based constraints take precedence and cannot be overridden.
+     *
+     * @param array $userFilters User-provided filters
+     * @return array Merged filters with role-based constraints applied
+     */
+    protected function applyRoleBasedFilters(array $userFilters): array
+    {
+        $roleFilters = $this->getRoleBasedFilters();
+
+        // Role-based filters take precedence (cannot be overridden by user)
+        return array_merge($userFilters, $roleFilters);
+    }
+
+    /**
+     * Apply campus-based filtering to a query for role-based access control.
+     *
+     * @param Builder $query The query builder
+     * @param string $campusColumn The column name for campus_id (default: 'campus_id')
+     * @return Builder
+     */
+    protected function applyCampusAccessFilter(Builder $query, string $campusColumn = 'campus_id'): Builder
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return $query;
+        }
+
+        // Super admins and project directors can see all data
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return $query;
+        }
+
+        // Campus admins can only see their campus data
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $query->where($campusColumn, $user->campus_id);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Apply OEP-based filtering to a query for role-based access control.
+     *
+     * @param Builder $query The query builder
+     * @param string $oepColumn The column name for oep_id (default: 'oep_id')
+     * @return Builder
+     */
+    protected function applyOepAccessFilter(Builder $query, string $oepColumn = 'oep_id'): Builder
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return $query;
+        }
+
+        // Super admins and project directors can see all data
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return $query;
+        }
+
+        // OEP users can only see their OEP data
+        if ($user->role === 'oep' && $user->oep_id) {
+            $query->where($oepColumn, $user->oep_id);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Generate cache key that includes role-based constraints.
+     *
+     * AUDIT FIX: Ensures different users get different cached results
+     * based on their access level.
+     *
+     * @param string $prefix Cache key prefix
+     * @param array $filters User-provided filters
+     * @return string
+     */
+    protected function generateRoleAwareCacheKey(string $prefix, array $filters): string
+    {
+        $roleFilters = $this->getRoleBasedFilters();
+        $userId = Auth::id() ?? 'guest';
+        $allFilters = array_merge($filters, $roleFilters, ['_user_id' => $userId]);
+
+        return $prefix . '_' . md5(json_encode($allFilters));
+    }
+
+    // =========================================================================
     // CANDIDATE REPORTS
     // =========================================================================
 
@@ -78,7 +210,9 @@ class ReportingService
      */
     public function getCandidatePipelineReport(array $filters = []): array
     {
-        $cacheKey = 'report_candidate_pipeline_' . md5(json_encode($filters));
+        // AUDIT FIX: Apply role-based access filters
+        $filters = $this->applyRoleBasedFilters($filters);
+        $cacheKey = $this->generateRoleAwareCacheKey('report_candidate_pipeline', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_DURATION * 60, function () use ($filters) {
             $query = $this->buildCandidateQuery($filters);
@@ -221,7 +355,9 @@ class ReportingService
      */
     public function getTrainingReport(array $filters = []): array
     {
-        $cacheKey = 'report_training_' . md5(json_encode($filters));
+        // AUDIT FIX: Apply role-based access filters
+        $filters = $this->applyRoleBasedFilters($filters);
+        $cacheKey = $this->generateRoleAwareCacheKey('report_training', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_DURATION * 60, function () use ($filters) {
             return [
@@ -416,10 +552,22 @@ class ReportingService
      */
     public function getVisaProcessingReport(array $filters = []): array
     {
-        $cacheKey = 'report_visa_' . md5(json_encode($filters));
+        // AUDIT FIX: Apply role-based access filters
+        $filters = $this->applyRoleBasedFilters($filters);
+        $cacheKey = $this->generateRoleAwareCacheKey('report_visa', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_DURATION * 60, function () use ($filters) {
             $query = VisaProcess::query();
+
+            // AUDIT FIX: Apply campus-based access control via candidate relationship
+            $user = Auth::user();
+            if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+                if ($user->role === 'campus_admin' && $user->campus_id) {
+                    $query->whereHas('candidate', function ($q) use ($user) {
+                        $q->where('campus_id', $user->campus_id);
+                    });
+                }
+            }
 
             if (!empty($filters['oep_id'])) {
                 $query->where('oep_id', $filters['oep_id']);
@@ -555,6 +703,9 @@ class ReportingService
      */
     public function getComplianceReport(array $filters = []): array
     {
+        // AUDIT FIX: Apply role-based access filters
+        $filters = $this->applyRoleBasedFilters($filters);
+
         return [
             'departure_compliance' => $this->getDepartureComplianceStats($filters),
             'remittance_compliance' => $this->getRemittanceComplianceStats($filters),
@@ -572,6 +723,21 @@ class ReportingService
     protected function getDepartureComplianceStats(array $filters = []): array
     {
         $query = Departure::query();
+
+        // AUDIT FIX: Apply campus-based access control via candidate relationship
+        $user = Auth::user();
+        if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->role === 'campus_admin' && $user->campus_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('campus_id', $user->campus_id);
+                });
+            }
+            if ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('oep_id', $user->oep_id);
+                });
+            }
+        }
 
         $departures = $query->get();
         $compliant = $departures->where('ninety_day_compliance', true)->count();
@@ -592,6 +758,21 @@ class ReportingService
     protected function getRemittanceComplianceStats(array $filters = []): array
     {
         $query = Remittance::query();
+
+        // AUDIT FIX: Apply campus-based access control via candidate relationship
+        $user = Auth::user();
+        if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->role === 'campus_admin' && $user->campus_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('campus_id', $user->campus_id);
+                });
+            }
+            if ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('oep_id', $user->oep_id);
+                });
+            }
+        }
 
         $remittances = $query->get();
         $verified = $remittances->where('status', 'verified')->count();
@@ -614,6 +795,21 @@ class ReportingService
     protected function getComplaintResolutionStats(array $filters = []): array
     {
         $query = Complaint::query();
+
+        // AUDIT FIX: Apply campus-based access control via candidate relationship
+        $user = Auth::user();
+        if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->role === 'campus_admin' && $user->campus_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('campus_id', $user->campus_id);
+                });
+            }
+            if ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', function ($q) use ($user) {
+                    $q->where('oep_id', $user->oep_id);
+                });
+            }
+        }
 
         $complaints = $query->get();
         $resolved = $complaints->whereIn('status', ['resolved', 'closed'])->count();
@@ -686,6 +882,30 @@ class ReportingService
         ?string $groupBy = null
     ): array {
         $query = $this->getQueryForReportType($reportType);
+
+        // AUDIT FIX: Apply role-based access control to custom reports
+        $user = Auth::user();
+        if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            // For models that have direct campus_id
+            if (in_array($reportType, ['candidates', 'batches'])) {
+                if ($user->role === 'campus_admin' && $user->campus_id) {
+                    $query->where('campus_id', $user->campus_id);
+                }
+            }
+            // For models accessed via candidate relationship
+            if (in_array($reportType, ['visa', 'departures', 'complaints', 'remittances'])) {
+                if ($user->role === 'campus_admin' && $user->campus_id) {
+                    $query->whereHas('candidate', function ($q) use ($user) {
+                        $q->where('campus_id', $user->campus_id);
+                    });
+                }
+                if ($user->role === 'oep' && $user->oep_id) {
+                    $query->whereHas('candidate', function ($q) use ($user) {
+                        $q->where('oep_id', $user->oep_id);
+                    });
+                }
+            }
+        }
 
         // Apply filters
         foreach ($filters as $filter) {

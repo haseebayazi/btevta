@@ -43,9 +43,11 @@ class GlobalSearchService
         if (in_array('candidates', $types)) {
             $query = Candidate::search($term)->with(['trade', 'campus']);
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->where('campus_id', $user->campus_id);
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
             }
 
             $results['candidates'] = [
@@ -78,9 +80,11 @@ class GlobalSearchService
                       });
                 });
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
             }
 
             $results['remittances'] = [
@@ -103,9 +107,11 @@ class GlobalSearchService
         if (in_array('alerts', $types)) {
             $query = RemittanceAlert::search($term)->with('candidate')->unresolved();
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
             }
 
             $results['alerts'] = [
@@ -128,9 +134,11 @@ class GlobalSearchService
         if (in_array('batches', $types)) {
             $query = Batch::search($term)->with(['trade', 'campus', 'oep']);
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->where('campus_id', $user->campus_id);
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
             }
 
             $results['batches'] = [
@@ -214,9 +222,11 @@ class GlobalSearchService
         if (in_array('departures', $types)) {
             $query = Departure::search($term)->with('candidate');
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
             }
 
             $results['departures'] = [
@@ -239,9 +249,11 @@ class GlobalSearchService
         if (in_array('visas', $types)) {
             $query = VisaProcess::search($term)->with('candidate');
 
-            // Role-based filtering
-            if ($user->role === 'campus_admin') {
+            // AUDIT FIX: Enhanced role-based filtering to include OEP users
+            if ($user->role === 'campus_admin' && $user->campus_id) {
                 $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->role === 'oep' && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
             }
 
             $results['visas'] = [

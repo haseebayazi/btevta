@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Candidate;
 use App\Models\RemittanceAlert;
 use App\Services\RemittanceAlertService;
 use Illuminate\Http\Request;
@@ -198,7 +199,9 @@ class RemittanceAlertApiController extends Controller
      */
     public function byCandidate($candidateId)
     {
-        $this->authorize('viewAny', RemittanceAlert::class);
+        // AUDIT FIX: Authorize view on the specific candidate to prevent cross-tenant data leakage
+        $candidate = Candidate::findOrFail($candidateId);
+        $this->authorize('view', $candidate);
 
         $alerts = RemittanceAlert::where('candidate_id', $candidateId)
             ->with(['remittance'])

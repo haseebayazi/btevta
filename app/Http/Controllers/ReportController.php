@@ -128,10 +128,26 @@ class ReportController extends Controller
             abort(403, 'You do not have permission to view reports.');
         }
 
-        $oeps = Oep::withCount([
-            'candidates',
-            'candidates as departed_count' => fn($q) => $q->where('status', 'departed'),
-        ])->get();
+        // AUDIT FIX: Filter candidate counts by campus for campus admins
+        $user = auth()->user();
+        $query = Oep::query();
+
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            // Campus admins see all OEPs but with counts filtered to their campus
+            $query->withCount([
+                'candidates' => fn($q) => $q->where('campus_id', $user->campus_id),
+                'candidates as departed_count' => fn($q) => $q->where('status', 'departed')
+                    ->where('campus_id', $user->campus_id),
+            ]);
+        } else {
+            // Admins and viewers see all data
+            $query->withCount([
+                'candidates',
+                'candidates as departed_count' => fn($q) => $q->where('status', 'departed'),
+            ]);
+        }
+
+        $oeps = $query->get();
 
         return view('reports.oep-performance', compact('oeps'));
     }
@@ -142,18 +158,30 @@ class ReportController extends Controller
             abort(403, 'You do not have permission to view reports.');
         }
 
-        $visaData = DB::table('visa_processes')
+        // AUDIT FIX: Add campus-based filtering for visa timeline data
+        $user = auth()->user();
+        $baseQuery = DB::table('visa_processes')
+            ->join('candidates', 'visa_processes.candidate_id', '=', 'candidates.id');
+
+        // Apply campus filtering for campus_admin and OEP users
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $baseQuery->where('candidates.campus_id', $user->campus_id);
+        } elseif ($user->role === 'oep' && $user->oep_id) {
+            $baseQuery->where('candidates.oep_id', $user->oep_id);
+        }
+
+        $visaData = (clone $baseQuery)
             ->selectRaw('
                 COUNT(*) as total,
-                AVG(DATEDIFF(visa_issue_date, interview_date)) as avg_days,
-                MIN(visa_issue_date) as earliest,
-                MAX(visa_issue_date) as latest
+                AVG(DATEDIFF(visa_processes.visa_issue_date, visa_processes.interview_date)) as avg_days,
+                MIN(visa_processes.visa_issue_date) as earliest,
+                MAX(visa_processes.visa_issue_date) as latest
             ')
             ->first();
 
-        $byStage = DB::table('visa_processes')
-            ->selectRaw('current_stage, COUNT(*) as count')
-            ->groupBy('current_stage')
+        $byStage = (clone $baseQuery)
+            ->selectRaw('visa_processes.current_stage, COUNT(*) as count')
+            ->groupBy('visa_processes.current_stage')
             ->get();
 
         return view('reports.visa-timeline', compact('visaData', 'byStage'));
@@ -165,10 +193,28 @@ class ReportController extends Controller
             abort(403, 'You do not have permission to view reports.');
         }
 
-        $totalInTraining = Candidate::where('status', 'training')->count();
-        $totalCompleted = Candidate::where('status', 'departed')->count();
+        // AUDIT FIX: Add campus-based filtering for training statistics
+        $user = auth()->user();
+        $candidateQuery = Candidate::query();
+        $assessmentQuery = TrainingAssessment::query();
+        $attendanceQuery = DB::table('training_attendances')
+            ->join('candidates', 'training_attendances.candidate_id', '=', 'candidates.id');
 
-        $assessmentStats = TrainingAssessment::selectRaw('
+        // Apply campus filtering for campus_admin and OEP users
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $candidateQuery->where('campus_id', $user->campus_id);
+            $assessmentQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            $attendanceQuery->where('candidates.campus_id', $user->campus_id);
+        } elseif ($user->role === 'oep' && $user->oep_id) {
+            $candidateQuery->where('oep_id', $user->oep_id);
+            $assessmentQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+            $attendanceQuery->where('candidates.oep_id', $user->oep_id);
+        }
+
+        $totalInTraining = (clone $candidateQuery)->where('status', 'training')->count();
+        $totalCompleted = (clone $candidateQuery)->where('status', 'departed')->count();
+
+        $assessmentStats = $assessmentQuery->selectRaw('
             result,
             assessment_type,
             COUNT(*) as count,
@@ -177,9 +223,9 @@ class ReportController extends Controller
         ->groupBy('result', 'assessment_type')
         ->get();
 
-        $attendanceStats = DB::table('training_attendances')
-            ->selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
+        $attendanceStats = $attendanceQuery
+            ->selectRaw('training_attendances.status, COUNT(*) as count')
+            ->groupBy('training_attendances.status')
             ->get();
 
         return view('reports.training-statistics', compact(
@@ -196,21 +242,40 @@ class ReportController extends Controller
             abort(403, 'You do not have permission to view reports.');
         }
 
-        $complaintsByStatus = Complaint::selectRaw('status, COUNT(*) as count')
+        // AUDIT FIX: Add campus-based filtering for complaint analysis
+        $user = auth()->user();
+
+        $baseQuery = Complaint::query();
+        $baseDbQuery = DB::table('complaints')
+            ->join('candidates', 'complaints.candidate_id', '=', 'candidates.id');
+
+        // Apply campus filtering for campus_admin and OEP users
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            $baseDbQuery->where('candidates.campus_id', $user->campus_id);
+        } elseif ($user->role === 'oep' && $user->oep_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+            $baseDbQuery->where('candidates.oep_id', $user->oep_id);
+        }
+
+        $complaintsByStatus = (clone $baseQuery)
+            ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->get();
 
-        $complaintsByPriority = Complaint::selectRaw('priority, COUNT(*) as count')
+        $complaintsByPriority = (clone $baseQuery)
+            ->selectRaw('priority, COUNT(*) as count')
             ->groupBy('priority')
             ->get();
 
-        $overdueComplaints = Complaint::where('status', '!=', 'resolved')
+        $overdueComplaints = (clone $baseQuery)
+            ->where('status', '!=', 'resolved')
             ->whereRaw('DATE_ADD(registered_at, INTERVAL CAST(sla_days AS SIGNED) DAY) < NOW()')
             ->count();
 
-        $averageResolutionTime = DB::table('complaints')
-            ->where('status', 'resolved')
-            ->selectRaw('AVG(DATEDIFF(resolved_at, registered_at)) as avg_days')
+        $averageResolutionTime = (clone $baseDbQuery)
+            ->where('complaints.status', 'resolved')
+            ->selectRaw('AVG(DATEDIFF(complaints.resolved_at, complaints.registered_at)) as avg_days')
             ->first();
 
         return view('reports.complaint-analysis', compact(

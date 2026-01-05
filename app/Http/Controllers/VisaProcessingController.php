@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
+use App\Models\Departure;
 use App\Models\VisaProcess;
 use App\Services\VisaProcessingService;
 use App\Services\NotificationService;
@@ -72,6 +73,53 @@ class VisaProcessingController extends Controller
                     $errors[] = 'Visa must be issued before ticket upload';
                 }
                 break;
+        }
+
+        return $errors;
+    }
+
+    /**
+     * AUDIT FIX: Validate all required visa stages are completed before allowing process completion.
+     *
+     * Required stages:
+     * - Interview: passed
+     * - Medical: fit
+     * - Biometric: completed
+     * - E-Number: verified
+     * - Visa: issued
+     *
+     * Optional but recommended:
+     * - PTN: issued
+     * - Takamol: completed (for Saudi Arabia)
+     */
+    protected function validateAllVisaStagesCompleted(VisaProcess $visaProcess): array
+    {
+        $errors = [];
+
+        // Critical required stages
+        if ($visaProcess->interview_status !== 'passed') {
+            $errors[] = 'Interview must be passed (current: ' . ($visaProcess->interview_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->medical_status !== 'fit') {
+            $errors[] = 'Medical examination must be cleared as "fit" (current: ' . ($visaProcess->medical_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->biometric_status !== 'completed') {
+            $errors[] = 'Biometrics must be completed (current: ' . ($visaProcess->biometric_status ?? 'not set') . ')';
+        }
+
+        if (empty($visaProcess->enumber) || $visaProcess->enumber_status !== 'verified') {
+            $errors[] = 'E-Number must be generated and verified (current: ' . ($visaProcess->enumber_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->visa_status !== 'issued') {
+            $errors[] = 'Visa must be issued (current: ' . ($visaProcess->visa_status ?? 'not set') . ')';
+        }
+
+        // PTN is required for departure
+        if (empty($visaProcess->ptn_number)) {
+            $errors[] = 'PTN number must be issued';
         }
 
         return $errors;
@@ -693,6 +741,19 @@ class VisaProcessingController extends Controller
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
 
+        // AUDIT FIX: Ensure visa process exists before completion
+        if (!$candidate->visaProcess) {
+            return back()->with('error', 'No visa process found for this candidate.');
+        }
+
+        // AUDIT FIX: Validate all required visa stages are completed
+        $validationErrors = $this->validateAllVisaStagesCompleted($candidate->visaProcess);
+        if (!empty($validationErrors)) {
+            return back()
+                ->withErrors(['visa_completion' => $validationErrors])
+                ->with('error', 'Cannot complete visa process. The following requirements are not met: ' . implode('; ', $validationErrors));
+        }
+
         try {
             DB::beginTransaction();
 
@@ -700,6 +761,18 @@ class VisaProcessingController extends Controller
 
             // Update candidate status to ready for departure
             $candidate->update(['status' => Candidate::STATUS_READY]);
+
+            // AUDIT FIX: Auto-create Departure record when candidate becomes READY
+            // This ensures departure tracking starts immediately and doesn't rely on manual creation
+            $departure = Departure::firstOrCreate(
+                ['candidate_id' => $candidate->id],
+                [
+                    'visa_process_id' => $candidate->visaProcess->id,
+                    'oep_id' => $candidate->oep_id,
+                    'status' => 'pending_briefing',
+                    'created_by' => auth()->id(),
+                ]
+            );
 
             $this->notificationService->sendVisaProcessCompleted($candidate);
 

@@ -7,6 +7,7 @@ use App\Models\Departure;
 use App\Services\DepartureService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class DepartureController extends Controller
@@ -128,6 +129,10 @@ class DepartureController extends Controller
         ]);
 
         try {
+            // AUDIT FIX: Wrap departure record creation and candidate status update in transaction
+            // to ensure data consistency - both operations must succeed or both fail
+            DB::beginTransaction();
+
             $departure = $this->departureService->recordDeparture(
                 $candidate->id,
                 [
@@ -138,10 +143,23 @@ class DepartureController extends Controller
 
             $candidate->update(['status' => 'departed']);
 
-            $this->notificationService->sendDepartureConfirmed($candidate);
+            DB::commit();
+
+            // Notification sent outside transaction - non-critical operation
+            // that shouldn't roll back the departure record if it fails
+            try {
+                $this->notificationService->sendDepartureConfirmed($candidate);
+            } catch (Exception $notifyException) {
+                // Log notification failure but don't fail the departure recording
+                \Log::warning('Failed to send departure notification', [
+                    'candidate_id' => $candidate->id,
+                    'error' => $notifyException->getMessage()
+                ]);
+            }
 
             return back()->with('success', 'Departure recorded successfully!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->withInput()
                 ->with('error', 'Failed to record departure: ' . $e->getMessage());
         }

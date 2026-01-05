@@ -5,11 +5,58 @@ namespace App\Services;
 use App\Models\Remittance;
 use App\Models\Candidate;
 use App\Models\RemittanceBeneficiary;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class RemittanceAnalyticsService
 {
+    /**
+     * AUDIT FIX: Get candidate IDs accessible to the current user.
+     * Returns null if user can access all candidates (admin/project director).
+     */
+    protected function getAccessibleCandidateIds(): ?array
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return [];
+        }
+
+        // Admins and project directors can see all data
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return null;
+        }
+
+        // Campus admins can only see their campus data
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            return Candidate::where('campus_id', $user->campus_id)->pluck('id')->toArray();
+        }
+
+        // OEP users can only see their OEP data
+        if ($user->role === 'oep' && $user->oep_id) {
+            return Candidate::where('oep_id', $user->oep_id)->pluck('id')->toArray();
+        }
+
+        // Default: return empty array (no access)
+        return [];
+    }
+
+    /**
+     * Apply candidate filtering to a query builder.
+     */
+    protected function applyAccessFilter($query, string $candidateIdColumn = 'candidate_id')
+    {
+        $candidateIds = $this->getAccessibleCandidateIds();
+
+        if ($candidateIds === null) {
+            // User can access all data
+            return $query;
+        }
+
+        return $query->whereIn($candidateIdColumn, $candidateIds);
+    }
+
     /**
      * Get comprehensive dashboard statistics
      *
@@ -21,8 +68,11 @@ class RemittanceAnalyticsService
         $currentYear = date('Y');
         $currentMonth = date('n');
 
+        // AUDIT FIX: Apply campus/OEP filtering
+        $baseQuery = $this->applyAccessFilter(DB::table('remittances'));
+
         // Single query for all aggregate statistics
-        $aggregates = DB::table('remittances')
+        $aggregates = $baseQuery
             ->selectRaw('
                 COUNT(*) as total_remittances,
                 COALESCE(SUM(amount), 0) as total_amount,
@@ -38,8 +88,10 @@ class RemittanceAnalyticsService
             ', [$currentYear, $currentYear, $currentYear, $currentMonth, $currentYear, $currentMonth])
             ->first();
 
-        // Status breakdown (single query)
-        $statusBreakdown = Remittance::select('status', DB::raw('count(*) as count'))
+        // Status breakdown (single query) - AUDIT FIX: Apply filtering
+        $statusQuery = Remittance::select('status', DB::raw('count(*) as count'));
+        $this->applyAccessFilter($statusQuery);
+        $statusBreakdown = $statusQuery
             ->groupBy('status')
             ->get()
             ->pluck('count', 'status')
@@ -92,14 +144,18 @@ class RemittanceAnalyticsService
     {
         $year = $year ?? date('Y');
 
-        $trends = Remittance::select(
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::select(
                 'month',
                 DB::raw('count(*) as count'),
                 DB::raw('sum(amount) as total_amount'),
                 DB::raw('avg(amount) as avg_amount')
             )
-            ->where('year', $year)
-            ->groupBy('month')
+            ->where('year', $year);
+
+        $this->applyAccessFilter($query);
+
+        $trends = $query->groupBy('month')
             ->orderBy('month')
             ->get();
 
@@ -124,17 +180,24 @@ class RemittanceAnalyticsService
      */
     public function getPurposeAnalysis()
     {
-        $purposeData = Remittance::select(
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::select(
                 'primary_purpose',
                 DB::raw('count(*) as count'),
                 DB::raw('sum(amount) as total_amount'),
                 DB::raw('avg(amount) as avg_amount')
-            )
-            ->groupBy('primary_purpose')
+            );
+
+        $this->applyAccessFilter($query);
+
+        $purposeData = $query->groupBy('primary_purpose')
             ->orderBy('total_amount', 'desc')
             ->get();
 
-        $totalAmount = Remittance::sum('amount');
+        // AUDIT FIX: Also filter total amount calculation
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $totalAmount = $totalQuery->sum('amount');
 
         return $purposeData->map(function ($item) use ($totalAmount) {
             return [
@@ -153,17 +216,24 @@ class RemittanceAnalyticsService
      */
     public function getTransferMethodAnalysis()
     {
-        $methodData = Remittance::select(
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::select(
                 'transfer_method',
                 DB::raw('count(*) as count'),
                 DB::raw('sum(amount) as total_amount')
             )
-            ->whereNotNull('transfer_method')
-            ->groupBy('transfer_method')
+            ->whereNotNull('transfer_method');
+
+        $this->applyAccessFilter($query);
+
+        $methodData = $query->groupBy('transfer_method')
             ->orderBy('count', 'desc')
             ->get();
 
-        $totalCount = Remittance::count();
+        // AUDIT FIX: Also filter total count
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $totalCount = $totalQuery->count();
 
         return $methodData->map(function ($item) use ($totalCount) {
             return [
@@ -180,14 +250,18 @@ class RemittanceAnalyticsService
      */
     public function getCountryAnalysis()
     {
-        $countryData = Remittance::join('departures', 'remittances.departure_id', '=', 'departures.id')
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::join('departures', 'remittances.departure_id', '=', 'departures.id')
             ->select(
                 'departures.destination_country',
                 DB::raw('count(remittances.id) as count'),
                 DB::raw('sum(remittances.amount) as total_amount'),
                 DB::raw('avg(remittances.amount) as avg_amount')
-            )
-            ->groupBy('departures.destination_country')
+            );
+
+        $this->applyAccessFilter($query, 'remittances.candidate_id');
+
+        $countryData = $query->groupBy('departures.destination_country')
             ->orderBy('total_amount', 'desc')
             ->get();
 
@@ -206,17 +280,26 @@ class RemittanceAnalyticsService
      */
     public function getProofComplianceReport()
     {
-        $totalRemittances = Remittance::count();
-        $withProof = Remittance::where('has_proof', true)->count();
+        // AUDIT FIX: Apply campus/OEP filtering to all queries
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $totalRemittances = $totalQuery->count();
+
+        $withProofQuery = Remittance::where('has_proof', true);
+        $this->applyAccessFilter($withProofQuery);
+        $withProof = $withProofQuery->count();
+
         $withoutProof = $totalRemittances - $withProof;
 
-        // Compliance by purpose
-        $byPurpose = Remittance::select(
+        // Compliance by purpose - AUDIT FIX: Apply filtering
+        $purposeQuery = Remittance::select(
                 'primary_purpose',
                 DB::raw('count(*) as total'),
                 DB::raw('sum(case when has_proof = 1 then 1 else 0 end) as with_proof')
-            )
-            ->groupBy('primary_purpose')
+            );
+        $this->applyAccessFilter($purposeQuery);
+
+        $byPurpose = $purposeQuery->groupBy('primary_purpose')
             ->get()
             ->map(function ($item) {
                 $complianceRate = $item->total > 0 ? round(($item->with_proof / $item->total) * 100, 2) : 0;
@@ -231,14 +314,16 @@ class RemittanceAnalyticsService
             })
             ->toArray();
 
-        // Compliance by month (current year)
-        $byMonth = Remittance::select(
+        // Compliance by month (current year) - AUDIT FIX: Apply filtering
+        $monthQuery = Remittance::select(
                 'month',
                 DB::raw('count(*) as total'),
                 DB::raw('sum(case when has_proof = 1 then 1 else 0 end) as with_proof')
             )
-            ->where('year', date('Y'))
-            ->groupBy('month')
+            ->where('year', date('Y'));
+        $this->applyAccessFilter($monthQuery);
+
+        $byMonth = $monthQuery->groupBy('month')
             ->orderBy('month')
             ->get()
             ->map(function ($item) {
@@ -271,17 +356,29 @@ class RemittanceAnalyticsService
      */
     public function getBeneficiaryReport()
     {
+        // AUDIT FIX: Apply campus/OEP filtering to beneficiary queries
+        $candidateIds = $this->getAccessibleCandidateIds();
+
+        $baseQuery = RemittanceBeneficiary::query();
+        if ($candidateIds !== null) {
+            $baseQuery->whereIn('candidate_id', $candidateIds);
+        }
+
         // Total beneficiaries
-        $totalBeneficiaries = RemittanceBeneficiary::count();
-        $activeBeneficiaries = RemittanceBeneficiary::where('is_active', true)->count();
-        $primaryBeneficiaries = RemittanceBeneficiary::where('is_primary', true)->count();
+        $totalBeneficiaries = (clone $baseQuery)->count();
+        $activeBeneficiaries = (clone $baseQuery)->where('is_active', true)->count();
+        $primaryBeneficiaries = (clone $baseQuery)->where('is_primary', true)->count();
 
         // Relationship breakdown
-        $byRelationship = RemittanceBeneficiary::select(
+        $relationshipQuery = RemittanceBeneficiary::select(
                 'relationship',
                 DB::raw('count(*) as count')
-            )
-            ->groupBy('relationship')
+            );
+        if ($candidateIds !== null) {
+            $relationshipQuery->whereIn('candidate_id', $candidateIds);
+        }
+
+        $byRelationship = $relationshipQuery->groupBy('relationship')
             ->orderBy('count', 'desc')
             ->get()
             ->map(function ($item) use ($totalBeneficiaries) {
@@ -294,9 +391,9 @@ class RemittanceAnalyticsService
             ->toArray();
 
         // Banking info completeness
-        $withBankAccount = RemittanceBeneficiary::whereNotNull('account_number')->count();
-        $withIban = RemittanceBeneficiary::whereNotNull('iban')->count();
-        $withMobileWallet = RemittanceBeneficiary::whereNotNull('mobile_wallet')->count();
+        $withBankAccount = (clone $baseQuery)->whereNotNull('account_number')->count();
+        $withIban = (clone $baseQuery)->whereNotNull('iban')->count();
+        $withMobileWallet = (clone $baseQuery)->whereNotNull('mobile_wallet')->count();
 
         return [
             'overview' => [
@@ -324,16 +421,24 @@ class RemittanceAnalyticsService
         // Remittance frequency
         $frequency = $this->calculateRemittanceFrequency();
 
+        // AUDIT FIX: Apply campus/OEP filtering to economic impact
+        $totalInflowQuery = Remittance::query();
+        $this->applyAccessFilter($totalInflowQuery);
+
+        $familiesQuery = Remittance::query();
+        $this->applyAccessFilter($familiesQuery);
+
+        $avgPerFamilyQuery = Remittance::select('candidate_id', DB::raw('sum(amount) as total'));
+        $this->applyAccessFilter($avgPerFamilyQuery);
+
         // Total economic impact
         $economicImpact = [
-            'total_inflow' => Remittance::sum('amount'),
-            'total_families_benefited' => Remittance::distinct('candidate_id')->count(),
-            'avg_per_family' => Remittance::select('candidate_id', DB::raw('sum(amount) as total'))
-                ->groupBy('candidate_id')
-                ->avg('total'),
+            'total_inflow' => $totalInflowQuery->sum('amount'),
+            'total_families_benefited' => $familiesQuery->distinct('candidate_id')->count(),
+            'avg_per_family' => $avgPerFamilyQuery->groupBy('candidate_id')->avg('total'),
         ];
 
-        // Purpose impact breakdown
+        // Purpose impact breakdown (already filtered)
         $purposeImpact = $this->getPurposeAnalysis();
 
         return [
@@ -349,10 +454,17 @@ class RemittanceAnalyticsService
      */
     protected function calculateProofComplianceRate()
     {
-        $total = Remittance::count();
+        // AUDIT FIX: Apply campus/OEP filtering
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $total = $totalQuery->count();
+
         if ($total == 0) return 0;
 
-        $withProof = Remittance::where('has_proof', true)->count();
+        $withProofQuery = Remittance::where('has_proof', true);
+        $this->applyAccessFilter($withProofQuery);
+        $withProof = $withProofQuery->count();
+
         return round(($withProof / $total) * 100, 2);
     }
 
@@ -361,10 +473,21 @@ class RemittanceAnalyticsService
      */
     protected function calculateFirstRemittanceRate()
     {
-        $totalDeployed = Candidate::whereHas('departure')->count();
+        // AUDIT FIX: Apply campus/OEP filtering
+        $candidateIds = $this->getAccessibleCandidateIds();
+
+        $deployedQuery = Candidate::whereHas('departure');
+        if ($candidateIds !== null) {
+            $deployedQuery->whereIn('id', $candidateIds);
+        }
+        $totalDeployed = $deployedQuery->count();
+
         if ($totalDeployed == 0) return 0;
 
-        $withFirstRemittance = Remittance::where('is_first_remittance', true)->distinct('candidate_id')->count();
+        $firstRemittanceQuery = Remittance::where('is_first_remittance', true);
+        $this->applyAccessFilter($firstRemittanceQuery);
+        $withFirstRemittance = $firstRemittanceQuery->distinct('candidate_id')->count();
+
         return round(($withFirstRemittance / $totalDeployed) * 100, 2);
     }
 
@@ -373,13 +496,16 @@ class RemittanceAnalyticsService
      */
     protected function calculateMonthOverMonthGrowth()
     {
-        $currentMonth = Remittance::where('year', date('Y'))
-            ->where('month', date('n'))
-            ->sum('amount');
+        // AUDIT FIX: Apply campus/OEP filtering
+        $currentMonthQuery = Remittance::where('year', date('Y'))
+            ->where('month', date('n'));
+        $this->applyAccessFilter($currentMonthQuery);
+        $currentMonth = $currentMonthQuery->sum('amount');
 
-        $lastMonth = Remittance::where('year', date('Y'))
-            ->where('month', date('n') - 1)
-            ->sum('amount');
+        $lastMonthQuery = Remittance::where('year', date('Y'))
+            ->where('month', date('n') - 1);
+        $this->applyAccessFilter($lastMonthQuery);
+        $lastMonth = $lastMonthQuery->sum('amount');
 
         if ($lastMonth == 0) return $currentMonth > 0 ? 100 : 0;
 
@@ -391,8 +517,14 @@ class RemittanceAnalyticsService
      */
     protected function calculateYearOverYearGrowth()
     {
-        $currentYear = Remittance::where('year', date('Y'))->sum('amount');
-        $lastYear = Remittance::where('year', date('Y') - 1)->sum('amount');
+        // AUDIT FIX: Apply campus/OEP filtering
+        $currentYearQuery = Remittance::where('year', date('Y'));
+        $this->applyAccessFilter($currentYearQuery);
+        $currentYear = $currentYearQuery->sum('amount');
+
+        $lastYearQuery = Remittance::where('year', date('Y') - 1);
+        $this->applyAccessFilter($lastYearQuery);
+        $lastYear = $lastYearQuery->sum('amount');
 
         if ($lastYear == 0) return $currentYear > 0 ? 100 : 0;
 
@@ -404,9 +536,11 @@ class RemittanceAnalyticsService
      */
     protected function calculateAverageTimeToFirstRemittance()
     {
-        $firstRemittances = Remittance::where('is_first_remittance', true)
-            ->with('departure')
-            ->get();
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::where('is_first_remittance', true)
+            ->with('departure');
+        $this->applyAccessFilter($query);
+        $firstRemittances = $query->get();
 
         if ($firstRemittances->isEmpty()) return null;
 
@@ -430,11 +564,20 @@ class RemittanceAnalyticsService
      */
     protected function calculateRemittanceFrequency()
     {
-        $candidatesWithRemittances = Remittance::distinct('candidate_id')->count();
+        // AUDIT FIX: Apply campus/OEP filtering
+        $distinctQuery = Remittance::query();
+        $this->applyAccessFilter($distinctQuery);
+        $candidatesWithRemittances = $distinctQuery->distinct('candidate_id')->count();
+
         if ($candidatesWithRemittances == 0) return 0;
 
-        $totalRemittances = Remittance::count();
-        $yearsActive = Remittance::select(DB::raw('count(distinct year) as years'))->first()->years;
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $totalRemittances = $totalQuery->count();
+
+        $yearsQuery = Remittance::select(DB::raw('count(distinct year) as years'));
+        $this->applyAccessFilter($yearsQuery);
+        $yearsActive = $yearsQuery->first()->years;
 
         if ($yearsActive == 0) return 0;
 
@@ -446,7 +589,8 @@ class RemittanceAnalyticsService
      */
     public function getTopRemittingCandidates($limit = 10)
     {
-        return Remittance::join('candidates', 'remittances.candidate_id', '=', 'candidates.id')
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::join('candidates', 'remittances.candidate_id', '=', 'candidates.id')
             ->select(
                 'candidates.id',
                 'candidates.full_name',
@@ -454,8 +598,11 @@ class RemittanceAnalyticsService
                 DB::raw('count(remittances.id) as remittance_count'),
                 DB::raw('sum(remittances.amount) as total_amount'),
                 DB::raw('avg(remittances.amount) as avg_amount')
-            )
-            ->groupBy('candidates.id', 'candidates.full_name', 'candidates.cnic')
+            );
+
+        $this->applyAccessFilter($query, 'remittances.candidate_id');
+
+        return $query->groupBy('candidates.id', 'candidates.full_name', 'candidates.cnic')
             ->orderBy('total_amount', 'desc')
             ->limit($limit)
             ->get();
@@ -466,9 +613,13 @@ class RemittanceAnalyticsService
      */
     public function getRemittancesByDateRange($startDate, $endDate)
     {
-        return Remittance::whereBetween('transfer_date', [$startDate, $endDate])
-            ->with(['candidate', 'departure'])
-            ->orderBy('transfer_date', 'desc')
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::whereBetween('transfer_date', [$startDate, $endDate])
+            ->with(['candidate', 'departure']);
+
+        $this->applyAccessFilter($query);
+
+        return $query->orderBy('transfer_date', 'desc')
             ->get();
     }
 }

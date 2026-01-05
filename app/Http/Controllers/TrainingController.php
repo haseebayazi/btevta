@@ -9,6 +9,7 @@ use App\Models\TrainingAssessment;
 use App\Services\TrainingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -55,7 +56,13 @@ class TrainingController extends Controller
         }
 
         $candidates = $query->paginate(20);
-        $batches = Batch::where('status', 'active')->get();
+
+        // AUDIT FIX: Filter batches dropdown by campus for campus admins
+        $batchesQuery = Batch::where('status', 'active');
+        if (auth()->user()->role === 'campus_admin') {
+            $batchesQuery->where('campus_id', auth()->user()->campus_id);
+        }
+        $batches = $batchesQuery->get();
 
         return view('training.index', compact('candidates', 'batches'));
     }
@@ -67,10 +74,19 @@ class TrainingController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        $batches = Batch::whereIn('status', ['active', 'pending'])->get();
-        $candidates = Candidate::whereIn('status', ['registered', 'screening'])
-            ->with(['trade', 'campus'])
-            ->get();
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $user = auth()->user();
+        $batchQuery = Batch::whereIn('status', ['active', 'pending']);
+        $candidateQuery = Candidate::whereIn('status', ['registered', 'screening'])
+            ->with(['trade', 'campus']);
+
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $batchQuery->where('campus_id', $user->campus_id);
+            $candidateQuery->where('campus_id', $user->campus_id);
+        }
+
+        $batches = $batchQuery->get();
+        $candidates = $candidateQuery->get();
 
         return view('training.create', compact('batches', 'candidates'));
     }
@@ -391,17 +407,37 @@ class TrainingController extends Controller
     {
         $this->authorize('completeTraining', Candidate::class);
 
+        // AUDIT FIX: Validate status transition before proceeding
+        $transitionResult = $candidate->validateTransition(Candidate::STATUS_VISA_PROCESS);
+        if (!$transitionResult['valid']) {
+            return back()->with('error', 'Cannot complete training: ' . $transitionResult['message']);
+        }
+
         try {
+            // AUDIT FIX: Wrap in transaction for data consistency
+            DB::beginTransaction();
+
             $this->trainingService->completeTraining($candidate->id);
 
             // Move candidate to visa processing stage
             $candidate->update(['status' => Candidate::STATUS_VISA_PROCESS]);
 
-            $this->notificationService->sendTrainingCompleted($candidate);
+            DB::commit();
+
+            // Send notification outside transaction (non-critical)
+            try {
+                $this->notificationService->sendTrainingCompleted($candidate);
+            } catch (Exception $notifyException) {
+                Log::warning('Failed to send training completion notification', [
+                    'candidate_id' => $candidate->id,
+                    'error' => $notifyException->getMessage()
+                ]);
+            }
 
             return redirect()->route('training.index')
                 ->with('success', 'Training marked as complete!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Failed to complete training: ' . $e->getMessage());
         }
     }

@@ -71,15 +71,25 @@ class RemittanceController extends Controller
 
         $remittances = $query->paginate(20);
 
-        // Statistics
+        // AUDIT FIX: Apply role-based filtering to statistics as well
+        $statsQuery = Remittance::query();
+        if ($user->role === 'oep') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        } elseif ($user->role === 'campus_admin') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->role === 'candidate') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('user_id', $user->id));
+        }
+
+        $totalCount = (clone $statsQuery)->count();
+        $withProof = (clone $statsQuery)->where('has_proof', true)->count();
+
         $stats = [
-            'total_count' => Remittance::count(),
-            'total_amount' => Remittance::sum('amount'),
-            'avg_amount' => Remittance::avg('amount'),
-            'with_proof' => Remittance::where('has_proof', true)->count(),
-            'proof_rate' => Remittance::count() > 0
-                ? round((Remittance::where('has_proof', true)->count() / Remittance::count()) * 100, 2)
-                : 0,
+            'total_count' => $totalCount,
+            'total_amount' => (clone $statsQuery)->sum('amount'),
+            'avg_amount' => (clone $statsQuery)->avg('amount'),
+            'with_proof' => $withProof,
+            'proof_rate' => $totalCount > 0 ? round(($withProof / $totalCount) * 100, 2) : 0,
         ];
 
         return view('remittances.index', compact('remittances', 'stats'));
@@ -92,10 +102,18 @@ class RemittanceController extends Controller
     {
         $this->authorize('create', Remittance::class);
 
-        $candidates = Candidate::whereHas('departure')
-            ->with('departure')
-            ->orderBy('name')
-            ->get();
+        // AUDIT FIX: Filter candidates by campus/OEP for non-admin users
+        $candidatesQuery = Candidate::whereHas('departure')
+            ->with('departure');
+
+        $user = Auth::user();
+        if ($user->role === 'oep' && $user->oep_id) {
+            $candidatesQuery->where('oep_id', $user->oep_id);
+        } elseif ($user->role === 'campus_admin' && $user->campus_id) {
+            $candidatesQuery->where('campus_id', $user->campus_id);
+        }
+
+        $candidates = $candidatesQuery->orderBy('name')->get();
 
         $beneficiaries = [];
 
@@ -313,11 +331,12 @@ class RemittanceController extends Controller
         try {
             // Build query with filters
             $query = Remittance::with(['candidate', 'candidate.trade', 'beneficiary'])
-                ->when($request->from_date, fn($q) => $q->whereDate('remittance_date', '>=', $request->from_date))
-                ->when($request->to_date, fn($q) => $q->whereDate('remittance_date', '<=', $request->to_date))
+                // AUDIT FIX: Changed remittance_date to transfer_date to match database schema
+                ->when($request->from_date, fn($q) => $q->whereDate('transfer_date', '>=', $request->from_date))
+                ->when($request->to_date, fn($q) => $q->whereDate('transfer_date', '<=', $request->to_date))
                 ->when($request->candidate_id, fn($q) => $q->where('candidate_id', $request->candidate_id))
                 ->when($request->status, fn($q) => $q->where('status', $request->status))
-                ->orderBy('remittance_date', 'desc');
+                ->orderBy('transfer_date', 'desc');
 
             // Role-based filtering
             if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
@@ -358,7 +377,7 @@ class RemittanceController extends Controller
                         $remittance->candidate->btevta_id ?? 'N/A',
                         $remittance->candidate->name ?? 'N/A',
                         $remittance->candidate->trade->name ?? 'N/A',
-                        $remittance->remittance_date ? $remittance->remittance_date->format('Y-m-d') : 'N/A',
+                        $remittance->transfer_date ? $remittance->transfer_date->format('Y-m-d') : 'N/A',
                         number_format($remittance->amount_pkr ?? 0, 2),
                         number_format($remittance->amount_sar ?? 0, 2),
                         $remittance->exchange_rate ?? 'N/A',

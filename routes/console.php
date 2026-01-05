@@ -20,27 +20,36 @@ use Illuminate\Support\Facades\Schedule;
 // ============================================================================
 
 // Log cleanup - Daily at 1:00 AM
-Schedule::command('logs:clean --days=30')
+Schedule::command('app:cleanup-old-logs --days=30')
     ->dailyAt('01:00')
     ->description('Clean up logs older than 30 days')
     ->onSuccess(function () {
         logger()->info('Scheduled: Log cleanup completed');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Log cleanup FAILED');
     });
 
 // Document expiry check - Daily at 6:00 AM
-Schedule::command('documents:check-expiry')
+Schedule::command('app:check-document-expiry')
     ->dailyAt('06:00')
     ->description('Check for expiring documents and send notifications')
     ->onSuccess(function () {
         logger()->info('Scheduled: Document expiry check completed');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Document expiry check FAILED');
     });
 
 // Generate remittance alerts - Daily at 7:00 AM
-Schedule::command('remittances:generate-alerts')
+Schedule::command('remittance:generate-alerts')
     ->dailyAt('07:00')
     ->description('Generate alerts for missing or irregular remittances')
     ->onSuccess(function () {
         logger()->info('Scheduled: Remittance alerts generated');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Remittance alert generation FAILED');
     });
 
 // ============================================================================
@@ -48,10 +57,13 @@ Schedule::command('remittances:generate-alerts')
 // ============================================================================
 
 // SLA breach check - Every 15 minutes
-Schedule::command('complaints:check-sla')
+Schedule::command('app:check-complaint-sla')
     ->everyFifteenMinutes()
     ->description('Check for SLA breaches on complaints')
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        logger()->error('Scheduled: Complaint SLA check FAILED');
+    });
 
 // ============================================================================
 // WEEKLY MAINTENANCE TASKS

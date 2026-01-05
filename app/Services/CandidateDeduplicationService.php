@@ -162,16 +162,23 @@ class CandidateDeduplicationService
                         }, $duplicateCheck['matches']),
                     ];
 
-                    if (!$skipDuplicates) {
+                    if ($skipDuplicates) {
+                        // Skip this duplicate and continue to next candidate
+                        continue;
+                    } else {
+                        // Don't skip duplicates - add to errors and continue
+                        $errors[] = [
+                            'row' => $index + 1,
+                            'data' => $candidateData,
+                            'error' => 'Duplicate detected (confidence: ' . $duplicateCheck['highest_confidence'] . '%)',
+                        ];
                         continue;
                     }
                 }
 
-                // Import the candidate
-                if (!$duplicateCheck['is_duplicate'] || !$skipDuplicates) {
-                    Candidate::create($candidateData);
-                    $imported++;
-                }
+                // Import the candidate (only non-duplicates reach here)
+                Candidate::create($candidateData);
+                $imported++;
             } catch (\Exception $e) {
                 $errors[] = [
                     'row' => $index + 1,

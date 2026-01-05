@@ -415,7 +415,8 @@ class DashboardController extends Controller
         // Cache key includes campus_id and oep_id for role-based isolation
         $cacheKey = 'dashboard_stats_' . ($campusId ?? 'all') . '_' . ($oepId ?? 'all');
 
-        return Cache::remember($cacheKey, 300, function () use ($campusId) {
+        // AUDIT FIX: Pass both campusId and oepId to the closure for proper filtering
+        return Cache::remember($cacheKey, 300, function () use ($campusId, $oepId) {
             // Use single query with CASE statements instead of 8 separate queries
             // PHASE 8 FIX: Fixed status constants to match Candidate model
             // STATUS_NEW = 'new' (was 'listed'), STATUS_VISA_PROCESS = 'visa_process' (was 'visa_processing')
@@ -431,13 +432,17 @@ class DashboardController extends Controller
                 SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected
             ')
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+            // AUDIT FIX: Apply OEP filtering for OEP users
+            ->when($oepId, fn($q) => $q->where('oep_id', $oepId))
             ->whereNull('deleted_at')
             ->first();
 
-        // Remittance statistics
+        // Remittance statistics - AUDIT FIX: Apply both campus and OEP filtering
         $remittanceQuery = Remittance::query();
         if ($campusId) {
             $remittanceQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
+        } elseif ($oepId) {
+            $remittanceQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $oepId));
         }
 
         $remittanceStats = $remittanceQuery
@@ -451,6 +456,8 @@ class DashboardController extends Controller
 
         $currentMonthRemittances = Remittance::query()
             ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
+            // AUDIT FIX: Apply OEP filtering for current month remittances
+            ->when($oepId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('oep_id', $oepId)))
             ->where('year', date('Y'))
             ->where('month', date('n'))
             ->selectRaw('COUNT(*) as count, SUM(amount) as amount')

@@ -7,6 +7,7 @@ use App\Models\RemittanceAlert;
 use App\Models\Candidate;
 use App\Models\Departure;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class RemittanceAlertService
@@ -391,18 +392,28 @@ class RemittanceAlertService
      */
     public function getAlertStatistics()
     {
+        // AUDIT FIX: Apply campus/OEP filtering for statistics
+        $baseQuery = RemittanceAlert::query();
+        $user = Auth::user();
+
+        if ($user && $user->role === 'campus_admin' && $user->campus_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user && $user->role === 'oep' && $user->oep_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        }
+
         return [
-            'total_alerts' => RemittanceAlert::count(),
-            'unresolved_alerts' => RemittanceAlert::where('is_resolved', false)->count(),
-            'critical_alerts' => RemittanceAlert::where('severity', 'critical')->where('is_resolved', false)->count(),
-            'unread_alerts' => RemittanceAlert::where('is_read', false)->count(),
-            'by_type' => RemittanceAlert::select('alert_type', DB::raw('count(*) as count'))
+            'total_alerts' => (clone $baseQuery)->count(),
+            'unresolved_alerts' => (clone $baseQuery)->where('is_resolved', false)->count(),
+            'critical_alerts' => (clone $baseQuery)->where('severity', 'critical')->where('is_resolved', false)->count(),
+            'unread_alerts' => (clone $baseQuery)->where('is_read', false)->count(),
+            'by_type' => (clone $baseQuery)->select('alert_type', DB::raw('count(*) as count'))
                 ->where('is_resolved', false)
                 ->groupBy('alert_type')
                 ->get()
                 ->pluck('count', 'alert_type')
                 ->toArray(),
-            'by_severity' => RemittanceAlert::select('severity', DB::raw('count(*) as count'))
+            'by_severity' => (clone $baseQuery)->select('severity', DB::raw('count(*) as count'))
                 ->where('is_resolved', false)
                 ->groupBy('severity')
                 ->get()
