@@ -91,6 +91,7 @@ class RemittanceApiController extends Controller
 
     /**
      * Get remittances by candidate ID
+     * AUDIT FIX: Added proper candidate-level authorization to prevent cross-campus data access
      *
      * @param int $candidateId
      * @return \Illuminate\Http\JsonResponse
@@ -103,6 +104,24 @@ class RemittanceApiController extends Controller
 
         if (!$candidate) {
             return response()->json(['error' => 'Candidate not found'], 404);
+        }
+
+        // AUDIT FIX: Verify user has access to this specific candidate
+        // This prevents cross-campus data leakage
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            // Campus admins can only view remittances for their campus
+            if ($user->role === 'campus_admin' && $user->campus_id !== $candidate->campus_id) {
+                return response()->json([
+                    'error' => 'Unauthorized: You do not have access to this candidate\'s remittances'
+                ], 403);
+            }
+            // OEP users can only view remittances for their OEP's candidates
+            if ($user->role === 'oep' && $user->oep_id !== $candidate->oep_id) {
+                return response()->json([
+                    'error' => 'Unauthorized: You do not have access to this candidate\'s remittances'
+                ], 403);
+            }
         }
 
         $remittances = Remittance::where('candidate_id', $candidateId)

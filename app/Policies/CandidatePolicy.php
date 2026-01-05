@@ -126,4 +126,51 @@ class CandidatePolicy
     {
         return $user->isSuperAdmin() || $user->isCampusAdmin();
     }
+
+    /**
+     * Determine if the user can perform bulk status updates.
+     * AUDIT FIX: Added proper policy method for bulk operations
+     */
+    public function bulkUpdateStatus(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+    }
+
+    /**
+     * Determine if the user can perform bulk batch assignments.
+     * AUDIT FIX: Added proper policy method for bulk operations
+     */
+    public function bulkAssignBatch(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+    }
+
+    /**
+     * Determine if the user can perform bulk campus assignments.
+     * AUDIT FIX: Added proper policy method for bulk operations
+     */
+    public function bulkAssignCampus(User $user): bool
+    {
+        // Only super admin and project director can reassign across campuses
+        return $user->isSuperAdmin() || $user->isProjectDirector();
+    }
+
+    /**
+     * Determine if the user can perform bulk delete operations.
+     * AUDIT FIX: Added proper policy method for bulk operations
+     */
+    public function bulkDelete(User $user): bool
+    {
+        // Only super admin can bulk delete
+        return $user->isSuperAdmin();
+    }
+
+    /**
+     * Determine if the user can send bulk notifications.
+     * AUDIT FIX: Added proper policy method for bulk operations
+     */
+    public function bulkNotify(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+    }
 }

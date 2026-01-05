@@ -19,9 +19,13 @@ class BulkOperationsController extends Controller
 
     /**
      * Bulk update candidate status
+     * AUDIT FIX: Added proper policy-based authorization
      */
     public function updateStatus(Request $request)
     {
+        // AUDIT FIX: Proper authorization check using policy
+        $this->authorize('bulkUpdateStatus', Candidate::class);
+
         $request->validate([
             'candidate_ids' => 'required|array|min:1|max:100',
             'candidate_ids.*' => 'exists:candidates,id',
@@ -90,9 +94,13 @@ class BulkOperationsController extends Controller
 
     /**
      * Bulk assign candidates to batch
+     * AUDIT FIX: Added proper policy-based authorization
      */
     public function assignToBatch(Request $request)
     {
+        // AUDIT FIX: Proper authorization check using policy
+        $this->authorize('bulkAssignBatch', Candidate::class);
+
         $request->validate([
             'candidate_ids' => 'required|array|min:1|max:100',
             'candidate_ids.*' => 'exists:candidates,id',
@@ -144,9 +152,13 @@ class BulkOperationsController extends Controller
 
     /**
      * Bulk assign candidates to campus
+     * AUDIT FIX: Added proper policy-based authorization
      */
     public function assignToCampus(Request $request)
     {
+        // AUDIT FIX: Proper authorization check using policy
+        $this->authorize('bulkAssignCampus', Candidate::class);
+
         $request->validate([
             'candidate_ids' => 'required|array|min:1|max:100',
             'candidate_ids.*' => 'exists:candidates,id',
@@ -230,21 +242,17 @@ class BulkOperationsController extends Controller
 
     /**
      * Bulk delete candidates (soft delete)
+     * AUDIT FIX: Added proper policy-based authorization
      */
     public function delete(Request $request)
     {
+        // AUDIT FIX: Proper authorization check using policy
+        $this->authorize('bulkDelete', Candidate::class);
+
         $request->validate([
             'candidate_ids' => 'required|array|min:1|max:50',
             'candidate_ids.*' => 'exists:candidates,id',
         ]);
-
-        // Only admins can bulk delete
-        if (!auth()->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only administrators can perform bulk delete',
-            ], 403);
-        }
 
         $candidateIds = $request->candidate_ids;
         $successCount = 0;
@@ -290,9 +298,13 @@ class BulkOperationsController extends Controller
 
     /**
      * Send bulk notifications
+     * AUDIT FIX: Implemented actual notification sending
      */
     public function sendNotification(Request $request)
     {
+        // AUDIT FIX: Proper authorization check using policy
+        $this->authorize('bulkNotify', Candidate::class);
+
         $request->validate([
             'candidate_ids' => 'required|array|min:1|max:100',
             'candidate_ids.*' => 'exists:candidates,id',
@@ -301,21 +313,79 @@ class BulkOperationsController extends Controller
             'subject' => 'required_if:notification_type,email,both|string|max:200',
         ]);
 
-        $candidates = Candidate::whereIn('id', $request->candidate_ids)
-            ->whereNotNull('phone')
-            ->get();
+        $candidates = Candidate::whereIn('id', $request->candidate_ids)->get();
 
-        $queued = 0;
-        foreach ($candidates as $candidate) {
-            // Queue notification job
-            // NotificationJob::dispatch($candidate, $request->notification_type, $request->message, $request->subject);
-            $queued++;
+        // AUDIT FIX: Filter by user's campus if not super admin
+        $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->campus_id) {
+                $candidates = $candidates->filter(fn($c) => $c->campus_id === $user->campus_id);
+            }
         }
 
+        $sent = 0;
+        $failed = 0;
+        $errors = [];
+        $notificationService = app(\App\Services\NotificationService::class);
+
+        foreach ($candidates as $candidate) {
+            try {
+                // Prepare notification data
+                $notificationData = [
+                    'subject' => $request->subject ?? 'BTEVTA Notification',
+                    'message' => $request->message,
+                    'candidate_name' => $candidate->name,
+                    'candidate_id' => $candidate->btevta_id,
+                ];
+
+                $channels = [];
+                if ($request->notification_type === 'email' || $request->notification_type === 'both') {
+                    if ($candidate->email) {
+                        $channels[] = 'email';
+                    }
+                }
+                if ($request->notification_type === 'sms' || $request->notification_type === 'both') {
+                    if ($candidate->phone) {
+                        $channels[] = 'sms';
+                    }
+                }
+
+                if (!empty($channels)) {
+                    $notificationService->send(
+                        $candidate,
+                        'bulk_notification',
+                        $notificationData,
+                        $channels
+                    );
+                    $sent++;
+                }
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = "Failed for {$candidate->name}: {$e->getMessage()}";
+                Log::warning('Bulk notification failed', [
+                    'candidate_id' => $candidate->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Log the bulk operation
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'type' => $request->notification_type,
+                'sent' => $sent,
+                'failed' => $failed,
+                'candidate_count' => $candidates->count(),
+            ])
+            ->log('Bulk notifications sent');
+
         return response()->json([
-            'success' => true,
-            'message' => "{$queued} notifications queued for sending",
-            'queued' => $queued,
+            'success' => $sent > 0,
+            'message' => "{$sent} notifications sent" . ($failed > 0 ? ", {$failed} failed" : ''),
+            'sent' => $sent,
+            'failed' => $failed,
+            'errors' => array_slice($errors, 0, 10), // Limit errors returned
         ]);
     }
 

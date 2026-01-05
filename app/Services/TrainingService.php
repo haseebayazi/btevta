@@ -7,8 +7,10 @@ use App\Models\Batch;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
 use App\Models\TrainingCertificate;
+use App\Models\VisaProcess;
 use App\Enums\CandidateStatus;
 use App\Enums\TrainingStatus;
+use App\Enums\VisaStage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -787,6 +789,23 @@ class TrainingService
                 'remarks' => $remarks ? ($candidate->remarks . "\n" . $remarks) : $candidate->remarks,
             ]);
 
+            // AUDIT FIX: Auto-create VisaProcess record when training completes
+            // This ensures the visa workflow can begin immediately
+            $visaProcess = VisaProcess::firstOrCreate(
+                ['candidate_id' => $candidate->id],
+                [
+                    'overall_status' => VisaStage::INITIATED->value,
+                    'interview_status' => 'pending',
+                    'trade_test_status' => 'pending',
+                    'takamol_status' => 'pending',
+                    'medical_status' => 'pending',
+                    'biometric_status' => 'pending',
+                    'visa_status' => 'pending',
+                    'initiated_at' => now(),
+                    'created_by' => auth()->id(),
+                ]
+            );
+
             activity()
                 ->performedOn($candidate)
                 ->causedBy(auth()->user())
@@ -794,11 +813,12 @@ class TrainingService
                     'attendance_percentage' => $attendanceStats['percentage'],
                     'final_assessment_score' => $finalAssessment->total_score,
                     'certificate_number' => $certificate->certificate_number,
+                    'visa_process_id' => $visaProcess->id,
                 ])
-                ->log('Training completed - moved to visa processing');
+                ->log('Training completed - visa process initiated');
 
             DB::commit();
-            return $candidate->fresh();
+            return $candidate->fresh(['visaProcess']);
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
