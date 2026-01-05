@@ -7,6 +7,7 @@ use App\Models\Departure;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -103,21 +104,34 @@ class DepartureApiController extends Controller
         $data = $validator->validated();
         $data['recorded_by'] = auth()->id();
 
-        $departure = Departure::create($data);
+        // AUDIT FIX: Wrap departure creation and status update in transaction
+        try {
+            DB::beginTransaction();
 
-        // Update candidate status
-        $candidate->update(['status' => Candidate::STATUS_DEPARTED]);
+            $departure = Departure::create($data);
 
-        activity()
-            ->performedOn($departure)
-            ->causedBy(auth()->user())
-            ->log('Departure recorded via API');
+            // Update candidate status
+            $candidate->update(['status' => Candidate::STATUS_DEPARTED]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Departure recorded successfully',
-            'data' => $departure,
-        ], 201);
+            DB::commit();
+
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->log('Departure recorded via API');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Departure recorded successfully',
+                'data' => $departure,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record departure: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

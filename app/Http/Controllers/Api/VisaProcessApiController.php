@@ -7,6 +7,7 @@ use App\Models\VisaProcess;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -110,21 +111,34 @@ class VisaProcessApiController extends Controller
         $data['overall_status'] = 'interview';
         $data['created_by'] = auth()->id();
 
-        $visaProcess = VisaProcess::create($data);
+        // AUDIT FIX: Wrap visa process creation and status update in transaction
+        try {
+            DB::beginTransaction();
 
-        // Update candidate status
-        $candidate->update(['status' => Candidate::STATUS_VISA_PROCESS]);
+            $visaProcess = VisaProcess::create($data);
 
-        activity()
-            ->performedOn($visaProcess)
-            ->causedBy(auth()->user())
-            ->log('Visa process created via API');
+            // Update candidate status
+            $candidate->update(['status' => Candidate::STATUS_VISA_PROCESS]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Visa process created successfully',
-            'data' => $visaProcess,
-        ], 201);
+            DB::commit();
+
+            activity()
+                ->performedOn($visaProcess)
+                ->causedBy(auth()->user())
+                ->log('Visa process created via API');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Visa process created successfully',
+                'data' => $visaProcess,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create visa process: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
