@@ -9,6 +9,7 @@ use App\Models\TrainingAssessment;
 use App\Services\TrainingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -391,17 +392,37 @@ class TrainingController extends Controller
     {
         $this->authorize('completeTraining', Candidate::class);
 
+        // AUDIT FIX: Validate status transition before proceeding
+        $transitionResult = $candidate->validateTransition(Candidate::STATUS_VISA_PROCESS);
+        if (!$transitionResult['valid']) {
+            return back()->with('error', 'Cannot complete training: ' . $transitionResult['message']);
+        }
+
         try {
+            // AUDIT FIX: Wrap in transaction for data consistency
+            DB::beginTransaction();
+
             $this->trainingService->completeTraining($candidate->id);
 
             // Move candidate to visa processing stage
             $candidate->update(['status' => Candidate::STATUS_VISA_PROCESS]);
 
-            $this->notificationService->sendTrainingCompleted($candidate);
+            DB::commit();
+
+            // Send notification outside transaction (non-critical)
+            try {
+                $this->notificationService->sendTrainingCompleted($candidate);
+            } catch (Exception $notifyException) {
+                Log::warning('Failed to send training completion notification', [
+                    'candidate_id' => $candidate->id,
+                    'error' => $notifyException->getMessage()
+                ]);
+            }
 
             return redirect()->route('training.index')
                 ->with('success', 'Training marked as complete!');
         } catch (Exception $e) {
+            DB::rollBack();
             return back()->with('error', 'Failed to complete training: ' . $e->getMessage());
         }
     }

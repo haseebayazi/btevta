@@ -5,11 +5,58 @@ namespace App\Services;
 use App\Models\Remittance;
 use App\Models\Candidate;
 use App\Models\RemittanceBeneficiary;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class RemittanceAnalyticsService
 {
+    /**
+     * AUDIT FIX: Get candidate IDs accessible to the current user.
+     * Returns null if user can access all candidates (admin/project director).
+     */
+    protected function getAccessibleCandidateIds(): ?array
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return [];
+        }
+
+        // Admins and project directors can see all data
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return null;
+        }
+
+        // Campus admins can only see their campus data
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            return Candidate::where('campus_id', $user->campus_id)->pluck('id')->toArray();
+        }
+
+        // OEP users can only see their OEP data
+        if ($user->role === 'oep' && $user->oep_id) {
+            return Candidate::where('oep_id', $user->oep_id)->pluck('id')->toArray();
+        }
+
+        // Default: return empty array (no access)
+        return [];
+    }
+
+    /**
+     * Apply candidate filtering to a query builder.
+     */
+    protected function applyAccessFilter($query, string $candidateIdColumn = 'candidate_id')
+    {
+        $candidateIds = $this->getAccessibleCandidateIds();
+
+        if ($candidateIds === null) {
+            // User can access all data
+            return $query;
+        }
+
+        return $query->whereIn($candidateIdColumn, $candidateIds);
+    }
+
     /**
      * Get comprehensive dashboard statistics
      *
@@ -21,8 +68,11 @@ class RemittanceAnalyticsService
         $currentYear = date('Y');
         $currentMonth = date('n');
 
+        // AUDIT FIX: Apply campus/OEP filtering
+        $baseQuery = $this->applyAccessFilter(DB::table('remittances'));
+
         // Single query for all aggregate statistics
-        $aggregates = DB::table('remittances')
+        $aggregates = $baseQuery
             ->selectRaw('
                 COUNT(*) as total_remittances,
                 COALESCE(SUM(amount), 0) as total_amount,
@@ -38,8 +88,10 @@ class RemittanceAnalyticsService
             ', [$currentYear, $currentYear, $currentYear, $currentMonth, $currentYear, $currentMonth])
             ->first();
 
-        // Status breakdown (single query)
-        $statusBreakdown = Remittance::select('status', DB::raw('count(*) as count'))
+        // Status breakdown (single query) - AUDIT FIX: Apply filtering
+        $statusQuery = Remittance::select('status', DB::raw('count(*) as count'));
+        $this->applyAccessFilter($statusQuery);
+        $statusBreakdown = $statusQuery
             ->groupBy('status')
             ->get()
             ->pluck('count', 'status')
@@ -92,14 +144,18 @@ class RemittanceAnalyticsService
     {
         $year = $year ?? date('Y');
 
-        $trends = Remittance::select(
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::select(
                 'month',
                 DB::raw('count(*) as count'),
                 DB::raw('sum(amount) as total_amount'),
                 DB::raw('avg(amount) as avg_amount')
             )
-            ->where('year', $year)
-            ->groupBy('month')
+            ->where('year', $year);
+
+        $this->applyAccessFilter($query);
+
+        $trends = $query->groupBy('month')
             ->orderBy('month')
             ->get();
 
@@ -124,17 +180,24 @@ class RemittanceAnalyticsService
      */
     public function getPurposeAnalysis()
     {
-        $purposeData = Remittance::select(
+        // AUDIT FIX: Apply campus/OEP filtering
+        $query = Remittance::select(
                 'primary_purpose',
                 DB::raw('count(*) as count'),
                 DB::raw('sum(amount) as total_amount'),
                 DB::raw('avg(amount) as avg_amount')
-            )
-            ->groupBy('primary_purpose')
+            );
+
+        $this->applyAccessFilter($query);
+
+        $purposeData = $query->groupBy('primary_purpose')
             ->orderBy('total_amount', 'desc')
             ->get();
 
-        $totalAmount = Remittance::sum('amount');
+        // AUDIT FIX: Also filter total amount calculation
+        $totalQuery = Remittance::query();
+        $this->applyAccessFilter($totalQuery);
+        $totalAmount = $totalQuery->sum('amount');
 
         return $purposeData->map(function ($item) use ($totalAmount) {
             return [
