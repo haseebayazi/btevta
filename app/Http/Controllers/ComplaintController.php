@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ComplaintService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class ComplaintController extends Controller
@@ -33,6 +34,16 @@ class ComplaintController extends Controller
         $this->authorize('viewAny', Complaint::class);
 
         $query = Complaint::with(['candidate', 'campus', 'oep', 'assignedTo'])->latest();
+
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            // Campus admins see complaints for their campus candidates or assigned to them
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('candidate', fn($cq) => $cq->where('campus_id', $user->campus_id))
+                  ->orWhere('assigned_to', $user->id);
+            });
+        }
 
         // Apply filters
         if ($request->filled('status')) {
@@ -554,6 +565,22 @@ class ComplaintController extends Controller
     }
 
     /**
+     * Apply campus filtering to complaint query for non-admin users
+     * AUDIT FIX: Helper method for consistent filtering
+     */
+    protected function applyAccessFilter($query)
+    {
+        $user = Auth::user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where(function ($q) use ($user) {
+                $q->whereHas('candidate', fn($cq) => $cq->where('campus_id', $user->campus_id))
+                  ->orWhere('assigned_to', $user->id);
+            });
+        }
+        return $query;
+    }
+
+    /**
      * Display complaint statistics
      */
     public function statistics()
@@ -561,47 +588,56 @@ class ComplaintController extends Controller
         $this->authorize('viewAny', Complaint::class);
 
         try {
+            // AUDIT FIX: Apply campus filtering to all statistics queries
+            $baseQuery = Complaint::query();
+            $this->applyAccessFilter($baseQuery);
+
             // Get overall statistics
-            $totalComplaints = Complaint::count();
-            $openComplaints = Complaint::whereIn('status', ['registered', 'investigating'])->count();
-            $resolvedComplaints = Complaint::where('status', 'resolved')->count();
-            $closedComplaints = Complaint::where('status', 'closed')->count();
+            $totalComplaints = (clone $baseQuery)->count();
+            $openComplaints = (clone $baseQuery)->whereIn('status', ['registered', 'investigating'])->count();
+            $resolvedComplaints = (clone $baseQuery)->where('status', 'resolved')->count();
+            $closedComplaints = (clone $baseQuery)->where('status', 'closed')->count();
 
             // Complaints by category
-            $byCategory = Complaint::select('category', \DB::raw('count(*) as count'))
-                ->groupBy('category')
+            $categoryQuery = Complaint::select('category', \DB::raw('count(*) as count'));
+            $this->applyAccessFilter($categoryQuery);
+            $byCategory = $categoryQuery->groupBy('category')
                 ->get()
                 ->pluck('count', 'category');
 
             // Complaints by priority
-            $byPriority = Complaint::select('priority', \DB::raw('count(*) as count'))
-                ->groupBy('priority')
+            $priorityQuery = Complaint::select('priority', \DB::raw('count(*) as count'));
+            $this->applyAccessFilter($priorityQuery);
+            $byPriority = $priorityQuery->groupBy('priority')
                 ->get()
                 ->pluck('count', 'priority');
 
             // Complaints by status
-            $byStatus = Complaint::select('status', \DB::raw('count(*) as count'))
-                ->groupBy('status')
+            $statusQuery = Complaint::select('status', \DB::raw('count(*) as count'));
+            $this->applyAccessFilter($statusQuery);
+            $byStatus = $statusQuery->groupBy('status')
                 ->get()
                 ->pluck('count', 'status');
 
             // Average resolution time (in days)
-            $avgResolutionTime = Complaint::whereNotNull('resolved_at')
-                ->selectRaw('AVG(DATEDIFF(resolved_at, created_at)) as avg_days')
+            $avgQuery = Complaint::whereNotNull('resolved_at');
+            $this->applyAccessFilter($avgQuery);
+            $avgResolutionTime = $avgQuery->selectRaw('AVG(DATEDIFF(resolved_at, created_at)) as avg_days')
                 ->value('avg_days') ?? 0;
 
             // Monthly trends (last 6 months)
-            $monthlyTrends = Complaint::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, count(*) as count')
-                ->where('created_at', '>=', now()->subMonths(6))
-                ->groupBy('month')
+            $trendsQuery = Complaint::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, count(*) as count')
+                ->where('created_at', '>=', now()->subMonths(6));
+            $this->applyAccessFilter($trendsQuery);
+            $monthlyTrends = $trendsQuery->groupBy('month')
                 ->orderBy('month')
                 ->get();
 
             // Top assigned users
-            // FIXED: N+1 query - load assignedTo relationship properly after grouping
-            $topAssignees = Complaint::select('assigned_to', \DB::raw('count(*) as count'))
-                ->whereNotNull('assigned_to')
-                ->groupBy('assigned_to')
+            $assigneesQuery = Complaint::select('assigned_to', \DB::raw('count(*) as count'))
+                ->whereNotNull('assigned_to');
+            $this->applyAccessFilter($assigneesQuery);
+            $topAssignees = $assigneesQuery->groupBy('assigned_to')
                 ->orderBy('count', 'desc')
                 ->limit(10)
                 ->get();
@@ -610,15 +646,16 @@ class ComplaintController extends Controller
             $topAssignees->load('assignedTo:id,name');
 
             // SLA compliance rate
-            $slaCompliant = Complaint::whereNotNull('resolved_at')
-                ->whereRaw('DATEDIFF(resolved_at, created_at) <= sla_days')
-                ->count();
-            $totalResolved = Complaint::whereNotNull('resolved_at')->count();
+            $slaQuery = Complaint::whereNotNull('resolved_at');
+            $this->applyAccessFilter($slaQuery);
+            $slaCompliant = (clone $slaQuery)->whereRaw('DATEDIFF(resolved_at, created_at) <= sla_days')->count();
+            $totalResolved = $slaQuery->count();
             $slaComplianceRate = $totalResolved > 0 ? ($slaCompliant / $totalResolved) * 100 : 0;
 
             // Recent complaints
-            $recentComplaints = Complaint::with(['candidate', 'assignedTo'])
-                ->latest()
+            $recentQuery = Complaint::with(['candidate', 'assignedTo']);
+            $this->applyAccessFilter($recentQuery);
+            $recentComplaints = $recentQuery->latest()
                 ->limit(10)
                 ->get();
 
