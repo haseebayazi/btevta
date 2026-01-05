@@ -26,6 +26,16 @@ class RemittanceAlertController extends Controller
         $query = RemittanceAlert::with(['candidate', 'remittance', 'resolvedBy'])
             ->orderBy('created_at', 'desc');
 
+        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+            }
+        }
+
         // Filter by status
         if ($request->filled('status')) {
             if ($request->status === 'unresolved') {
@@ -99,7 +109,19 @@ class RemittanceAlertController extends Controller
     {
         $this->authorize('markAllAsRead', RemittanceAlert::class);
 
-        RemittanceAlert::where('is_read', false)->update(['is_read' => true]);
+        // AUDIT FIX: Only mark accessible alerts as read (campus/OEP filtering)
+        $query = RemittanceAlert::where('is_read', false);
+        $user = Auth::user();
+
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+            }
+        }
+
+        $query->update(['is_read' => true]);
 
         return back()->with('success', 'All alerts marked as read.');
     }
@@ -188,14 +210,32 @@ class RemittanceAlertController extends Controller
         $alertIds = $request->alert_ids;
         $action = $request->action;
 
+        // AUDIT FIX: Filter alert IDs to only include alerts the user can access
+        $user = Auth::user();
+        $query = RemittanceAlert::whereIn('id', $alertIds);
+
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+            }
+        }
+
+        $accessibleAlertIds = $query->pluck('id')->toArray();
+
+        if (empty($accessibleAlertIds)) {
+            return back()->with('error', 'No accessible alerts found.');
+        }
+
         switch ($action) {
             case 'mark_read':
-                RemittanceAlert::whereIn('id', $alertIds)->update(['is_read' => true]);
+                RemittanceAlert::whereIn('id', $accessibleAlertIds)->update(['is_read' => true]);
                 $message = 'Selected alerts marked as read.';
                 break;
 
             case 'resolve':
-                foreach ($alertIds as $id) {
+                foreach ($accessibleAlertIds as $id) {
                     $alert = RemittanceAlert::find($id);
                     if ($alert) {
                         $alert->resolve(Auth::id(), 'Bulk resolved');
@@ -205,7 +245,7 @@ class RemittanceAlertController extends Controller
                 break;
 
             case 'dismiss':
-                foreach ($alertIds as $id) {
+                foreach ($accessibleAlertIds as $id) {
                     $alert = RemittanceAlert::find($id);
                     if ($alert) {
                         $alert->resolve(Auth::id(), 'Bulk dismissed');

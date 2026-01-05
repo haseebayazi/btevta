@@ -13,9 +13,10 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function index($candidateId)
     {
-        $this->authorize('viewAny', RemittanceBeneficiary::class);
-
         $candidate = Candidate::findOrFail($candidateId);
+        // AUDIT FIX: Authorize view on the candidate to prevent cross-tenant data leakage
+        $this->authorize('view', $candidate);
+
         $beneficiaries = RemittanceBeneficiary::where('candidate_id', $candidateId)
             ->orderBy('is_primary', 'desc')
             ->orderBy('created_at', 'desc')
@@ -29,9 +30,10 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function create($candidateId)
     {
-        $this->authorize('create', RemittanceBeneficiary::class);
-
         $candidate = Candidate::findOrFail($candidateId);
+        // AUDIT FIX: Authorize view on the candidate to prevent cross-tenant data leakage
+        $this->authorize('view', $candidate);
+        $this->authorize('create', RemittanceBeneficiary::class);
 
         return view('remittances.beneficiaries.create', compact('candidate'));
     }
@@ -41,6 +43,9 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function store(Request $request, $candidateId)
     {
+        $candidate = Candidate::findOrFail($candidateId);
+        // AUDIT FIX: Authorize view on the candidate to prevent cross-tenant data leakage
+        $this->authorize('view', $candidate);
         $this->authorize('create', RemittanceBeneficiary::class);
 
         $validated = $request->validate([
@@ -165,7 +170,9 @@ class RemittanceBeneficiaryController extends Controller
      */
     public function data($candidateId)
     {
-        $this->authorize('viewAny', RemittanceBeneficiary::class);
+        $candidate = Candidate::findOrFail($candidateId);
+        // AUDIT FIX: Authorize view on the candidate to prevent cross-tenant data leakage
+        $this->authorize('view', $candidate);
 
         $beneficiaries = RemittanceBeneficiary::where('candidate_id', $candidateId)
             ->where('is_active', true)
