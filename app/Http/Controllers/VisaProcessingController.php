@@ -78,6 +78,53 @@ class VisaProcessingController extends Controller
     }
 
     /**
+     * AUDIT FIX: Validate all required visa stages are completed before allowing process completion.
+     *
+     * Required stages:
+     * - Interview: passed
+     * - Medical: fit
+     * - Biometric: completed
+     * - E-Number: verified
+     * - Visa: issued
+     *
+     * Optional but recommended:
+     * - PTN: issued
+     * - Takamol: completed (for Saudi Arabia)
+     */
+    protected function validateAllVisaStagesCompleted(VisaProcess $visaProcess): array
+    {
+        $errors = [];
+
+        // Critical required stages
+        if ($visaProcess->interview_status !== 'passed') {
+            $errors[] = 'Interview must be passed (current: ' . ($visaProcess->interview_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->medical_status !== 'fit') {
+            $errors[] = 'Medical examination must be cleared as "fit" (current: ' . ($visaProcess->medical_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->biometric_status !== 'completed') {
+            $errors[] = 'Biometrics must be completed (current: ' . ($visaProcess->biometric_status ?? 'not set') . ')';
+        }
+
+        if (empty($visaProcess->enumber) || $visaProcess->enumber_status !== 'verified') {
+            $errors[] = 'E-Number must be generated and verified (current: ' . ($visaProcess->enumber_status ?? 'not set') . ')';
+        }
+
+        if ($visaProcess->visa_status !== 'issued') {
+            $errors[] = 'Visa must be issued (current: ' . ($visaProcess->visa_status ?? 'not set') . ')';
+        }
+
+        // PTN is required for departure
+        if (empty($visaProcess->ptn_number)) {
+            $errors[] = 'PTN number must be issued';
+        }
+
+        return $errors;
+    }
+
+    /**
      * Display list of candidates in visa processing
      */
     public function index(Request $request)
@@ -692,6 +739,19 @@ class VisaProcessingController extends Controller
     public function complete(Candidate $candidate)
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        // AUDIT FIX: Ensure visa process exists before completion
+        if (!$candidate->visaProcess) {
+            return back()->with('error', 'No visa process found for this candidate.');
+        }
+
+        // AUDIT FIX: Validate all required visa stages are completed
+        $validationErrors = $this->validateAllVisaStagesCompleted($candidate->visaProcess);
+        if (!empty($validationErrors)) {
+            return back()
+                ->withErrors(['visa_completion' => $validationErrors])
+                ->with('error', 'Cannot complete visa process. The following requirements are not met: ' . implode('; ', $validationErrors));
+        }
 
         try {
             DB::beginTransaction();
