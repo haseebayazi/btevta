@@ -237,9 +237,13 @@ class CandidateApiController extends Controller
         $this->authorize('viewAny', Candidate::class);
 
         $query = Candidate::query();
+        $user = auth()->user();
 
-        if (auth()->user()->isCampusAdmin()) {
-            $query->where('campus_id', auth()->user()->campus_id);
+        // AUDIT FIX: Add OEP filtering in addition to campus filtering
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        } elseif ($user->isOep() && $user->oep_id) {
+            $query->where('oep_id', $user->oep_id);
         }
 
         $stats = $query->selectRaw('

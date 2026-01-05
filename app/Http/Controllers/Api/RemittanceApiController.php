@@ -351,26 +351,39 @@ class RemittanceApiController extends Controller
     {
         $this->authorize('viewAny', Remittance::class);
 
+        // AUDIT FIX: Apply campus/OEP filtering for statistics
+        $baseQuery = Remittance::query();
+        $user = Auth::user();
+
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->role === 'oep' && $user->oep_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        }
+
+        $totalCount = (clone $baseQuery)->count();
+        $withProofCount = (clone $baseQuery)->where('has_proof', true)->count();
+
         $stats = [
-            'total_remittances' => Remittance::count(),
-            'total_amount' => Remittance::sum('amount'),
-            'average_amount' => Remittance::avg('amount'),
-            'total_candidates' => Remittance::distinct('candidate_id')->count(),
-            'with_proof' => Remittance::where('has_proof', true)->count(),
-            'proof_compliance_rate' => Remittance::count() > 0
-                ? round((Remittance::where('has_proof', true)->count() / Remittance::count()) * 100, 2)
+            'total_remittances' => $totalCount,
+            'total_amount' => (clone $baseQuery)->sum('amount'),
+            'average_amount' => (clone $baseQuery)->avg('amount'),
+            'total_candidates' => (clone $baseQuery)->distinct('candidate_id')->count(),
+            'with_proof' => $withProofCount,
+            'proof_compliance_rate' => $totalCount > 0
+                ? round(($withProofCount / $totalCount) * 100, 2)
                 : 0,
-            'by_status' => Remittance::selectRaw('status, count(*) as count')
+            'by_status' => (clone $baseQuery)->selectRaw('status, count(*) as count')
                 ->groupBy('status')
                 ->pluck('count', 'status'),
             'current_year' => [
-                'count' => Remittance::where('year', date('Y'))->count(),
-                'amount' => Remittance::where('year', date('Y'))->sum('amount'),
+                'count' => (clone $baseQuery)->where('year', date('Y'))->count(),
+                'amount' => (clone $baseQuery)->where('year', date('Y'))->sum('amount'),
             ],
             'current_month' => [
-                'count' => Remittance::where('year', date('Y'))
+                'count' => (clone $baseQuery)->where('year', date('Y'))
                     ->where('month', date('n'))->count(),
-                'amount' => Remittance::where('year', date('Y'))
+                'amount' => (clone $baseQuery)->where('year', date('Y'))
                     ->where('month', date('n'))->sum('amount'),
             ],
         ];

@@ -196,7 +196,17 @@ class VisaProcessApiController extends Controller
     {
         $this->authorize('viewAny', VisaProcess::class);
 
-        $stats = VisaProcess::selectRaw('
+        // AUDIT FIX: Apply campus/OEP filtering for statistics
+        $query = VisaProcess::query();
+        $user = auth()->user();
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->isOep() && $user->oep_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        }
+
+        $stats = $query->selectRaw('
             COUNT(*) as total,
             SUM(CASE WHEN overall_status = "interview" THEN 1 ELSE 0 END) as interview_stage,
             SUM(CASE WHEN overall_status = "takamol" THEN 1 ELSE 0 END) as takamol_stage,

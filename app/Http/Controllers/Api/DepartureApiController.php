@@ -183,7 +183,17 @@ class DepartureApiController extends Controller
     {
         $this->authorize('viewAny', Departure::class);
 
-        $stats = Departure::selectRaw('
+        // AUDIT FIX: Apply campus/OEP filtering for statistics
+        $query = Departure::query();
+        $user = auth()->user();
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->isOep() && $user->oep_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        }
+
+        $stats = $query->selectRaw('
             COUNT(*) as total_departures,
             SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_count,
             SUM(CASE WHEN iqama_number IS NOT NULL THEN 1 ELSE 0 END) as with_iqama,
