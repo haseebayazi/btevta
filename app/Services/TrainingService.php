@@ -343,8 +343,9 @@ class TrainingService
         }
 
         // Check if candidate is at-risk due to attendance issues
+        // at_risk is tracked via at_risk_reason column, not training_status enum
         if ($candidate->training_status === Candidate::TRAINING_DROPPED ||
-            $candidate->training_status === 'at_risk') {
+            !empty($candidate->at_risk_reason)) {
             throw new \Exception('Candidate is at-risk or dropped from training and cannot receive certificate');
         }
 
@@ -436,9 +437,10 @@ class TrainingService
         
         $totalCandidates = $batch->candidates->count();
         $completed = $batch->candidates->where('training_status', 'completed')->count();
-        $ongoing = $batch->candidates->where('training_status', 'ongoing')->count();
+        $ongoing = $batch->candidates->where('training_status', 'in_progress')->count();
         $failed = $batch->candidates->where('training_status', 'failed')->count();
-        $atRisk = $batch->candidates->where('training_status', 'at_risk')->count();
+        // at_risk is tracked via at_risk_reason column, not training_status enum
+        $atRisk = $batch->candidates->whereNotNull('at_risk_reason')->count();
 
         // Assessment statistics
         $assessments = TrainingAssessment::whereIn('candidate_id', $batch->candidates->pluck('id'))->get();
@@ -987,7 +989,7 @@ class TrainingService
             'average_assessment_score' => round(collect($candidatePerformance)->avg('average_assessment_score'), 2),
             'completed' => $candidates->where('training_status', 'completed')->count(),
             'in_progress' => $candidates->where('training_status', 'in_progress')->count(),
-            'at_risk' => $candidates->where('training_status', 'at_risk')->count(),
+            'at_risk' => $candidates->whereNotNull('at_risk_reason')->count(),
             'failed' => $candidates->where('training_status', 'failed')->count(),
             'certificates_issued' => collect($candidatePerformance)->where('has_certificate', true)->count(),
             'below_attendance_threshold' => collect($candidatePerformance)->where('meets_attendance_threshold', false)->count(),

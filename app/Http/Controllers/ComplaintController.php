@@ -51,7 +51,7 @@ class ComplaintController extends Controller
         }
 
         if ($request->filled('category')) {
-            $query->where('category', $request->category);
+            $query->where('complaint_category', $request->category);
         }
 
         if ($request->filled('priority')) {
@@ -116,7 +116,7 @@ class ComplaintController extends Controller
             'category' => 'required|in:screening,training,visa,salary,conduct,facility,medical,document,other',
             'subject' => 'required|string|max:500',
             'description' => 'required|string',
-            'priority' => 'required|in:low,medium,high,critical',
+            'priority' => 'required|in:low,normal,high,urgent',
             'evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -202,7 +202,7 @@ class ComplaintController extends Controller
         $this->authorize('update', $complaint);
 
         $validated = $request->validate([
-            'priority' => 'nullable|in:low,medium,high,critical',
+            'priority' => 'nullable|in:low,normal,high,urgent',
             'status' => 'nullable|in:registered,investigating,resolved,closed',
         ]);
 
