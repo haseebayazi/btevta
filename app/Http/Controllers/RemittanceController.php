@@ -71,15 +71,25 @@ class RemittanceController extends Controller
 
         $remittances = $query->paginate(20);
 
-        // Statistics
+        // AUDIT FIX: Apply role-based filtering to statistics as well
+        $statsQuery = Remittance::query();
+        if ($user->role === 'oep') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        } elseif ($user->role === 'campus_admin') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        } elseif ($user->role === 'candidate') {
+            $statsQuery->whereHas('candidate', fn($q) => $q->where('user_id', $user->id));
+        }
+
+        $totalCount = (clone $statsQuery)->count();
+        $withProof = (clone $statsQuery)->where('has_proof', true)->count();
+
         $stats = [
-            'total_count' => Remittance::count(),
-            'total_amount' => Remittance::sum('amount'),
-            'avg_amount' => Remittance::avg('amount'),
-            'with_proof' => Remittance::where('has_proof', true)->count(),
-            'proof_rate' => Remittance::count() > 0
-                ? round((Remittance::where('has_proof', true)->count() / Remittance::count()) * 100, 2)
-                : 0,
+            'total_count' => $totalCount,
+            'total_amount' => (clone $statsQuery)->sum('amount'),
+            'avg_amount' => (clone $statsQuery)->avg('amount'),
+            'with_proof' => $withProof,
+            'proof_rate' => $totalCount > 0 ? round(($withProof / $totalCount) * 100, 2) : 0,
         ];
 
         return view('remittances.index', compact('remittances', 'stats'));
@@ -92,10 +102,18 @@ class RemittanceController extends Controller
     {
         $this->authorize('create', Remittance::class);
 
-        $candidates = Candidate::whereHas('departure')
-            ->with('departure')
-            ->orderBy('name')
-            ->get();
+        // AUDIT FIX: Filter candidates by campus/OEP for non-admin users
+        $candidatesQuery = Candidate::whereHas('departure')
+            ->with('departure');
+
+        $user = Auth::user();
+        if ($user->role === 'oep' && $user->oep_id) {
+            $candidatesQuery->where('oep_id', $user->oep_id);
+        } elseif ($user->role === 'campus_admin' && $user->campus_id) {
+            $candidatesQuery->where('campus_id', $user->campus_id);
+        }
+
+        $candidates = $candidatesQuery->orderBy('name')->get();
 
         $beneficiaries = [];
 
