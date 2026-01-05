@@ -152,6 +152,46 @@ class CandidateApiController extends Controller
         }
 
         $data = $validator->validated();
+
+        // AUDIT FIX: Validate campus_id/batch_id/oep_id assignment based on user role
+        $user = auth()->user();
+
+        // Campus admins cannot reassign candidates to different campuses
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            if (isset($data['campus_id']) && $data['campus_id'] != $user->campus_id) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['campus_id' => ['You cannot reassign candidates to a different campus.']],
+                ], 403);
+            }
+            // If campus_id is being set, force it to user's campus
+            if (isset($data['campus_id'])) {
+                $data['campus_id'] = $user->campus_id;
+            }
+        }
+
+        // OEP users cannot reassign candidates to different OEPs
+        if ($user->role === 'oep' && $user->oep_id) {
+            if (isset($data['oep_id']) && $data['oep_id'] != $user->oep_id) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['oep_id' => ['You cannot reassign candidates to a different OEP.']],
+                ], 403);
+            }
+        }
+
+        // Validate that batch belongs to candidate's campus if being assigned
+        if (isset($data['batch_id']) && $data['batch_id']) {
+            $batch = \App\Models\Batch::find($data['batch_id']);
+            $targetCampusId = $data['campus_id'] ?? $candidate->campus_id;
+            if ($batch && $batch->campus_id != $targetCampusId) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['batch_id' => ['The selected batch does not belong to the candidate\'s campus.']],
+                ], 422);
+            }
+        }
+
         $data['updated_by'] = auth()->id();
 
         $candidate->update($data);

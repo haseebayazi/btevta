@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
+use App\Models\Departure;
 use App\Models\VisaProcess;
 use App\Services\VisaProcessingService;
 use App\Services\NotificationService;
@@ -760,6 +761,18 @@ class VisaProcessingController extends Controller
 
             // Update candidate status to ready for departure
             $candidate->update(['status' => Candidate::STATUS_READY]);
+
+            // AUDIT FIX: Auto-create Departure record when candidate becomes READY
+            // This ensures departure tracking starts immediately and doesn't rely on manual creation
+            $departure = Departure::firstOrCreate(
+                ['candidate_id' => $candidate->id],
+                [
+                    'visa_process_id' => $candidate->visaProcess->id,
+                    'oep_id' => $candidate->oep_id,
+                    'status' => 'pending_briefing',
+                    'created_by' => auth()->id(),
+                ]
+            );
 
             $this->notificationService->sendVisaProcessCompleted($candidate);
 

@@ -117,6 +117,17 @@ class ImportController extends Controller
                         'status' => 'new',
                     ];
 
+                    // AUDIT FIX: Assign imported candidates to user's campus/oep based on role
+                    $user = auth()->user();
+                    if ($user->role === 'campus_admin' && $user->campus_id) {
+                        $candidateData['campus_id'] = $user->campus_id;
+                    } elseif ($user->role === 'oep' && $user->oep_id) {
+                        $candidateData['oep_id'] = $user->oep_id;
+                    }
+
+                    // Track who created the record
+                    $candidateData['created_by'] = $user->id;
+
                     $candidate = Candidate::create($candidateData);
                     
                     activity()

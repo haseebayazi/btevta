@@ -142,18 +142,30 @@ class ReportController extends Controller
             abort(403, 'You do not have permission to view reports.');
         }
 
-        $visaData = DB::table('visa_processes')
+        // AUDIT FIX: Add campus-based filtering for visa timeline data
+        $user = auth()->user();
+        $baseQuery = DB::table('visa_processes')
+            ->join('candidates', 'visa_processes.candidate_id', '=', 'candidates.id');
+
+        // Apply campus filtering for campus_admin and OEP users
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $baseQuery->where('candidates.campus_id', $user->campus_id);
+        } elseif ($user->role === 'oep' && $user->oep_id) {
+            $baseQuery->where('candidates.oep_id', $user->oep_id);
+        }
+
+        $visaData = (clone $baseQuery)
             ->selectRaw('
                 COUNT(*) as total,
-                AVG(DATEDIFF(visa_issue_date, interview_date)) as avg_days,
-                MIN(visa_issue_date) as earliest,
-                MAX(visa_issue_date) as latest
+                AVG(DATEDIFF(visa_processes.visa_issue_date, visa_processes.interview_date)) as avg_days,
+                MIN(visa_processes.visa_issue_date) as earliest,
+                MAX(visa_processes.visa_issue_date) as latest
             ')
             ->first();
 
-        $byStage = DB::table('visa_processes')
-            ->selectRaw('current_stage, COUNT(*) as count')
-            ->groupBy('current_stage')
+        $byStage = (clone $baseQuery)
+            ->selectRaw('visa_processes.current_stage, COUNT(*) as count')
+            ->groupBy('visa_processes.current_stage')
             ->get();
 
         return view('reports.visa-timeline', compact('visaData', 'byStage'));

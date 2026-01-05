@@ -231,7 +231,37 @@ class RemittanceApiController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $remittance->update($validator->validated());
+        $validated = $validator->validated();
+
+        // AUDIT FIX: Validate candidate reassignment based on user role
+        if (isset($validated['candidate_id']) && $validated['candidate_id'] != $remittance->candidate_id) {
+            $user = Auth::user();
+            $newCandidate = \App\Models\Candidate::find($validated['candidate_id']);
+
+            if (!$newCandidate) {
+                return response()->json(['error' => 'Target candidate not found'], 404);
+            }
+
+            // Campus admins can only reassign to candidates in their own campus
+            if ($user->role === 'campus_admin' && $user->campus_id) {
+                if ($newCandidate->campus_id != $user->campus_id) {
+                    return response()->json([
+                        'error' => 'You cannot reassign remittance to a candidate outside your campus'
+                    ], 403);
+                }
+            }
+
+            // OEP users can only reassign to candidates in their own OEP
+            if ($user->role === 'oep' && $user->oep_id) {
+                if ($newCandidate->oep_id != $user->oep_id) {
+                    return response()->json([
+                        'error' => 'You cannot reassign remittance to a candidate outside your OEP'
+                    ], 403);
+                }
+            }
+        }
+
+        $remittance->update($validated);
 
         // Recalculate month number if departure changed
         if ($remittance->departure_id) {
