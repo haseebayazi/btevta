@@ -56,7 +56,13 @@ class TrainingController extends Controller
         }
 
         $candidates = $query->paginate(20);
-        $batches = Batch::where('status', 'active')->get();
+
+        // AUDIT FIX: Filter batches dropdown by campus for campus admins
+        $batchesQuery = Batch::where('status', 'active');
+        if (auth()->user()->role === 'campus_admin') {
+            $batchesQuery->where('campus_id', auth()->user()->campus_id);
+        }
+        $batches = $batchesQuery->get();
 
         return view('training.index', compact('candidates', 'batches'));
     }
@@ -68,10 +74,19 @@ class TrainingController extends Controller
     {
         $this->authorize('create', Candidate::class);
 
-        $batches = Batch::whereIn('status', ['active', 'pending'])->get();
-        $candidates = Candidate::whereIn('status', ['registered', 'screening'])
-            ->with(['trade', 'campus'])
-            ->get();
+        // AUDIT FIX: Apply campus filtering for campus admin users
+        $user = auth()->user();
+        $batchQuery = Batch::whereIn('status', ['active', 'pending']);
+        $candidateQuery = Candidate::whereIn('status', ['registered', 'screening'])
+            ->with(['trade', 'campus']);
+
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $batchQuery->where('campus_id', $user->campus_id);
+            $candidateQuery->where('campus_id', $user->campus_id);
+        }
+
+        $batches = $batchQuery->get();
+        $candidates = $candidateQuery->get();
 
         return view('training.create', compact('batches', 'candidates'));
     }

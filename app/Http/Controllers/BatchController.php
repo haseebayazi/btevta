@@ -18,10 +18,18 @@ class BatchController extends Controller
     {
         $this->authorize('viewAny', Batch::class);
 
-        $batches = Batch::with(['campus', 'trade'])
-            ->withCount('candidates')
-            ->latest()
-            ->paginate(20);
+        $query = Batch::with(['campus', 'trade'])
+            ->withCount('candidates');
+
+        // AUDIT FIX: Apply campus filtering for campus admin and trainer users
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        } elseif ($user->isTrainer() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
+
+        $batches = $query->latest()->paginate(20);
 
         return view('admin.batches.index', compact('batches'));
     }
