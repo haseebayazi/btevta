@@ -16,24 +16,38 @@ class InstructorController extends Controller
     {
         $this->authorize('viewAny', Instructor::class);
 
-        $instructors = Instructor::with(['campus', 'trade'])
-            ->when($request->search, function ($query) use ($request) {
+        $query = Instructor::with(['campus', 'trade']);
+
+        // AUDIT FIX: Apply campus filtering for campus admin and trainer users
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        } elseif ($user->isTrainer() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
+
+        $instructors = $query->when($request->search, function ($q) use ($request) {
                 // Escape special LIKE characters to prevent SQL LIKE injection
                 $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
-                $query->where('name', 'like', '%' . $escapedSearch . '%')
+                $q->where('name', 'like', '%' . $escapedSearch . '%')
                     ->orWhere('cnic', 'like', '%' . $escapedSearch . '%')
                     ->orWhere('email', 'like', '%' . $escapedSearch . '%');
             })
-            ->when($request->campus_id, function ($query) use ($request) {
-                $query->where('campus_id', $request->campus_id);
+            ->when($request->campus_id, function ($q) use ($request) {
+                $q->where('campus_id', $request->campus_id);
             })
-            ->when($request->status, function ($query) use ($request) {
-                $query->where('status', $request->status);
+            ->when($request->status, function ($q) use ($request) {
+                $q->where('status', $request->status);
             })
             ->latest()
             ->paginate(15);
 
-        $campuses = Campus::all();
+        // AUDIT FIX: Filter campuses dropdown for non-admin users
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $campuses = Campus::where('id', $user->campus_id)->get();
+        } else {
+            $campuses = Campus::all();
+        }
 
         return view('instructors.index', compact('instructors', 'campuses'));
     }
@@ -45,7 +59,13 @@ class InstructorController extends Controller
     {
         $this->authorize('create', Instructor::class);
 
-        $campuses = Campus::all();
+        // AUDIT FIX: Filter campuses for campus admins
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $campuses = Campus::where('id', $user->campus_id)->get();
+        } else {
+            $campuses = Campus::all();
+        }
         $trades = Trade::all();
 
         return view('instructors.create', compact('campuses', 'trades'));
