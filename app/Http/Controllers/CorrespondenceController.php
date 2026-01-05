@@ -8,6 +8,7 @@ use App\Models\Correspondence;
 use App\Models\Campus;
 use App\Models\Oep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class CorrespondenceController extends Controller
@@ -17,6 +18,16 @@ class CorrespondenceController extends Controller
         $this->authorize('viewAny', Correspondence::class);
 
         $query = Correspondence::with(['campus', 'oep'])->latest();
+
+        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->where('campus_id', $user->campus_id);
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
+            }
+        }
 
         if ($request->filled('organization_type')) {
             $query->where('organization_type', $request->organization_type);
@@ -97,10 +108,20 @@ class CorrespondenceController extends Controller
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        $correspondences = Correspondence::where('requires_reply', true)
-            ->where('replied', false)
-            ->latest()
-            ->paginate(20);
+        $query = Correspondence::where('requires_reply', true)
+            ->where('replied', false);
+
+        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->where('campus_id', $user->campus_id);
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
+            }
+        }
+
+        $correspondences = $query->latest()->paginate(20);
 
         return view('correspondence.pending-reply', compact('correspondences'));
     }
@@ -137,10 +158,20 @@ class CorrespondenceController extends Controller
     {
         $this->authorize('viewAny', Correspondence::class);
 
+        $query = Correspondence::with(['campus', 'oep']);
+
+        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->where('campus_id', $user->campus_id);
+            } elseif ($user->isOep() && $user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
+            }
+        }
+
         // FIXED: Changed from get() to paginate() to prevent loading all records
-        $correspondences = Correspondence::with(['campus', 'oep'])
-            ->latest()
-            ->paginate(50); // Show 50 records per page for register view
+        $correspondences = $query->latest()->paginate(50); // Show 50 records per page for register view
 
         return view('correspondence.register', compact('correspondences'));
     }
@@ -176,9 +207,14 @@ class CorrespondenceController extends Controller
                 $query->where('campus_id', $validated['campus_id']);
             }
 
-            // Filter by campus for campus admins
-            if (auth()->user()->role === 'campus_admin') {
-                $query->where('campus_id', auth()->user()->campus_id);
+            // AUDIT FIX: Apply campus/OEP filtering for non-admin users
+            $user = Auth::user();
+            if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+                if ($user->isCampusAdmin() && $user->campus_id) {
+                    $query->where('campus_id', $user->campus_id);
+                } elseif ($user->isOep() && $user->oep_id) {
+                    $query->where('oep_id', $user->oep_id);
+                }
             }
 
             // Calculate summary statistics
