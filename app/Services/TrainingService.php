@@ -105,7 +105,7 @@ class TrainingService
             $batch->candidates()->update([
                 'training_start_date' => $startDate,
                 'training_end_date' => $endDate,
-                'training_status' => TrainingStatus::ONGOING->value,
+                'training_status' => TrainingStatus::IN_PROGRESS->value,
                 'status' => CandidateStatus::TRAINING->value,
             ]);
 

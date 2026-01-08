@@ -137,6 +137,7 @@ class Candidate extends Model
     const TRAINING_PENDING = 'pending';
     const TRAINING_IN_PROGRESS = 'in_progress';
     const TRAINING_COMPLETED = 'completed';
+    const TRAINING_FAILED = 'failed';
     const TRAINING_DROPPED = 'dropped';
 
     /**
@@ -167,6 +168,7 @@ class Candidate extends Model
             self::TRAINING_NOT_STARTED => 'Not Started',
             self::TRAINING_IN_PROGRESS => 'In Progress',
             self::TRAINING_COMPLETED => 'Completed',
+            self::TRAINING_FAILED => 'Failed',
             self::TRAINING_DROPPED => 'Dropped',
         ];
     }
