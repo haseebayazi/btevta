@@ -607,4 +607,64 @@ class RegistrationController extends Controller
 
         return $labels[$type] ?? ucfirst($type);
     }
+
+    /**
+     * AUDIT FIX: Added missing CRUD methods for Route::resource()
+     */
+
+    /**
+     * Show the form for creating a new registration.
+     * Note: Registration is typically initiated from candidate workflow,
+     * redirecting to registration.show for existing candidates.
+     */
+    public function create()
+    {
+        // Registration creation is handled through the candidate workflow
+        // Redirect to candidates listing where users can select a candidate to register
+        return redirect()->route('candidates.index')
+            ->with('info', 'Select a candidate to start the registration process.');
+    }
+
+    /**
+     * Store a newly created registration.
+     * Note: Registration records are created as part of the candidate workflow.
+     */
+    public function store(Request $request)
+    {
+        // Registration is typically created when a candidate progresses through screening
+        // This stub redirects to the proper workflow
+        return redirect()->route('candidates.index')
+            ->with('info', 'Registrations are created through the candidate workflow.');
+    }
+
+    /**
+     * Show the form for editing a registration.
+     */
+    public function edit($id)
+    {
+        // Registration editing is done through registration.show
+        return redirect()->route('registration.show', $id);
+    }
+
+    /**
+     * Update the specified registration.
+     */
+    public function update(Request $request, $id)
+    {
+        // Registration updates are handled through specific endpoints
+        // (upload-document, next-of-kin, undertaking, complete)
+        return redirect()->route('registration.show', $id)
+            ->with('info', 'Use the specific forms to update registration details.');
+    }
+
+    /**
+     * Remove the specified registration.
+     * Note: Registration records should not be deleted directly.
+     */
+    public function destroy($id)
+    {
+        // Registration records are tied to candidates and should not be deleted independently
+        return redirect()->route('registration.index')
+            ->with('error', 'Registration records cannot be deleted. Manage candidates instead.');
+    }
 }

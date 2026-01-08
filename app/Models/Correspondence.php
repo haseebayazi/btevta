@@ -10,7 +10,8 @@ class Correspondence extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'correspondence';
+    // AUDIT FIX: Table name corrected to match migration (plural form)
+    protected $table = 'correspondences';
 
     protected $fillable = [
         'file_reference_number',
