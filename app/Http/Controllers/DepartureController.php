@@ -684,4 +684,126 @@ class DepartureController extends Controller
             return back()->with('error', 'Failed to generate report: ' . $e->getMessage());
         }
     }
+
+    /**
+     * AUDIT FIX: Added missing controller methods for routes used in views
+     */
+
+    /**
+     * Show pending compliance departures
+     */
+    public function pendingCompliance()
+    {
+        $this->authorize('viewAny', Departure::class);
+
+        $departures = Departure::with(['candidate.trade', 'candidate.oep', 'candidate.campus'])
+            ->whereNotNull('departure_date')
+            ->where(function($q) {
+                $q->whereNull('ninety_day_report_submitted')
+                  ->orWhere('ninety_day_report_submitted', false);
+            })
+            ->latest('departure_date')
+            ->paginate(20);
+
+        return view('departure.pending-compliance', compact('departures'));
+    }
+
+    /**
+     * Mark departure as compliant
+     */
+    public function markCompliant(Request $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        $validated = $request->validate([
+            'compliance_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $departure->update([
+            'ninety_day_report_submitted' => true,
+            'compliance_verified_date' => now(),
+            'compliance_remarks' => $validated['compliance_notes'] ?? null,
+        ]);
+
+        return back()->with('success', 'Departure marked as compliant successfully!');
+    }
+
+    /**
+     * Show create issue form
+     */
+    public function createIssue()
+    {
+        $this->authorize('create', Departure::class);
+
+        $candidates = \App\Models\Candidate::with('departure')
+            ->where('status', 'departed')
+            ->get();
+
+        return view('departure.issues.create', compact('candidates'));
+    }
+
+    /**
+     * Export compliance report as PDF
+     */
+    public function complianceReportPdf(Request $request)
+    {
+        $this->authorize('viewReports', Departure::class);
+
+        // Reuse compliance report logic with PDF export
+        return $this->complianceReport($request->merge(['format' => 'pdf']));
+    }
+
+    /**
+     * Export compliance report as Excel
+     */
+    public function complianceReportExcel(Request $request)
+    {
+        $this->authorize('viewReports', Departure::class);
+
+        // Reuse compliance report logic with Excel export
+        return $this->complianceReport($request->merge(['format' => 'excel']));
+    }
+
+    /**
+     * Export 90-day tracking data
+     */
+    public function tracking90DaysExport(Request $request)
+    {
+        $this->authorize('viewTrackingReports', Departure::class);
+
+        $departures = Departure::with(['candidate.trade', 'candidate.oep', 'candidate.campus'])
+            ->whereNotNull('departure_date')
+            ->get();
+
+        // Return as CSV download
+        $filename = 'departure-90-day-tracking-' . date('Y-m-d') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $columns = ['Candidate', 'BTEVTA ID', 'Trade', 'Departure Date', 'Iqama', 'Absher', 'Salary Confirmed', '90-Day Status'];
+
+        $callback = function() use ($departures, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($departures as $departure) {
+                fputcsv($file, [
+                    $departure->candidate->name ?? 'N/A',
+                    $departure->candidate->btevta_id ?? 'N/A',
+                    $departure->candidate->trade->name ?? 'N/A',
+                    $departure->departure_date?->format('Y-m-d') ?? 'N/A',
+                    $departure->iqama_number ? 'Yes' : 'No',
+                    $departure->absher_registered ? 'Yes' : 'No',
+                    $departure->salary_confirmed ? 'Yes' : 'No',
+                    $departure->ninety_day_report_submitted ? 'Compliant' : 'Pending',
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

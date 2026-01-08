@@ -349,9 +349,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/non-compliant', [DepartureController::class, 'nonCompliant'])->name('non-compliant');
         Route::get('/active-issues', [DepartureController::class, 'activeIssues'])->name('active-issues');
 
+            // AUDIT FIX: Added missing routes used in views
+            Route::get('/pending-compliance', [DepartureController::class, 'pendingCompliance'])->name('pending-compliance');
+            Route::post('/{departure}/mark-compliant', [DepartureController::class, 'markCompliant'])->name('mark-compliant');
+            Route::get('/issues/create', [DepartureController::class, 'createIssue'])->name('issues.create');
+
             // THROTTLE FIX: Compliance report limited to 5/min (resource intensive)
             Route::post('/reports/compliance', [DepartureController::class, 'complianceReport'])
                 ->middleware('throttle:5,1')->name('compliance-report');
+            Route::get('/reports/compliance/pdf', [DepartureController::class, 'complianceReportPdf'])
+                ->middleware('throttle:5,1')->name('compliance-report.pdf');
+            Route::get('/reports/compliance/excel', [DepartureController::class, 'complianceReportExcel'])
+                ->middleware('throttle:5,1')->name('compliance-report.excel');
 
             // NEW: Departure report routes
             Route::get('/reports/list', [DepartureController::class, 'departureListReport'])
@@ -360,6 +369,8 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:5,1')->name('reports.pending-activations');
             Route::get('/reports/salary-status', [DepartureController::class, 'salaryStatusReport'])
                 ->middleware('throttle:5,1')->name('reports.salary-status');
+            Route::get('/tracking/90-days/export', [DepartureController::class, 'tracking90DaysExport'])
+                ->middleware('throttle:5,1')->name('tracking-90-days.export');
         });
     });
 

@@ -100,7 +100,7 @@
     <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-900">Recent Departures</h3>
-            <a href="{{ route('departures.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <a href="{{ route('departure.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 View All <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
@@ -159,7 +159,7 @@
             <h4 class="font-semibold text-gray-900">Visa Processing</h4>
             <p class="text-sm text-gray-600 mt-1">Manage visa applications</p>
         </a>
-        <a href="{{ route('departures.index') }}" class="bg-white hover:bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center transition group">
+        <a href="{{ route('departure.index') }}" class="bg-white hover:bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center transition group">
             <i class="fas fa-plane-departure text-green-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
             <h4 class="font-semibold text-gray-900">Departures</h4>
             <p class="text-sm text-gray-600 mt-1">Track departures</p>

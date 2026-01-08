@@ -38,7 +38,7 @@
             <p class="text-muted">Comprehensive remittance reports and visualizations</p>
         </div>
         <div>
-            <a href="{{ route('remittances.reports.export', ['type' => 'dashboard', 'format' => 'csv']) }}"
+            <a href="{{ route('remittance.reports.export', ['type' => 'dashboard', 'format' => 'csv']) }}"
                class="btn btn-success">
                 <i class="fas fa-download"></i> Export Data
             </a>
