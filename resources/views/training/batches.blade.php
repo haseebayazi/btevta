@@ -21,7 +21,18 @@
                     <td>{{ $batch->batch_number }}</td>
                     <td>{{ $batch->trade?->name ?? 'N/A' }}</td>
                     <td>{{ $batch->campus?->name ?? 'N/A' }}</td>
-                    <td><span class="badge badge-{{ $batch->status == 'active' ? 'success' : 'secondary' }}">{{ ucfirst($batch->status) }}</span></td>
+                    @php
+                        $statusColors = [
+                            \App\Models\Batch::STATUS_PLANNED => 'warning',
+                            \App\Models\Batch::STATUS_ACTIVE => 'success',
+                            \App\Models\Batch::STATUS_COMPLETED => 'secondary',
+                            \App\Models\Batch::STATUS_CANCELLED => 'danger',
+                        ];
+                        $batchStatuses = \App\Models\Batch::getStatuses();
+                        $statusColor = $statusColors[$batch->status] ?? 'secondary';
+                        $statusLabel = $batchStatuses[$batch->status] ?? ucfirst($batch->status);
+                    @endphp
+                    <td><span class="badge badge-{{ $statusColor }}">{{ $statusLabel }}</span></td>
                     <td>{{ $batch->candidates_count }}</td>
                     <td>
                         <a href="{{ route('reports.batch-summary', $batch) }}" class="btn btn-sm btn-info">Report</a>

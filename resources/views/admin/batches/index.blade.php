@@ -44,15 +44,18 @@
                             <td>{{ $batch->campus->name ?? 'N/A' }}</td>
                             <td>{{ $batch->start_date->format('d M Y') }}</td>
                             <td>
-                                @if($batch->status === 'active')
-                                    <span class="badge badge-success">Active</span>
-                                @elseif($batch->status === 'completed')
-                                    <span class="badge badge-secondary">Completed</span>
-                                @elseif($batch->status === 'pending')
-                                    <span class="badge badge-warning">Pending</span>
-                                @else
-                                    <span class="badge badge-danger">{{ ucfirst($batch->status) }}</span>
-                                @endif
+                                @php
+                                    $statusColors = [
+                                        \App\Models\Batch::STATUS_PLANNED => 'warning',
+                                        \App\Models\Batch::STATUS_ACTIVE => 'success',
+                                        \App\Models\Batch::STATUS_COMPLETED => 'secondary',
+                                        \App\Models\Batch::STATUS_CANCELLED => 'danger',
+                                    ];
+                                    $batchStatuses = \App\Models\Batch::getStatuses();
+                                    $statusColor = $statusColors[$batch->status] ?? 'secondary';
+                                    $statusLabel = $batchStatuses[$batch->status] ?? ucfirst($batch->status);
+                                @endphp
+                                <span class="badge badge-{{ $statusColor }}">{{ $statusLabel }}</span>
                             </td>
                             <td>{{ $batch->candidates_count ?? 0 }}</td>
                             <td>

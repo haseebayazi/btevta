@@ -106,12 +106,11 @@
             <select name="status" id="status" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('status') border-red-500 @enderror">
                 <option value="">Select Status</option>
-                <option value="pending" {{ old('status') === 'pending' ? 'selected' : '' }}>Pending - Awaiting further action</option>
-                <option value="in_progress" {{ old('status') === 'in_progress' ? 'selected' : '' }}>In Progress - Currently being processed</option>
-                <option value="passed" {{ old('status') === 'passed' ? 'selected' : '' }}>Passed - Successfully cleared</option>
-                <option value="failed" {{ old('status') === 'failed' ? 'selected' : '' }}>Failed - Did not meet requirements</option>
-                <option value="deferred" {{ old('status') === 'deferred' ? 'selected' : '' }}>Deferred - Postponed for later</option>
-                <option value="cancelled" {{ old('status') === 'cancelled' ? 'selected' : '' }}>Cancelled - No longer needed</option>
+                @foreach(\App\Enums\ScreeningStatus::cases() as $status)
+                    <option value="{{ $status->value }}" {{ old('status') === $status->value ? 'selected' : '' }}>
+                        {{ $status->label() }}
+                    </option>
+                @endforeach
             </select>
             @error('status')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
