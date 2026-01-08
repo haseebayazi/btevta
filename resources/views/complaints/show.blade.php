@@ -73,16 +73,17 @@
             <!-- Update Form -->
             <div class="card">
                 <h3 class="text-lg font-bold mb-4">Add Update</h3>
-                <form method="POST" action="{{ route('complaints.update-status', $complaint) }}">
+                <form method="POST" action="{{ route('complaints.update', $complaint) }}">
                     @csrf
                     @method('PATCH')
                     <div class="mb-4">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-input">
-                            <option value="open" {{ $complaint->status == 'open' ? 'selected' : '' }}>Open</option>
-                            <option value="investigating" {{ $complaint->status == 'investigating' ? 'selected' : '' }}>Investigating</option>
-                            <option value="resolved" {{ $complaint->status == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                            <option value="closed" {{ $complaint->status == 'closed' ? 'selected' : '' }}>Closed</option>
+                            @foreach(\App\Enums\ComplaintStatus::cases() as $status)
+                                <option value="{{ $status->value }}" {{ $complaint->status == $status->value ? 'selected' : '' }}>
+                                    {{ $status->label() }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="mb-4">
@@ -145,7 +146,7 @@
                     <button onclick="escalate()" class="w-full btn btn-warning btn-sm">
                         <i class="fas fa-level-up-alt mr-2"></i>Escalate
                     </button>
-                    @if($complaint->status != 'closed')
+                    @if($complaint->status != \App\Enums\ComplaintStatus::CLOSED->value)
                     <button onclick="closeComplaint()" class="w-full btn btn-success btn-sm">
                         <i class="fas fa-check mr-2"></i>Close Complaint
                     </button>

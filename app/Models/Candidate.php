@@ -95,7 +95,28 @@ class Candidate extends Model
     ];
 
     /**
-     * Status constants
+     * ARCHITECTURE NOTE: Dual Status System
+     * =====================================
+     * The Candidate model uses TWO status fields:
+     *
+     * 1. `status` - Overall workflow stage (required)
+     *    Flow: new → screening → registered → training → visa_process → ready → departed
+     *    Terminal states: rejected, dropped, returned
+     *    Use: Determines which module/dashboard view is appropriate
+     *
+     * 2. `training_status` - Sub-detail during training phase (only meaningful when status='training')
+     *    Flow: not_started → in_progress → completed OR dropped
+     *    Use: Tracks granular training progress (attendance/assessments)
+     *
+     * 3. `at_risk_reason` + `at_risk_since` - At-risk tracking (separate from status)
+     *    These columns track candidates who are at-risk due to attendance or performance issues
+     *    Clear these when candidate completes training successfully
+     *
+     * IMPORTANT: Never use 'at_risk' as a training_status value - use at_risk_reason column instead
+     */
+
+    /**
+     * Status constants - Overall workflow stage
      */
     const STATUS_NEW = 'new';
     const STATUS_SCREENING = 'screening';
@@ -109,9 +130,11 @@ class Candidate extends Model
     const STATUS_RETURNED = 'returned';
 
     /**
-     * Training status constants
+     * Training status constants - Sub-detail during training phase
+     * Note: Use these only when status='training'
      */
     const TRAINING_NOT_STARTED = 'not_started';
+    const TRAINING_PENDING = 'pending';
     const TRAINING_IN_PROGRESS = 'in_progress';
     const TRAINING_COMPLETED = 'completed';
     const TRAINING_DROPPED = 'dropped';

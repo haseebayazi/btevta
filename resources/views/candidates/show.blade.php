@@ -34,12 +34,13 @@
                         <h2 class="text-lg font-semibold text-gray-900">Current Status</h2>
                         <p class="text-gray-600 text-sm mt-1">Application ID: {{ $candidate->application_id }}</p>
                     </div>
-                    <span class="inline-block px-4 py-2 rounded-full text-white 
-                        @if($candidate->status == 'active') bg-green-500
-                        @elseif($candidate->status == 'pending') bg-yellow-500
-                        @elseif($candidate->status == 'completed') bg-blue-500
-                        @else bg-red-500 @endif">
-                        {{ ucfirst($candidate->status) }}
+                    @php
+                        $statusEnum = \App\Enums\CandidateStatus::tryFrom($candidate->status);
+                        $statusColor = $statusEnum ? $statusEnum->color() : 'secondary';
+                        $statusLabel = $statusEnum ? $statusEnum->label() : ucfirst($candidate->status);
+                    @endphp
+                    <span class="inline-block px-4 py-2 rounded-full text-white bg-{{ $statusColor }}-500">
+                        {{ $statusLabel }}
                     </span>
                 </div>
             </div>

@@ -24,10 +24,9 @@
             
             <select name="status" class="px-4 py-2 border rounded-lg">
                 <option value="">All Status</option>
-                <option value="listed" {{ request('status') == 'listed' ? 'selected' : '' }}>Listed</option>
-                <option value="screening" {{ request('status') == 'screening' ? 'selected' : '' }}>Screening</option>
-                <option value="registered" {{ request('status') == 'registered' ? 'selected' : '' }}>Registered</option>
-                <option value="training" {{ request('status') == 'training' ? 'selected' : '' }}>Training</option>
-                <option value="visa_processing" {{ request('status') == 'visa_processing' ? 'selected' : '' }}>Visa Processing</option>
-                <option value="departed" {{ request('status') == 'departed' ? 'selected' : '' }}>Departed</option>
+                @foreach(\App\Enums\CandidateStatus::cases() as $status)
+                    <option value="{{ $status->value }}" {{ request('status') == $status->value ? 'selected' : '' }}>
+                        {{ $status->label() }}
+                    </option>
+                @endforeach
             </select>
