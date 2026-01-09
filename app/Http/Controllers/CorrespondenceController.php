@@ -297,4 +297,70 @@ class CorrespondenceController extends Controller
             return back()->with('error', 'Failed to generate summary report. Please try again.');
         }
     }
+
+    /**
+     * AUDIT FIX: Added missing CRUD methods for Route::resource()
+     */
+
+    /**
+     * Show the form for editing a correspondence.
+     */
+    public function edit(Correspondence $correspondence)
+    {
+        $campuses = Cache::remember('active_campuses', 86400, function () {
+            return Campus::where('is_active', true)->select('id', 'name')->get();
+        });
+
+        $candidates = Candidate::select('id', 'name', 'btevta_id')->orderBy('name')->get();
+
+        return view('correspondence.edit', compact('correspondence', 'campuses', 'candidates'));
+    }
+
+    /**
+     * Update the specified correspondence.
+     */
+    public function update(Request $request, Correspondence $correspondence)
+    {
+        $validated = $request->validate([
+            'file_reference_number' => 'required|string|max:100',
+            'correspondence_type' => 'required|in:incoming,outgoing',
+            'sender' => 'required|string|max:255',
+            'recipient' => 'required|string|max:255',
+            'subject' => 'required|string|max:500',
+            'description' => 'nullable|string|max:5000',
+            'correspondence_date' => 'required|date',
+            'priority_level' => 'nullable|in:low,normal,high,urgent',
+            'candidate_id' => 'nullable|exists:candidates,id',
+            'requires_reply' => 'boolean',
+        ]);
+
+        $validated['updated_by'] = auth()->id();
+
+        $correspondence->update($validated);
+
+        activity()
+            ->performedOn($correspondence)
+            ->causedBy(auth()->user())
+            ->log('Correspondence updated');
+
+        return redirect()->route('correspondence.show', $correspondence)
+            ->with('success', 'Correspondence updated successfully!');
+    }
+
+    /**
+     * Remove the specified correspondence (soft delete).
+     */
+    public function destroy(Correspondence $correspondence)
+    {
+        $correspondence->delete();
+
+        activity()
+            ->performedOn($correspondence)
+            ->causedBy(auth()->user())
+            ->log('Correspondence deleted');
+
+        return redirect()->route('correspondence.index')
+            ->with('success', 'Correspondence deleted successfully!');
+    }
+
 }

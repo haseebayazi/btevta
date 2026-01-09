@@ -594,18 +594,38 @@ class ReportingService
 
     /**
      * Get visa stage statistics.
+     * AUDIT FIX: Updated to handle actual column names in database
+     * - interview, trade_test, medical, biometric have _completed columns
+     * - takamol uses takamol_status
+     * - visa uses visa_issued (not visa_completed)
+     * - ticket uses ticket_uploaded (not ticket_completed)
      */
     protected function getVisaStageStatistics(array $filters = []): array
     {
-        $stages = ['interview', 'trade_test', 'takamol', 'medical', 'biometric', 'visa', 'ticket'];
+        // Map stages to their actual database column patterns
+        $stageConfig = [
+            'interview' => ['date' => 'interview_date', 'completed' => 'interview_completed'],
+            'trade_test' => ['date' => 'trade_test_date', 'completed' => 'trade_test_completed'],
+            'takamol' => ['date' => 'takamol_date', 'completed_check' => ['takamol_status', '=', 'completed']],
+            'medical' => ['date' => 'medical_date', 'completed' => 'medical_completed'],
+            'biometric' => ['date' => 'biometric_date', 'completed' => 'biometric_completed'],
+            'visa' => ['date' => 'visa_date', 'completed' => 'visa_issued'],
+            'ticket' => ['date' => 'ticket_date', 'completed' => 'ticket_uploaded'],
+        ];
         $stats = [];
 
-        foreach ($stages as $stage) {
-            $completedColumn = "{$stage}_completed";
-            $dateColumn = "{$stage}_date";
-
+        foreach ($stageConfig as $stage => $config) {
+            $dateColumn = $config['date'];
             $total = VisaProcess::whereNotNull($dateColumn)->count();
-            $completed = VisaProcess::where($completedColumn, true)->count();
+
+            // Handle different completion column types
+            if (isset($config['completed'])) {
+                $completed = VisaProcess::where($config['completed'], true)->count();
+            } elseif (isset($config['completed_check'])) {
+                $completed = VisaProcess::where($config['completed_check'][0], $config['completed_check'][1], $config['completed_check'][2])->count();
+            } else {
+                $completed = 0;
+            }
 
             $stats[$stage] = [
                 'total' => $total,
@@ -673,19 +693,38 @@ class ReportingService
 
     /**
      * Identify visa processing bottlenecks.
+     * AUDIT FIX: Updated to handle actual column names in database
      */
     protected function getVisaBottleneckAnalysis(array $filters = []): array
     {
-        $stages = ['interview', 'trade_test', 'takamol', 'medical', 'biometric', 'visa', 'ticket'];
+        // Map stages to their actual database columns
+        $stageConfig = [
+            'interview' => ['status' => 'interview_status', 'completed' => 'interview_completed'],
+            'trade_test' => ['status' => 'trade_test_status', 'completed' => 'trade_test_completed'],
+            'takamol' => ['status' => 'takamol_status', 'completed_value' => 'completed'],
+            'medical' => ['status' => 'medical_status', 'completed' => 'medical_completed'],
+            'biometric' => ['status' => 'biometric_status', 'completed' => 'biometric_completed'],
+            'visa' => ['status' => 'visa_status', 'completed' => 'visa_issued'],
+            'ticket' => ['status' => null, 'completed' => 'ticket_uploaded'], // ticket has no status column
+        ];
         $bottlenecks = [];
 
-        foreach ($stages as $stage) {
-            $pendingColumn = "{$stage}_status";
-            $pending = VisaProcess::where($pendingColumn, 'pending')
-                ->whereNull("{$stage}_completed")
-                ->count();
+        foreach ($stageConfig as $stage => $config) {
+            $query = VisaProcess::query();
 
-            $bottlenecks[$stage] = $pending;
+            // Count pending items
+            if ($config['status']) {
+                $query->where($config['status'], 'pending');
+            }
+
+            // Not completed
+            if (isset($config['completed'])) {
+                $query->where($config['completed'], false);
+            } elseif (isset($config['completed_value'])) {
+                $query->where($config['status'], '!=', $config['completed_value']);
+            }
+
+            $bottlenecks[$stage] = $query->count();
         }
 
         // Sort by most pending

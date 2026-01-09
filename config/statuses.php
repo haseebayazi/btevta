@@ -22,15 +22,17 @@ return [
     | All possible statuses for candidates in the system workflow.
     | Use App\Enums\CandidateStatus enum for type-safe operations.
     |
+    | AUDIT FIX: Synced with CandidateStatus enum - removed invalid statuses:
+    | - screening_passed (intermediate state handled by CandidateScreening model)
+    | - pending_registration (not in workflow - goes directly to 'registered')
+    | - training_completed (use training_status='completed' instead)
+    |
     */
     'candidate' => [
         'new' => 'new',
         'screening' => 'screening',
-        'screening_passed' => 'screening_passed',
-        'pending_registration' => 'pending_registration',
         'registered' => 'registered',
         'training' => 'training',
-        'training_completed' => 'training_completed',
         'visa_process' => 'visa_process',
         'ready' => 'ready',
         'departed' => 'departed',
@@ -42,11 +44,8 @@ return [
     'candidate_labels' => [
         'new' => 'New',
         'screening' => 'Screening',
-        'screening_passed' => 'Screening Passed',
-        'pending_registration' => 'Pending Registration',
         'registered' => 'Registered',
         'training' => 'In Training',
-        'training_completed' => 'Training Completed',
         'visa_process' => 'Visa Processing',
         'ready' => 'Ready to Depart',
         'departed' => 'Departed',
@@ -195,13 +194,14 @@ return [
     |--------------------------------------------------------------------------
     | Priority Levels
     |--------------------------------------------------------------------------
+    | AUDIT FIX: Synced with ComplaintPriority enum
+    | Removed 'critical' - use 'urgent' for highest priority
     */
     'priority' => [
         'low' => 'low',
         'normal' => 'normal',
         'high' => 'high',
         'urgent' => 'urgent',
-        'critical' => 'critical',
     ],
 
     'priority_labels' => [
@@ -209,7 +209,6 @@ return [
         'normal' => 'Normal',
         'high' => 'High',
         'urgent' => 'Urgent',
-        'critical' => 'Critical',
     ],
 
     'priority_colors' => [
@@ -217,7 +216,81 @@ return [
         'normal' => 'info',
         'high' => 'warning',
         'urgent' => 'danger',
-        'critical' => 'dark',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Batch Statuses
+    |--------------------------------------------------------------------------
+    | AUDIT FIX: Added to centralize batch status values
+    | Synced with App\Models\Batch constants
+    */
+    'batch' => [
+        'planned' => 'planned',
+        'active' => 'active',
+        'completed' => 'completed',
+        'cancelled' => 'cancelled',
+    ],
+
+    'batch_labels' => [
+        'planned' => 'Planned',
+        'active' => 'Active',
+        'completed' => 'Completed',
+        'cancelled' => 'Cancelled',
+    ],
+
+    'batch_colors' => [
+        'planned' => 'warning',
+        'active' => 'success',
+        'completed' => 'secondary',
+        'cancelled' => 'danger',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instructor Statuses
+    |--------------------------------------------------------------------------
+    | AUDIT FIX: Added to centralize instructor status values
+    */
+    'instructor' => [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'on_leave' => 'On Leave',
+        'terminated' => 'Terminated',
+    ],
+
+    'instructor_colors' => [
+        'active' => 'success',
+        'inactive' => 'secondary',
+        'on_leave' => 'warning',
+        'terminated' => 'danger',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remittance Statuses
+    |--------------------------------------------------------------------------
+    | AUDIT FIX: Added to centralize remittance status values
+    */
+    'remittance' => [
+        'pending' => 'pending',
+        'verified' => 'verified',
+        'flagged' => 'flagged',
+        'completed' => 'completed',
+    ],
+
+    'remittance_labels' => [
+        'pending' => 'Pending',
+        'verified' => 'Verified',
+        'flagged' => 'Flagged',
+        'completed' => 'Completed',
+    ],
+
+    'remittance_colors' => [
+        'pending' => 'warning',
+        'verified' => 'success',
+        'flagged' => 'danger',
+        'completed' => 'info',
     ],
 
 ];

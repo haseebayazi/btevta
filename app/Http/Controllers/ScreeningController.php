@@ -484,4 +484,21 @@ class ScreeningController extends Controller
             return back()->with('error', 'Failed to export screenings: ' . $e->getMessage());
         }
     }
+
+    /**
+     * AUDIT FIX: Added missing destroy method for Route::resource()
+     * Remove the specified screening record (soft delete).
+     */
+    public function destroy(CandidateScreening $screening)
+    {
+        $screening->delete();
+
+        activity()
+            ->performedOn($screening)
+            ->causedBy(auth()->user())
+            ->log('Screening record deleted');
+
+        return redirect()->route('screening.index')
+            ->with('success', 'Screening record deleted successfully!');
+    }
 }

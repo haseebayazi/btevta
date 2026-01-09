@@ -1,7 +1,8 @@
 <?php
 // ============================================
 // FILE: app/Models/SystemSetting.php
-// NEW FILE - COPY THIS ENTIRE FILE
+// AUDIT FIX: Updated column names to match migration
+// Migration uses: setting_key, setting_value
 // ============================================
 
 namespace App\Models;
@@ -12,12 +13,14 @@ class SystemSetting extends Model
 {
     /**
      * The attributes that are mass assignable.
+     * AUDIT FIX: Changed from 'key'/'value' to 'setting_key'/'setting_value'
+     * to match the database schema in migration 2025_01_01_000000
      *
      * @var array
      */
     protected $fillable = [
-        'key',
-        'value',
+        'setting_key',
+        'setting_value',
     ];
 
     /**
@@ -38,7 +41,7 @@ class SystemSetting extends Model
      * @var array
      */
     protected $hidden = [
-        'value',
+        'setting_value',
     ];
 
     /**
@@ -46,8 +49,8 @@ class SystemSetting extends Model
      */
     public static function get($key, $default = null)
     {
-        $setting = static::where('key', $key)->first();
-        return $setting ? $setting->value : $default;
+        $setting = static::where('setting_key', $key)->first();
+        return $setting ? $setting->setting_value : $default;
     }
 
     /**
@@ -56,8 +59,16 @@ class SystemSetting extends Model
     public static function set($key, $value)
     {
         return static::updateOrCreate(
-            ['key' => $key],
-            ['value' => $value]
+            ['setting_key' => $key],
+            ['setting_value' => $value]
         );
+    }
+
+    /**
+     * Get all settings as key-value array
+     */
+    public static function getAllAsArray(): array
+    {
+        return static::pluck('setting_value', 'setting_key')->toArray();
     }
 }

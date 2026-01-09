@@ -129,10 +129,9 @@
                             <div class="col-md-4 mb-3">
                                 <label for="status" class="form-label font-weight-bold">Status <span class="text-danger">*</span></label>
                                 <select id="status" name="status" class="form-control @error('status') is-invalid @enderror" required>
-                                    <option value="planned" {{ old('status', $batch->status) === 'planned' ? 'selected' : '' }}>Planned</option>
-                                    <option value="active" {{ old('status', $batch->status) === 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="completed" {{ old('status', $batch->status) === 'completed' ? 'selected' : '' }}>Completed</option>
-                                    <option value="cancelled" {{ old('status', $batch->status) === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    @foreach(\App\Models\Batch::getStatuses() as $value => $label)
+                                        <option value="{{ $value }}" {{ old('status', $batch->status) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
                                 </select>
                                 @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>

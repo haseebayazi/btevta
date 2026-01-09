@@ -125,7 +125,7 @@
                     <span class="text-sm text-gray-500">
                         <i class="fas fa-users mr-1"></i>{{ $batch->candidates_count ?? 0 }} students
                     </span>
-                    <a href="{{ route('training.attendance.batch', $batch) }}" class="text-teal-600 hover:underline text-sm">Mark Attendance</a>
+                    <a href="{{ route('training.attendance-form', ['batch_id' => $batch->id]) }}" class="text-teal-600 hover:underline text-sm">Mark Attendance</a>
                 </div>
             </div>
             @endforeach
@@ -140,17 +140,17 @@
 
     <!-- Quick Actions -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <a href="{{ route('training.attendance.index') }}" class="bg-white hover:bg-teal-50 border-2 border-teal-200 rounded-lg p-6 text-center transition group">
+        <a href="{{ route('training.attendance-form') }}" class="bg-white hover:bg-teal-50 border-2 border-teal-200 rounded-lg p-6 text-center transition group">
             <i class="fas fa-clipboard-check text-teal-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
             <h4 class="font-semibold text-gray-900">Mark Attendance</h4>
             <p class="text-sm text-gray-600 mt-1">Record daily attendance</p>
         </a>
-        <a href="{{ route('training.assessments.index') }}" class="bg-white hover:bg-blue-50 border-2 border-blue-200 rounded-lg p-6 text-center transition group">
+        <a href="{{ route('training.index') }}" class="bg-white hover:bg-blue-50 border-2 border-blue-200 rounded-lg p-6 text-center transition group">
             <i class="fas fa-file-alt text-blue-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
             <h4 class="font-semibold text-gray-900">Assessments</h4>
             <p class="text-sm text-gray-600 mt-1">Create & grade tests</p>
         </a>
-        <a href="{{ route('training.schedule.index') }}" class="bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-lg p-6 text-center transition group">
+        <a href="{{ route('training.index') }}" class="bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-lg p-6 text-center transition group">
             <i class="fas fa-calendar-alt text-purple-600 text-3xl mb-3 group-hover:scale-110 transition"></i>
             <h4 class="font-semibold text-gray-900">Schedule</h4>
             <p class="text-sm text-gray-600 mt-1">View training schedule</p>

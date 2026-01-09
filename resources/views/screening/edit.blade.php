@@ -49,15 +49,21 @@
             @if($candidate->screenings->count() > 0)
                 <div class="space-y-2 text-sm">
                     @foreach($candidate->screenings as $s)
+                        @php
+                            $statusEnum = \App\Enums\ScreeningStatus::tryFrom($s->status ?? '');
+                            $statusColorMap = [
+                                'passed' => 'bg-green-100 text-green-700',
+                                'failed' => 'bg-red-100 text-red-700',
+                                'pending' => 'bg-yellow-100 text-yellow-700',
+                                'deferred' => 'bg-blue-100 text-blue-700',
+                            ];
+                            $statusColorClass = $statusColorMap[$s->status] ?? 'bg-gray-100 text-gray-700';
+                        @endphp
                         <div class="p-2 rounded {{ $s->id == $screening->id ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50' }}">
                             <div class="flex justify-between">
                                 <span class="font-medium">{{ ucfirst($s->screening_type ?? 'N/A') }}</span>
-                                <span class="text-xs px-2 py-1 rounded
-                                    {{ $s->status == 'passed' ? 'bg-green-100 text-green-700' : '' }}
-                                    {{ $s->status == 'failed' ? 'bg-red-100 text-red-700' : '' }}
-                                    {{ $s->status == 'pending' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                    {{ $s->status == 'in_progress' ? 'bg-blue-100 text-blue-700' : '' }}">
-                                    {{ ucfirst(str_replace('_', ' ', $s->status ?? 'N/A')) }}
+                                <span class="text-xs px-2 py-1 rounded {{ $statusColorClass }}">
+                                    {{ $statusEnum ? $statusEnum->label() : ucfirst(str_replace('_', ' ', $s->status ?? 'N/A')) }}
                                 </span>
                             </div>
                             <div class="text-xs text-gray-500 mt-1">
@@ -132,12 +138,11 @@
                             <select id="status" name="status" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('status') border-red-500 @enderror">
                                 <option value="">Select Status</option>
-                                <option value="pending" {{ old('status', $screening->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_progress" {{ old('status', $screening->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                                <option value="passed" {{ old('status', $screening->status) == 'passed' ? 'selected' : '' }}>Passed</option>
-                                <option value="failed" {{ old('status', $screening->status) == 'failed' ? 'selected' : '' }}>Failed</option>
-                                <option value="deferred" {{ old('status', $screening->status) == 'deferred' ? 'selected' : '' }}>Deferred</option>
-                                <option value="cancelled" {{ old('status', $screening->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                @foreach(\App\Enums\ScreeningStatus::cases() as $status)
+                                    <option value="{{ $status->value }}" {{ old('status', $screening->status) == $status->value ? 'selected' : '' }}>
+                                        {{ $status->label() }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('status')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

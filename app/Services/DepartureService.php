@@ -78,11 +78,15 @@ class DepartureService
             }
 
             // Update candidate status with NULL CHECK
+            // Pre-departure briefing is a sub-step while candidate is in 'ready' status
             $candidate = Candidate::find($candidateId);
             if (!$candidate) {
                 throw new \Exception("Candidate not found with ID: {$candidateId}");
             }
-            $candidate->update(['status' => 'pre_briefing_completed']);
+            // Only update to 'ready' if not already departed
+            if ($candidate->status !== CandidateStatus::DEPARTED->value) {
+                $candidate->update(['status' => CandidateStatus::READY->value]);
+            }
 
             // Log activity
             activity()

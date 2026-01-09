@@ -30,10 +30,17 @@
             <div class="min-w-[150px]">
                 <select name="status" class="form-select w-full">
                     <option value="">All Status</option>
-                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="on_leave" {{ request('status') == 'on_leave' ? 'selected' : '' }}>On Leave</option>
-                    <option value="terminated" {{ request('status') == 'terminated' ? 'selected' : '' }}>Terminated</option>
+                    @php
+                        $instructorStatuses = config('statuses.instructor', [
+                            'active' => 'Active',
+                            'inactive' => 'Inactive',
+                            'on_leave' => 'On Leave',
+                            'terminated' => 'Terminated',
+                        ]);
+                    @endphp
+                    @foreach($instructorStatuses as $value => $label)
+                        <option value="{{ $value }}" {{ request('status') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">Filter</button>

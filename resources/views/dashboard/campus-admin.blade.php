@@ -167,7 +167,7 @@
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
             <div class="space-y-3">
-                <a href="{{ route('training.attendance.index') }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                <a href="{{ route('training.attendance-form') }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
                     <div class="flex items-center">
                         <i class="fas fa-clipboard-check text-green-600 mr-3"></i>
                         <span class="text-gray-700">Mark Attendance</span>

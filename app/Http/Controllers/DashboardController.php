@@ -814,7 +814,7 @@ class DashboardController extends Controller
         $correspondences = Correspondence::with(['createdBy', 'campus'])
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
             ->when($escapedCorrespondenceSearch, fn($q) =>
-                $q->where('reference_number', 'like', '%'.$escapedCorrespondenceSearch.'%')
+                $q->where('file_reference_number', 'like', '%'.$escapedCorrespondenceSearch.'%')
                   ->orWhere('subject', 'like', '%'.$escapedCorrespondenceSearch.'%')
             )
             ->when($request->type, fn($q) => $q->where('correspondence_type', $request->type))
@@ -846,7 +846,7 @@ class DashboardController extends Controller
         $complaintsList = Complaint::with(['candidate', 'assignedTo', 'campus'])
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->category, fn($q) => $q->where('category', $request->category))
+            ->when($request->category, fn($q) => $q->where('complaint_category', $request->category))
             ->latest()
             ->paginate(15);
         

@@ -56,8 +56,13 @@
                                 <td>{{ $screening->screened_at ? $screening->screened_at->format('Y-m-d H:i') : '-' }}</td>
                                 <td>{{ $screening->call_duration ?? '-' }}</td>
                                 <td>
-                                    <span class="badge badge-{{ $screening->status === 'passed' ? 'success' : ($screening->status === 'failed' ? 'danger' : 'warning') }}">
-                                        {{ ucfirst($screening->status ?? 'Pending') }}
+                                    @php
+                                        $screeningStatusEnum = \App\Enums\ScreeningStatus::tryFrom($screening->status ?? '');
+                                        $screeningColor = $screeningStatusEnum ? $screeningStatusEnum->color() : 'warning';
+                                        $screeningLabel = $screeningStatusEnum ? $screeningStatusEnum->label() : 'Pending';
+                                    @endphp
+                                    <span class="badge badge-{{ $screeningColor }}">
+                                        {{ $screeningLabel }}
                                     </span>
                                 </td>
                                 <td>{{ $screening->screener->name ?? 'N/A' }}</td>

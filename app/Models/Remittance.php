@@ -13,6 +13,7 @@ class Remittance extends Model
     protected $fillable = [
         'candidate_id',
         'departure_id',
+        'beneficiary_id',
         'recorded_by',
         'transaction_reference',
         'amount',
@@ -64,6 +65,15 @@ class Remittance extends Model
     public function departure()
     {
         return $this->belongsTo(Departure::class);
+    }
+
+    /**
+     * AUDIT FIX: Added missing beneficiary relationship
+     * The beneficiary_id column was added in migration phase2_model_relationship_fixes
+     */
+    public function beneficiary()
+    {
+        return $this->belongsTo(RemittanceBeneficiary::class);
     }
 
     public function recordedBy()
