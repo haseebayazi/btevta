@@ -40,9 +40,9 @@
 | **Laravel Version** | 11.x |
 | **PHP Version** | ^8.2 |
 | **Database** | MySQL (default) |
-| **Cache Driver** | Database (default) |
-| **Session Driver** | Database |
-| **Queue Driver** | Sync (no background jobs configured) |
+| **Cache Driver** | File (no cache.php override present) |
+| **Session Driver** | File (per config/session.php) |
+| **Queue Driver** | ⚠️ NOT CONFIGURED (config/queue.php missing, framework falls back to sync) |
 | **Authentication** | Laravel Sanctum (API) + Session (Web) |
 
 ### Core Dependencies
@@ -92,8 +92,8 @@ btevta/
 ├── resources/
 │   └── views/                    # 187 Blade templates
 ├── routes/
-│   ├── web.php                   # ~185 route definitions (expands to 348+ actual routes via resource routes)
-│   ├── api.php                   # ~70 route definitions (expands to 63+ actual routes)
+│   ├── web.php                   # Web routes (351 registered routes as of 2026-01-09)
+│   ├── api.php                   # API routes (59 registered routes as of 2026-01-09)
 │   └── console.php               # Console commands
 ├── storage/                      # Uploaded files, logs, cache
 ├── tests/                        # PHPUnit tests
@@ -104,9 +104,9 @@ btevta/
 
 ## 4. Database Schema
 
-### Tables (34 tables total)
+### Tables (35 business tables)
 
-**Note**: The application also creates 12 additional Laravel/package system tables:
+**Note**: The application also creates 12 additional Laravel/package system/legacy tables:
 - `personal_access_tokens` (Sanctum API tokens)
 - `sessions` (User session storage)
 - `cache`, `cache_locks` (Laravel cache system)
@@ -119,7 +119,7 @@ btevta/
 - `registrations` (Registration workflow tracking)
 - `correspondence` (Legacy table - superseded by `correspondences`)
 
-Total tables in database: **46 tables** (34 business + 12 system)
+Total tables in database: **47 tables** (35 business + 12 system/legacy)
 
 #### Core Entity Tables
 
@@ -164,7 +164,7 @@ Total tables in database: **46 tables** (34 business + 12 system)
 | `complaints` | Complaint records | id, candidate_id, subject, status, resolution_date |
 | `complaint_updates` | Complaint updates | id, complaint_id, update_text, created_by |
 | `complaint_evidence` | Complaint attachments | id, complaint_id, file_path |
-| `correspondence` | Official communications | id, campus_id, oep_id, subject, correspondence_date |
+| `correspondences` | Official communications (active) | id, campus_id, oep_id, candidate_id, subject, message, requires_reply, replied, sent_at, replied_at, status, attachment_path |
 | `document_archives` | Archived documents | id, document_name, document_type, file_path, candidate_id |
 | `instructors` | Training instructors | id, name, trade_id, campus_id, is_active |
 | `visa_partners` | Visa processing partners | id, name, contact_info |
@@ -187,7 +187,7 @@ Total tables in database: **46 tables** (34 business + 12 system)
 | `scheduled_notifications` | Scheduled notification queue | id, type, recipient, scheduled_at |
 | `class_enrollments` | Training class enrollments | id, training_class_id, candidate_id |
 | `registrations` | Registration workflow tracking | id, candidate_id, status, completed_at |
-| `correspondence` | ⚠️ LEGACY - Use `correspondences` instead | - |
+| `correspondence` | ⚠️ LEGACY/NOT USED - superseded by `correspondences` | - |
 
 ### Key Status Enums
 
@@ -254,7 +254,7 @@ open → in_progress → escalated → resolved → closed
 | `Complaint` | complaints | Yes | belongsTo: Candidate, Campus, Oep; hasMany: Updates, Evidence |
 | `ComplaintUpdate` | complaint_updates | No | belongsTo: Complaint |
 | `ComplaintEvidence` | complaint_evidence | No | belongsTo: Complaint |
-| `Correspondence` | correspondence | Yes | belongsTo: Campus, Oep |
+| `Correspondence` | correspondences | Yes | belongsTo: Campus, Oep, Candidate |
 | `DocumentArchive` | document_archives | Yes | belongsTo: Candidate |
 | `SystemSetting` | system_settings | No | - |
 | `PasswordHistory` | password_histories | No | belongsTo: User |
@@ -297,9 +297,9 @@ STATUS_RETURNED = 'returned'
 
 ## 6. Routes Map
 
-**Note on Route Counts**: The route definitions below use Laravel's `Route::resource()` helper which automatically generates multiple routes per resource. For example, `Route::resource('candidates', CandidateController::class)` expands into 7 routes (index, create, store, show, edit, update, destroy). The ~185 web route definitions expand to **348+ actual registered routes**, and ~70 API definitions expand to **63+ actual routes**. Total registered routes: **410+**.
+**Note on Route Counts**: The route definitions below use Laravel's `Route::resource()` helper which automatically generates multiple routes per resource. Current registered counts from `php artisan route:list --json` (2026-01-09): **Web 351**, **API 59**, **Total 410**.
 
-### Web Routes (~185 route definitions → 348+ actual routes)
+### Web Routes (351 registered routes)
 
 #### Authentication Routes (Guest Only)
 | Method | URI | Controller@Action | Name |
@@ -416,7 +416,7 @@ STATUS_RETURNED = 'returned'
 | GET | `/admin/settings` | UserController@settings | admin.settings |
 | GET | `/admin/activity-logs` | ActivityLogController@index | admin.activity-logs |
 
-### API Routes (~70 route definitions → 63+ actual routes)
+### API Routes (59 registered routes)
 
 | Method | URI | Controller@Action | Name |
 |--------|-----|-------------------|------|
@@ -728,7 +728,7 @@ staff: ['auth', 'role:admin,staff']
 
 ### Current Status: No Background Jobs Configured
 
-The system currently runs all operations synchronously. The queue driver is set to `sync`.
+Queue configuration file (`config/queue.php`) is missing, so queues are **NOT IMPLEMENTED** and the framework falls back to synchronous execution.
 
 ### Recommended Future Jobs
 
@@ -924,6 +924,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-01-09 | 1.4.1 | Corrected environment defaults (cache/session now file; queue config missing → NOT IMPLEMENTED), updated route counts (web 351, API 59), documented active `correspondences` table and legacy `correspondence`, adjusted total table count to 47 | Haseeb |
 | 2026-01-09 | 1.4.0 | **COMPREHENSIVE SYSTEM AUDIT COMPLETED**: Verified all 34 models, 38 controllers, 40 policies, 31 request classes, 14 services, 14 middleware exist and function correctly. Updated migration count (62→60), clarified route count expansion (resource routes), added 12 system tables to documentation. **AUDIT RESULT: PASS** - Zero critical issues, system production-ready. All previous fixes verified (Departure relationships, Correspondence model, hardcoded values). See detailed audit findings in this update. | Claude |
 | 2026-01-09 | 1.3.0 | **CRITICAL MODEL-SCHEMA FIX**: Fixed Correspondence model fillable array (removed 20+ non-existent columns), Fixed TestDataSeeder correspondence column names, Created MODEL_SCHEMA_AUDIT_2026-01-09.md comprehensive audit report | Claude |
 | 2026-01-09 | 1.2.0 | **AUDIT FIXES IMPLEMENTED**: Fixed missing Departure->remittances() relationship (app/Models/Departure.php:148), Refactored hardcoded status strings in 4 critical blade files (candidates/edit, dashboard/candidates-listing, candidates/profile, registration/show), Updated Known Risks section to track fix status | Claude |
