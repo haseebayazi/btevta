@@ -14,42 +14,22 @@ class Correspondence extends Model
     protected $table = 'correspondences';
 
     protected $fillable = [
-        'file_reference_number',
-        'sender',
-        'recipient',
-        'correspondence_type',
-        'subject',
-        'description',
-        'correspondence_date',
-        'reply_date',
-        'document_path',
-        'priority_level',
-        'status',
-        'candidate_id',
-        'assigned_to',
-        'created_by',
-        'updated_by',
-        // Additional fields for controller compatibility
-        'reference_number',   // Alias for file_reference_number
-        'date',              // Alias for correspondence_date
-        'type',              // Alias for correspondence_type
-        'file_path',         // Alias for document_path
-        'requires_reply',
-        'reply_deadline',
-        'replied',
-        'replied_at',
-        'reply_notes',
-        'summary',           // Additional summary field
-        'organization_type',
+        // Actual columns from 2025_10_31_165531_create_correspondences_table migration
         'campus_id',
         'oep_id',
+        'candidate_id',
+        'subject',
+        'message',
+        'requires_reply',
+        'replied',
+        'sent_at',
+        'replied_at',
+        'status',
+        'attachment_path',
     ];
 
     protected $casts = [
-        'correspondence_date' => 'date',
-        'reply_date' => 'date',
-        'date' => 'date',  // Alias
-        'reply_deadline' => 'date',
+        'sent_at' => 'datetime',
         'replied_at' => 'datetime',
         'requires_reply' => 'boolean',
         'replied' => 'boolean',
