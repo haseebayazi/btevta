@@ -837,6 +837,8 @@ The system currently runs all operations synchronously. The queue driver is set 
 | Issue | Status | Description | Recommendation |
 |-------|--------|-------------|----------------|
 | **Missing Model Relationship** | ✅ **FIXED** | Departure model missing `hasMany(Remittance::class)` relationship | ✅ Added remittances() method to Departure.php:148 (2026-01-09) |
+| **Model-Schema Mismatch** | ✅ **FIXED** | Correspondence model had 20+ non-existent columns in fillable array | ✅ Fixed Correspondence.php fillable to match actual schema (2026-01-09). See MODEL_SCHEMA_AUDIT_2026-01-09.md for details |
+| **Seeder Column Errors** | ✅ **FIXED** | TestDataSeeder using wrong column names for correspondences | ✅ Fixed seeder to use 'message', 'sent_at', 'replied_at' instead of 'content', 'correspondence_date', 'reply_date' (2026-01-09) |
 | **Hardcoded Status Strings** | 🔄 **IN PROGRESS** | 20+ blade files contain hardcoded status values (`'new'`, `'screening'`, etc.) | ✅ Fixed critical files: candidates/edit.blade.php, dashboard/tabs/candidates-listing.blade.php, candidates/profile.blade.php, registration/show.blade.php (2026-01-09). Remaining files are low-impact and can be fixed incrementally |
 | **CDN Dependencies** | ⚠️ OPEN | 5 external CDN dependencies (Tailwind, Alpine.js, Chart.js, Font Awesome, Axios) | Bundle assets locally for production (recommended for production deployment) |
 | **No Background Jobs** | ⚠️ OPEN | All operations synchronous | Implement queue for emails, reports (recommended for scalability) |
@@ -888,6 +890,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-01-09 | 1.3.0 | **CRITICAL MODEL-SCHEMA FIX**: Fixed Correspondence model fillable array (removed 20+ non-existent columns), Fixed TestDataSeeder correspondence column names, Created MODEL_SCHEMA_AUDIT_2026-01-09.md comprehensive audit report | Claude |
 | 2026-01-09 | 1.2.0 | **AUDIT FIXES IMPLEMENTED**: Fixed missing Departure->remittances() relationship (app/Models/Departure.php:148), Refactored hardcoded status strings in 4 critical blade files (candidates/edit, dashboard/candidates-listing, candidates/profile, registration/show), Updated Known Risks section to track fix status | Claude |
 | 2026-01-09 | 1.1.0 | **FULL SYSTEM AUDIT COMPLETED**: Added Policies section (40 policies documented), Added Form Requests section (31 requests documented), Updated migration count (62 migrations), Flagged missing Departure->remittances() relationship, Verified all models/controllers/views/middleware/services match actual codebase | Claude |
 | 2026-01-09 | 1.0.1 | Audit: Fixed controller count (37 not 38), documented 5 CDN dependencies, identified 57 files with hardcoded status strings, added hardcoded config values table | Claude |
@@ -969,5 +972,5 @@ php artisan route:cache
 
 ---
 
-*Last Updated: 2026-01-09 (v1.2.0 - Audit Fixes Implemented)*
+*Last Updated: 2026-01-09 (v1.3.0 - Critical Model-Schema Fixes)*
 *Generated for: WASL - BTEVTA Overseas Employment System*
