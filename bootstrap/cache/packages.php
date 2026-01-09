@@ -11,6 +11,13 @@
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
   ),
+  'laravel/dusk' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Dusk\\DuskServiceProvider',
+    ),
+  ),
   'laravel/sail' => 
   array (
     'providers' => 

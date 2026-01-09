@@ -8435,3 +8435,18 @@ Vergiechester, MN 43540, Lahore, ducimus, new, 2025-10-31 18:40:34, 2025-10-31 1
 [stacktrace]
 #0 {main}
 "} 
+[2026-01-09 22:51:48] production.ERROR: The "--columns" option does not exist. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\RuntimeException(code: 0): The \"--columns\" option does not exist. at /home/runner/work/btevta/btevta/vendor/symfony/console/Input/ArgvInput.php:226)
+[stacktrace]
+#0 /home/runner/work/btevta/btevta/vendor/symfony/console/Input/ArgvInput.php(153): Symfony\\Component\\Console\\Input\\ArgvInput->addLongOption()
+#1 /home/runner/work/btevta/btevta/vendor/symfony/console/Input/ArgvInput.php(88): Symfony\\Component\\Console\\Input\\ArgvInput->parseLongOption()
+#2 /home/runner/work/btevta/btevta/vendor/symfony/console/Input/ArgvInput.php(77): Symfony\\Component\\Console\\Input\\ArgvInput->parseToken()
+#3 /home/runner/work/btevta/btevta/vendor/symfony/console/Input/Input.php(53): Symfony\\Component\\Console\\Input\\ArgvInput->parse()
+#4 /home/runner/work/btevta/btevta/vendor/symfony/console/Command/Command.php(276): Symfony\\Component\\Console\\Input\\Input->bind()
+#5 /home/runner/work/btevta/btevta/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run()
+#6 /home/runner/work/btevta/btevta/vendor/symfony/console/Application.php(1073): Illuminate\\Console\\Command->run()
+#7 /home/runner/work/btevta/btevta/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand()
+#8 /home/runner/work/btevta/btevta/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun()
+#9 /home/runner/work/btevta/btevta/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#10 /home/runner/work/btevta/btevta/artisan(12): Illuminate\\Foundation\\Console\\Kernel->handle()
+#11 {main}
+"} 
