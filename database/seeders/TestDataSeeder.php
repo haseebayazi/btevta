@@ -717,14 +717,17 @@ class TestDataSeeder extends Seeder
     private function seedCorrespondence($campuses, $oeps)
     {
         for ($i = 0; $i < 10; $i++) {
+            $hasReply = rand(0, 1);
             Correspondence::create([
                 'campus_id' => $i % 2 == 0 ? $campuses[array_rand($campuses)]->id : null,
                 'oep_id' => $i % 2 != 0 ? $oeps[array_rand($oeps)]->id : null,
                 'subject' => 'Subject of correspondence ' . ($i + 1),
-                'content' => 'Brief summary of the correspondence content and main points discussed for correspondence number ' . ($i + 1) . '.',
-                'correspondence_date' => now()->subDays(rand(1, 90)),
-                'reply_date' => rand(0, 1) ? now()->subDays(rand(1, 30)) : null,
-                'reply_content' => rand(0, 1) ? 'Reply to the correspondence with relevant information and updates.' : null,
+                'message' => 'Brief summary of the correspondence content and main points discussed for correspondence number ' . ($i + 1) . '.',
+                'sent_at' => now()->subDays(rand(1, 90)),
+                'replied' => $hasReply,
+                'replied_at' => $hasReply ? now()->subDays(rand(1, 30)) : null,
+                'status' => $hasReply ? 'replied' : 'pending',
+                'requires_reply' => true,
             ]);
         }
     }
