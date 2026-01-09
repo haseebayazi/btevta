@@ -222,15 +222,15 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                         <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('status') border-red-500 @enderror" required>
-                            <option value="new" {{ old('status', $candidate->status) == 'new' ? 'selected' : '' }}>New</option>
-                            <option value="screening" {{ old('status', $candidate->status) == 'screening' ? 'selected' : '' }}>Screening</option>
-                            <option value="registered" {{ old('status', $candidate->status) == 'registered' ? 'selected' : '' }}>Registered</option>
-                            <option value="training" {{ old('status', $candidate->status) == 'training' ? 'selected' : '' }}>Training</option>
-                            <option value="visa_process" {{ old('status', $candidate->status) == 'visa_process' ? 'selected' : '' }}>Visa Process</option>
-                            <option value="ready" {{ old('status', $candidate->status) == 'ready' ? 'selected' : '' }}>Ready</option>
-                            <option value="departed" {{ old('status', $candidate->status) == 'departed' ? 'selected' : '' }}>Departed</option>
-                            <option value="rejected" {{ old('status', $candidate->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                            <option value="dropped" {{ old('status', $candidate->status) == 'dropped' ? 'selected' : '' }}>Dropped</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_NEW }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_NEW ? 'selected' : '' }}>New</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_SCREENING }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_SCREENING ? 'selected' : '' }}>Screening</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_REGISTERED }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_REGISTERED ? 'selected' : '' }}>Registered</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_TRAINING }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_TRAINING ? 'selected' : '' }}>Training</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_VISA_PROCESS }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_VISA_PROCESS ? 'selected' : '' }}>Visa Process</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_READY }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_READY ? 'selected' : '' }}>Ready</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_DEPARTED }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_DEPARTED ? 'selected' : '' }}>Departed</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_REJECTED }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_REJECTED ? 'selected' : '' }}>Rejected</option>
+                            <option value="{{ \App\Models\Candidate::STATUS_DROPPED }}" {{ old('status', $candidate->status) == \App\Models\Candidate::STATUS_DROPPED ? 'selected' : '' }}>Dropped</option>
                         </select>
                         @error('status')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
                     </div>

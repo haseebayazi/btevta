@@ -141,6 +141,15 @@ class Departure extends Model
         );
     }
 
+    /**
+     * Get all remittances for this departure.
+     * AUDIT FIX 2026-01-09: Added missing relationship documented in SYSTEM_MAP.md
+     */
+    public function remittances()
+    {
+        return $this->hasMany(Remittance::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

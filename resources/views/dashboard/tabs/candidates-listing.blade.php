@@ -108,11 +108,11 @@
             <select name="status" class="px-4 py-2 border rounded-lg w-full">
                 <option value="">All Status</option>
                 <option value="listed" {{ request('status') === 'listed' ? 'selected' : '' }}>Listed</option>
-                <option value="screening" {{ request('status') === 'screening' ? 'selected' : '' }}>Screening</option>
-                <option value="registered" {{ request('status') === 'registered' ? 'selected' : '' }}>Registered</option>
-                <option value="training" {{ request('status') === 'training' ? 'selected' : '' }}>Training</option>
-                <option value="visa_process" {{ request('status') === 'visa_process' ? 'selected' : '' }}>Visa</option>
-                <option value="departed" {{ request('status') === 'departed' ? 'selected' : '' }}>Departed</option>
+                <option value="{{ \App\Models\Candidate::STATUS_SCREENING }}" {{ request('status') === \App\Models\Candidate::STATUS_SCREENING ? 'selected' : '' }}>Screening</option>
+                <option value="{{ \App\Models\Candidate::STATUS_REGISTERED }}" {{ request('status') === \App\Models\Candidate::STATUS_REGISTERED ? 'selected' : '' }}>Registered</option>
+                <option value="{{ \App\Models\Candidate::STATUS_TRAINING }}" {{ request('status') === \App\Models\Candidate::STATUS_TRAINING ? 'selected' : '' }}>Training</option>
+                <option value="{{ \App\Models\Candidate::STATUS_VISA_PROCESS }}" {{ request('status') === \App\Models\Candidate::STATUS_VISA_PROCESS ? 'selected' : '' }}>Visa</option>
+                <option value="{{ \App\Models\Candidate::STATUS_DEPARTED }}" {{ request('status') === \App\Models\Candidate::STATUS_DEPARTED ? 'selected' : '' }}>Departed</option>
             </select>
 
             <select name="trade_id" class="px-4 py-2 border rounded-lg w-full">
