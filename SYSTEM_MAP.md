@@ -75,13 +75,14 @@
 btevta/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/          # 38 controllers (30 web + 8 API)
-│   │   │   ├── Api/              # API-specific controllers
-│   │   │   └── *.php             # Web controllers
+│   │   ├── Controllers/          # 37 controllers (29 web + 8 API)
+│   │   │   ├── Api/              # API-specific controllers (8)
+│   │   │   └── *.php             # Web controllers (29)
 │   │   └── Middleware/           # 14 custom middleware classes
 │   ├── Models/                   # 34 Eloquent models
 │   ├── Observers/                # Model observers (UserPasswordObserver)
 │   ├── Providers/                # Service providers
+│   ├── Services/                 # 14 business logic services
 │   └── Helpers/                  # Helper functions (helpers.php)
 ├── bootstrap/
 │   └── app.php                   # Application bootstrap with route bindings
@@ -409,7 +410,7 @@ STATUS_RETURNED = 'returned'
 
 ## 7. Controllers & Request Flow
 
-### Web Controllers (30)
+### Web Controllers (29)
 
 | Controller | Actions | Purpose |
 |------------|---------|---------|
@@ -455,6 +456,25 @@ STATUS_RETURNED = 'returned'
 | `RemittanceApiController` | index, show, store, update, destroy, byCandidate, search, statistics, verify | Remittance API |
 | `RemittanceReportApiController` | dashboard, monthlyTrends, purposeAnalysis, transferMethods, countryAnalysis, proofCompliance, beneficiaryReport, impactAnalytics, topCandidates | Reports API |
 | `RemittanceAlertApiController` | index, show, statistics, unreadCount, byCandidate, markAsRead, resolve, dismiss | Alerts API |
+
+### Service Classes (14)
+
+| Service | Purpose |
+|---------|---------|
+| `CandidateDeduplicationService` | Candidate duplicate detection and merging |
+| `ComplaintService` | Complaint workflow management |
+| `DepartureService` | Departure processing and compliance |
+| `DocumentArchiveService` | Document storage and versioning |
+| `FileStorageService` | File upload and storage handling |
+| `GlobalSearchService` | Cross-module search functionality |
+| `NotificationService` | User notification management |
+| `RegistrationService` | Registration workflow processing |
+| `RemittanceAlertService` | Remittance compliance alerts |
+| `RemittanceAnalyticsService` | Remittance analytics and reporting |
+| `ReportingService` | Report generation and export |
+| `ScreeningService` | Screening workflow processing |
+| `TrainingService` | Training management operations |
+| `VisaProcessingService` | Visa workflow processing |
 
 ---
 
@@ -511,8 +531,21 @@ resources/views/
 - **JavaScript Framework**: Alpine.js (via CDN)
 - **Charts**: Chart.js (via CDN)
 - **Icons**: Font Awesome (via CDN)
+- **HTTP Client**: Axios (via CDN)
 - **PDF Generation**: DomPDF (server-side)
 - **Layout**: Single `layouts/app.blade.php` with component slots
+
+### CDN Dependencies (Production Risk)
+
+| Library | CDN URL | Version |
+|---------|---------|---------|
+| Tailwind CSS | `cdn.tailwindcss.com` | Latest |
+| Alpine.js | `cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js` | 3.x |
+| Font Awesome | `cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css` | 6.4.0 |
+| Chart.js | `cdn.jsdelivr.net/npm/chart.js` | Latest |
+| Axios | `cdn.jsdelivr.net/npm/axios/dist/axios.min.js` | Latest |
+
+> **⚠️ Production Warning**: These external CDN dependencies should be bundled locally for production deployment to ensure reliability and security.
 
 ---
 
@@ -708,10 +741,20 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 | Issue | Description | Recommendation |
 |-------|-------------|----------------|
-| **Hardcoded Status Strings** | Status values hardcoded across views | Use Model constants consistently |
-| **CDN Dependencies** | Tailwind, Alpine.js, Chart.js loaded from CDN | Bundle assets locally for production |
+| **Hardcoded Status Strings** | 57 blade files contain hardcoded status values (`'new'`, `'screening'`, `'registered'`, `'training'`, `'visa_process'`, `'departed'`, `'rejected'`) | Use `Candidate::STATUS_*` and other Model constants consistently |
+| **CDN Dependencies** | 5 external CDN dependencies (Tailwind, Alpine.js, Chart.js, Font Awesome, Axios) | Bundle assets locally for production |
 | **No Background Jobs** | All operations synchronous | Implement queue for emails, reports |
 | **No Rate Limiting on Some Routes** | Some sensitive routes lack throttle | Add throttle middleware |
+
+### Hardcoded Configuration Values (Should Be Environment Variables)
+
+| Value | Location | Current Value | Recommendation |
+|-------|----------|---------------|----------------|
+| Document Expiry Warning | `DashboardController.php`, `RegistrationController.php` | `30` days | Add `DOCUMENT_EXPIRY_WARNING_DAYS` env var |
+| Screening Followup Days | `ScreeningController.php` | `7` days | Add `SCREENING_DEFAULT_FOLLOWUP_DAYS` env var |
+| Disk Storage Threshold | `HealthController.php` | `85%` | Add `STORAGE_WARNING_THRESHOLD` env var |
+| Max Failed Jobs Alert | `HealthController.php` | `10` jobs | Add `HEALTH_CHECK_MAX_FAILED_JOBS` env var |
+| Login Lockout | `AuthController.php` | `5 attempts / 15 min` | Already constants, consider moving to config |
 
 ### Medium Priority Issues
 
@@ -749,6 +792,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-01-09 | 1.0.1 | Audit: Fixed controller count (37 not 38), documented 5 CDN dependencies, identified 57 files with hardcoded status strings, added hardcoded config values table | Claude |
 | 2026-01-09 | 1.0.0 | Initial SYSTEM_MAP.md creation | System |
 | 2025-12-31 | - | Phase 2 model relationship fixes | Claude |
 | 2025-12-28 | - | Database constraints added | Claude |
@@ -827,5 +871,5 @@ php artisan route:cache
 
 ---
 
-*Last Updated: 2026-01-09*
+*Last Updated: 2026-01-09 (v1.0.1)*
 *Generated for: WASL - BTEVTA Overseas Employment System*
