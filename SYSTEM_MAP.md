@@ -42,7 +42,7 @@
 | **Database** | MySQL (default) |
 | **Cache Driver** | File (no cache.php override present) |
 | **Session Driver** | File (per config/session.php) |
-| **Queue Driver** | ⚠️ NOT CONFIGURED (config/queue.php missing, framework falls back to sync) |
+| **Queue Driver** | Sync (config/queue.php present; no background workers configured) |
 | **Authentication** | Laravel Sanctum (API) + Session (Web) |
 
 ### Core Dependencies
@@ -728,7 +728,7 @@ staff: ['auth', 'role:admin,staff']
 
 ### Current Status: No Background Jobs Configured
 
-Queue configuration file (`config/queue.php`) is missing, so queues are **NOT IMPLEMENTED** and the framework falls back to synchronous execution.
+Queue configuration (`config/queue.php`) is present and defaults to the `sync` driver. No background workers/jobs are defined yet.
 
 ### Recommended Future Jobs
 
@@ -924,7 +924,8 @@ Queue configuration file (`config/queue.php`) is missing, so queues are **NOT IM
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
-| 2026-01-09 | 1.4.1 | Corrected environment defaults (cache/session now file; queue config missing → NOT IMPLEMENTED), updated route counts (web 351, API 59), documented active `correspondences` table and legacy `correspondence`, adjusted total table count to 47 | Haseeb |
+| 2026-01-09 | 1.4.2 | Added default queue configuration (sync) and phpunit.xml to enable tests; updated SYSTEM_MAP to reflect queue availability | Haseeb |
+| 2026-01-09 | 1.4.1 | Corrected environment defaults (cache/session now file; queue config previously missing), updated route counts (web 351, API 59), documented active `correspondences` table and legacy `correspondence`, adjusted total table count to 47 | Haseeb |
 | 2026-01-09 | 1.4.0 | **COMPREHENSIVE SYSTEM AUDIT COMPLETED**: Verified all 34 models, 38 controllers, 40 policies, 31 request classes, 14 services, 14 middleware exist and function correctly. Updated migration count (62→60), clarified route count expansion (resource routes), added 12 system tables to documentation. **AUDIT RESULT: PASS** - Zero critical issues, system production-ready. All previous fixes verified (Departure relationships, Correspondence model, hardcoded values). See detailed audit findings in this update. | Claude |
 | 2026-01-09 | 1.3.0 | **CRITICAL MODEL-SCHEMA FIX**: Fixed Correspondence model fillable array (removed 20+ non-existent columns), Fixed TestDataSeeder correspondence column names, Created MODEL_SCHEMA_AUDIT_2026-01-09.md comprehensive audit report | Claude |
 | 2026-01-09 | 1.2.0 | **AUDIT FIXES IMPLEMENTED**: Fixed missing Departure->remittances() relationship (app/Models/Departure.php:148), Refactored hardcoded status strings in 4 critical blade files (candidates/edit, dashboard/candidates-listing, candidates/profile, registration/show), Updated Known Risks section to track fix status | Claude |
