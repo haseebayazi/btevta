@@ -102,7 +102,7 @@
             </div>
 
             <!-- Remittance Summary -->
-            @if($candidate->status === 'departed' || $remittanceStats['total_count'] > 0)
+            @if($candidate->status === \App\Models\Candidate::STATUS_DEPARTED || $remittanceStats['total_count'] > 0)
             <div class="card mb-4">
                 <div class="card-header bg-success text-white">
                     <div class="d-flex justify-content-between align-items-center">

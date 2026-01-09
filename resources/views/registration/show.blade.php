@@ -59,7 +59,7 @@
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong class="text-muted">Status:</strong><br>
-                            <span class="badge badge-{{ $candidate->status === 'registered' ? 'success' : 'warning' }} px-3 py-2">
+                            <span class="badge badge-{{ $candidate->status === \App\Models\Candidate::STATUS_REGISTERED ? 'success' : 'warning' }} px-3 py-2">
                                 {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
                             </span>
                         </div>
@@ -448,7 +448,7 @@
                     <h5 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Complete Registration</h5>
                 </div>
                 <div class="card-body">
-                    @if($candidate->status === 'registered')
+                    @if($candidate->status === \App\Models\Candidate::STATUS_REGISTERED)
                         <div class="alert alert-success mb-0">
                             <i class="fas fa-check-circle mr-2"></i>
                             <strong>Registration Completed!</strong><br>

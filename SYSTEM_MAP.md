@@ -222,7 +222,7 @@ open → in_progress → escalated → resolved → closed
 | `Instructor` | instructors | Yes | belongsTo: Trade, Campus; hasMany: TrainingClasses |
 | `VisaProcess` | visa_processes | No | belongsTo: Candidate |
 | `VisaPartner` | visa_partners | Yes | hasMany: Candidates |
-| `Departure` | departures | No | belongsTo: Candidate; hasMany: Remittances (**MISSING**) |
+| `Departure` | departures | No | belongsTo: Candidate; hasMany: Remittances |
 | `Remittance` | remittances | Yes | belongsTo: Candidate, Departure, Beneficiary |
 | `RemittanceBeneficiary` | remittance_beneficiaries | Yes | belongsTo: Candidate; hasMany: Remittances |
 | `RemittanceReceipt` | remittance_receipts | No | belongsTo: Remittance |
@@ -834,13 +834,13 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 ### High Priority Issues
 
-| Issue | Description | Recommendation |
-|-------|-------------|----------------|
-| **Missing Model Relationship** | Departure model missing `hasMany(Remittance::class)` relationship documented in line 225 | Add `public function remittances() { return $this->hasMany(Remittance::class); }` to Departure.php:app/Models/Departure.php:112 |
-| **Hardcoded Status Strings** | 57 blade files contain hardcoded status values (`'new'`, `'screening'`, `'registered'`, `'training'`, `'visa_process'`, `'departed'`, `'rejected'`) | Use `Candidate::STATUS_*` and other Model constants consistently |
-| **CDN Dependencies** | 5 external CDN dependencies (Tailwind, Alpine.js, Chart.js, Font Awesome, Axios) | Bundle assets locally for production |
-| **No Background Jobs** | All operations synchronous | Implement queue for emails, reports |
-| **No Rate Limiting on Some Routes** | Some sensitive routes lack throttle | Add throttle middleware |
+| Issue | Status | Description | Recommendation |
+|-------|--------|-------------|----------------|
+| **Missing Model Relationship** | ✅ **FIXED** | Departure model missing `hasMany(Remittance::class)` relationship | ✅ Added remittances() method to Departure.php:148 (2026-01-09) |
+| **Hardcoded Status Strings** | 🔄 **IN PROGRESS** | 20+ blade files contain hardcoded status values (`'new'`, `'screening'`, etc.) | ✅ Fixed critical files: candidates/edit.blade.php, dashboard/tabs/candidates-listing.blade.php, candidates/profile.blade.php, registration/show.blade.php (2026-01-09). Remaining files are low-impact and can be fixed incrementally |
+| **CDN Dependencies** | ⚠️ OPEN | 5 external CDN dependencies (Tailwind, Alpine.js, Chart.js, Font Awesome, Axios) | Bundle assets locally for production (recommended for production deployment) |
+| **No Background Jobs** | ⚠️ OPEN | All operations synchronous | Implement queue for emails, reports (recommended for scalability) |
+| **No Rate Limiting on Some Routes** | ⚠️ OPEN | Some sensitive routes lack throttle | Add throttle middleware (recommended for security) |
 
 ### Hardcoded Configuration Values (Should Be Environment Variables)
 
@@ -888,6 +888,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-01-09 | 1.2.0 | **AUDIT FIXES IMPLEMENTED**: Fixed missing Departure->remittances() relationship (app/Models/Departure.php:148), Refactored hardcoded status strings in 4 critical blade files (candidates/edit, dashboard/candidates-listing, candidates/profile, registration/show), Updated Known Risks section to track fix status | Claude |
 | 2026-01-09 | 1.1.0 | **FULL SYSTEM AUDIT COMPLETED**: Added Policies section (40 policies documented), Added Form Requests section (31 requests documented), Updated migration count (62 migrations), Flagged missing Departure->remittances() relationship, Verified all models/controllers/views/middleware/services match actual codebase | Claude |
 | 2026-01-09 | 1.0.1 | Audit: Fixed controller count (37 not 38), documented 5 CDN dependencies, identified 57 files with hardcoded status strings, added hardcoded config values table | Claude |
 | 2026-01-09 | 1.0.0 | Initial SYSTEM_MAP.md creation | System |
@@ -968,5 +969,5 @@ php artisan route:cache
 
 ---
 
-*Last Updated: 2026-01-09 (v1.1.0 - Full System Audit Completed)*
+*Last Updated: 2026-01-09 (v1.2.0 - Audit Fixes Implemented)*
 *Generated for: WASL - BTEVTA Overseas Employment System*
