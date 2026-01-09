@@ -88,7 +88,7 @@ btevta/
 │   └── app.php                   # Application bootstrap with route bindings
 ├── config/                       # Configuration files
 ├── database/
-│   └── migrations/               # 60 migration files
+│   └── migrations/               # 62 migration files
 ├── resources/
 │   └── views/                    # 187 Blade templates
 ├── routes/
@@ -222,7 +222,7 @@ open → in_progress → escalated → resolved → closed
 | `Instructor` | instructors | Yes | belongsTo: Trade, Campus; hasMany: TrainingClasses |
 | `VisaProcess` | visa_processes | No | belongsTo: Candidate |
 | `VisaPartner` | visa_partners | Yes | hasMany: Candidates |
-| `Departure` | departures | No | belongsTo: Candidate; hasMany: Remittances |
+| `Departure` | departures | No | belongsTo: Candidate; hasMany: Remittances (**MISSING**) |
 | `Remittance` | remittances | Yes | belongsTo: Candidate, Departure, Beneficiary |
 | `RemittanceBeneficiary` | remittance_beneficiaries | Yes | belongsTo: Candidate; hasMany: Remittances |
 | `RemittanceReceipt` | remittance_receipts | No | belongsTo: Remittance |
@@ -549,7 +549,102 @@ resources/views/
 
 ---
 
-## 9. Middleware & Authorization
+## 9. Policies & Authorization
+
+### Policy Classes (40 policies)
+
+All models have corresponding policy classes for authorization:
+
+| Policy | Model | Key Methods |
+|--------|-------|-------------|
+| `ActivityLogPolicy` | ActivityLog | viewAny, view, delete |
+| `ActivityPolicy` | Activity | viewAny, view |
+| `BatchPolicy` | Batch | viewAny, view, create, update, delete, changeStatus |
+| `CampusPolicy` | Campus | viewAny, view, create, update, delete, toggleStatus |
+| `CampusEquipmentPolicy` | CampusEquipment | viewAny, view, create, update, delete, logUsage |
+| `CampusKpiPolicy` | CampusKpi | viewAny, view, create, update, delete |
+| `CandidatePolicy` | Candidate | viewAny, view, create, update, delete, updateStatus, export |
+| `CandidateScreeningPolicy` | CandidateScreening | viewAny, view, create, update, recordOutcome |
+| `ComplaintPolicy` | Complaint | viewAny, view, create, update, delete, assign, escalate, resolve |
+| `ComplaintEvidencePolicy` | ComplaintEvidence | viewAny, view, create, delete |
+| `ComplaintUpdatePolicy` | ComplaintUpdate | viewAny, view, create |
+| `CorrespondencePolicy` | Correspondence | viewAny, view, create, update, delete, markReplied |
+| `DeparturePolicy` | Departure | viewAny, view, create, update, recordDeparture, recordCompliance |
+| `DocumentArchivePolicy` | DocumentArchive | viewAny, view, create, update, delete, download, restore |
+| `EquipmentUsageLogPolicy` | EquipmentUsageLog | viewAny, view, create, update |
+| `ImportPolicy` | Import | import, downloadTemplate |
+| `InstructorPolicy` | Instructor | viewAny, view, create, update, delete |
+| `NextOfKinPolicy` | NextOfKin | viewAny, view, create, update, delete |
+| `OepPolicy` | Oep | viewAny, view, create, update, delete, toggleStatus |
+| `PasswordHistoryPolicy` | PasswordHistory | viewAny, view |
+| `RegistrationDocumentPolicy` | RegistrationDocument | viewAny, view, create, delete, verify |
+| `RemittancePolicy` | Remittance | viewAny, view, create, update, delete, verify |
+| `RemittanceAlertPolicy` | RemittanceAlert | viewAny, view, markAsRead, resolve, dismiss |
+| `RemittanceBeneficiaryPolicy` | RemittanceBeneficiary | viewAny, view, create, update, delete, setPrimary |
+| `RemittanceReceiptPolicy` | RemittanceReceipt | viewAny, view, create, delete |
+| `RemittanceReportPolicy` | RemittanceReport | viewDashboard, viewReports, export |
+| `RemittanceUsageBreakdownPolicy` | RemittanceUsageBreakdown | viewAny, view, create, update, delete |
+| `ReportPolicy` | Report | viewAny, generate, export |
+| `SystemSettingPolicy` | SystemSetting | viewAny, view, update |
+| `TradePolicy` | Trade | viewAny, view, create, update, delete, toggleStatus |
+| `TrainingPolicy` | Training | viewAny, view, create, update, markAttendance, storeAssessment |
+| `TrainingAssessmentPolicy` | TrainingAssessment | viewAny, view, create, update |
+| `TrainingAttendancePolicy` | TrainingAttendance | viewAny, view, create, update, bulkUpdate |
+| `TrainingCertificatePolicy` | TrainingCertificate | viewAny, view, create, download |
+| `TrainingClassPolicy` | TrainingClass | viewAny, view, create, update, delete, enrollCandidate |
+| `TrainingSchedulePolicy` | TrainingSchedule | viewAny, view, create, update, delete |
+| `UndertakingPolicy` | Undertaking | viewAny, view, create, update |
+| `UserPolicy` | User | viewAny, view, create, update, delete, toggleStatus, resetPassword |
+| `VisaPartnerPolicy` | VisaPartner | viewAny, view, create, update, delete |
+| `VisaProcessPolicy` | VisaProcess | viewAny, view, create, update, updateInterview, updateVisa |
+
+> **Note**: All policies follow Laravel's standard authorization pattern with methods: viewAny, view, create, update, delete, plus module-specific methods.
+
+---
+
+## 10. Form Requests & Validation
+
+### Form Request Classes (31 requests)
+
+| Request Class | Purpose | Validated Fields |
+|---------------|---------|------------------|
+| `BulkAttendanceRequest` | Bulk attendance marking | candidate_ids, date, status |
+| `BulkBatchAssignRequest` | Bulk batch assignment | candidate_ids, batch_id |
+| `BulkCampusAssignRequest` | Bulk campus assignment | candidate_ids, campus_id |
+| `BulkDeleteRequest` | Bulk deletion | ids[], confirmation |
+| `BulkExportRequest` | Bulk export | ids[], format |
+| `BulkStatusUpdateRequest` | Bulk status update | candidate_ids, status, remarks |
+| `BulkVisaUpdateRequest` | Bulk visa update | candidate_ids, stage, status |
+| `RecordBiometricsRequest` | Biometric recording | candidate_id, date, status |
+| `RecordBriefingRequest` | Briefing recording | candidate_id, date, completed |
+| `RecordComplianceRequest` | Compliance recording | candidate_id, compliance_type, status |
+| `RecordDepartureRequest` | Departure recording | candidate_id, date, flight_number |
+| `RecordEnumberRequest` | E-number recording | candidate_id, enumber, date |
+| `RecordIqamaRequest` | Iqama recording | candidate_id, iqama_number, issue_date |
+| `RecordMedicalRequest` | Medical recording | candidate_id, date, status |
+| `RecordTradeTestRequest` | Trade test recording | candidate_id, date, status |
+| `ScheduleInterviewRequest` | Interview scheduling | candidate_id, date, location |
+| `StoreAssessmentRequest` | Assessment storage | candidate_id, type, score, result |
+| `StoreAttendanceRequest` | Attendance storage | candidate_id, date, status |
+| `StoreBeneficiaryRequest` | Beneficiary storage | candidate_id, name, relationship, account |
+| `StoreCandidateRequest` | Candidate creation | name, cnic, phone, trade_id, etc. |
+| `StoreComplaintRequest` | Complaint creation | candidate_id, subject, description, priority |
+| `StoreInstructorRequest` | Instructor creation | name, trade_id, campus_id, qualification |
+| `StoreNextOfKinRequest` | Next of kin storage | candidate_id, name, relationship, phone |
+| `StoreRegistrationDocumentRequest` | Document upload | candidate_id, document_type, file |
+| `StoreRemittanceRequest` | Remittance creation | candidate_id, amount, currency, transfer_date |
+| `StoreScreeningRequest` | Screening creation | candidate_id, screening_type, status |
+| `StoreTrainingClassRequest` | Training class creation | name, trade_id, instructor_id, capacity |
+| `StoreUndertakingRequest` | Undertaking storage | candidate_id, undertaking_type, signed |
+| `SubmitVisaRequest` | Visa submission | candidate_id, visa_number, issue_date |
+| `UpdateCandidateRequest` | Candidate update | name, phone, email, trade_id, etc. |
+| `UpdateRemittanceRequest` | Remittance update | amount, currency, transfer_date, verified |
+
+> **Note**: All requests include proper authorization checks, field validation rules, and custom error messages.
+
+---
+
+## 11. Middleware & Authorization
 
 ### Custom Middleware (14)
 
@@ -604,7 +699,7 @@ staff: ['auth', 'role:admin,staff']
 
 ---
 
-## 10. Jobs, Queues & Background Tasks
+## 12. Jobs, Queues & Background Tasks
 
 ### Current Status: No Background Jobs Configured
 
@@ -622,7 +717,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 ---
 
-## 11. Validation Rules
+## 13. Validation Rules
 
 ### Candidate Validation
 
@@ -682,7 +777,7 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 ---
 
-## 12. System Configuration & Constants
+## 14. System Configuration & Constants
 
 ### Application Constants (config/app.php)
 
@@ -735,12 +830,13 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 ---
 
-## 13. Known Risks & Technical Debt
+## 15. Known Risks & Technical Debt
 
 ### High Priority Issues
 
 | Issue | Description | Recommendation |
 |-------|-------------|----------------|
+| **Missing Model Relationship** | Departure model missing `hasMany(Remittance::class)` relationship documented in line 225 | Add `public function remittances() { return $this->hasMany(Remittance::class); }` to Departure.php:app/Models/Departure.php:112 |
 | **Hardcoded Status Strings** | 57 blade files contain hardcoded status values (`'new'`, `'screening'`, `'registered'`, `'training'`, `'visa_process'`, `'departed'`, `'rejected'`) | Use `Candidate::STATUS_*` and other Model constants consistently |
 | **CDN Dependencies** | 5 external CDN dependencies (Tailwind, Alpine.js, Chart.js, Font Awesome, Axios) | Bundle assets locally for production |
 | **No Background Jobs** | All operations synchronous | Implement queue for emails, reports |
@@ -786,12 +882,13 @@ The system currently runs all operations synchronously. The queue driver is set 
 
 ---
 
-## 14. Change Log
+## 16. Change Log
 
 ### Version History
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-01-09 | 1.1.0 | **FULL SYSTEM AUDIT COMPLETED**: Added Policies section (40 policies documented), Added Form Requests section (31 requests documented), Updated migration count (62 migrations), Flagged missing Departure->remittances() relationship, Verified all models/controllers/views/middleware/services match actual codebase | Claude |
 | 2026-01-09 | 1.0.1 | Audit: Fixed controller count (37 not 38), documented 5 CDN dependencies, identified 57 files with hardcoded status strings, added hardcoded config values table | Claude |
 | 2026-01-09 | 1.0.0 | Initial SYSTEM_MAP.md creation | System |
 | 2025-12-31 | - | Phase 2 model relationship fixes | Claude |
@@ -871,5 +968,5 @@ php artisan route:cache
 
 ---
 
-*Last Updated: 2026-01-09 (v1.0.1)*
+*Last Updated: 2026-01-09 (v1.1.0 - Full System Audit Completed)*
 *Generated for: WASL - BTEVTA Overseas Employment System*
