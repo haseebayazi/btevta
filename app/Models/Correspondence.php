@@ -178,20 +178,23 @@ class Correspondence extends Model
             // if (empty($correspondence->file_reference_number)) {
             //     $correspondence->file_reference_number = self::generateFileReferenceNumber();
             // }
-            
-            if (empty($correspondence->correspondence_date)) {
-                $correspondence->correspondence_date = now();
+
+            // AUDIT FIX 2026-01-10: Changed correspondence_date to sent_at (actual column name)
+            if (empty($correspondence->sent_at)) {
+                $correspondence->sent_at = now();
             }
-            
-            if (auth()->check()) {
-                $correspondence->created_by = auth()->id();
-            }
+
+            // Note: created_by and updated_by columns don't exist in current schema
+            // if (auth()->check()) {
+            //     $correspondence->created_by = auth()->id();
+            // }
         });
 
         static::updating(function ($correspondence) {
-            if (auth()->check()) {
-                $correspondence->updated_by = auth()->id();
-            }
+            // Note: updated_by column doesn't exist in current schema
+            // if (auth()->check()) {
+            //     $correspondence->updated_by = auth()->id();
+            // }
         });
     }
 }
