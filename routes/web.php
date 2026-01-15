@@ -526,6 +526,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('export-csv');
         Route::get('/trainer-performance', [ReportController::class, 'trainerPerformance'])
             ->middleware('throttle:5,1')->name('trainer-performance');
+        Route::get('/trainer-detail/{instructor}', [ReportController::class, 'trainerDetail'])
+            ->middleware('throttle:5,1')->name('trainer-detail');
+        Route::get('/assessment-analytics', [ReportController::class, 'assessmentAnalytics'])
+            ->middleware('throttle:5,1')->name('assessment-analytics');
         Route::get('/departure-updates', [ReportController::class, 'departureUpdatesReport'])
             ->middleware('throttle:5,1')->name('departure-updates');
         // Phase 3: Instructor Utilization Report

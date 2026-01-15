@@ -656,6 +656,297 @@ class ReportController extends Controller
     }
 
     /**
+     * Show detailed performance report for a specific trainer
+     */
+    public function trainerDetail(Instructor $instructor)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        // Check campus access for campus admins
+        if (auth()->user()->role === 'campus_admin' &&
+            $instructor->campus_id !== auth()->user()->campus_id) {
+            abort(403, 'You do not have permission to view this trainer.');
+        }
+
+        $instructor->load(['campus', 'trade']);
+
+        // Get batch IDs where this instructor taught
+        $batchIds = TrainingSchedule::where('instructor_id', $instructor->id)
+            ->pluck('batch_id')->unique();
+
+        // Get batches with details
+        $batches = Batch::with(['trade', 'campus'])
+            ->whereIn('id', $batchIds)
+            ->get()
+            ->map(function($batch) use ($instructor) {
+                $candidateIds = $batch->candidates->pluck('id');
+
+                $totalAssessments = TrainingAssessment::where('trainer_id', $instructor->id)
+                    ->whereIn('candidate_id', $candidateIds)->count();
+                $passedAssessments = TrainingAssessment::where('trainer_id', $instructor->id)
+                    ->whereIn('candidate_id', $candidateIds)
+                    ->where('result', 'pass')->count();
+
+                $batch->student_count = $candidateIds->count();
+                $batch->pass_rate = $totalAssessments > 0
+                    ? round(($passedAssessments / $totalAssessments) * 100, 1)
+                    : 0;
+                $batch->avg_score = TrainingAssessment::where('trainer_id', $instructor->id)
+                    ->whereIn('candidate_id', $candidateIds)
+                    ->avg('total_score') ?? 0;
+
+                return $batch;
+            });
+
+        // Overall statistics
+        $totalStudents = Candidate::whereIn('batch_id', $batchIds)->count();
+        $totalAssessments = TrainingAssessment::where('trainer_id', $instructor->id)->count();
+        $passedAssessments = TrainingAssessment::where('trainer_id', $instructor->id)
+            ->where('result', 'pass')->count();
+        $totalAttendance = TrainingAttendance::where('trainer_id', $instructor->id)->count();
+        $presentAttendance = TrainingAttendance::where('trainer_id', $instructor->id)
+            ->where('status', 'present')->count();
+
+        $stats = [
+            'total_batches' => $batchIds->count(),
+            'total_students' => $totalStudents,
+            'total_assessments' => $totalAssessments,
+            'pass_rate' => $totalAssessments > 0
+                ? round(($passedAssessments / $totalAssessments) * 100, 1)
+                : 0,
+            'attendance_rate' => $totalAttendance > 0
+                ? round(($presentAttendance / $totalAttendance) * 100, 1)
+                : 0,
+            'avg_score' => round(TrainingAssessment::where('trainer_id', $instructor->id)->avg('total_score') ?? 0, 1),
+        ];
+
+        // Assessment type breakdown
+        $assessmentBreakdown = TrainingAssessment::where('trainer_id', $instructor->id)
+            ->selectRaw('assessment_type, COUNT(*) as total, SUM(CASE WHEN result = "pass" THEN 1 ELSE 0 END) as passed, AVG(total_score) as avg_score')
+            ->groupBy('assessment_type')
+            ->get()
+            ->map(function($item) {
+                $item->pass_rate = $item->total > 0 ? round(($item->passed / $item->total) * 100, 1) : 0;
+                return $item;
+            });
+
+        // Monthly performance trend (last 6 months)
+        $monthlyTrend = TrainingAssessment::where('trainer_id', $instructor->id)
+            ->where('assessment_date', '>=', now()->subMonths(6))
+            ->selectRaw('DATE_FORMAT(assessment_date, "%Y-%m") as month, COUNT(*) as total, AVG(total_score) as avg_score, SUM(CASE WHEN result = "pass" THEN 1 ELSE 0 END) as passed')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function($item) {
+                $item->pass_rate = $item->total > 0 ? round(($item->passed / $item->total) * 100, 1) : 0;
+                return $item;
+            });
+
+        // Recent assessments
+        $recentAssessments = TrainingAssessment::with(['candidate', 'batch'])
+            ->where('trainer_id', $instructor->id)
+            ->latest('assessment_date')
+            ->limit(10)
+            ->get();
+
+        return view('reports.trainer-detail', compact(
+            'instructor',
+            'stats',
+            'batches',
+            'assessmentBreakdown',
+            'monthlyTrend',
+            'recentAssessments'
+        ));
+    }
+
+    /**
+     * Comprehensive assessment analytics
+     */
+    public function assessmentAnalytics(Request $request)
+    {
+        if (!$this->canViewReports()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'campus_id' => 'nullable|exists:campuses,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'assessment_type' => 'nullable|in:initial,midterm,practical,final',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $user = auth()->user();
+        $query = TrainingAssessment::with(['candidate', 'batch', 'trainer']);
+
+        // Apply filters
+        if (!empty($validated['campus_id'])) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $validated['campus_id']));
+        }
+
+        if (!empty($validated['batch_id'])) {
+            $query->where('batch_id', $validated['batch_id']);
+        }
+
+        if (!empty($validated['assessment_type'])) {
+            $query->where('assessment_type', $validated['assessment_type']);
+        }
+
+        if (!empty($validated['from_date'])) {
+            $query->whereDate('assessment_date', '>=', $validated['from_date']);
+        }
+
+        if (!empty($validated['to_date'])) {
+            $query->whereDate('assessment_date', '<=', $validated['to_date']);
+        }
+
+        // Apply campus filtering for campus admins
+        if ($user->role === 'campus_admin' && $user->campus_id) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        }
+
+        // Overall statistics
+        $totalAssessments = (clone $query)->count();
+        $passedAssessments = (clone $query)->where('result', 'pass')->count();
+        $failedAssessments = (clone $query)->where('result', 'fail')->count();
+        $averageScore = (clone $query)->avg('total_score');
+
+        $stats = [
+            'total_assessments' => $totalAssessments,
+            'passed' => $passedAssessments,
+            'failed' => $failedAssessments,
+            'pass_rate' => $totalAssessments > 0 ? round(($passedAssessments / $totalAssessments) * 100, 1) : 0,
+            'average_score' => round($averageScore ?? 0, 1),
+        ];
+
+        // Assessment by type
+        $byType = (clone $query)
+            ->selectRaw('assessment_type, COUNT(*) as total, SUM(CASE WHEN result = "pass" THEN 1 ELSE 0 END) as passed, AVG(total_score) as avg_score')
+            ->groupBy('assessment_type')
+            ->get()
+            ->map(function($item) {
+                $item->pass_rate = $item->total > 0 ? round(($item->passed / $item->total) * 100, 1) : 0;
+                return $item;
+            });
+
+        // Performance by campus
+        $byCampus = collect();
+        $campusesData = Campus::where('is_active', true)->get();
+        foreach ($campusesData as $campus) {
+            $campusQuery = (clone $query)->whereHas('candidate', fn($q) => $q->where('campus_id', $campus->id));
+            $total = $campusQuery->count();
+            if ($total > 0) {
+                $passed = (clone $campusQuery)->where('result', 'pass')->count();
+                $avgScore = (clone $campusQuery)->avg('total_score');
+                $byCampus->push([
+                    'campus_name' => $campus->name,
+                    'total' => $total,
+                    'passed' => $passed,
+                    'pass_rate' => round(($passed / $total) * 100, 1),
+                    'avg_score' => round($avgScore ?? 0, 1),
+                ]);
+            }
+        }
+        $byCampus = $byCampus->sortByDesc('pass_rate')->values();
+
+        // Performance by batch (top 10)
+        $byBatch = (clone $query)
+            ->selectRaw('batch_id, COUNT(*) as total, SUM(CASE WHEN result = "pass" THEN 1 ELSE 0 END) as passed, AVG(total_score) as avg_score')
+            ->groupBy('batch_id')
+            ->get()
+            ->map(function($item) {
+                $batch = Batch::find($item->batch_id);
+                $item->batch_name = $batch ? $batch->name : 'Unknown';
+                $item->batch_code = $batch ? $batch->batch_code : 'N/A';
+                $item->pass_rate = $item->total > 0 ? round(($item->passed / $item->total) * 100, 1) : 0;
+                return $item;
+            })
+            ->sortByDesc('pass_rate')
+            ->take(10)
+            ->values();
+
+        // Monthly trend (last 12 months)
+        $monthlyTrend = TrainingAssessment::where('assessment_date', '>=', now()->subMonths(12))
+            ->selectRaw('DATE_FORMAT(assessment_date, "%Y-%m") as month, COUNT(*) as total, AVG(total_score) as avg_score, SUM(CASE WHEN result = "pass" THEN 1 ELSE 0 END) as passed')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function($item) {
+                $item->pass_rate = $item->total > 0 ? round(($item->passed / $item->total) * 100, 1) : 0;
+                return $item;
+            });
+
+        // Score distribution
+        $scoreDistribution = (clone $query)
+            ->selectRaw('
+                CASE
+                    WHEN (total_score / max_score * 100) >= 90 THEN "A+ (90-100%)"
+                    WHEN (total_score / max_score * 100) >= 80 THEN "A (80-89%)"
+                    WHEN (total_score / max_score * 100) >= 70 THEN "B (70-79%)"
+                    WHEN (total_score / max_score * 100) >= 60 THEN "C (60-69%)"
+                    WHEN (total_score / max_score * 100) >= 50 THEN "D (50-59%)"
+                    ELSE "F (Below 50%)"
+                END as score_range,
+                COUNT(*) as count
+            ')
+            ->groupBy('score_range')
+            ->orderByRaw('MIN(total_score / max_score) DESC')
+            ->get();
+
+        // Top 10 performers
+        $topPerformers = Candidate::with(['campus', 'trade', 'batch'])
+            ->whereHas('assessments')
+            ->get()
+            ->map(function($candidate) use ($validated) {
+                $assessmentQuery = $candidate->assessments();
+
+                if (!empty($validated['assessment_type'])) {
+                    $assessmentQuery = $assessmentQuery->where('assessment_type', $validated['assessment_type']);
+                }
+                if (!empty($validated['from_date'])) {
+                    $assessmentQuery = $assessmentQuery->whereDate('assessment_date', '>=', $validated['from_date']);
+                }
+                if (!empty($validated['to_date'])) {
+                    $assessmentQuery = $assessmentQuery->whereDate('assessment_date', '<=', $validated['to_date']);
+                }
+
+                $assessments = $assessmentQuery->get();
+                if ($assessments->isEmpty()) return null;
+
+                $candidate->avg_score = $assessments->avg(function($a) {
+                    return ($a->total_score / $a->max_score) * 100;
+                });
+                $candidate->total_assessments = $assessments->count();
+                $candidate->passed_assessments = $assessments->where('result', 'pass')->count();
+
+                return $candidate;
+            })
+            ->filter()
+            ->sortByDesc('avg_score')
+            ->take(10)
+            ->values();
+
+        // Filter options
+        $campuses = Campus::where('is_active', true)->pluck('name', 'id');
+        $batches = Batch::where('is_active', true)->pluck('name', 'id');
+
+        return view('reports.assessment-analytics', compact(
+            'stats',
+            'byType',
+            'byCampus',
+            'byBatch',
+            'monthlyTrend',
+            'scoreDistribution',
+            'topPerformers',
+            'campuses',
+            'batches',
+            'validated'
+        ));
+    }
+
+    /**
      * Salary & post-departure updates report
      */
     public function departureUpdatesReport(Request $request)
