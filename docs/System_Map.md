@@ -1,5 +1,5 @@
 # WASL Digital ERP — Authoritative System Blueprint  
-Version: 1.0  
+Version: 3.0  
 Last Updated: 2026-01-15  
 Status: Stable (Ready for Development)
 
@@ -34,7 +34,7 @@ WASL is an integrated Laravel-based ERP platform designed to manage the complete
 - End-to-end candidate journey management (import → deployment → remittance tracking)
 - Ten integrated modules as listed in proposal (see Section 4)
 - Role-based dashboards and dynamic reporting
-- API integrations (stubs; see expansion hooks)
+- API integrations (stubs for future use)
 - Document management and audit compliance
 - AI-powered analytics (prediction and bottleneck flagging; basic ML hooks)
 - Multi-device support (responsive web, mobile-ready UIs)
@@ -43,7 +43,7 @@ WASL is an integrated Laravel-based ERP platform designed to manage the complete
 ### Explicitly Out-of-Scope
 - Payroll/disbursement to staff (non-candidate)
 - Site hosting/infrastructure specifics
-- Deep financial/banking integrations (only stubs intended)
+- Deep financial/banking integrations (stubs only)
 - Non-ERP features (marketing, CRM, etc.)
 - Physical biometric hardware integrations
 - Internationalization (i18n) unless mandated in future hooks
@@ -51,9 +51,10 @@ WASL is an integrated Laravel-based ERP platform designed to manage the complete
 ### Assumptions & Constraints
 - Single source of truth: platform is authoritative for candidate data.
 - All third-party data exchanges are via RESTful APIs (no direct DB access).
-- Document uploads are limited to PDF/JPEG/PNG (configurable).
+- Document uploads limited to PDF/JPEG/PNG (configurable).
 - 100% digital process; no physical forms tracked.
 - Only approved, pre-registered OEPs participate.
+- All batch, OEP and visa assignments and process steps are strictly manual as per confirmed requirements.
 
 ---
 
@@ -98,16 +99,15 @@ Legend: R=Read, W=Write, X=Execute/Manage
 
 ### 4.1 Candidate Listing
 
-- **Objective:** Aggregate and deduplicate candidate records from multiple sources (BTEVTA import, manual entry).
+- **Objective:** Aggregate and deduplicate candidate records from BTEVTA template import or manual entry.
 - **Features:**
-  - Bulk import (BTEVTA template, CSV)
-  - Auto batch assignment (by trade/district/intake)
-  - Duplicate checking (CNIC, name)
-  - Smart campus allocation (proximity, demand)
-  - Import audit trail
-  
+  - Bulk import using BTEVTA-provided templates, which are updated by users and uploaded
+  - Manual batch assignment (no smart automation)
+  - Duplicate checking (by CNIC, name)
+  - Audit trail of imports
+
 - **User Roles:** Govt Admin, Campus Admin, Super Admin  
-- **Input:** Candidate lists/files, manual entries
+- **Input:** Candidate lists (via WASL template)
 - **Output:** Validated candidate batches, import logs
 - **Dependencies:** None (entry point for candidate data)
 
@@ -118,118 +118,116 @@ Legend: R=Read, W=Write, X=Execute/Manage
   - In-app call log (reminders, follow-up flags)
   - Eligibility tagging, desk-based assessment
   - Upload call notes/recordings/verification docs
-  
+
 - **User Roles:** Govt Admin, Campus Admin, Screening Staff
-- **Input:** Candidate records, screening outcomes
+- **Input:** Candidates (from Listing), screening outcomes
 - **Output:** Screening status, performance analytics
 - **Dependencies:** Candidate Listing
 
 ### 4.3 Registration at Campus
 
-- **Objective:** Digitize registration/verification for campus intake.
+- **Objective:** Digitize all candidate and document registration for campus intake.
 - **Features:**
-  - Picture capture, autofill from screening data
-  - Document upload (CNIC, passport, education, medical)
-  - Next-of-kin and consent forms collection
-  - Allocation to OEP
-  
+  - Capture candidate profile and digital photo
+  - Required document upload: CNIC, Passport, Medical, Academic Qualifications  
+    - Fields for each: Document Name, Expiry Date, other relevant meta
+  - Next-of-kin and consent form data
+  - Manual OEP assignment to candidate
+
 - **User Roles:** Campus Admin, Registrars, Candidates
-- **Input:** Screened candidates, registration details
+- **Input:** Screened candidates, registration docs
 - **Output:** Registered candidates, uploaded docs
 - **Dependencies:** Candidate Screening
 
 ### 4.4 Training Management
 
-- **Objective:** Manage, track, and certify training programs for candidates.
+- **Objective:** Deliver and track training completion for enrolled candidates.
 - **Features:**
-  - Training schedule/design management
+  - Training schedule/design
   - Attendance tracking
-  - Assessment uploads, auto certificate generation
-  - Trainer evaluation
-  
+  - Mid/final assessment upload, auto certificate generation
+  - Trainer evaluation and feedback
+
 - **User Roles:** Trainer, Campus Admin, Candidate
-- **Input:** Registered candidates, trainer assignments
-- **Output:** Training status, certifications, performance data
+- **Input:** Registered candidates, trainers, schedule, attendance/assessment
+- **Output:** Training status, certifications
 - **Dependencies:** Registration at Campus
 
 ### 4.5 Visa Processing
 
-- **Objective:** Orchestrate all pre-departure legal, medical, and administrative steps.
+- **Objective:** Track and manage visa application and processing using required manual data input (no integrations).
 - **Features:**
-  - Manage pre-departure workflow (medical, biometric, interview, visa)
-  - Real-time update with OEP, embassy integration
-  - E-number, PTN, attestation, ticket tracking
-  
+  - All visa process data (medical, biometric, interview, Takamol, visa, ticketing, etc.) input/uploaded manually by authorized users. No external or embassy API integrations.
+  - Required fields for each stage/step, managed via the UI
+
 - **User Roles:** OEP Manager, Govt Admin
-- **Input:** Trained candidates, required documents
-- **Output:** Visa status per candidate, stage reports
+- **Input:** Trained candidates, manually entered visa process data
+- **Output:** Candidate visa status, stage reports
 - **Dependencies:** Training Management
 
 ### 4.6 Departure & Post-Deployment
 
-- **Objective:** Monitor candidate departure, arrival, and post-deployment welfare.
+- **Objective:** Manage candidate departure events, post-arrival compliance and welfare using data uploaded or entered by admins/OEPs.
 - **Features:**
-  - Pre-departure briefing tracking
-  - Iqama, Absher, Qiwa ID management
-  - Salary verification, welfare recording
-  - Issue/incident tracker
-  
+  - Track pre-departure briefings and post-arrival doc uploads
+  - Manual entry for Iqama, Absher, Qiwa IDs
+  - Salary/welfare monitoring, post-departure issue tracking
+
 - **User Roles:** OEP Manager, Candidate, Family, Govt Admin
-- **Input:** Visa approved candidates, post-arrival docs
-- **Output:** Deployment logs, welfare status, tracking reports
+- **Input:** Visa-approved candidates, post-arrival docs
+- **Output:** Deployment/welfare tracking reports
 - **Dependencies:** Visa Processing
 
 ### 4.7 Correspondence
 
-- **Objective:** Centralize and log all official platform communications.
+- **Objective:** Centralized tracking and archive of all official communication.
 - **Features:**
-  - Register incoming/outgoing letters, memos, emails
-  - Sender, recipient, file, subject, reference management
-  - Upload PDF attachments
-  
+  - Register and upload of all incoming/outgoing letters, memos, and emails
+  - Log sender, recipient, file, subject, official reference
+  - PDF letter/memo upload
+
 - **User Roles:** Correspondence Staff, Admins
-- **Input:** Communication records, uploaded docs
-- **Output:** Communication logs, pendency tracker
-- **Dependencies:** All modules as needed
+- **Input:** Uploaded communication records
+- **Output:** Logs, pendency tracker
+- **Dependencies:** Linked as needed throughout all modules
 
 ### 4.8 Complaints & Grievance Redressal
 
-- **Objective:** Enable lifecycle complaint management for all user types.
+- **Objective:** In-app complaints lifecycle for all user types, enforcing SLAs.
 - **Features:**
-  - In-app complaint submission
-  - Category/tag assignment (training, visa, conduct, etc.)
-  - Escalation matrix, SLA-based workflow
-  
+  - Complaint submission by all key actors, tagged by category (training, visa, salary, conduct, etc.)
+  - Escalation/SLA workflow (SLA: 3–5 days per stage; flag violations for review)
+  - Status transitions: Open → In Progress → Escalated → Resolved → Closed
+
 - **User Roles:** Candidate, Trainer, OEP, Grievance Officer, Admin
-- **Input:** Complaint tickets, attachments
-- **Output:** Resolution status, SLA analytics
-- **Dependencies:** All modules; module tags for complaint linkage
+- **Input:** Complaint entries and attachments
+- **Output:** Resolution analytics and SLA compliance metrics
+- **Dependencies:** All modules
 
 ### 4.9 Document Archive
 
-- **Objective:** Provide secure, versioned, indexed storage of all candidate/process documents.
+- **Objective:** Secure, versioned repository for all required candidate and process documentation.
 - **Features:**
-  - Centralized repository linked to modules
-  - Versioning and access logs
-  - Filter/search by candidate, campus, trade, etc.
-  
-- **User Roles:** All roles with respective access
+  - Central archive, version control, and access logging
+  - Filter/search by candidate, campus, trade, OEP, document type
+  - Mandatory doc expiry/validity where relevant (e.g. CNIC, Medical)
+
+- **User Roles:** All roles with given access
 - **Input:** Documents from modules, version history
-- **Output:** Retrieval logs, expiry alerts, verification status
-- **Dependencies:** All modules; document links
+- **Output:** Retrieval logs, expiry alerts
+- **Dependencies:** All modules for document linking
 
 ### 4.10 Remittance Management
 
-- **Objective:** Capture, categorize, and analyze candidate remittances post-deployment.
+- **Objective:** Post-deployment remittance tracking (strictly manual entry and evidence upload).
 - **Features:**
-  - Timestamped remittance tracking
-  - Tagging by use-case (education, rent, etc.)
-  - Upload digital proof (receipts, photos)
-  - Alert triggers
-  
+  - Manually entered remittance details (amount, timestamp, purpose tag)
+  - Upload of digital proof (receipt, photo) is mandatory for each entry
+  - Real-time sender/beneficiary linkage and impact reporting
+
 - **User Roles:** Candidate, Family, Admin, Auditor
-- **Input:** Remittance records (manual/API), uploaded proofs
-- **Output:** Inflow/usage analytics, welfare reports
+- **Input:** Remittance entries and proofs (manual data entry)
+- **Output:** Inflow, usage analytics, welfare reports
 - **Dependencies:** Departure & Post-Deployment
 
 ---
@@ -261,15 +259,15 @@ Legend: R=Read, W=Write, X=Execute/Manage
 
 ### Relationships
 - Candidate ⟶ Campus [M:1]
-- Candidate ⟶ Batch [M:1]
-- Candidate ⟶ OEP [M:1]
+- Candidate ⟶ Batch [M:1] (assigned manually)
+- Candidate ⟶ OEP [M:1] (manual assignment at registration)
 - Batch ⟶ Trade [M:1]
 - Candidate ⟶ Screening Log [1:M]
 - Candidate ⟶ Training Attendance [1:M]
-- Candidate ⟶ Visa Record [1:1]
+- Candidate ⟶ Visa Record [1:1] (all visa stages manually tracked)
 - Candidate ⟶ Departure Record [1:1]
-- Candidate ⟶ Documents [1:M]
-- Candidate ⟶ Remittance [1:M]
+- Candidate ⟶ Documents [1:M] (minimum: CNIC, Passport, Medical, Academic Qualifications)
+- Candidate ⟶ Remittance [1:M] (manual entries)
 - Candidate ⟶ Complaints [1:M]
 - User ⟶ Roles [M:M]
 - All entities ⟶ Audit Log [N:M]
@@ -285,22 +283,57 @@ Legend: R=Read, W=Write, X=Execute/Manage
 
 ### End-to-End Lifecycle
 
-1. **Candidate Import & Listing:** Data entry (bulk/manual) → validation → batch assignment.
-2. **Screening:** Call logs → status tagging → eligibility or rejection recorded.
-3. **Registration:** Document capture → next-of-kin/consent → OEP assignment.
-4. **Training:** Schedule assignment → attendance/assessment → completion/certification.
-5. **Visa:** Initiate workflow → track stages (medical, biometric, embassy) → visa issued.
-6. **Departure:** Schedule briefing → post-arrival verification → ID activation.
-7. **Post-Deployment:** Salary verification, welfare updates, issue/incident tracking.
-8. **Remittance:** Receipts logged → purpose tagged → alerts for missing proof/no activity.
-9. **Reporting/AI Analytics:** Throughout — dashboards, bottleneck detection, predictions.
+1. **Candidate Import & Listing:**  
+   - User downloads WASL-provided template  
+   - Adds/updates candidate data  
+   - Uploads through the web UI  
+   - System validates entries, checks duplicates  
+   - Candidates are assigned to batches manually
+
+2. **Screening:**  
+   - Desk/admin staff contact candidates  
+   - Logs calls, uploads screening docs  
+   - Tags as eligible/rejected
+
+3. **Registration:**  
+   - Candidate attends campus  
+   - Admin uploads all required personal documents  
+   - Next-of-kin/consent forms created  
+   - OEP is assigned manually during registration
+
+4. **Training:**  
+   - Schedules set  
+   - Attendance and assessments tracked  
+   - Completion (certification) recorded
+
+5. **Visa Processing:**  
+   - All fields per visa stage entered/uploaded by authorized users  
+   - Data covers medical, biometric, interview, Takamol, visa, ticketing, etc.
+
+6. **Departure/Post-Deployment:**  
+   - Pre-departure and post-arrival events logged  
+   - Iqama/Absher/Qiwa data entered  
+   - Welfare and salary monitoring  
+   - Issues tracked in the system
+
+7. **Remittance:**  
+   - After deployment, authorized users or family manually enter each remittance  
+   - Mandatory upload of receipt/proof for each entry  
+   - All usage categorized/tagged
+
+8. **Reporting/Analytics:**  
+   - Data flows are reflected in dashboards and reports  
+   - Process bottleneck prediction supports efficiency goals
 
 ### Cross-Module Data Handoff
-- Candidate ID acts as the primary key across all modules.
-- Modules fetch/link data using defined relationships and foreign keys.
-- Status fields/update timestamps dictate the module transitions (example: `screened_status`, `visa_status`, `training_complete`).
+
+- Candidate record (by unique ID) is the unifying reference across all modules.
+- All document and process data keyed off the candidate.
+- No automated assignments or integrations; all transitions and linkages are by manual system action.
+- Identification or status transitions noted by explicit status or timestamp fields.
 
 ### Status Transitions (Key Examples)
+
 - Candidate: Imported → Screened → Registered → Trained → VisaReady → Deployed → Remitting
 - Complaint: Open → In Progress → Escalated → Resolved → Closed
 - Document: Uploaded → Pending Verification → Verified → Expired
@@ -336,27 +369,37 @@ storage/
 
 ### Controllers / Services / Models Responsibilities
 
-- **Controllers:** Handle request validation, authorization, and high-level orchestration; thin as possible; avoid business logic.
-- **Services:** Encapsulate business processes (e.g., batch import, AI analytics).
-- **Models:** ORM mapping, relationships, scopes.
+- **Controllers:**  
+  Responsible for request validation, enforcing role and entity permissions, orchestration of high-level workflows.  
+  Must not contain business logic.
+
+- **Services:**  
+  Contain business operations logic (e.g., handling bulk import, generating reports, applying batch/manual OEP assignments).  
+  Decouple logic from controllers.
+
+- **Models:**  
+  Eloquent ORM mapping; define relationships, casts, scopes.
 
 ### Validation Strategy
 
 - Laravel Form Request validation for all web/API inputs.
-- Custom rules for batch imports, file types, CNIC format, document expiries.
-- Centralized validation error response structure.
+- Batch import: enforce WASL template structure, required document types, duplication checks by CNIC/name.
+- All document uploads validated for type, size, and required document fields (name, expiry date, etc).
+- Centralized and consistent error responses.
 
 ### Authorization Approach
 
-- Use Laravel policies for entity-based CRUD control.
-- Gates for role-based or action-based checks outside of entity CRUD.
-- All sensitive actions double-checked against role matrix.
+- Policies for entity-based CRUD and workflow transitions.
+- Gates for special role and action checks.
+- Every sensitive action checked against the permission matrix.
+- Audit logs for all data mutations.
 
 ### API vs Web Routes
 
-- RESTful API under `/api` prefix for integrations and mobile/frontends.
-- Web routes for Blade-based interface, protected by session-based middleware.
-- API auth via Laravel Sanctum or Passport (configurable).
+- All APIs versioned under `/api` prefix for partner integrations and mobile use.
+- Blade routes protected by standard session middleware.
+- API auth via Laravel Sanctum or Passport.
+- No hardcoded endpoints—use config and route files.
 
 ---
 
@@ -364,83 +407,63 @@ storage/
 
 ### Security
 
-- Enforce HTTPS across platform.
-- Strong password hashing with Laravel defaults.
-- Role-based access control; least privilege by default.
-- File uploads virus-scanned (optional hook).
-- All sensitive activities logged.
+- HTTPS enforced
+- Passwords managed via Laravel best practices (bcrypt/argon2)
+- All file uploads scanned; strict extensions and virus scanning hook ready
+- Least privilege role controls everywhere; no access without explicit grant
+- All actions logged for audit
 
 ### Performance
 
-- Async/batch processing for bulk imports.
-- Eager-loading on ORM for complex reports.
-- Paginated listings throughout.
+- Bulk imports/exports processed asynchronously
+- All listings paginated
+- Reports built with eager loads, chunking for large datasets
 
 ### Scalability
 
-- Modular codebase for future horizontal scaling.
-- Config-based entity mapping for new districts/trades/OEPs.
-- Queue jobs for heavy tasks (notifications, report generation).
+- Modular structure—new modules/fields extendable via config/DB without code changes
+- Queued background tasks for intensive processes
 
 ### Logging & Auditing
 
-- Daily audit logs; entity change history retained for one year minimum.
-- All system warnings/errors logged in `storage/logs/`.
-- User action history for compliance.
+- Daily audit logs
+- All create/update/delete actions for key entities logged
+- Error logs written to `storage/logs`
+- Audit log retention: 12 months minimum
 
 ### Error Handling
 
-- Centralized error handler.
-- Consistent API error responses (with codes, messages).
-- Friendly web error screens for end users; detailed logs for admins.
+- Unified error handling for web and API (API responses must be structured with codes/messages)
+- All business logic exceptions caught and meaningful messages/errors returned
 
 ---
 
 ## 9. Development Rules
 
-- Use PSR-12 for PHP and Laravel coding standards.
-- Controllers, models, services, and requests must follow singular, PascalCase naming.
-- Table names in plural snake_case (`candidates`, `batches`).
-- Use Laravel migrations for all schema updates; NO direct DB changes.
-- All entities seeded via factories; bulk import seeders for initial setup.
-- Do NOT hardcode values (district names, trades, OEPs, file paths) — use config, DB driven.
-- No business logic in Blade templates or views.
-- All external credentials and URLs in `.env`, not in codebase.
+- Adhere to PSR-12 for PHP and Laravel
+- Use singular PascalCase for class/entity naming, plural snake_case for table/DB
+- All data changes via Laravel migrations; never directly in DB
+- Use factories and seeders for all entity test/demo data
+- No hardcoded settings, values, or credentials; use `config` or `.env` exclusively
+- Business logic never in Blade views
+- All process logic, assignment, and data entry must be strictly manual as reflected in requirements above
 
 ---
 
 ## 10. Future Expansion Hooks
 
-- **Modules Planned:** 
-  - Recruitment partner CRM
-  - Marketplace for placement offers
-  - Advanced analytics (ML-powered trends)
-  - In-app messaging (candidate/OEP/campus)
-  
-- **Integrations:**
-  - BTEVTA, embassy, bank APIs (RESTful endpoints, to be further scoped)
-  - SMS gateway, notification APIs
-  - External document verification (NADRA, etc.)
-
-- **Extensibility:**
-  - Config/DB-driven module toggling.
-  - API endpoints versioned/futureproofed.
-  - All entities and workflows extensible via `config/wasl.php` (planned settings registry).
+- **Planned Modules:** Recruitment partner CRM, Placement marketplace, Advanced ML/analytics, In-app messaging
+- **Integration Points:** BTEVTA, embassy, bank APIs (RESTful, stubs for future), SMS gateways, notification services, document verification with NADRA/third-parties
+- **Config Extensibility:**  
+  - All assignment and workflow rules managed via DB or `/config/wasl.php`  
+  - API and entity versioning support  
+  - Extendable reporting and document types
 
 ---
 
 ## 11. Open Questions / Clarifications
 
-- **Candidate Batch Assignment:** Detailed algorithm for “smart campus allocation” needs confirmation (currently assumes proximity and trade demand; further logic may be required).
-- **Import Templates:** BTEVTA format variations, frequency, and error management to be clarified.
-- **Document Types:** Precise list of required document types and expiry rules (e.g., medical, CNIC expiry notifications).
-- **OEP Assignment:** Are candidates manually assigned to OEPs at registration, or is there an allocation rule? Workflow logic needed.
-- **Visa Processing:** Exact integration points with embassies, Takamol, etc., undefined; currently designed as manual/API stub.
-- **AI Analytics:** Scope of ML (only bottleneck prediction for v1); future specifics to be agreed.
-- **Remittance Tracking:** Trusted proof mechanism (only manual uploads, no banking API at present).
-- **Complaint Escalation Matrix:** SLA handling (3-5 days) to be strictly defined with roles; possible auto-escalation logic unconfirmed.
-- **Role List:** Are there sub-admin/staff hierarchies? Permission matrix based on provided roles — refine as roles evolve.
-- **External API Integrators:** Access rights and rate limits to be scoped in detail; current document assumes read/write per explicit permission.
+_All previously open questions have been answered and are now reflected in module and architecture details above. All assignments (batch, OEP, visa, remittance entry) are confirmed to be manual. Required document types and their structure are strictly defined. Visa and remittance flows are manual-entry and evidence-driven only. SLA for complaint resolution set at 3–5 days per stage. No integrations or automations are to be implemented unless specified under future hooks._
 
 ---
 
