@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\RemittanceAlertApiController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\CandidateApiController;
+use App\Http\Controllers\Api\BatchApiController;
 use App\Http\Controllers\Api\DepartureApiController;
 use App\Http\Controllers\Api\VisaProcessApiController;
 use App\Http\Controllers\HealthController;
@@ -85,10 +86,6 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
     Route::get('/trades/list', [TradeController::class, 'apiList'])
         ->name('trades.list');
 
-    // Batches by Campus
-    Route::get('/batches/by-campus/{campus}', [BatchController::class, 'byCampus'])
-        ->name('batches.by-campus');
-
     // User Notifications
     Route::get('/notifications', [UserController::class, 'notifications'])
         ->name('notifications');
@@ -107,6 +104,24 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::post('/', [CandidateApiController::class, 'store'])->name('store');
         Route::put('/{id}', [CandidateApiController::class, 'update'])->name('update');
         Route::delete('/{id}', [CandidateApiController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
+    // BATCH API ROUTES
+    // ========================================================================
+
+    Route::prefix('batches')->name('batches.')->group(function () {
+        Route::get('/', [BatchApiController::class, 'index'])->name('index');
+        Route::get('/active', [BatchApiController::class, 'active'])->name('active');
+        Route::get('/by-campus/{campusId}', [BatchApiController::class, 'byCampus'])->name('by-campus');
+        Route::post('/bulk-assign', [BatchApiController::class, 'bulkAssign'])->name('bulk-assign');
+        Route::get('/{id}', [BatchApiController::class, 'show'])->name('show');
+        Route::get('/{id}/statistics', [BatchApiController::class, 'statistics'])->name('statistics');
+        Route::get('/{id}/candidates', [BatchApiController::class, 'candidates'])->name('candidates');
+        Route::post('/', [BatchApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [BatchApiController::class, 'update'])->name('update');
+        Route::post('/{id}/change-status', [BatchApiController::class, 'changeStatus'])->name('change-status');
+        Route::delete('/{id}', [BatchApiController::class, 'destroy'])->name('destroy');
     });
 
     // ========================================================================

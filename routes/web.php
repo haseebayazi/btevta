@@ -550,6 +550,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('trades', TradeController::class);
         Route::post('trades/{trade}/toggle-status', [TradeController::class, 'toggleStatus'])->name('trades.toggle-status');
         Route::resource('batches', BatchController::class);
+        Route::get('batches/{batch}/candidates', [BatchController::class, 'candidates'])->name('batches.candidates');
+        Route::get('batches/{batch}/statistics', [BatchController::class, 'statistics'])->name('batches.statistics');
+        Route::post('batches/bulk-assign', [BatchController::class, 'bulkAssign'])->name('batches.bulk-assign');
         Route::post('batches/{batch}/change-status', [BatchController::class, 'changeStatus'])->name('batches.change-status');
         Route::resource('users', UserController::class);
         Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
