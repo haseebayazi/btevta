@@ -82,6 +82,19 @@
                                 @error('campus_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="oep_id" class="form-label font-weight-bold">OEP (Overseas Employment Promoter)</label>
+                                <select id="oep_id" name="oep_id" class="form-control @error('oep_id') is-invalid @enderror">
+                                    <option value="">-- Select OEP (Optional) --</option>
+                                    @foreach($oeps as $id => $name)
+                                        <option value="{{ $id }}" {{ old('oep_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Optional: Select if batch is sponsored by an OEP</small>
+                                @error('oep_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
 
