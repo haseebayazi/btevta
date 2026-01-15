@@ -53,6 +53,17 @@ class Batch extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     */
+    protected $appends = [
+        'enrollment_count',
+        'available_slots',
+        'is_full',
+        'is_active',
+        'status_badge_class',
+    ];
+
+    /**
      * The model's default values for attributes.
      */
     protected $attributes = [
@@ -213,6 +224,46 @@ class Batch extends Model
         });
     }
 
+    /**
+     * Scope to get planned batches.
+     */
+    public function scopePlanned($query)
+    {
+        return $query->where('status', self::STATUS_PLANNED);
+    }
+
+    /**
+     * Scope to get completed batches.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', self::STATUS_COMPLETED);
+    }
+
+    /**
+     * Scope to filter by trade.
+     */
+    public function scopeByTrade($query, $tradeId)
+    {
+        return $query->where('trade_id', $tradeId);
+    }
+
+    /**
+     * Scope to filter by OEP.
+     */
+    public function scopeByOep($query, $oepId)
+    {
+        return $query->where('oep_id', $oepId);
+    }
+
+    /**
+     * Scope to get batches with available slots.
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->whereRaw('(SELECT COUNT(*) FROM candidates WHERE candidates.batch_id = batches.id AND candidates.deleted_at IS NULL) < batches.capacity');
+    }
+
     // ==================== ACCESSORS & MUTATORS ====================
 
     /**
@@ -258,15 +309,37 @@ class Batch extends Model
         if ($this->status !== self::STATUS_ACTIVE || !$this->start_date || !$this->end_date) {
             return 0;
         }
-        
+
         $totalDays = $this->start_date->diffInDays($this->end_date);
         $elapsedDays = $this->start_date->diffInDays(now());
-        
+
         if ($totalDays > 0) {
             return min(100, round(($elapsedDays / $totalDays) * 100, 2));
         }
-        
+
         return 0;
+    }
+
+    /**
+     * Check if batch is currently active.
+     */
+    public function getIsActiveAttribute()
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    /**
+     * Get status badge CSS class for UI display.
+     */
+    public function getStatusBadgeClassAttribute()
+    {
+        return match($this->status) {
+            self::STATUS_PLANNED => 'bg-blue-100 text-blue-800',
+            self::STATUS_ACTIVE => 'bg-green-100 text-green-800',
+            self::STATUS_COMPLETED => 'bg-gray-100 text-gray-800',
+            self::STATUS_CANCELLED => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-800',
+        };
     }
 
     // ==================== HELPER METHODS ====================
@@ -301,6 +374,23 @@ class Batch extends Model
     public function isFull()
     {
         return $this->is_full;
+    }
+
+    /**
+     * Check if batch can accommodate additional candidates.
+     */
+    public function canAddCandidates($count = 1)
+    {
+        return ($this->enrollment_count + $count) <= $this->capacity;
+    }
+
+    /**
+     * Get enrollment progress percentage.
+     */
+    public function getEnrollmentProgressPercentage()
+    {
+        if ($this->capacity == 0) return 0;
+        return round(($this->enrollment_count / $this->capacity) * 100, 2);
     }
 
     /**

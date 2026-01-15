@@ -51,4 +51,22 @@ class BulkBatchAssignRequest extends FormRequest
             'batch_id.exists' => 'Selected batch does not exist.',
         ];
     }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $batch = \App\Models\Batch::find($this->batch_id);
+            $candidateCount = count($this->candidate_ids ?? []);
+
+            if ($batch && !$batch->canAddCandidates($candidateCount)) {
+                $validator->errors()->add(
+                    'batch_id',
+                    "Batch capacity exceeded. Available slots: {$batch->available_slots}, Requested: {$candidateCount}"
+                );
+            }
+        });
+    }
 }
