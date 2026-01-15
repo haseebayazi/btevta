@@ -33,7 +33,7 @@
                             <span class="text-sm font-semibold text-gray-900">{{ $candidate['name'] }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">BTEVTA ID:</span>
+                            <span class="text-sm text-gray-600">TheLeap ID:</span>
                             <span class="text-sm font-semibold text-gray-900">{{ $candidate['btevta_id'] ?? 'Pending' }}</span>
                         </div>
                         <div class="flex justify-between">

@@ -357,7 +357,7 @@ class RemittanceController extends Controller
 
                 // CSV Header
                 fputcsv($file, [
-                    'BTEVTA ID',
+                    'TheLeap ID',
                     'Candidate Name',
                     'Trade',
                     'Remittance Date',

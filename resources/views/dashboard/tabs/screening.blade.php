@@ -39,7 +39,7 @@
                     <thead class="bg-gray-50 border-b">
                         <tr>
                             <th class="px-6 py-3 text-left font-semibold text-gray-700">Name</th>
-                            <th class="px-6 py-3 text-left font-semibold text-gray-700">BTEVTA ID</th>
+                            <th class="px-6 py-3 text-left font-semibold text-gray-700">TheLeap ID</th>
                             <th class="px-6 py-3 text-left font-semibold text-gray-700">Campus</th>
                             <th class="px-6 py-3 text-left font-semibold text-gray-700">Calls Completed</th>
                             <th class="px-6 py-3 text-left font-semibold text-gray-700">Last Updated</th>

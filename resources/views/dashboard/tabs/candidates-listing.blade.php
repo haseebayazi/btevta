@@ -102,7 +102,7 @@
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm p-4">
         <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-            <input type="text" name="search" placeholder="Search by Name, CNIC, BTEVTA ID"
+            <input type="text" name="search" placeholder="Search by Name, CNIC, TheLeap ID"
                    value="{{ request('search') }}" class="px-4 py-2 border rounded-lg w-full">
 
             <select name="status" class="px-4 py-2 border rounded-lg w-full">
@@ -148,7 +148,7 @@
                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             </th>
                             <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700">Name</th>
-                            <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700 hidden lg:table-cell">BTEVTA ID</th>
+                            <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700 hidden lg:table-cell">TheLeap ID</th>
                             <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700 hidden md:table-cell">CNIC</th>
                             <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700 hidden xl:table-cell">Campus</th>
                             <th class="px-3 sm:px-6 py-3 text-left font-semibold text-gray-700">Trade</th>

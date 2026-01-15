@@ -55,29 +55,29 @@ class DatabaseSeeder extends Seeder
         // 1. SUPER ADMIN - Highest privilege level
         // ============================================================
         $this->createSecureUser([
-            'email' => 'superadmin@btevta.gov.pk',
+            'email' => 'superadmin@theleap.org',
             'name' => 'Super Administrator',
             'role' => User::ROLE_SUPER_ADMIN,
         ]);
-        echo "✓ Super Admin created (superadmin@btevta.gov.pk)\n";
+        echo "✓ Super Admin created (superadmin@theleap.org)\n";
 
         // Legacy admin alias
         $this->createSecureUser([
-            'email' => 'admin@btevta.gov.pk',
+            'email' => 'admin@theleap.org',
             'name' => 'Administrator',
             'role' => User::ROLE_ADMIN,
         ]);
-        echo "✓ Admin created (admin@btevta.gov.pk)\n";
+        echo "✓ Admin created (admin@theleap.org)\n";
 
         // ============================================================
         // 2. PROJECT DIRECTOR - Oversight of all operations
         // ============================================================
         $this->createSecureUser([
-            'email' => 'director@btevta.gov.pk',
+            'email' => 'director@theleap.org',
             'name' => 'Project Director',
             'role' => User::ROLE_PROJECT_DIRECTOR,
         ]);
-        echo "✓ Project Director created (director@btevta.gov.pk)\n";
+        echo "✓ Project Director created (director@theleap.org)\n";
 
         // ============================================================
         // 3. CAMPUSES - Required before Campus Admins
@@ -99,7 +99,7 @@ class DatabaseSeeder extends Seeder
                     'city' => explode(' ', $campus['name'])[0],
                     'contact_person' => 'Manager',
                     'phone' => '051-9201596',
-                    'email' => strtolower(str_replace(' ', '', $campus['code'])) . '@btevta.gov.pk',
+                    'email' => strtolower(str_replace(' ', '', $campus['code'])) . '@theleap.org',
                     'is_active' => true,
                 ]
             );
@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
         // ============================================================
         $campusList = Campus::all();
         foreach ($campusList as $campus) {
-            $email = 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk';
+            $email = 'admin-' . strtolower(str_replace(' ', '', $campus->code)) . '@theleap.org';
             $this->createSecureUser([
                 'email' => $email,
                 'name' => $campus->name . ' Admin',
@@ -125,7 +125,7 @@ class DatabaseSeeder extends Seeder
         // 5. TRAINERS - Conduct training sessions
         // ============================================================
         foreach ($campusList->take(3) as $campus) {
-            $email = 'trainer-' . strtolower(str_replace(' ', '', $campus->code)) . '@btevta.gov.pk';
+            $email = 'trainer-' . strtolower(str_replace(' ', '', $campus->code)) . '@theleap.org';
             $this->createSecureUser([
                 'email' => $email,
                 'name' => $campus->name . ' Trainer',
@@ -189,7 +189,7 @@ class DatabaseSeeder extends Seeder
         // ============================================================
         $oepList = Oep::all();
         foreach ($oepList as $oep) {
-            $email = 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@btevta.gov.pk';
+            $email = 'oep-' . strtolower(str_replace(' ', '', $oep->name)) . '@theleap.org';
             $this->createSecureUser([
                 'email' => $email,
                 'name' => $oep->name . ' User',
@@ -222,7 +222,7 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            $email = 'visa-' . strtolower(str_replace(' ', '', $partner['name'])) . '@btevta.gov.pk';
+            $email = 'visa-' . strtolower(str_replace(' ', '', $partner['name'])) . '@theleap.org';
             $this->createSecureUser([
                 'email' => $email,
                 'name' => $partner['name'] . ' User',
@@ -236,22 +236,22 @@ class DatabaseSeeder extends Seeder
         // 8. VIEWER - Read-only access for reports
         // ============================================================
         $this->createSecureUser([
-            'email' => 'viewer@btevta.gov.pk',
+            'email' => 'viewer@theleap.org',
             'name' => 'Report Viewer',
             'role' => User::ROLE_VIEWER,
         ]);
-        echo "✓ Viewer created (viewer@btevta.gov.pk)\n";
+        echo "✓ Viewer created (viewer@theleap.org)\n";
 
         // ============================================================
         // 9. STAFF - General staff access
         // ============================================================
         $this->createSecureUser([
-            'email' => 'staff@btevta.gov.pk',
+            'email' => 'staff@theleap.org',
             'name' => 'Staff Member',
             'role' => User::ROLE_STAFF,
             'campus_id' => $campusList->first()->id,
         ]);
-        echo "✓ Staff created (staff@btevta.gov.pk)\n";
+        echo "✓ Staff created (staff@theleap.org)\n";
 
         // Create Batches
         if (Batch::count() === 0) {
@@ -311,7 +311,7 @@ class DatabaseSeeder extends Seeder
     private function initializeCredentialsLog(): void
     {
         $header = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        $header .= "WASL/BTEVTA - SEEDED USER CREDENTIALS\n";
+        $header .= "WASL/TheLeap - SEEDED USER CREDENTIALS\n";
         $header .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n";
         $header .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         $header .= "⚠️  SECURITY WARNING:\n";

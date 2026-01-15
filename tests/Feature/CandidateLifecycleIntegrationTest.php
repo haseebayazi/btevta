@@ -82,7 +82,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(Candidate::STATUS_NEW, $candidate->status);
         $this->assertNotNull($candidate->btevta_id);
         $this->assertNotNull($candidate->application_id);
-        $this->assertMatchesRegularExpression('/^BTV-\d{4}-\d{5}-\d$/', $candidate->btevta_id);
+        $this->assertMatchesRegularExpression('/^TLP-\d{4}-\d{5}-\d$/', $candidate->btevta_id);
     }
 
     /** @test */

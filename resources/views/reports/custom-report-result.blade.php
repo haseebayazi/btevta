@@ -13,7 +13,7 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>BTEVTA ID</th>
+                        <th>TheLeap ID</th>
                         <th>Name</th>
                         <th>Status</th>
                         <th>Campus</th>

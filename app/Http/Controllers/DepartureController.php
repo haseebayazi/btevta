@@ -782,7 +782,7 @@ class DepartureController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $columns = ['Candidate', 'BTEVTA ID', 'Trade', 'Departure Date', 'Iqama', 'Absher', 'Salary Confirmed', '90-Day Status'];
+        $columns = ['Candidate', 'TheLeap ID', 'Trade', 'Departure Date', 'Iqama', 'Absher', 'Salary Confirmed', '90-Day Status'];
 
         $callback = function() use ($departures, $columns) {
             $file = fopen('php://output', 'w');

@@ -117,7 +117,7 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th width="5%">#</th>
-                                        <th width="15%">BTEVTA ID</th>
+                                        <th width="15%">TheLeap ID</th>
                                         <th width="25%">Name</th>
                                         <th width="30%">Attendance Status</th>
                                         <th width="25%">Remarks</th>

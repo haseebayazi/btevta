@@ -29,16 +29,16 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {{--
-                        SECURITY: BTEVTA ID and Application ID are immutable system identifiers.
+                        SECURITY: TheLeap ID and Application ID are immutable system identifiers.
                         These fields are disabled intentionally:
                         1. They are system-generated unique identifiers
                         2. Changing them would break referential integrity
                         3. They are used for audit trails and external system integrations
                         AUDIT FIX (P3): Documented disabled field security rationale
                     --}}
-                    <!-- BTEVTA ID (Immutable - System Generated) -->
+                    <!-- TheLeap ID (Immutable - System Generated) -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">BTEVTA ID</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">TheLeap ID</label>
                         <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
                                value="{{ $candidate->btevta_id }}" disabled
                                title="System-generated identifier - cannot be modified">

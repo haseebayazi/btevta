@@ -1039,14 +1039,14 @@ class Candidate extends Model
     }
 
     /**
-     * Generate a unique BTEVTA ID for the candidate with Luhn check digit.
-     * Format: BTV-YYYY-XXXXX-C (where C is check digit)
+     * Generate a unique TheLeap ID for the candidate with Luhn check digit.
+     * Format: TLP-YYYY-XXXXX-C (where C is check digit)
      */
     public static function generateBtevtaId()
     {
         $year = date('Y');
         $lastId = self::whereYear('created_at', $year)
-                      ->where('btevta_id', 'like', 'BTV-' . $year . '-%')
+                      ->where('btevta_id', 'like', 'TLP-' . $year . '-%')
                       ->max('btevta_id');
 
         if ($lastId) {
@@ -1070,7 +1070,7 @@ class Candidate extends Model
         $baseId = $year . $sequenceNum; // e.g., "202500001"
         $checkDigit = self::calculateLuhnCheckDigit($baseId);
 
-        return 'BTV-' . $year . '-' . $sequenceNum . '-' . $checkDigit;
+        return 'TLP-' . $year . '-' . $sequenceNum . '-' . $checkDigit;
     }
 
     /**
@@ -1100,15 +1100,15 @@ class Candidate extends Model
     }
 
     /**
-     * Validate a BTEVTA ID with its check digit.
+     * Validate a TheLeap ID with its check digit.
      *
-     * @param string $btevtaId Full BTEVTA ID (e.g., BTV-2025-00001-7)
+     * @param string $btevtaId Full TheLeap ID (e.g., TLP-2025-00001-7)
      * @return bool True if valid, false otherwise
      */
     public static function validateBtevtaId($btevtaId)
     {
-        // Expected format: BTV-YYYY-XXXXX-C
-        if (!preg_match('/^BTV-(\d{4})-(\d{5})-(\d)$/', $btevtaId, $matches)) {
+        // Expected format: TLP-YYYY-XXXXX-C
+        if (!preg_match('/^TLP-(\d{4})-(\d{5})-(\d)$/', $btevtaId, $matches)) {
             return false;
         }
 

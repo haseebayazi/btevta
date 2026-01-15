@@ -175,19 +175,19 @@ class CandidateDeduplicationServiceTest extends TestCase
     }
 
     // =========================================================================
-    // BTEVTA ID DUPLICATE DETECTION
+    // TheLeap ID DUPLICATE DETECTION
     // =========================================================================
 
     /** @test */
     public function it_detects_btevta_id_match()
     {
         $existingCandidate = Candidate::factory()->create([
-            'btevta_id' => 'BTEVTA-2024-0001',
+            'btevta_id' => 'TLP-2024-0001',
             'cnic' => '3520112345671',
         ]);
 
         $newCandidateData = [
-            'btevta_id' => 'BTEVTA-2024-0001',
+            'btevta_id' => 'TLP-2024-0001',
             'name' => 'New Candidate',
             'cnic' => '3520199999999',
         ];
@@ -241,7 +241,7 @@ class CandidateDeduplicationServiceTest extends TestCase
 
         $candidatesData = [
             [
-                'btevta_id' => 'BTEVTA-NEW-001',
+                'btevta_id' => 'TLP-NEW-001',
                 'name' => 'New Candidate 1',
                 'cnic' => '3520199999991',
                 'phone' => '03001111111',
@@ -250,7 +250,7 @@ class CandidateDeduplicationServiceTest extends TestCase
                 'district' => 'Lahore',
             ],
             [
-                'btevta_id' => 'BTEVTA-DUP-001',
+                'btevta_id' => 'TLP-DUP-001',
                 'name' => 'Duplicate Candidate',
                 'cnic' => '3520112345671', // Same as existing
                 'phone' => '03002222222',
@@ -272,7 +272,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     {
         $candidatesData = [
             [
-                'btevta_id' => 'BTEVTA-NEW-001',
+                'btevta_id' => 'TLP-NEW-001',
                 'name' => 'Candidate 1',
                 'cnic' => '3520199999991',
                 'phone' => '03001111111',
@@ -281,7 +281,7 @@ class CandidateDeduplicationServiceTest extends TestCase
                 'district' => 'Lahore',
             ],
             [
-                'btevta_id' => 'BTEVTA-NEW-002',
+                'btevta_id' => 'TLP-NEW-002',
                 'name' => 'Candidate 2',
                 'cnic' => '3520199999992',
                 'phone' => '03002222222',
@@ -370,9 +370,9 @@ class CandidateDeduplicationServiceTest extends TestCase
     /** @test */
     public function it_finds_candidates_by_btevta_id()
     {
-        $candidate = Candidate::factory()->create(['btevta_id' => 'BTEVTA-2024-0001']);
+        $candidate = Candidate::factory()->create(['btevta_id' => 'TLP-2024-0001']);
 
-        $results = $this->service->findByBtevtaId('BTEVTA-2024-0001');
+        $results = $this->service->findByBtevtaId('TLP-2024-0001');
 
         $this->assertCount(1, $results);
         $this->assertEquals($candidate->id, $results->first()->id);

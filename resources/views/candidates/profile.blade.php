@@ -18,7 +18,7 @@
                         </div>
                     @endif
                     <h5>{{ $candidate->name }}</h5>
-                    <p class="text-muted">BTEVTA ID: {{ $candidate->btevta_id }}</p>
+                    <p class="text-muted">TheLeap ID: {{ $candidate->btevta_id }}</p>
                     <span class="badge bg-primary">{{ ucfirst($candidate->status) }}</span>
                 </div>
             </div>

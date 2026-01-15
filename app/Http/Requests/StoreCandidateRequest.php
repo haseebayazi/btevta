@@ -55,7 +55,7 @@ class StoreCandidateRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'btevta_id' => 'BTEVTA ID',
+            'btevta_id' => 'TheLeap ID',
             'cnic' => 'CNIC',
             'date_of_birth' => 'date of birth',
             'trade_id' => 'trade',

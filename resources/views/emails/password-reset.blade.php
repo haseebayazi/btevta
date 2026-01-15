@@ -78,7 +78,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>BTEVTA - Password Reset</h1>
+        <h1>TheLeap - Password Reset</h1>
         <p>Bureau of Overseas Employment</p>
     </div>
 

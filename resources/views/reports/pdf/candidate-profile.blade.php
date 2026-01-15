@@ -101,7 +101,7 @@
         <div class="section-title">Personal Information</div>
         <div class="info-grid">
             <div class="info-row">
-                <div class="info-label">BTEVTA ID</div>
+                <div class="info-label">TheLeap ID</div>
                 <div class="info-value">{{ $candidate->btevta_id }}</div>
             </div>
             <div class="info-row">

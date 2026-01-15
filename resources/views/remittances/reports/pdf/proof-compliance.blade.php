@@ -230,7 +230,7 @@
         <thead>
             <tr>
                 <th>Candidate</th>
-                <th>BTEVTA ID</th>
+                <th>TheLeap ID</th>
                 <th class="text-center">Transfers</th>
                 <th class="text-center">With Proof</th>
                 <th class="text-center">Compliance</th>

@@ -73,7 +73,7 @@
         </div>
         
         <div class="text-center mt-8 text-blue-100 text-sm">
-            <p>&copy; {{ date('Y') }} BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab</p>
+            <p>&copy; {{ date('Y') }} TheLeap - Board of Technical Education & Vocational Training Authority, Punjab</p>
         </div>
     </div>
     

@@ -56,7 +56,7 @@
             <table class="min-w-full">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left">BTEVTA ID</th>
+                        <th class="px-4 py-3 text-left">TheLeap ID</th>
                         <th class="px-4 py-3 text-left">Candidate Name</th>
                         <th class="px-4 py-3 text-left">Campus</th>
                         <th class="px-4 py-3 text-left">Status</th>

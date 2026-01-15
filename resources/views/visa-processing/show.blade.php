@@ -101,7 +101,7 @@
                         <img src="{{ $candidate->photo_url ?? asset('img/default.png') }}" class="rounded-circle" width="100" height="100" alt="{{ $candidate->name }}">
                     </div>
                     <table class="table table-sm table-borderless">
-                        <tr><td class="text-muted">BTEVTA ID</td><td class="text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td></tr>
+                        <tr><td class="text-muted">TheLeap ID</td><td class="text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td></tr>
                         <tr><td class="text-muted">Name</td><td>{{ $candidate->name }}</td></tr>
                         <tr><td class="text-muted">CNIC</td><td class="text-monospace">{{ $candidate->cnic }}</td></tr>
                         <tr><td class="text-muted">Passport</td><td class="text-monospace">{{ $candidate->passport_number ?? 'N/A' }}</td></tr>

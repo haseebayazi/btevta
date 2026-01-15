@@ -145,7 +145,7 @@ class TestDataSeeder extends Seeder
         }
 
         $logPath = storage_path('logs/seeder-credentials.log');
-        $content = "=== BTEVTA Test Data Seeder Credentials ===\n";
+        $content = "=== TheLeap Test Data Seeder Credentials ===\n";
         $content .= "Generated: " . now()->toDateTimeString() . "\n";
         $content .= "Environment: " . app()->environment() . "\n";
         $content .= str_repeat('=', 50) . "\n\n";
@@ -188,11 +188,11 @@ class TestDataSeeder extends Seeder
         $adminPassword = Str::random(12);
 
         // Admin user - use firstOrCreate to avoid duplicate errors
-        $adminUser = User::where('email', 'admin@btevta.gov.pk')->first();
+        $adminUser = User::where('email', 'admin@theleap.org')->first();
         $isNewAdmin = !$adminUser;
 
         $users['admin'] = User::firstOrCreate(
-            ['email' => 'admin@btevta.gov.pk'],
+            ['email' => 'admin@theleap.org'],
             [
                 'name' => 'System Administrator',
                 'password' => Hash::make($adminPassword),
@@ -202,23 +202,23 @@ class TestDataSeeder extends Seeder
             ]
         );
         if ($users['admin']->wasRecentlyCreated) {
-            $this->generatedPasswords['admin@btevta.gov.pk'] = $adminPassword;
+            $this->generatedPasswords['admin@theleap.org'] = $adminPassword;
         }
 
         if ($isNewAdmin) {
             $this->credentials[] = [
                 'role' => 'Admin',
                 'name' => 'System Administrator',
-                'email' => 'admin@btevta.gov.pk',
+                'email' => 'admin@theleap.org',
                 'password' => $adminPassword,
             ];
         }
 
         // Campus admins (one for each major campus)
         $campusAdmins = [
-            ['name' => 'Lahore Campus Admin', 'email' => 'lahore@btevta.gov.pk', 'campus_index' => 0],
-            ['name' => 'Karachi Campus Admin', 'email' => 'karachi@btevta.gov.pk', 'campus_index' => 1],
-            ['name' => 'Islamabad Campus Admin', 'email' => 'islamabad@btevta.gov.pk', 'campus_index' => 2],
+            ['name' => 'Lahore Campus Admin', 'email' => 'lahore@theleap.org', 'campus_index' => 0],
+            ['name' => 'Karachi Campus Admin', 'email' => 'karachi@theleap.org', 'campus_index' => 1],
+            ['name' => 'Islamabad Campus Admin', 'email' => 'islamabad@theleap.org', 'campus_index' => 2],
         ];
 
         foreach ($campusAdmins as $index => $admin) {
@@ -250,9 +250,9 @@ class TestDataSeeder extends Seeder
 
         // Regular users
         $regularUsers = [
-            ['name' => 'Muhammad Ahmed', 'email' => 'ahmed@btevta.gov.pk', 'campus_index' => 0],
-            ['name' => 'Fatima Khan', 'email' => 'fatima@btevta.gov.pk', 'campus_index' => 1],
-            ['name' => 'Ali Raza', 'email' => 'ali@btevta.gov.pk', 'campus_index' => 2],
+            ['name' => 'Muhammad Ahmed', 'email' => 'ahmed@theleap.org', 'campus_index' => 0],
+            ['name' => 'Fatima Khan', 'email' => 'fatima@theleap.org', 'campus_index' => 1],
+            ['name' => 'Ali Raza', 'email' => 'ali@theleap.org', 'campus_index' => 2],
         ];
 
         foreach ($regularUsers as $index => $userData) {
@@ -302,12 +302,12 @@ class TestDataSeeder extends Seeder
         $campuses[] = Campus::firstOrCreate(
             ['code' => 'LHR-01'],
             [
-                'name' => 'BTEVTA Lahore Campus',
+                'name' => 'TheLeapLahore Campus',
                 'address' => 'Main Boulevard, Gulberg III, Lahore, Punjab',
                 'city' => 'Lahore',
                 'contact_person' => 'Muhammad Rizwan',
                 'phone' => '+92-42-35714567',
-                'email' => 'lahore.campus@btevta.gov.pk',
+                'email' => 'lahore.campus@theleap.org',
                 'is_active' => true,
             ]
         );
@@ -315,12 +315,12 @@ class TestDataSeeder extends Seeder
         $campuses[] = Campus::firstOrCreate(
             ['code' => 'KHI-01'],
             [
-                'name' => 'BTEVTA Karachi Campus',
+                'name' => 'TheLeapKarachi Campus',
                 'address' => 'Block 5, Clifton, Karachi, Sindh',
                 'city' => 'Karachi',
                 'contact_person' => 'Ali Hassan',
                 'phone' => '+92-21-35301234',
-                'email' => 'karachi.campus@btevta.gov.pk',
+                'email' => 'karachi.campus@theleap.org',
                 'is_active' => true,
             ]
         );
@@ -328,12 +328,12 @@ class TestDataSeeder extends Seeder
         $campuses[] = Campus::firstOrCreate(
             ['code' => 'ISB-01'],
             [
-                'name' => 'BTEVTA Islamabad Campus',
+                'name' => 'TheLeapIslamabad Campus',
                 'address' => 'G-11 Markaz, Islamabad',
                 'city' => 'Islamabad',
                 'contact_person' => 'Sana Malik',
                 'phone' => '+92-51-2261234',
-                'email' => 'islamabad.campus@btevta.gov.pk',
+                'email' => 'islamabad.campus@theleap.org',
                 'is_active' => true,
             ]
         );
@@ -341,12 +341,12 @@ class TestDataSeeder extends Seeder
         $campuses[] = Campus::firstOrCreate(
             ['code' => 'PSH-01'],
             [
-                'name' => 'BTEVTA Peshawar Campus',
+                'name' => 'TheLeapPeshawar Campus',
                 'address' => 'University Town, Peshawar, KP',
                 'city' => 'Peshawar',
                 'contact_person' => 'Asad Khan',
                 'phone' => '+92-91-5701234',
-                'email' => 'peshawar.campus@btevta.gov.pk',
+                'email' => 'peshawar.campus@theleap.org',
                 'is_active' => true,
             ]
         );

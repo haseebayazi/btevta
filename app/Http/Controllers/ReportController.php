@@ -398,7 +398,7 @@ class ReportController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
 
             $headers = [
-                'BTEVTA ID', 'CNIC', 'Name', 'Father Name',
+                'TheLeap ID', 'CNIC', 'Name', 'Father Name',
                 'Gender', 'Phone', 'Trade', 'Campus', 'Status', 'Created'
             ];
             $sheet->fromArray($headers, null, 'A1');
@@ -500,7 +500,7 @@ class ReportController extends Controller
             // AUDIT FIX: Use chunking to prevent memory exhaustion on large datasets
             switch ($type) {
                 case 'candidates':
-                    fputcsv($file, ['BTEVTA ID', 'CNIC', 'Name', 'Father Name', 'Gender', 'Phone', 'Trade', 'Campus', 'Status', 'Created']);
+                    fputcsv($file, ['TheLeap ID', 'CNIC', 'Name', 'Father Name', 'Gender', 'Phone', 'Trade', 'Campus', 'Status', 'Created']);
                     Candidate::with(['trade', 'campus'])->chunk(500, function($candidates) use ($file) {
                         foreach ($candidates as $item) {
                             fputcsv($file, [
@@ -520,7 +520,7 @@ class ReportController extends Controller
                     break;
 
                 case 'departures':
-                    fputcsv($file, ['BTEVTA ID', 'Name', 'Trade', 'OEP', 'Departure Date', 'Iqama', 'Absher', 'Salary Status']);
+                    fputcsv($file, ['TheLeap ID', 'Name', 'Trade', 'OEP', 'Departure Date', 'Iqama', 'Absher', 'Salary Status']);
                     Departure::with(['candidate.trade', 'candidate.oep'])->chunk(500, function($departures) use ($file) {
                         foreach ($departures as $item) {
                             fputcsv($file, [
@@ -555,7 +555,7 @@ class ReportController extends Controller
                     break;
 
                 case 'training':
-                    fputcsv($file, ['BTEVTA ID', 'Name', 'Batch', 'Campus', 'Attendance %', 'Assessment Score', 'Certificate']);
+                    fputcsv($file, ['TheLeap ID', 'Name', 'Batch', 'Campus', 'Attendance %', 'Assessment Score', 'Certificate']);
                     Candidate::with(['batch', 'campus', 'trainingAttendances', 'trainingAssessments', 'trainingCertificates'])
                         ->whereIn('status', ['training', 'visa_process', 'departed'])
                         ->chunk(500, function($candidates) use ($file) {

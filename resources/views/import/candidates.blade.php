@@ -108,7 +108,7 @@
                 </thead>
                 <tbody class="divide-y">
                     <tr>
-                        <td class="px-4 py-2">BTEVTA ID</td>
+                        <td class="px-4 py-2">TheLeap ID</td>
                         <td class="px-4 py-2 text-red-600">Yes</td>
                         <td class="px-4 py-2">Unique ID</td>
                         <td class="px-4 py-2 text-gray-600">BTEVTA-2025-001</td>
