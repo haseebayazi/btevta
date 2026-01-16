@@ -191,6 +191,7 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     Route::resource('screening', ScreeningController::class)->except(['show']);
     Route::prefix('screening')->name('screening.')->group(function () {
+        Route::get('/dashboard', [ScreeningController::class, 'dashboard'])->name('dashboard');
         Route::get('/pending', [ScreeningController::class, 'pending'])->name('pending');
         Route::post('/{candidate}/call-log', [ScreeningController::class, 'logCall'])->name('log-call');
         Route::post('/{candidate}/screening-outcome', [ScreeningController::class, 'recordOutcome'])->name('outcome');

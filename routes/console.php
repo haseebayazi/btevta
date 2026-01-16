@@ -41,6 +41,17 @@ Schedule::command('app:check-document-expiry')
         logger()->error('Scheduled: Document expiry check FAILED');
     });
 
+// Screening call reminders - Daily at 9:00 AM
+Schedule::command('screening:send-reminders')
+    ->dailyAt('09:00')
+    ->description('Send reminders for pending screening calls')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Screening reminders sent');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Screening reminders FAILED');
+    });
+
 // Generate remittance alerts - Daily at 7:00 AM
 Schedule::command('remittance:generate-alerts')
     ->dailyAt('07:00')

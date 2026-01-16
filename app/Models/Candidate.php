@@ -55,6 +55,7 @@ class Candidate extends Model
         'remarks',
         'at_risk_reason',
         'at_risk_since',
+        'screening_reminder_sent_at',
         'created_by',
         'updated_by'
     ];
@@ -73,6 +74,7 @@ class Candidate extends Model
         'updated_by' => 'integer',
         'deleted_at' => 'datetime',
         'at_risk_since' => 'datetime',
+        'screening_reminder_sent_at' => 'datetime',
     ];
 
     /**
