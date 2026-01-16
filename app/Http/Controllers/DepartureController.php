@@ -299,6 +299,60 @@ class DepartureController extends Controller
     }
 
     /**
+     * Confirm and verify salary receipt with detailed documentation
+     */
+    public function confirmSalary(Request $request, Departure $departure)
+    {
+        $this->authorize('recordFirstSalary', Departure::class);
+
+        $validated = $request->validate([
+            'salary_amount' => 'required|numeric|min:0',
+            'salary_currency' => 'required|string|in:SAR,PKR,USD,AED',
+            'first_salary_date' => 'required|date',
+            'proof_document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'salary_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            // Store proof document
+            $proofPath = $request->file('proof_document')
+                ->store('departure/salary-proof', 'public');
+
+            // Update departure with salary confirmation
+            $departure->update([
+                'salary_amount' => $validated['salary_amount'],
+                'salary_currency' => $validated['salary_currency'],
+                'first_salary_date' => $validated['first_salary_date'],
+                'salary_proof_path' => $proofPath,
+                'salary_confirmed' => true,
+                'salary_confirmed_by' => auth()->id(),
+                'salary_confirmed_at' => now(),
+                'salary_remarks' => $validated['salary_remarks'] ?? null,
+            ]);
+
+            // Log activity
+            activity()
+                ->performedOn($departure)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'salary_amount' => $validated['salary_amount'],
+                    'salary_currency' => $validated['salary_currency'],
+                ])
+                ->log('Salary confirmed');
+
+            // Send notification
+            if ($departure->candidate) {
+                $this->notificationService->sendFirstSalaryConfirmed($departure->candidate);
+            }
+
+            return back()->with('success', 'Salary confirmed successfully!');
+        } catch (\Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to confirm salary: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Record 90-day compliance
      */
     public function record90DayCompliance(Request $request, Candidate $candidate)
@@ -483,6 +537,119 @@ class DepartureController extends Controller
         } catch (Exception $e) {
             return back()->with('error', 'Failed to fetch issues: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Welfare Monitoring Dashboard
+     */
+    public function welfareMonitoring(Request $request)
+    {
+        $this->authorize('viewTrackingReports', Departure::class);
+
+        try {
+            // Overall statistics
+            $totalDeployed = Departure::whereNotNull('departure_date')->count();
+
+            $stats = [
+                'total_deployed' => $totalDeployed,
+                'ninety_day_compliant' => Departure::where('ninety_day_compliance_status', 'compliant')->count(),
+                'ninety_day_partial' => Departure::where('ninety_day_compliance_status', 'partial')->count(),
+                'ninety_day_non_compliant' => Departure::where('ninety_day_compliance_status', 'non_compliant')->count(),
+                'ninety_day_pending' => Departure::where('ninety_day_compliance_status', 'pending')
+                    ->orWhereNull('ninety_day_compliance_status')
+                    ->count(),
+                'salary_confirmed' => Departure::where('salary_confirmed', true)->count(),
+                'pending_salary_confirmation' => Departure::where('salary_confirmed', false)
+                    ->orWhereNull('salary_confirmed')
+                    ->where('departure_date', '<=', now()->subDays(30))
+                    ->whereNotNull('departure_date')
+                    ->count(),
+                'at_risk_candidates' => $this->getAtRiskCandidates(),
+                'by_country' => Departure::whereNotNull('destination')
+                    ->selectRaw('destination as country, count(*) as count')
+                    ->groupBy('destination')
+                    ->orderBy('count', 'desc')
+                    ->limit(10)
+                    ->get(),
+                'recent_issues' => Departure::whereNotNull('issues')
+                    ->where('issues', '!=', '')
+                    ->with('candidate')
+                    ->latest()
+                    ->limit(10)
+                    ->get(),
+            ];
+
+            // Compliance rate calculation
+            $stats['compliance_rate'] = $totalDeployed > 0
+                ? round(($stats['ninety_day_compliant'] / $totalDeployed) * 100, 1)
+                : 0;
+
+            $stats['salary_confirmation_rate'] = $totalDeployed > 0
+                ? round(($stats['salary_confirmed'] / $totalDeployed) * 100, 1)
+                : 0;
+
+            // Filter options
+            $campuses = auth()->user()->role === 'campus_admin'
+                ? \App\Models\Campus::where('id', auth()->user()->campus_id)->pluck('name', 'id')
+                : \App\Models\Campus::where('is_active', true)->pluck('name', 'id');
+
+            $oeps = \App\Models\Oep::where('is_active', true)->pluck('name', 'id');
+
+            return view('departure.welfare-monitoring', compact('stats', 'campuses', 'oeps'));
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to load welfare monitoring dashboard: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get at-risk candidates (those who might need intervention)
+     */
+    private function getAtRiskCandidates()
+    {
+        // Candidates are at risk if:
+        // 1. Departed 60+ days ago without salary confirmation
+        // 2. Non-compliant 90-day status
+        // 3. Have logged issues
+        $atRisk = Departure::with('candidate')
+            ->where(function($q) {
+                $q->where(function($subQ) {
+                    // No salary after 60 days
+                    $subQ->where('departure_date', '<=', now()->subDays(60))
+                        ->where(function($salaryQ) {
+                            $salaryQ->where('salary_confirmed', false)
+                                ->orWhereNull('salary_confirmed');
+                        });
+                })
+                ->orWhere('ninety_day_compliance_status', 'non_compliant')
+                ->orWhereNotNull('issues');
+            })
+            ->whereNotNull('departure_date')
+            ->get();
+
+        return $atRisk->map(function($departure) {
+            $riskFactors = [];
+
+            if (!$departure->salary_confirmed && $departure->departure_date <= now()->subDays(60)) {
+                $riskFactors[] = 'No salary confirmation (' . $departure->departure_date->diffInDays(now()) . ' days)';
+            }
+
+            if ($departure->ninety_day_compliance_status === 'non_compliant') {
+                $riskFactors[] = '90-day non-compliant';
+            }
+
+            if ($departure->issues) {
+                $riskFactors[] = 'Active issues reported';
+            }
+
+            return [
+                'departure' => $departure,
+                'candidate' => $departure->candidate,
+                'risk_factors' => $riskFactors,
+                'risk_level' => count($riskFactors) >= 2 ? 'high' : 'medium',
+            ];
+        })->sortByDesc(function($item) {
+            return count($item['risk_factors']);
+        })->take(20);
     }
 
     /**

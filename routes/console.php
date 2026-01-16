@@ -52,6 +52,28 @@ Schedule::command('remittance:generate-alerts')
         logger()->error('Scheduled: Remittance alert generation FAILED');
     });
 
+// 90-day compliance check - Daily at 8:00 AM
+Schedule::command('departure:check-compliance --notify')
+    ->dailyAt('08:00')
+    ->description('Check 90-day compliance for departed candidates')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: 90-day compliance check completed');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: 90-day compliance check FAILED');
+    });
+
+// Salary verification reminders - Weekly on Mondays at 9:00 AM
+Schedule::command('departure:salary-reminders')
+    ->weeklyOn(1, '09:00')
+    ->description('Send salary verification reminders for departed candidates')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Salary verification reminders sent');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Salary verification reminders FAILED');
+    });
+
 // ============================================================================
 // FREQUENT MONITORING TASKS
 // ============================================================================
