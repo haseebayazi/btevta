@@ -450,6 +450,7 @@ Route::middleware(['auth'])->group(function () {
         // VERSION CONTROL ROUTES
         Route::get('/{document}/versions', [DocumentArchiveController::class, 'versions'])->name('versions');
         Route::post('/{document}/version', [DocumentArchiveController::class, 'uploadVersion'])->name('upload-version');
+        Route::post('/{document}/compare-versions', [DocumentArchiveController::class, 'compareVersions'])->name('compare-versions');
         Route::post('/{document}/restore-version', [DocumentArchiveController::class, 'restoreVersion'])->name('restore-version');
 
         // ARCHIVE & RESTORE ROUTES
@@ -458,6 +459,7 @@ Route::middleware(['auth'])->group(function () {
 
         // SEARCH & FILTER ROUTES
         Route::get('/search', [DocumentArchiveController::class, 'search'])->name('search');
+        Route::get('/advanced-search', [DocumentArchiveController::class, 'advancedSearch'])->name('advanced-search');
         Route::get('/expiring', [DocumentArchiveController::class, 'expiring'])->name('expiring');
         Route::get('/tracking/expired', [DocumentArchiveController::class, 'expired'])->name('expired');
         Route::get('/candidate/{candidate}/documents', [DocumentArchiveController::class, 'candidateDocuments'])->name('candidate-documents');

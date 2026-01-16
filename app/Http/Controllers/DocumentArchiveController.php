@@ -284,6 +284,89 @@ class DocumentArchiveController extends Controller
     }
 
     /**
+     * Compare two document versions side-by-side
+     */
+    public function compareVersions(Request $request, DocumentArchive $document)
+    {
+        $this->authorize('view', $document);
+
+        $validated = $request->validate([
+            'version1_id' => 'required|exists:document_archives,id',
+            'version2_id' => 'required|exists:document_archives,id',
+        ]);
+
+        $version1 = DocumentArchive::findOrFail($validated['version1_id']);
+        $version2 = DocumentArchive::findOrFail($validated['version2_id']);
+
+        // Ensure both versions belong to the same document chain
+        if (($version1->replaces_document_id !== $document->id && $version1->id !== $document->id) ||
+            ($version2->replaces_document_id !== $document->id && $version2->id !== $document->id)) {
+            abort(403, 'Invalid version comparison');
+        }
+
+        // Get comparison data
+        $comparison = [
+            'metadata' => [
+                'document_name' => [
+                    'v1' => $version1->document_name,
+                    'v2' => $version2->document_name,
+                    'changed' => $version1->document_name !== $version2->document_name
+                ],
+                'document_number' => [
+                    'v1' => $version1->document_number,
+                    'v2' => $version2->document_number,
+                    'changed' => $version1->document_number !== $version2->document_number
+                ],
+                'file_size' => [
+                    'v1' => $this->formatFileSize($version1->file_size),
+                    'v2' => $this->formatFileSize($version2->file_size),
+                    'changed' => $version1->file_size !== $version2->file_size
+                ],
+                'file_type' => [
+                    'v1' => $version1->file_type,
+                    'v2' => $version2->file_type,
+                    'changed' => $version1->file_type !== $version2->file_type
+                ],
+                'uploaded_at' => [
+                    'v1' => $version1->uploaded_at ? $version1->uploaded_at->format('Y-m-d H:i:s') : 'N/A',
+                    'v2' => $version2->uploaded_at ? $version2->uploaded_at->format('Y-m-d H:i:s') : 'N/A',
+                    'changed' => true // Always different
+                ],
+                'uploaded_by' => [
+                    'v1' => $version1->uploader ? $version1->uploader->name : 'Unknown',
+                    'v2' => $version2->uploader ? $version2->uploader->name : 'Unknown',
+                    'changed' => $version1->uploaded_by !== $version2->uploaded_by
+                ],
+                'expiry_date' => [
+                    'v1' => $version1->expiry_date ? $version1->expiry_date->format('Y-m-d') : 'N/A',
+                    'v2' => $version2->expiry_date ? $version2->expiry_date->format('Y-m-d') : 'N/A',
+                    'changed' => $version1->expiry_date != $version2->expiry_date
+                ],
+                'description' => [
+                    'v1' => $version1->description ?? 'N/A',
+                    'v2' => $version2->description ?? 'N/A',
+                    'changed' => $version1->description !== $version2->description
+                ],
+            ]
+        ];
+
+        return view('document-archive.compare-versions', compact('document', 'version1', 'version2', 'comparison'));
+    }
+
+    /**
+     * Format file size for display
+     */
+    private function formatFileSize($bytes)
+    {
+        if (!$bytes) return '0 B';
+
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = floor(log($bytes, 1024));
+
+        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
+    }
+
+    /**
      * Restore previous version
      */
     public function restoreVersion(Request $request, DocumentArchive $document)
@@ -372,6 +455,148 @@ class DocumentArchiveController extends Controller
             }
 
             return back()->with('error', 'Search failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Advanced search with multiple filters
+     */
+    public function advancedSearch(Request $request)
+    {
+        $this->authorize('viewAny', DocumentArchive::class);
+
+        $validated = $request->validate([
+            'keyword' => 'nullable|string|max:255',
+            'document_type' => 'nullable|string',
+            'document_category' => 'nullable|string',
+            'candidate_id' => 'nullable|exists:candidates,id',
+            'campus_id' => 'nullable|exists:campuses,id',
+            'uploaded_by' => 'nullable|exists:users,id',
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'exists:document_tags,id',
+            'upload_date_from' => 'nullable|date',
+            'upload_date_to' => 'nullable|date|after_or_equal:upload_date_from',
+            'expiry_date_from' => 'nullable|date',
+            'expiry_date_to' => 'nullable|date|after_or_equal:expiry_date_from',
+            'file_type' => 'nullable|string',
+            'has_expiry' => 'nullable|boolean',
+            'is_expired' => 'nullable|boolean',
+        ]);
+
+        try {
+            $query = DocumentArchive::with(['candidate', 'campus', 'uploader', 'tags'])
+                ->currentVersion();
+
+            // Apply campus filter for campus admins
+            if (auth()->user()->role === 'campus_admin') {
+                $query->where('campus_id', auth()->user()->campus_id);
+            }
+
+            // Keyword search across multiple fields
+            if (!empty($validated['keyword'])) {
+                $keyword = $validated['keyword'];
+                $query->where(function($q) use ($keyword) {
+                    $q->where('document_name', 'like', "%{$keyword}%")
+                        ->orWhere('document_number', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%")
+                        ->orWhereHas('candidate', function($cq) use ($keyword) {
+                            $cq->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('cnic', 'like', "%{$keyword}%");
+                        });
+                });
+            }
+
+            // Filter by document type
+            if (!empty($validated['document_type'])) {
+                $query->where('document_type', $validated['document_type']);
+            }
+
+            // Filter by document category
+            if (!empty($validated['document_category'])) {
+                $query->where('document_category', $validated['document_category']);
+            }
+
+            // Filter by candidate
+            if (!empty($validated['candidate_id'])) {
+                $query->where('candidate_id', $validated['candidate_id']);
+            }
+
+            // Filter by campus
+            if (!empty($validated['campus_id']) && auth()->user()->role !== 'campus_admin') {
+                $query->where('campus_id', $validated['campus_id']);
+            }
+
+            // Filter by uploader
+            if (!empty($validated['uploaded_by'])) {
+                $query->where('uploaded_by', $validated['uploaded_by']);
+            }
+
+            // Filter by tags (ANY logic - document has any of the selected tags)
+            if (!empty($validated['tag_ids'])) {
+                $query->whereHas('tags', function($tq) use ($validated) {
+                    $tq->whereIn('document_tags.id', $validated['tag_ids']);
+                });
+            }
+
+            // Filter by upload date range
+            if (!empty($validated['upload_date_from'])) {
+                $query->whereDate('uploaded_at', '>=', $validated['upload_date_from']);
+            }
+            if (!empty($validated['upload_date_to'])) {
+                $query->whereDate('uploaded_at', '<=', $validated['upload_date_to']);
+            }
+
+            // Filter by expiry date range
+            if (!empty($validated['expiry_date_from'])) {
+                $query->whereDate('expiry_date', '>=', $validated['expiry_date_from']);
+            }
+            if (!empty($validated['expiry_date_to'])) {
+                $query->whereDate('expiry_date', '<=', $validated['expiry_date_to']);
+            }
+
+            // Filter by file type
+            if (!empty($validated['file_type'])) {
+                $query->where('file_type', $validated['file_type']);
+            }
+
+            // Filter by expiry status
+            if (isset($validated['has_expiry']) && $validated['has_expiry']) {
+                $query->whereNotNull('expiry_date');
+            }
+
+            if (isset($validated['is_expired']) && $validated['is_expired']) {
+                $query->expired();
+            }
+
+            // Sort by most recent first
+            $documents = $query->orderBy('uploaded_at', 'desc')->paginate(20);
+
+            // Get filter options for the form
+            $filterOptions = [
+                'document_types' => DocumentArchive::distinct()->pluck('document_type')->filter(),
+                'document_categories' => DocumentArchive::distinct()->pluck('document_category')->filter(),
+                'campuses' => auth()->user()->role === 'campus_admin'
+                    ? \App\Models\Campus::where('id', auth()->user()->campus_id)->pluck('name', 'id')
+                    : \App\Models\Campus::where('is_active', true)->pluck('name', 'id'),
+                'uploaders' => \App\Models\User::whereHas('uploadedDocuments')->pluck('name', 'id'),
+                'tags' => \App\Models\DocumentTag::orderBy('name')->get(),
+                'file_types' => DocumentArchive::distinct()->pluck('file_type')->filter(),
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'documents' => $documents,
+                    'filter_options' => $filterOptions,
+                ]);
+            }
+
+            return view('document-archive.advanced-search', compact('documents', 'filterOptions', 'validated'));
+        } catch (Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+
+            return back()->with('error', 'Advanced search failed: ' . $e->getMessage());
         }
     }
 
