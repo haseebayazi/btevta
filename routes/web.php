@@ -419,9 +419,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/my/assignments', [ComplaintController::class, 'myAssignments'])->name('my-assignments');
         Route::get('/statistics', [ComplaintController::class, 'statistics'])->name('statistics');
 
+        // ANALYTICS & REPORTING ROUTES
+        // GET route to display analytics dashboard
+        Route::get('/analytics', [ComplaintController::class, 'analytics'])->name('analytics.dashboard');
+
         // THROTTLE FIX: Reports and exports limited to 5/min (resource intensive)
         Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])
             ->middleware('throttle:5,1')->name('analytics');
+        Route::get('/reports/sla', [ComplaintController::class, 'slaReport'])->name('sla-report.dashboard');
         Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])

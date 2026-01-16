@@ -78,11 +78,14 @@ Schedule::command('departure:salary-reminders')
 // FREQUENT MONITORING TASKS
 // ============================================================================
 
-// SLA breach check - Every 15 minutes
-Schedule::command('app:check-complaint-sla')
+// SLA breach check - Every 15 minutes (with notifications and auto-escalation)
+Schedule::command('app:check-complaint-sla --notify --auto-escalate')
     ->everyFifteenMinutes()
-    ->description('Check for SLA breaches on complaints')
+    ->description('Check for SLA breaches, send notifications, and auto-escalate overdue complaints')
     ->withoutOverlapping()
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Complaint SLA check completed');
+    })
     ->onFailure(function () {
         logger()->error('Scheduled: Complaint SLA check FAILED');
     });
