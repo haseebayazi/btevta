@@ -363,4 +363,185 @@ class CorrespondenceController extends Controller
             ->with('success', 'Correspondence deleted successfully!');
     }
 
+    /**
+     * Full-text search across correspondence records
+     */
+    public function search(Request $request)
+    {
+        $this->authorize('viewAny', Correspondence::class);
+
+        $query = $request->get('q');
+
+        if (empty($query)) {
+            return redirect()->route('correspondence.index')
+                ->with('info', 'Please enter a search query.');
+        }
+
+        // Escape special LIKE characters to prevent SQL injection
+        $escapedQuery = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
+
+        // Build search query
+        $results = Correspondence::where(function($q) use ($escapedQuery) {
+            $q->where('subject', 'LIKE', "%{$escapedQuery}%")
+              ->orWhere('reference_number', 'LIKE', "%{$escapedQuery}%")
+              ->orWhere('sender', 'LIKE', "%{$escapedQuery}%")
+              ->orWhere('recipient', 'LIKE', "%{$escapedQuery}%")
+              ->orWhere('content', 'LIKE', "%{$escapedQuery}%")
+              ->orWhere('notes', 'LIKE', "%{$escapedQuery}%");
+        });
+
+        // Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $results->where('campus_id', $user->campus_id);
+            } elseif ($user->isOep() && $user->oep_id) {
+                $results->where('oep_id', $user->oep_id);
+            }
+        }
+
+        $results = $results->with(['campus', 'oep', 'creator'])
+            ->latest()
+            ->paginate(20);
+
+        // Highlight search terms in results (optional, for frontend use)
+        $highlightedQuery = htmlspecialchars($query, ENT_QUOTES, 'UTF-8');
+
+        return view('correspondence.search-results', compact('results', 'query', 'highlightedQuery'));
+    }
+
+    /**
+     * Pendency analytics dashboard
+     */
+    public function pendencyReport()
+    {
+        $this->authorize('viewAny', Correspondence::class);
+
+        // Base query
+        $baseQuery = Correspondence::query();
+
+        // Apply campus/OEP filtering for non-admin users
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $baseQuery->where('campus_id', $user->campus_id);
+            } elseif ($user->isOep() && $user->oep_id) {
+                $baseQuery->where('oep_id', $user->oep_id);
+            }
+        }
+
+        // Basic statistics
+        $stats = [
+            'total_correspondence' => (clone $baseQuery)->count(),
+            'total_pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+            'total_replied' => (clone $baseQuery)->where('status', 'replied')->count(),
+            'total_closed' => (clone $baseQuery)->where('status', 'closed')->count(),
+        ];
+
+        // Pending by type
+        $stats['pending_by_type'] = (clone $baseQuery)
+            ->where('status', 'pending')
+            ->select('type', \DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->get()
+            ->pluck('count', 'type');
+
+        // Average response time (for replied correspondence)
+        $avgResponseTime = (clone $baseQuery)
+            ->whereNotNull('response_date')
+            ->select(\DB::raw('AVG(DATEDIFF(response_date, created_at)) as avg_days'))
+            ->value('avg_days');
+
+        $stats['avg_response_time_days'] = $avgResponseTime ? round($avgResponseTime, 1) : 0;
+
+        // Overdue correspondence (pending beyond due date)
+        $stats['overdue'] = (clone $baseQuery)
+            ->where('status', 'pending')
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->count();
+
+        // Overdue list (detailed)
+        $stats['overdue_list'] = (clone $baseQuery)
+            ->where('status', 'pending')
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->with(['campus', 'oep', 'creator'])
+            ->orderBy('due_date', 'asc')
+            ->limit(20)
+            ->get()
+            ->map(function($correspondence) {
+                $daysPastDue = now()->diffInDays($correspondence->due_date);
+                return [
+                    'correspondence' => $correspondence,
+                    'days_past_due' => $daysPastDue,
+                    'severity' => $daysPastDue > 14 ? 'critical' : ($daysPastDue > 7 ? 'high' : 'moderate'),
+                ];
+            });
+
+        // By organization type
+        $stats['by_org_type'] = (clone $baseQuery)
+            ->select('organization_type', \DB::raw('count(*) as count'))
+            ->groupBy('organization_type')
+            ->get()
+            ->pluck('count', 'organization_type');
+
+        // Monthly trend (last 6 months)
+        $monthlyTrend = (clone $baseQuery)
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->select(
+                \DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                \DB::raw('count(*) as total'),
+                \DB::raw('SUM(CASE WHEN status = "replied" THEN 1 ELSE 0 END) as replied'),
+                \DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        $stats['monthly_trend'] = $monthlyTrend;
+
+        // Response rate (percentage of correspondence with responses)
+        $totalWithDueDate = (clone $baseQuery)->whereNotNull('due_date')->count();
+        if ($totalWithDueDate > 0) {
+            $respondedOnTime = (clone $baseQuery)
+                ->whereNotNull('due_date')
+                ->whereNotNull('response_date')
+                ->whereRaw('response_date <= due_date')
+                ->count();
+
+            $stats['on_time_response_rate'] = round(($respondedOnTime / $totalWithDueDate) * 100, 1);
+        } else {
+            $stats['on_time_response_rate'] = 0;
+        }
+
+        // Campus breakdown (for admins only)
+        if ($user->role === 'admin' || $user->role === 'project_director') {
+            $stats['by_campus'] = Correspondence::join('campuses', 'correspondences.campus_id', '=', 'campuses.id')
+                ->select('campuses.name as campus_name', \DB::raw('count(*) as count'))
+                ->groupBy('campuses.id', 'campuses.name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        // OEP breakdown (for admins only)
+        if ($user->role === 'admin' || $user->role === 'project_director') {
+            $stats['by_oep'] = Correspondence::join('oeps', 'correspondences.oep_id', '=', 'oeps.id')
+                ->select('oeps.name as oep_name', \DB::raw('count(*) as count'))
+                ->groupBy('oeps.id', 'oeps.name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        // Recent correspondence activity
+        $stats['recent_activity'] = (clone $baseQuery)
+            ->with(['campus', 'oep', 'creator'])
+            ->latest('updated_at')
+            ->limit(10)
+            ->get();
+
+        return view('correspondence.pendency-report', compact('stats'));
+    }
 }

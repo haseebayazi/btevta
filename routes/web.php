@@ -306,6 +306,7 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:30,1')->name('upload-ticket');
 
             // VIEW & REPORTING ROUTES
+            Route::get('/dashboard', [VisaProcessingController::class, 'dashboard'])->name('dashboard');
             Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
 
             // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
@@ -387,7 +388,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
             Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
 
-            // NEW: Communication summary report
+            // SEARCH & ANALYTICS
+            Route::get('/search', [CorrespondenceController::class, 'search'])->name('search');
+            Route::get('/pendency-report', [CorrespondenceController::class, 'pendencyReport'])->name('pendency-report');
+
+            // REPORTS
             Route::get('/reports/summary', [CorrespondenceController::class, 'summary'])
                 ->middleware('throttle:5,1')->name('reports.summary');
         });
