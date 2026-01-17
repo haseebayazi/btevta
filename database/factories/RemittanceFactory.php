@@ -2,95 +2,94 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Remittance;
 use App\Models\Candidate;
 use App\Models\Departure;
+use App\Models\Campus;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RemittanceFactory extends Factory
 {
+    protected $model = Remittance::class;
+
     public function definition(): array
     {
-        $transferDate = fake()->dateTimeBetween('-1 year', 'now');
-        $date = \Carbon\Carbon::parse($transferDate);
+        $amount = $this->faker->randomFloat(2, 1000, 50000);
+        $exchangeRate = $this->faker->randomFloat(4, 0.5, 300);
 
         return [
             'candidate_id' => Candidate::factory(),
             'departure_id' => Departure::factory(),
+            'campus_id' => Campus::factory(),
+            'transaction_reference' => 'RMT-' . now()->format('Ymd') . '-' . strtoupper($this->faker->bothify('??####')),
+            'transaction_type' => $this->faker->randomElement(['salary', 'bonus', 'allowance', 'reimbursement']),
+            'transaction_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
+            'amount' => $amount,
+            'currency' => $this->faker->randomElement(['SAR', 'PKR', 'USD']),
+            'exchange_rate' => $exchangeRate,
+            'amount_in_pkr' => $amount * $exchangeRate,
+            'transfer_method' => $this->faker->randomElement(['bank_transfer', 'cash', 'mobile_wallet']),
+            'bank_name' => $this->faker->randomElement(['Meezan Bank', 'HBL', 'UBL', 'Allied Bank', 'MCB']),
+            'account_number' => $this->faker->numerify('####-#######-###'),
+            'purpose' => $this->faker->randomElement(['Monthly salary', 'Overtime payment', 'End of service benefit', 'Bonus payment']),
+            'description' => $this->faker->optional()->sentence(),
+            'month_year' => $this->faker->date('Y-m'),
+            'verification_status' => $this->faker->randomElement(['pending', 'verified', 'rejected', 'under_review']),
+            'status' => $this->faker->randomElement(['initiated', 'processing', 'completed', 'failed']),
             'recorded_by' => User::factory(),
-            'transaction_reference' => 'TXN' . fake()->unique()->numerify('##########'),
-            'amount' => fake()->randomFloat(2, 10000, 150000),
-            'currency' => 'PKR',
-            'amount_foreign' => fake()->randomFloat(2, 50, 500),
-            'foreign_currency' => fake()->randomElement(['USD', 'SAR', 'AED', 'QAR', 'KWD']),
-            'exchange_rate' => fake()->randomFloat(4, 200, 350),
-            'transfer_date' => $transferDate,
-            'transfer_method' => fake()->randomElement(['bank_transfer', 'money_exchange', 'online_transfer', 'cash_deposit']),
-            'sender_name' => fake()->name(),
-            'sender_location' => fake()->randomElement(['Riyadh, Saudi Arabia', 'Dubai, UAE', 'Doha, Qatar', 'Kuwait City, Kuwait']),
-            'receiver_name' => fake()->name(),
-            'receiver_account' => fake()->numerify('PK####################'),
-            'bank_name' => fake()->randomElement(['HBL', 'UBL', 'MCB', 'Allied Bank', 'Meezan Bank', 'Faysal Bank']),
-            'primary_purpose' => fake()->randomElement(['family_support', 'education', 'healthcare', 'debt_repayment', 'savings', 'investment', 'other']),
-            'purpose_description' => fake()->optional()->sentence(),
-            'has_proof' => fake()->boolean(85),
-            'proof_verified_date' => fake()->optional(0.7)->dateTimeBetween($transferDate, 'now'),
-            'verified_by' => fake()->optional(0.7)->randomElement([1, 2, 3]),
-            'status' => fake()->randomElement(['pending', 'verified', 'flagged']),
-            'notes' => fake()->optional()->paragraph(),
-            'alert_message' => null,
-            'is_first_remittance' => fake()->boolean(20),
-            'month_number' => fake()->numberBetween(1, 24),
-            'year' => $date->year,
-            'month' => $date->month,
-            'quarter' => $date->quarter,
         ];
     }
 
     /**
-     * Indicate that the remittance is verified.
+     * Indicate that the remittance is verified
      */
-    public function verified()
+    public function verified(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'verified',
-            'has_proof' => true,
-            'proof_verified_date' => now(),
+            'verification_status' => 'verified',
             'verified_by' => User::factory(),
+            'verified_at' => now(),
+            'status' => 'completed',
         ]);
     }
 
     /**
-     * Indicate that the remittance is pending.
+     * Indicate that the remittance is pending
      */
-    public function pending()
+    public function pending(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'pending',
-            'proof_verified_date' => null,
+            'verification_status' => 'pending',
             'verified_by' => null,
+            'verified_at' => null,
+            'status' => 'initiated',
         ]);
     }
 
     /**
-     * Indicate that the remittance has no proof.
+     * Indicate that the remittance is rejected
      */
-    public function withoutProof()
+    public function rejected(): static
     {
         return $this->state(fn (array $attributes) => [
-            'has_proof' => false,
-            'proof_verified_date' => null,
+            'verification_status' => 'rejected',
+            'verified_by' => User::factory(),
+            'verified_at' => now(),
+            'rejection_reason' => $this->faker->sentence(),
+            'status' => 'failed',
         ]);
     }
 
     /**
-     * Indicate that this is the first remittance.
+     * Indicate that the remittance has proof document
      */
-    public function firstRemittance()
+    public function withProof(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_first_remittance' => true,
-            'month_number' => 1,
+            'proof_document_path' => 'remittances/proofs/test_proof.pdf',
+            'proof_document_type' => 'pdf',
+            'proof_document_size' => $this->faker->numberBetween(100000, 5000000),
         ]);
     }
 }

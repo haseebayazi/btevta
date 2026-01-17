@@ -142,7 +142,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">BTEVTA</div>
+        <div class="logo">TheLeap</div>
         <h1>Remittance Purpose Analysis</h1>
         <p>Analysis Period: {{ $period ?? 'All Time' }} | Generated: {{ now()->format('M d, Y H:i') }}</p>
     </div>
@@ -260,7 +260,7 @@
     </div>
 
     <div class="footer">
-        BTEVTA Remittance Management System | Purpose Analysis Report | Confidential
+        TheLeap Remittance Management System | Purpose Analysis Report | Confidential
     </div>
 </body>
 </html>

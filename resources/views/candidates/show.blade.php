@@ -9,7 +9,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">{{ $candidate->name }}</h1>
-                <p class="text-gray-600 mt-2">BTEVTA ID: <span class="font-semibold">{{ $candidate->btevta_id }}</span></p>
+                <p class="text-gray-600 mt-2">TheLeap ID: <span class="font-semibold">{{ $candidate->btevta_id }}</span></p>
             </div>
             <div class="flex gap-2">
                 @can('update', $candidate)

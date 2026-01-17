@@ -108,7 +108,7 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <strong class="text-muted d-block">BTEVTA ID</strong>
+                            <strong class="text-muted d-block">TheLeap ID</strong>
                             <span class="font-weight-bold text-monospace">{{ $candidate->btevta_id }}</span>
                         </div>
                         <div class="col-md-4 mb-3">

@@ -426,7 +426,7 @@ class CandidateController extends Controller
 
             // Headers
             $headers = [
-                'BTEVTA ID', 'Application ID', 'CNIC', 'Name', 'Father Name',
+                'TheLeap ID', 'Application ID', 'CNIC', 'Name', 'Father Name',
                 'Date of Birth', 'Gender', 'Phone', 'Email', 'Address',
                 'District', 'Tehsil', 'Trade', 'Campus', 'Batch', 'OEP', 'Status'
             ];

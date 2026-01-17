@@ -21,7 +21,7 @@
     <div class="card mb-3">
         <div class="card-body">
             <form method="GET" class="form-inline">
-                <input type="text" name="search" class="form-control mr-2" placeholder="Search by name or BTEVTA ID..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control mr-2" placeholder="Search by name or TheLeap ID..." value="{{ request('search') }}">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
                 @if(request('search'))
                     <a href="{{ route('screening.index') }}" class="btn btn-secondary ml-2">Clear</a>
@@ -40,7 +40,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th>Candidate</th>
-                            <th>BTEVTA ID</th>
+                            <th>TheLeap ID</th>
                             <th>Screening Date</th>
                             <th>Duration (min)</th>
                             <th>Outcome</th>

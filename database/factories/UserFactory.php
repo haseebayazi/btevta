@@ -24,7 +24,7 @@ class UserFactory extends Factory
     public function admin()
     {
         return $this->state(fn (array $attributes) => [
-            'email' => 'admin@btevta.gov.pk',
+            'email' => 'admin@theleap.org',
             'role' => 'admin',
         ]);
     }

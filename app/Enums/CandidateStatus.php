@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * Candidate Status Enum
  *
- * Represents the lifecycle status of a candidate in the BTEVTA system.
+ * Represents the lifecycle status of a candidate in the TheLeap system.
  * Statuses flow: new -> screening -> registered -> training -> visa_process -> ready -> departed
  * Special statuses: rejected, dropped, returned (can occur at various stages)
  */

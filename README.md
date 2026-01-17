@@ -1,8 +1,8 @@
 # WASL - Workforce Abroad Skills & Linkages
 
-## BTEVTA Overseas Employment Management System
+## TheLeap Overseas Employment Management System
 
-A comprehensive digital platform for managing the complete candidate lifecycle from BTEVTA listing through overseas deployment, post-departure tracking, and remittance management.
+A comprehensive digital platform for managing the complete candidate lifecycle from TheLeap listing through overseas deployment, post-departure tracking, and remittance management.
 
 **Version:** 1.4.0 | **Status:** Production Ready | **Last Updated:** December 2025
 
@@ -32,7 +32,7 @@ A comprehensive digital platform for managing the complete candidate lifecycle f
 
 ## Overview
 
-WASL (Workforce Abroad Skills & Linkages) is a Laravel-based enterprise application designed for BTEVTA (Board of Technical Education & Vocational Training Authority, Punjab) to streamline overseas employment management. The system tracks candidates from initial listing through training, visa processing, departure, and post-deployment monitoring.
+WASL (Workforce Abroad Skills & Linkages) is a Laravel-based enterprise application designed for TheLeap (Board of Technical Education & Vocational Training Authority, Punjab) to streamline overseas employment management. The system tracks candidates from initial listing through training, visa processing, departure, and post-deployment monitoring.
 
 ### Technology Stack
 
@@ -155,7 +155,7 @@ Support Entities:
 
 | # | Module | Description |
 |---|--------|-------------|
-| 1 | **Candidates Listing** | Import BTEVTA candidates, auto-assign batches, bulk operations |
+| 1 | **Candidates Listing** | Import TheLeap candidates, auto-assign batches, bulk operations |
 | 2 | **Screening** | 3-call screening workflow, outcome tracking, evidence upload |
 | 3 | **Registration** | Profile creation, document archive, OEP allocation |
 | 4 | **Training** | Attendance, assessments, certificates, batch management |
@@ -649,7 +649,7 @@ GET /api/v1/tokens
 
 ## Tutorials
 
-### Tutorial 1: Import Candidates from BTEVTA
+### Tutorial 1: Import Candidates from TheLeap
 
 ```
 Step 1: Download Template
@@ -1287,10 +1287,10 @@ return new CandidateCollection(Candidate::paginate(20));
 
 ---
 
-**Developed for BTEVTA - Board of Technical Education & Vocational Training Authority, Punjab**
+**Developed for TheLeap - Board of Technical Education & Vocational Training Authority, Punjab**
 
-Product Conceived by: BTEVTA | Developed by: Development Team
+Product Conceived by: TheLeap | Developed by: Development Team
 
 ---
 
-*Copyright 2025 BTEVTA. All rights reserved.*
+*Copyright 2025 TheLeap. All rights reserved.*

@@ -501,4 +501,112 @@ class ScreeningController extends Controller
         return redirect()->route('screening.index')
             ->with('success', 'Screening record deleted successfully!');
     }
+
+    /**
+     * Screening dashboard with analytics and statistics
+     */
+    public function dashboard()
+    {
+        $this->authorize('viewAny', CandidateScreening::class);
+
+        // Apply campus filtering for campus admin users
+        $user = Auth::user();
+        $baseQuery = CandidateScreening::query();
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        }
+
+        // Basic statistics
+        $stats = [
+            'total_screenings' => (clone $baseQuery)->count(),
+            'pending' => Candidate::where('status', 'screening')
+                ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('campus_id', $user->campus_id))
+                ->count(),
+            'completed_today' => (clone $baseQuery)->whereDate('completed_at', today())->count(),
+            'completed_this_week' => (clone $baseQuery)->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'completed_this_month' => (clone $baseQuery)->whereMonth('completed_at', now()->month)->count(),
+        ];
+
+        // Outcome statistics
+        $outcomes = (clone $baseQuery)->whereNotNull('outcome')
+            ->select('outcome', DB::raw('count(*) as count'))
+            ->groupBy('outcome')
+            ->get()
+            ->pluck('count', 'outcome');
+
+        $stats['eligible'] = $outcomes->get('eligible', 0);
+        $stats['not_eligible'] = $outcomes->get('not_eligible', 0);
+        $stats['pending_decision'] = $outcomes->get('pending', 0);
+
+        // Calculate eligibility rate
+        $total_with_outcome = $outcomes->sum();
+        $stats['eligibility_rate'] = $total_with_outcome > 0
+            ? round(($stats['eligible'] / $total_with_outcome) * 100, 1)
+            : 0;
+
+        // By campus (for admins only)
+        if ($user->role === 'admin' || $user->role === 'project_director') {
+            $stats['by_campus'] = Candidate::join('candidate_screenings', 'candidates.id', '=', 'candidate_screenings.candidate_id')
+                ->join('campuses', 'candidates.campus_id', '=', 'campuses.id')
+                ->select('campuses.name as campus_name', DB::raw('count(*) as count'))
+                ->groupBy('campuses.id', 'campuses.name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        // By OEP
+        $stats['by_oep'] = Candidate::join('candidate_screenings', 'candidates.id', '=', 'candidate_screenings.candidate_id')
+            ->join('oeps', 'candidates.oep_id', '=', 'oeps.id')
+            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('candidates.campus_id', $user->campus_id))
+            ->select('oeps.name as oep_name', DB::raw('count(*) as count'))
+            ->groupBy('oeps.id', 'oeps.name')
+            ->orderBy('count', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Monthly trend (last 6 months)
+        $monthlyTrend = (clone $baseQuery)
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('count(*) as total'),
+                DB::raw('SUM(CASE WHEN outcome = "eligible" THEN 1 ELSE 0 END) as eligible'),
+                DB::raw('SUM(CASE WHEN outcome = "not_eligible" THEN 1 ELSE 0 END) as not_eligible')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        $stats['monthly_trend'] = $monthlyTrend;
+
+        // Average screening time (from candidate creation to screening completion)
+        $avgTime = CandidateScreening::whereNotNull('completed_at')
+            ->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
+            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('candidates.campus_id', $user->campus_id))
+            ->select(DB::raw('AVG(DATEDIFF(candidate_screenings.completed_at, candidates.created_at)) as avg_days'))
+            ->value('avg_days');
+
+        $stats['avg_screening_time_days'] = $avgTime ? round($avgTime, 1) : 0;
+
+        // Recent screenings
+        $recentScreenings = (clone $baseQuery)
+            ->with(['candidate.campus', 'candidate.oep'])
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
+
+        $stats['recent_screenings'] = $recentScreenings;
+
+        // Pending candidates (overdue > 7 days)
+        $overdueCount = Candidate::where('status', 'screening')
+            ->where('created_at', '<=', now()->subDays(7))
+            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('campus_id', $user->campus_id))
+            ->count();
+
+        $stats['overdue_screenings'] = $overdueCount;
+
+        return view('screening.dashboard', compact('stats'));
+    }
 }

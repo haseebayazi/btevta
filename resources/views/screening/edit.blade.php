@@ -29,7 +29,7 @@
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-bold mb-4 border-b pb-2">Candidate Information</h3>
             <div class="space-y-3 text-sm">
-                <p><strong class="text-gray-600">BTEVTA ID:</strong><br>
+                <p><strong class="text-gray-600">TheLeap ID:</strong><br>
                     <span class="font-mono">{{ $candidate->btevta_id }}</span>
                 </p>
                 <p><strong class="text-gray-600">Name:</strong><br> {{ $candidate->name }}</p>

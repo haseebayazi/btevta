@@ -52,7 +52,28 @@ class BatchPolicy
 
     public function delete(User $user, Batch $batch): bool
     {
-        return $user->isSuperAdmin();
+        // Cannot delete batch with enrolled candidates
+        if ($batch->candidates()->count() > 0) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->isCampusAdmin() && $user->campus_id === $batch->campus_id && $batch->status === 'planned') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the user can assign candidates to the batch.
+     */
+    public function assignCandidates(User $user, Batch $batch): bool
+    {
+        return $this->update($user, $batch);
     }
 
     public function changeStatus(User $user, Batch $batch): bool

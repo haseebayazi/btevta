@@ -138,7 +138,7 @@
 
             <p>
                 You are receiving this email because we received a password reset request for your account
-                in the BTEVTA Candidate Management System.
+                in the TheLeap Candidate Management System.
             </p>
 
             <!-- Reset Button -->
@@ -184,7 +184,7 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p><strong>BTEVTA Candidate Management System</strong></p>
+            <p><strong>TheLeap Candidate Management System</strong></p>
             <p>Board of Technical Education and Vocational Training Authority</p>
             <p style="margin-top: 15px;">
                 This is an automated email. Please do not reply to this message.

@@ -26,7 +26,7 @@
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th>BTEVTA ID</th>
+                            <th>TheLeap ID</th>
                             <th>Name</th>
                             <th>Campus</th>
                             <th>Trade</th>

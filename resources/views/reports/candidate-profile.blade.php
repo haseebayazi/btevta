@@ -10,7 +10,7 @@
                 </div>
                 <div class="card-body">
                     <dl class="row">
-                        <dt class="col-sm-3">BTEVTA ID:</dt>
+                        <dt class="col-sm-3">TheLeap ID:</dt>
                         <dd class="col-sm-9">{{ $candidate->btevta_id }}</dd>
                         <dt class="col-sm-3">CNIC:</dt>
                         <dd class="col-sm-9">{{ $candidate->cnic }}</dd>

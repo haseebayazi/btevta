@@ -92,7 +92,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>BTEVTA Candidate Profile</h1>
+        <h1>TheLeap Candidate Profile</h1>
         <p>Generated on {{ now()->format('d M Y, h:i A') }}</p>
     </div>
 
@@ -101,7 +101,7 @@
         <div class="section-title">Personal Information</div>
         <div class="info-grid">
             <div class="info-row">
-                <div class="info-label">BTEVTA ID</div>
+                <div class="info-label">TheLeap ID</div>
                 <div class="info-value">{{ $candidate->btevta_id }}</div>
             </div>
             <div class="info-row">
@@ -290,7 +290,7 @@
     @endif
 
     <div class="footer">
-        <p>This is an auto-generated document from BTEVTA Candidate Management System</p>
+        <p>This is an auto-generated document from TheLeap Candidate Management System</p>
         <p>Document ID: {{ $candidate->btevta_id }}-{{ now()->format('YmdHis') }}</p>
     </div>
 </body>

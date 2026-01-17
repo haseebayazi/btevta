@@ -60,19 +60,19 @@ return new class extends Migration
         if (Schema::hasTable('campuses') && Schema::hasColumn('campuses', 'email')) {
             DB::table('campuses')
                 ->whereNull('email')
-                ->update(['email' => 'noreply@btevta.gov.pk']);
+                ->update(['email' => 'noreply@theleap.org']);
         }
 
         if (Schema::hasTable('oeps') && Schema::hasColumn('oeps', 'email')) {
             DB::table('oeps')
                 ->whereNull('email')
-                ->update(['email' => 'noreply@btevta.gov.pk']);
+                ->update(['email' => 'noreply@theleap.org']);
         }
 
         if (Schema::hasTable('candidates') && Schema::hasColumn('candidates', 'email')) {
             DB::table('candidates')
                 ->whereNull('email')
-                ->update(['email' => 'noreply@btevta.gov.pk']);
+                ->update(['email' => 'noreply@theleap.org']);
         }
 
         if (Schema::hasTable('instructors')) {

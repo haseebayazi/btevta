@@ -50,7 +50,7 @@
                                 </label>
                                 <input type="text" name="app_name" id="app_name"
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       value="{{ config('app.name') }}" placeholder="BTEVTA Management System">
+                                       value="{{ config('app.name') }}" placeholder="TheLeap Management System">
                             </div>
 
                             <!-- Support Email -->
@@ -60,7 +60,7 @@
                                 </label>
                                 <input type="email" name="support_email" id="support_email"
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="support@btevta.gov.pk">
+                                       placeholder="support@theleap.org">
                                 <p class="mt-1 text-xs text-gray-500">Email address for user support inquiries</p>
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                                 </label>
                                 <input type="email" name="mail_from_address" id="mail_from_address"
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="noreply@btevta.gov.pk">
+                                       placeholder="noreply@theleap.org">
                                 <p class="mt-1 text-xs text-gray-500">Email address used as sender for outgoing emails</p>
                             </div>
                         </div>

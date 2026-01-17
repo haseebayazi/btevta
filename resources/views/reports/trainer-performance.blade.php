@@ -66,7 +66,11 @@
                 <tbody class="divide-y">
                     @forelse($instructors as $instructor)
                     <tr>
-                        <td class="px-4 py-3 font-medium">{{ $instructor->name }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{{ route('reports.trainer-detail', $instructor->id) }}" class="font-medium text-blue-600 hover:text-blue-900 hover:underline">
+                                {{ $instructor->name }}
+                            </a>
+                        </td>
                         <td class="px-4 py-3">{{ $instructor->campus?->name ?? 'N/A' }}</td>
                         <td class="px-4 py-3 text-center">{{ $instructor->total_batches }}</td>
                         <td class="px-4 py-3 text-center">{{ $instructor->total_students }}</td>

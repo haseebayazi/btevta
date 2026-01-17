@@ -167,7 +167,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">BTEVTA</div>
+        <div class="logo">TheLeap</div>
         <h1>Proof of Compliance Report</h1>
         <p>Compliance Period: {{ $period ?? 'Current Period' }} | Generated: {{ now()->format('M d, Y H:i') }}</p>
     </div>
@@ -230,7 +230,7 @@
         <thead>
             <tr>
                 <th>Candidate</th>
-                <th>BTEVTA ID</th>
+                <th>TheLeap ID</th>
                 <th class="text-center">Transfers</th>
                 <th class="text-center">With Proof</th>
                 <th class="text-center">Compliance</th>
@@ -267,7 +267,7 @@
         <h4 style="color: #166534;">Certification</h4>
         <p style="color: #15803d;">
             This report certifies that the above remittance records have been reviewed for compliance with
-            BTEVTA guidelines and applicable regulations. Records marked as "Compliant" have complete
+            TheLeap guidelines and applicable regulations. Records marked as "Compliant" have complete
             documentation including proof of transfer and beneficiary verification.
         </p>
         <p style="margin-top: 10px; color: #166534;">
@@ -277,7 +277,7 @@
     </div>
 
     <div class="footer">
-        BTEVTA Remittance Management System | Proof of Compliance Report | Official Document
+        TheLeap Remittance Management System | Proof of Compliance Report | Official Document
     </div>
 </body>
 </html>

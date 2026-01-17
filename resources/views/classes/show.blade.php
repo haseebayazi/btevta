@@ -90,7 +90,7 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>BTEVTA ID</th>
+                                    <th>TheLeap ID</th>
                                     <th>Status</th>
                                     <th>Enrolled Date</th>
                                     <th>Actions</th>

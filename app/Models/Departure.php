@@ -35,9 +35,15 @@ class Departure extends Model
         'salary_currency',
         'first_salary_date',
         'salary_confirmed',
+        'salary_confirmed_by',
+        'salary_confirmed_at',
         'salary_confirmation_date',
         'salary_remarks',
         'ninety_day_report_submitted',
+        'ninety_day_compliance_checked',
+        'ninety_day_compliance_status',
+        'ninety_day_compliance_issues',
+        'ninety_day_compliance_checked_at',
         'remarks',
         'created_by',
         'updated_by',
@@ -82,6 +88,8 @@ class Departure extends Model
         'qiwa_activation_date' => 'date',
         'first_salary_date' => 'date',
         'salary_confirmation_date' => 'date',
+        'salary_confirmed_at' => 'datetime',
+        'ninety_day_compliance_checked_at' => 'datetime',
         'accommodation_verified_date' => 'date',
         'last_contact_date' => 'date',
         'medical_report_date' => 'date',
@@ -95,6 +103,7 @@ class Departure extends Model
         'qiwa_activated' => 'boolean',
         'salary_confirmed' => 'boolean',
         'ninety_day_report_submitted' => 'boolean',
+        'ninety_day_compliance_checked' => 'boolean',
     ];
 
     /**
@@ -158,6 +167,11 @@ class Departure extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function salaryConfirmer()
+    {
+        return $this->belongsTo(User::class, 'salary_confirmed_by');
     }
 
     // Scopes

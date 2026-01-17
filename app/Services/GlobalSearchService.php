@@ -57,7 +57,7 @@ class GlobalSearchService
                     return [
                         'id' => $item->id,
                         'title' => $item->name,
-                        'subtitle' => "BTEVTA ID: {$item->btevta_id} | CNIC: {$item->formatted_cnic}",
+                        'subtitle' => "TheLeap ID: {$item->btevta_id} | CNIC: {$item->formatted_cnic}",
                         'url' => route('candidates.profile', $item->id),
                         'badge' => $item->status,
                         'badge_class' => $this->getStatusBadgeClass($item->status),

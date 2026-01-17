@@ -182,7 +182,7 @@
                     <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Candidate Info</h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-2"><strong>BTEVTA ID:</strong> <span class="text-monospace">{{ $candidate->btevta_id }}</span></p>
+                    <p class="mb-2"><strong>TheLeap ID:</strong> <span class="text-monospace">{{ $candidate->btevta_id }}</span></p>
                     <p class="mb-2"><strong>Name:</strong> {{ $candidate->name }}</p>
                     <p class="mb-2"><strong>Trade:</strong> {{ $candidate->trade->name ?? 'N/A' }}</p>
                     <p class="mb-0"><strong>Batch:</strong> {{ $candidate->batch->name ?? 'N/A' }}</p>

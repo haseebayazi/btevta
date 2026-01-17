@@ -39,7 +39,7 @@
                     <table class="table table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>BTEVTA ID</th>
+                                <th>TheLeap ID</th>
                                 <th>Name</th>
                                 <th>OEP</th>
                                 <th>Current Stage</th>

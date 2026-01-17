@@ -852,4 +852,188 @@ class VisaProcessingController extends Controller
             return back()->with('error', 'Failed to delete visa process: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Visa processing dashboard with analytics and bottleneck detection
+     */
+    public function dashboard()
+    {
+        $this->authorize('viewAny', VisaProcess::class);
+
+        // Base query
+        $baseQuery = VisaProcess::query();
+
+        // Apply campus filtering for campus admin users
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
+        }
+
+        // Basic statistics
+        $stats = [
+            'total_in_process' => (clone $baseQuery)->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'completed' => (clone $baseQuery)->where('overall_status', 'completed')->count(),
+            'rejected' => (clone $baseQuery)->where('overall_status', 'rejected')->count(),
+            'at_risk' => (clone $baseQuery)
+                ->whereNotIn('overall_status', ['completed', 'rejected'])
+                ->where('created_at', '<=', now()->subDays(30))
+                ->count(),
+        ];
+
+        // By stage breakdown
+        $byStage = [
+            'interview' => (clone $baseQuery)->where('current_stage', 'interview')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'takamol' => (clone $baseQuery)->where('current_stage', 'takamol')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'medical' => (clone $baseQuery)->where('current_stage', 'medical')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'biometric' => (clone $baseQuery)->where('current_stage', 'biometric')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'enumber' => (clone $baseQuery)->where('current_stage', 'enumber')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'visa' => (clone $baseQuery)->where('current_stage', 'visa')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+            'ptn' => (clone $baseQuery)->where('current_stage', 'ptn')
+                ->whereNotIn('overall_status', ['completed', 'rejected'])->count(),
+        ];
+
+        $stats['by_stage'] = $byStage;
+
+        // Average processing time
+        $avgTime = (clone $baseQuery)->where('overall_status', 'completed')
+            ->whereNotNull('completed_at')
+            ->select(DB::raw('AVG(DATEDIFF(completed_at, created_at)) as avg_days'))
+            ->value('avg_days');
+
+        $stats['average_processing_days'] = $avgTime ? round($avgTime, 1) : 0;
+
+        // Stage completion rates
+        $total = (clone $baseQuery)->count();
+        if ($total > 0) {
+            $stats['stage_completion_rates'] = [
+                'interview' => round(((clone $baseQuery)->where('interview_status', 'passed')->count() / $total) * 100, 1),
+                'takamol' => round(((clone $baseQuery)->where('takamol_status', 'passed')->count() / $total) * 100, 1),
+                'medical' => round(((clone $baseQuery)->where('medical_status', 'fit')->count() / $total) * 100, 1),
+                'biometric' => round(((clone $baseQuery)->where('biometric_status', 'completed')->count() / $total) * 100, 1),
+                'visa' => round(((clone $baseQuery)->where('visa_status', 'issued')->count() / $total) * 100, 1),
+            ];
+        } else {
+            $stats['stage_completion_rates'] = [];
+        }
+
+        // Identify bottlenecks (stages where > 5 candidates stuck for > 30 days)
+        $stats['bottlenecks'] = $this->identifyBottlenecks($baseQuery);
+
+        // Recent completions
+        $stats['recent_completions'] = (clone $baseQuery)
+            ->where('overall_status', 'completed')
+            ->with(['candidate.campus', 'candidate.oep'])
+            ->latest('completed_at')
+            ->limit(10)
+            ->get();
+
+        // Monthly trend (last 6 months)
+        $monthlyTrend = (clone $baseQuery)
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('count(*) as total'),
+                DB::raw('SUM(CASE WHEN overall_status = "completed" THEN 1 ELSE 0 END) as completed'),
+                DB::raw('SUM(CASE WHEN overall_status = "rejected" THEN 1 ELSE 0 END) as rejected')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        $stats['monthly_trend'] = $monthlyTrend;
+
+        // By country (if applicable)
+        if ($user->role === 'admin' || $user->role === 'project_director') {
+            $stats['by_country'] = (clone $baseQuery)
+                ->join('candidates', 'visa_processes.candidate_id', '=', 'candidates.id')
+                ->leftJoin('departures', 'candidates.id', '=', 'departures.candidate_id')
+                ->whereNotNull('departures.destination')
+                ->select('departures.destination as country', DB::raw('count(*) as count'))
+                ->groupBy('departures.destination')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        // Campus breakdown (for admins)
+        if ($user->role === 'admin' || $user->role === 'project_director') {
+            $stats['by_campus'] = VisaProcess::join('candidates', 'visa_processes.candidate_id', '=', 'candidates.id')
+                ->join('campuses', 'candidates.campus_id', '=', 'campuses.id')
+                ->select('campuses.name as campus_name', DB::raw('count(*) as count'))
+                ->groupBy('campuses.id', 'campuses.name')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        return view('visa-processing.dashboard', compact('stats'));
+    }
+
+    /**
+     * Identify bottlenecks in visa processing workflow
+     *
+     * A bottleneck is defined as a stage where more than 5 candidates
+     * have been stuck for more than 30 days
+     */
+    protected function identifyBottlenecks($baseQuery)
+    {
+        $bottlenecks = [];
+
+        // Define stages to check
+        $stages = ['interview', 'takamol', 'medical', 'biometric', 'enumber', 'visa', 'ptn'];
+
+        foreach ($stages as $stage) {
+            $stuckCount = (clone $baseQuery)
+                ->where('current_stage', $stage)
+                ->whereNotIn('overall_status', ['completed', 'rejected'])
+                ->where('created_at', '<', now()->subDays(30))
+                ->count();
+
+            if ($stuckCount > 5) {
+                // Calculate average days stuck
+                $avgDaysStuck = (clone $baseQuery)
+                    ->where('current_stage', $stage)
+                    ->whereNotIn('overall_status', ['completed', 'rejected'])
+                    ->where('created_at', '<', now()->subDays(30))
+                    ->select(DB::raw('AVG(DATEDIFF(NOW(), created_at)) as avg_days'))
+                    ->value('avg_days');
+
+                // Determine severity
+                $severity = 'moderate';
+                if ($stuckCount > 20) {
+                    $severity = 'critical';
+                } elseif ($stuckCount > 10) {
+                    $severity = 'high';
+                }
+
+                $bottlenecks[] = [
+                    'stage' => $stage,
+                    'stage_label' => ucfirst(str_replace('_', ' ', $stage)),
+                    'stuck_count' => $stuckCount,
+                    'avg_days_stuck' => round($avgDaysStuck, 1),
+                    'severity' => $severity,
+                ];
+            }
+        }
+
+        // Sort by severity and stuck count
+        usort($bottlenecks, function($a, $b) {
+            $severityOrder = ['critical' => 0, 'high' => 1, 'moderate' => 2];
+            $severityCompare = $severityOrder[$a['severity']] <=> $severityOrder[$b['severity']];
+
+            if ($severityCompare !== 0) {
+                return $severityCompare;
+            }
+
+            return $b['stuck_count'] <=> $a['stuck_count'];
+        });
+
+        return $bottlenecks;
+    }
 }

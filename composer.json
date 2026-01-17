@@ -1,7 +1,7 @@
 {
     "name": "btevta/overseas-employment-system",
     "type": "project",
-    "description": "BTEVTA Overseas Employment Management System",
+    "description": "TheLeap Overseas Employment Management System",
     "keywords": ["laravel", "btevta", "employment", "management"],
     "license": "proprietary",
     "require": {

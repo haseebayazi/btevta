@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="{{ config('app.subtitle') }}">
-    <meta name="keywords" content="WASL, overseas employment, BTEVTA, vocational training, remittance management">
+    <meta name="keywords" content="WASL, overseas employment, TheLeap, vocational training, remittance management">
     <title>@yield('title', config('app.full_name') . ' - ' . config('app.tagline'))</title>
 
     <!-- Favicon -->

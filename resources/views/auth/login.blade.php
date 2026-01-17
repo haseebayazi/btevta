@@ -62,7 +62,7 @@
                                id="email" 
                                value="{{ old('email') }}"
                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('email') border-red-500 @enderror" 
-                               placeholder="admin@btevta.gov.pk"
+                               placeholder="admin@theleap.org"
                                required 
                                autofocus>
                     </div>

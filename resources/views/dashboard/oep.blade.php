@@ -109,7 +109,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Candidate</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">BTEVTA ID</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">TheLeap ID</th>
                         <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Departure Date</th>
                         <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Iqama</th>
                         <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">90-Day Status</th>

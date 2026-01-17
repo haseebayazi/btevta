@@ -10,7 +10,7 @@ class CandidateFactory extends Factory
     public function definition(): array
     {
         return [
-            'btevta_id' => 'BTEVTA-' . fake()->unique()->numberBetween(10000, 99999),
+            'btevta_id' => 'TLP-' . date('Y') . '-' . str_pad(fake()->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT) . '-' . fake()->randomDigit(),
             'application_id' => fake()->unique()->numberBetween(100000, 999999),
             'trade_id' => Trade::inRandomOrder()->first()->id, // 👈 Added line
 'cnic' => fake()->unique()->numerify('#############'), // 13 digits

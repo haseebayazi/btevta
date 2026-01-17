@@ -50,7 +50,7 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4 mb-2">
-                            <strong class="text-muted">BTEVTA ID:</strong><br>
+                            <strong class="text-muted">TheLeap ID:</strong><br>
                             <span class="text-monospace font-weight-bold">{{ $candidate->btevta_id }}</span>
                         </div>
                         <div class="col-md-4 mb-2">

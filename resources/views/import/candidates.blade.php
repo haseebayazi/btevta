@@ -14,7 +14,7 @@
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 class="font-semibold text-blue-900 mb-3">Import Instructions:</h3>
         <ol class="list-decimal list-inside space-y-2 text-blue-800 text-sm">
-            <li>Download the BTEVTA template using the button below</li>
+            <li>Download the TheLeap template using the button below</li>
             <li>Fill in candidate information following the format</li>
             <li>Ensure all required fields are completed</li>
             <li>Upload the completed Excel file</li>
@@ -28,7 +28,7 @@
         <a href="{{ route('import.template.download') }}" 
            class="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
             <i class="fas fa-download mr-2"></i>
-            Download BTEVTA Import Template
+            Download TheLeap Import Template
         </a>
     </div>
 
@@ -108,10 +108,10 @@
                 </thead>
                 <tbody class="divide-y">
                     <tr>
-                        <td class="px-4 py-2">BTEVTA ID</td>
+                        <td class="px-4 py-2">TheLeap ID</td>
                         <td class="px-4 py-2 text-red-600">Yes</td>
                         <td class="px-4 py-2">Unique ID</td>
-                        <td class="px-4 py-2 text-gray-600">BTEVTA-2025-001</td>
+                        <td class="px-4 py-2 text-gray-600">TheLeap-2025-001</td>
                     </tr>
                     <tr>
                         <td class="px-4 py-2">CNIC</td>

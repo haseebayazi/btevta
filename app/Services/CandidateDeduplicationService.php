@@ -100,7 +100,7 @@ class CandidateDeduplicationService
             }
         }
 
-        // Strategy 4: BTEVTA ID match
+        // Strategy 4: TheLeap ID match
         if (!empty($candidateData['btevta_id'])) {
             $btevtaMatches = $this->findByBtevtaId($candidateData['btevta_id']);
             foreach ($btevtaMatches as $match) {
@@ -111,7 +111,7 @@ class CandidateDeduplicationService
                     'candidate' => $match,
                     'match_type' => 'btevta_id',
                     'confidence' => self::CONFIDENCE_EXACT,
-                    'reason' => 'Exact BTEVTA ID match',
+                    'reason' => 'Exact TheLeap ID match',
                 ];
             }
         }
@@ -213,7 +213,7 @@ class CandidateDeduplicationService
     }
 
     /**
-     * Find candidates by BTEVTA ID.
+     * Find candidates by TheLeap ID.
      *
      * @param string $btevtaId
      * @return Collection

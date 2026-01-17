@@ -4,24 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Models\Batch;
 use App\Models\Campus;
+use App\Models\Candidate;
+use App\Models\Oep;
 use App\Models\Trade;
 use App\Models\User;
+use App\Http\Requests\StoreBatchRequest;
+use App\Http\Requests\UpdateBatchRequest;
+use App\Http\Requests\BulkBatchAssignRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BatchController extends Controller
 {
     /**
      * Display a listing of batches.
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Batch::class);
 
-        $query = Batch::with(['campus', 'trade'])
+        $query = Batch::with(['campus', 'trade', 'oep'])
             ->withCount('candidates');
 
-        // AUDIT FIX: Apply campus filtering for campus admin and trainer users
+        // Apply role-based filtering
         $user = auth()->user();
         if ($user->isCampusAdmin() && $user->campus_id) {
             $query->where('campus_id', $user->campus_id);
@@ -29,9 +35,50 @@ class BatchController extends Controller
             $query->where('campus_id', $user->campus_id);
         }
 
-        $batches = $query->latest()->paginate(20);
+        // Apply OEP filtering for OEP users
+        if ($user->oep_id) {
+            $query->where('oep_id', $user->oep_id);
+        }
 
-        return view('admin.batches.index', compact('batches'));
+        // Search filter
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Campus filter
+        if ($request->filled('campus_id')) {
+            $query->where('campus_id', $request->campus_id);
+        }
+
+        // Trade filter
+        if ($request->filled('trade_id')) {
+            $query->where('trade_id', $request->trade_id);
+        }
+
+        // District filter
+        if ($request->filled('district')) {
+            $query->where('district', $request->district);
+        }
+
+        $batches = $query->latest()->paginate(20)->withQueryString();
+
+        // Get filter options for dropdowns
+        $campuses = Cache::remember('active_campuses', 3600, function () {
+            return Campus::where('is_active', true)->pluck('name', 'id');
+        });
+
+        $trades = Cache::remember('active_trades', 3600, function () {
+            return Trade::where('is_active', true)->pluck('name', 'id');
+        });
+
+        $statuses = Batch::getStatuses();
+
+        return view('admin.batches.index', compact('batches', 'campuses', 'trades', 'statuses'));
     }
 
     /**
@@ -42,12 +89,16 @@ class BatchController extends Controller
         $this->authorize('create', Batch::class);
 
         // PERFORMANCE: Use cached dropdown data
-        $campuses = Cache::remember('active_campuses', 86400, function () {
+        $campuses = Cache::remember('active_campuses', 3600, function () {
             return Campus::where('is_active', true)->pluck('name', 'id');
         });
 
-        $trades = Cache::remember('active_trades', 86400, function () {
+        $trades = Cache::remember('active_trades', 3600, function () {
             return Trade::where('is_active', true)->pluck('name', 'id');
+        });
+
+        $oeps = Cache::remember('active_oeps', 3600, function () {
+            return Oep::where('is_active', true)->pluck('name', 'id');
         });
 
         // Get trainers and staff who can be assigned to batches
@@ -55,36 +106,20 @@ class BatchController extends Controller
             ->where('is_active', true)
             ->pluck('name', 'id');
 
-        return view('admin.batches.create', compact('campuses', 'trades', 'users'));
+        $statuses = Batch::getStatuses();
+
+        return view('admin.batches.create', compact('campuses', 'trades', 'oeps', 'users', 'statuses'));
     }
 
     /**
      * Store a newly created batch.
      */
-    public function store(Request $request)
+    public function store(StoreBatchRequest $request)
     {
-        $this->authorize('create', Batch::class);
-
-        $validated = $request->validate([
-            'batch_code' => 'required|string|max:100|unique:batches,batch_code',
-            'name' => 'nullable|string|max:255',
-            'trade_id' => 'required|exists:trades,id',
-            'campus_id' => 'required|exists:campuses,id',
-            'oep_id' => 'nullable|exists:oeps,id',
-            'trainer_id' => 'nullable|exists:users,id',
-            'coordinator_id' => 'nullable|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after:start_date',
-            'capacity' => 'required|integer|min:1',
-            'intake_period' => 'nullable|string|max:100',
-            'district' => 'nullable|string|max:100',
-            'specialization' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'status' => 'required|in:planned,active,completed,cancelled',
-        ]);
-
         try {
-            $batch = Batch::create($validated);
+            DB::beginTransaction();
+
+            $batch = Batch::create($request->validated());
 
             // Log activity
             activity()
@@ -92,11 +127,16 @@ class BatchController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Batch created');
 
+            DB::commit();
+
             return redirect()->route('admin.batches.index')
                 ->with('success', 'Batch created successfully!');
         } catch (\Exception $e) {
+            DB::rollBack();
+
             // SECURITY: Log exception details, show generic message to user
             \Log::error('Batch creation failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
+
             return back()->withInput()
                 ->with('error', 'Failed to create batch. Please try again or contact support.');
         }
@@ -125,42 +165,27 @@ class BatchController extends Controller
 
         $campuses = Campus::where('is_active', true)->pluck('name', 'id');
         $trades = Trade::where('is_active', true)->pluck('name', 'id');
+        $oeps = Oep::where('is_active', true)->pluck('name', 'id');
 
         // Get trainers and staff who can be assigned to batches
         $users = User::whereIn('role', ['trainer', 'campus_admin', 'admin'])
             ->where('is_active', true)
             ->pluck('name', 'id');
 
-        return view('admin.batches.edit', compact('batch', 'campuses', 'trades', 'users'));
+        $statuses = Batch::getStatuses();
+
+        return view('admin.batches.edit', compact('batch', 'campuses', 'trades', 'oeps', 'users', 'statuses'));
     }
 
     /**
      * Update the specified batch.
      */
-    public function update(Request $request, Batch $batch)
+    public function update(UpdateBatchRequest $request, Batch $batch)
     {
-        $this->authorize('update', $batch);
-
-        $validated = $request->validate([
-            'batch_code' => 'required|string|max:100|unique:batches,batch_code,' . $batch->id,
-            'name' => 'nullable|string|max:255',
-            'trade_id' => 'required|exists:trades,id',
-            'campus_id' => 'required|exists:campuses,id',
-            'oep_id' => 'nullable|exists:oeps,id',
-            'trainer_id' => 'nullable|exists:users,id',
-            'coordinator_id' => 'nullable|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after:start_date',
-            'capacity' => 'required|integer|min:1',
-            'intake_period' => 'nullable|string|max:100',
-            'district' => 'nullable|string|max:100',
-            'specialization' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'status' => 'required|in:planned,active,completed,cancelled',
-        ]);
-
         try {
-            $batch->update($validated);
+            DB::beginTransaction();
+
+            $batch->update($request->validated());
 
             // Log activity
             activity()
@@ -168,11 +193,16 @@ class BatchController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Batch updated');
 
+            DB::commit();
+
             return redirect()->route('admin.batches.index')
                 ->with('success', 'Batch updated successfully!');
         } catch (\Exception $e) {
+            DB::rollBack();
+
             // SECURITY: Log exception details, show generic message to user
             \Log::error('Batch update failed', ['batch_id' => $batch->id, 'error' => $e->getMessage()]);
+
             return back()->withInput()
                 ->with('error', 'Failed to update batch. Please try again or contact support.');
         }
@@ -216,6 +246,91 @@ class BatchController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to delete batch: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show candidates assigned to the batch.
+     */
+    public function candidates(Request $request, Batch $batch)
+    {
+        $this->authorize('view', $batch);
+
+        $query = $batch->candidates()
+            ->with(['trade', 'campus']);
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('btevta_id', 'like', "%{$search}%")
+                  ->orWhere('cnic', 'like', "%{$search}%");
+            });
+        }
+
+        // Status filter
+        if ($request->filled('training_status')) {
+            $query->where('training_status', $request->training_status);
+        }
+
+        $candidates = $query->latest()->paginate(20)->withQueryString();
+
+        return view('admin.batches.candidates', compact('batch', 'candidates'));
+    }
+
+    /**
+     * Bulk assign candidates to batch.
+     */
+    public function bulkAssign(BulkBatchAssignRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $batch = Batch::findOrFail($request->batch_id);
+            $candidateIds = $request->candidate_ids;
+
+            // Assign candidates to batch
+            Candidate::whereIn('id', $candidateIds)
+                ->update([
+                    'batch_id' => $batch->id,
+                    'training_status' => 'enrolled',
+                    'batch_assigned_date' => now(),
+                    'updated_by' => auth()->id(),
+                ]);
+
+            // Log activity
+            activity()
+                ->performedOn($batch)
+                ->causedBy(auth()->user())
+                ->withProperties(['candidate_count' => count($candidateIds)])
+                ->log('Bulk assigned ' . count($candidateIds) . ' candidate(s) to batch');
+
+            DB::commit();
+
+            return back()->with('success', count($candidateIds) . ' candidate(s) assigned to batch successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Bulk batch assignment failed', [
+                'error' => $e->getMessage(),
+                'batch_id' => $request->batch_id ?? null,
+                'user_id' => auth()->id()
+            ]);
+
+            return back()->with('error', 'Failed to assign candidates to batch. Please try again.');
+        }
+    }
+
+    /**
+     * Get batch statistics.
+     */
+    public function statistics(Batch $batch)
+    {
+        $this->authorize('view', $batch);
+
+        $statistics = $batch->getStatistics();
+
+        return view('admin.batches.statistics', compact('batch', 'statistics'));
     }
 
     /**

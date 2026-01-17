@@ -24,7 +24,12 @@ class Complaint extends Model
         'priority',
         'sla_days',
         'sla_due_date',
+        'sla_breached',
+        'sla_breached_at',
         'escalation_level',
+        'escalated_at',
+        'escalation_reason',
+        'escalated_to',
         'assigned_to',
         'resolution_details',
         'resolved_at',
@@ -48,6 +53,9 @@ class Complaint extends Model
 
     protected $casts = [
         'sla_due_date' => 'datetime',
+        'sla_breached' => 'boolean',
+        'sla_breached_at' => 'datetime',
+        'escalated_at' => 'datetime',
         'resolved_at' => 'datetime',
         'registered_at' => 'datetime',
         'closed_at' => 'datetime',
@@ -141,6 +149,11 @@ class Complaint extends Model
     public function assignedTo()
     {
         return $this->assignee();
+    }
+
+    public function escalatedToUser()
+    {
+        return $this->belongsTo(User::class, 'escalated_to');
     }
 
     public function registeredBy()

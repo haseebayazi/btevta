@@ -41,6 +41,17 @@ Schedule::command('app:check-document-expiry')
         logger()->error('Scheduled: Document expiry check FAILED');
     });
 
+// Screening call reminders - Daily at 9:00 AM
+Schedule::command('screening:send-reminders')
+    ->dailyAt('09:00')
+    ->description('Send reminders for pending screening calls')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Screening reminders sent');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Screening reminders FAILED');
+    });
+
 // Generate remittance alerts - Daily at 7:00 AM
 Schedule::command('remittance:generate-alerts')
     ->dailyAt('07:00')
@@ -52,15 +63,40 @@ Schedule::command('remittance:generate-alerts')
         logger()->error('Scheduled: Remittance alert generation FAILED');
     });
 
+// 90-day compliance check - Daily at 8:00 AM
+Schedule::command('departure:check-compliance --notify')
+    ->dailyAt('08:00')
+    ->description('Check 90-day compliance for departed candidates')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: 90-day compliance check completed');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: 90-day compliance check FAILED');
+    });
+
+// Salary verification reminders - Weekly on Mondays at 9:00 AM
+Schedule::command('departure:salary-reminders')
+    ->weeklyOn(1, '09:00')
+    ->description('Send salary verification reminders for departed candidates')
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Salary verification reminders sent');
+    })
+    ->onFailure(function () {
+        logger()->error('Scheduled: Salary verification reminders FAILED');
+    });
+
 // ============================================================================
 // FREQUENT MONITORING TASKS
 // ============================================================================
 
-// SLA breach check - Every 15 minutes
-Schedule::command('app:check-complaint-sla')
+// SLA breach check - Every 15 minutes (with notifications and auto-escalation)
+Schedule::command('app:check-complaint-sla --notify --auto-escalate')
     ->everyFifteenMinutes()
-    ->description('Check for SLA breaches on complaints')
+    ->description('Check for SLA breaches, send notifications, and auto-escalate overdue complaints')
     ->withoutOverlapping()
+    ->onSuccess(function () {
+        logger()->info('Scheduled: Complaint SLA check completed');
+    })
     ->onFailure(function () {
         logger()->error('Scheduled: Complaint SLA check FAILED');
     });

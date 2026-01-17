@@ -157,8 +157,8 @@ class CandidateModelTest extends TestCase
     {
         $btevtaId = Candidate::generateBtevtaId();
 
-        // Check format: BTV-YYYY-XXXXX-C
-        $this->assertMatchesRegularExpression('/^BTV-\d{4}-\d{5}-\d$/', $btevtaId);
+        // Check format: TLP-YYYY-XXXXX-C
+        $this->assertMatchesRegularExpression('/^TLP-\d{4}-\d{5}-\d$/', $btevtaId);
 
         // Check that it validates
         $this->assertTrue(Candidate::validateBtevtaId($btevtaId));
@@ -168,15 +168,15 @@ class CandidateModelTest extends TestCase
     public function it_validates_btevta_id_check_digit()
     {
         // Valid format with correct check digit
-        $validId = 'BTV-2025-00001-7';
+        $validId = 'TLP-2025-00001-7';
         $this->assertTrue(Candidate::validateBtevtaId($validId));
 
         // Invalid check digit
-        $invalidId = 'BTV-2025-00001-9';
+        $invalidId = 'TLP-2025-00001-9';
         $this->assertFalse(Candidate::validateBtevtaId($invalidId));
 
         // Invalid format
-        $this->assertFalse(Candidate::validateBtevtaId('BTV-2025-00001'));
+        $this->assertFalse(Candidate::validateBtevtaId('TLP-2025-00001'));
         $this->assertFalse(Candidate::validateBtevtaId('INVALID-ID'));
     }
 
@@ -249,9 +249,9 @@ class CandidateModelTest extends TestCase
     {
         $candidate = Candidate::factory()->create();
 
-        // BTEVTA ID should be auto-generated with check digit
+        // TheLeap ID should be auto-generated with check digit
         $this->assertNotNull($candidate->btevta_id);
-        $this->assertMatchesRegularExpression('/^BTV-\d{4}-\d{5}-\d$/', $candidate->btevta_id);
+        $this->assertMatchesRegularExpression('/^TLP-\d{4}-\d{5}-\d$/', $candidate->btevta_id);
         $this->assertTrue(Candidate::validateBtevtaId($candidate->btevta_id));
 
         // Application ID should also be auto-generated
@@ -266,7 +266,7 @@ class CandidateModelTest extends TestCase
         $candidate2 = Candidate::factory()->create();
         $candidate3 = Candidate::factory()->create();
 
-        // All should have unique BTEVTA IDs
+        // All should have unique TheLeap IDs
         $this->assertNotEquals($candidate1->btevta_id, $candidate2->btevta_id);
         $this->assertNotEquals($candidate2->btevta_id, $candidate3->btevta_id);
 

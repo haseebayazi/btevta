@@ -97,6 +97,59 @@ class DocumentArchive extends Model
                     ->orderBy('created_at', 'desc');
     }
 
+    /**
+     * Get tags associated with this document
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(DocumentTag::class, 'document_tag_pivot', 'document_id', 'tag_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all versions of this document
+     */
+    public function versions()
+    {
+        return $this->hasMany(DocumentArchive::class, 'replaces_document_id', 'id')
+            ->orderBy('version', 'desc');
+    }
+
+    /**
+     * Get the document this version replaces
+     */
+    public function replacedDocument()
+    {
+        return $this->belongsTo(DocumentArchive::class, 'replaces_document_id');
+    }
+
+    /**
+     * Scope to get only current versions
+     */
+    public function scopeCurrentVersion($query)
+    {
+        return $query->where('is_current_version', true);
+    }
+
+    /**
+     * Scope to get expiring documents
+     */
+    public function scopeExpiring($query, $days = 30)
+    {
+        return $query->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', now()->addDays($days))
+            ->where('expiry_date', '>', now());
+    }
+
+    /**
+     * Scope to get expired documents
+     */
+    public function scopeExpired($query)
+    {
+        return $query->whereNotNull('expiry_date')
+            ->where('expiry_date', '<', now());
+    }
+
     protected static function boot()
     {
         parent::boot();

@@ -90,7 +90,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th>Name</th>
-                            <th>BTEVTA ID</th>
+                            <th>TheLeap ID</th>
                             <th>Status</th>
                         </tr>
                     </thead>

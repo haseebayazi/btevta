@@ -13,8 +13,13 @@ use App\Http\Controllers\Api\RemittanceAlertApiController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\CandidateApiController;
+use App\Http\Controllers\Api\BatchApiController;
 use App\Http\Controllers\Api\DepartureApiController;
 use App\Http\Controllers\Api\VisaProcessApiController;
+use App\Http\Controllers\Api\ScreeningApiController;
+use App\Http\Controllers\Api\CorrespondenceApiController;
+use App\Http\Controllers\Api\ComplaintApiController;
+use App\Http\Controllers\Api\DocumentArchiveApiController;
 use App\Http\Controllers\HealthController;
 
 /*
@@ -85,10 +90,6 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
     Route::get('/trades/list', [TradeController::class, 'apiList'])
         ->name('trades.list');
 
-    // Batches by Campus
-    Route::get('/batches/by-campus/{campus}', [BatchController::class, 'byCampus'])
-        ->name('batches.by-campus');
-
     // User Notifications
     Route::get('/notifications', [UserController::class, 'notifications'])
         ->name('notifications');
@@ -107,6 +108,24 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::post('/', [CandidateApiController::class, 'store'])->name('store');
         Route::put('/{id}', [CandidateApiController::class, 'update'])->name('update');
         Route::delete('/{id}', [CandidateApiController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
+    // BATCH API ROUTES
+    // ========================================================================
+
+    Route::prefix('batches')->name('batches.')->group(function () {
+        Route::get('/', [BatchApiController::class, 'index'])->name('index');
+        Route::get('/active', [BatchApiController::class, 'active'])->name('active');
+        Route::get('/by-campus/{campusId}', [BatchApiController::class, 'byCampus'])->name('by-campus');
+        Route::post('/bulk-assign', [BatchApiController::class, 'bulkAssign'])->name('bulk-assign');
+        Route::get('/{id}', [BatchApiController::class, 'show'])->name('show');
+        Route::get('/{id}/statistics', [BatchApiController::class, 'statistics'])->name('statistics');
+        Route::get('/{id}/candidates', [BatchApiController::class, 'candidates'])->name('candidates');
+        Route::post('/', [BatchApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [BatchApiController::class, 'update'])->name('update');
+        Route::post('/{id}/change-status', [BatchApiController::class, 'changeStatus'])->name('change-status');
+        Route::delete('/{id}', [BatchApiController::class, 'destroy'])->name('destroy');
     });
 
     // ========================================================================
@@ -142,16 +161,17 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
     // Remittances CRUD
     Route::prefix('remittances')->name('remittances.')->group(function () {
         Route::get('/', [RemittanceApiController::class, 'index'])->name('index');
+        Route::get('/stats/overview', [RemittanceApiController::class, 'statistics'])->name('statistics');
+        Route::get('/search/query', [RemittanceApiController::class, 'search'])->name('search');
+        Route::get('/pending-verifications', [RemittanceApiController::class, 'pendingVerifications'])->name('pending-verifications');
+        Route::get('/candidate/{candidateId}', [RemittanceApiController::class, 'byCandidate'])->name('by-candidate');
         Route::get('/{id}', [RemittanceApiController::class, 'show'])->name('show');
+        Route::get('/{id}/download-proof', [RemittanceApiController::class, 'downloadProof'])->name('download-proof');
         Route::post('/', [RemittanceApiController::class, 'store'])->name('store');
         Route::put('/{id}', [RemittanceApiController::class, 'update'])->name('update');
         Route::delete('/{id}', [RemittanceApiController::class, 'destroy'])->name('destroy');
-
-        // Additional endpoints
-        Route::get('/candidate/{candidateId}', [RemittanceApiController::class, 'byCandidate'])->name('by-candidate');
-        Route::get('/search/query', [RemittanceApiController::class, 'search'])->name('search');
-        Route::get('/stats/overview', [RemittanceApiController::class, 'statistics'])->name('statistics');
         Route::post('/{id}/verify', [RemittanceApiController::class, 'verify'])->name('verify');
+        Route::post('/{id}/reject', [RemittanceApiController::class, 'reject'])->name('reject');
     });
 
     // Remittance Reports
@@ -177,5 +197,64 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::post('/{id}/read', [RemittanceAlertApiController::class, 'markAsRead'])->name('mark-read');
         Route::post('/{id}/resolve', [RemittanceAlertApiController::class, 'resolve'])->name('resolve');
         Route::post('/{id}/dismiss', [RemittanceAlertApiController::class, 'dismiss'])->name('dismiss');
+    });
+
+    // ========================================================================
+    // SCREENING API ROUTES (PHASE 3)
+    // ========================================================================
+
+    Route::prefix('screenings')->name('screenings.')->group(function () {
+        Route::get('/', [ScreeningApiController::class, 'index'])->name('index');
+        Route::get('/stats', [ScreeningApiController::class, 'statistics'])->name('statistics');
+        Route::get('/pending', [ScreeningApiController::class, 'pending'])->name('pending');
+        Route::get('/candidate/{candidateId}', [ScreeningApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::get('/{id}', [ScreeningApiController::class, 'show'])->name('show');
+        Route::post('/', [ScreeningApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [ScreeningApiController::class, 'update'])->name('update');
+    });
+
+    // ========================================================================
+    // CORRESPONDENCE API ROUTES (PHASE 3)
+    // ========================================================================
+
+    Route::prefix('correspondence')->name('correspondence.')->group(function () {
+        Route::get('/', [CorrespondenceApiController::class, 'index'])->name('index');
+        Route::get('/stats', [CorrespondenceApiController::class, 'statistics'])->name('statistics');
+        Route::get('/pending', [CorrespondenceApiController::class, 'pending'])->name('pending');
+        Route::get('/{id}', [CorrespondenceApiController::class, 'show'])->name('show');
+        Route::post('/', [CorrespondenceApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [CorrespondenceApiController::class, 'update'])->name('update');
+        Route::delete('/{id}', [CorrespondenceApiController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
+    // COMPLAINTS API ROUTES (PHASE 3)
+    // ========================================================================
+
+    Route::prefix('complaints')->name('complaints.')->group(function () {
+        Route::get('/', [ComplaintApiController::class, 'index'])->name('index');
+        Route::get('/stats', [ComplaintApiController::class, 'statistics'])->name('statistics');
+        Route::get('/overdue', [ComplaintApiController::class, 'overdue'])->name('overdue');
+        Route::get('/{id}', [ComplaintApiController::class, 'show'])->name('show');
+        Route::post('/', [ComplaintApiController::class, 'store'])->name('store');
+        Route::put('/{id}', [ComplaintApiController::class, 'update'])->name('update');
+        Route::post('/{id}/assign', [ComplaintApiController::class, 'assign'])->name('assign');
+        Route::post('/{id}/escalate', [ComplaintApiController::class, 'escalate'])->name('escalate');
+        Route::post('/{id}/resolve', [ComplaintApiController::class, 'resolve'])->name('resolve');
+    });
+
+    // ========================================================================
+    // DOCUMENT ARCHIVE API ROUTES (PHASE 3)
+    // ========================================================================
+
+    Route::prefix('documents')->name('documents.')->group(function () {
+        Route::get('/', [DocumentArchiveApiController::class, 'index'])->name('index');
+        Route::get('/stats', [DocumentArchiveApiController::class, 'statistics'])->name('statistics');
+        Route::get('/search', [DocumentArchiveApiController::class, 'search'])->name('search');
+        Route::get('/expiring', [DocumentArchiveApiController::class, 'expiring'])->name('expiring');
+        Route::get('/expired', [DocumentArchiveApiController::class, 'expired'])->name('expired');
+        Route::get('/candidate/{candidateId}', [DocumentArchiveApiController::class, 'byCandidate'])->name('by-candidate');
+        Route::get('/{id}', [DocumentArchiveApiController::class, 'show'])->name('show');
+        Route::get('/{id}/download', [DocumentArchiveApiController::class, 'download'])->name('download');
     });
 });

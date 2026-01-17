@@ -191,6 +191,7 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     Route::resource('screening', ScreeningController::class)->except(['show']);
     Route::prefix('screening')->name('screening.')->group(function () {
+        Route::get('/dashboard', [ScreeningController::class, 'dashboard'])->name('dashboard');
         Route::get('/pending', [ScreeningController::class, 'pending'])->name('pending');
         Route::post('/{candidate}/call-log', [ScreeningController::class, 'logCall'])->name('log-call');
         Route::post('/{candidate}/screening-outcome', [ScreeningController::class, 'recordOutcome'])->name('outcome');
@@ -305,6 +306,7 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:30,1')->name('upload-ticket');
 
             // VIEW & REPORTING ROUTES
+            Route::get('/dashboard', [VisaProcessingController::class, 'dashboard'])->name('dashboard');
             Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
 
             // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
@@ -386,7 +388,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{correspondence}/mark-replied', [CorrespondenceController::class, 'markReplied'])->name('mark-replied');
             Route::get('/register', [CorrespondenceController::class, 'register'])->name('register');
 
-            // NEW: Communication summary report
+            // SEARCH & ANALYTICS
+            Route::get('/search', [CorrespondenceController::class, 'search'])->name('search');
+            Route::get('/pendency-report', [CorrespondenceController::class, 'pendencyReport'])->name('pendency-report');
+
+            // REPORTS
             Route::get('/reports/summary', [CorrespondenceController::class, 'summary'])
                 ->middleware('throttle:5,1')->name('reports.summary');
         });
@@ -419,9 +425,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/my/assignments', [ComplaintController::class, 'myAssignments'])->name('my-assignments');
         Route::get('/statistics', [ComplaintController::class, 'statistics'])->name('statistics');
 
+        // ANALYTICS & REPORTING ROUTES
+        // GET route to display analytics dashboard
+        Route::get('/analytics', [ComplaintController::class, 'analytics'])->name('analytics.dashboard');
+
         // THROTTLE FIX: Reports and exports limited to 5/min (resource intensive)
         Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])
             ->middleware('throttle:5,1')->name('analytics');
+        Route::get('/reports/sla', [ComplaintController::class, 'slaReport'])->name('sla-report.dashboard');
         Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])
@@ -450,6 +461,7 @@ Route::middleware(['auth'])->group(function () {
         // VERSION CONTROL ROUTES
         Route::get('/{document}/versions', [DocumentArchiveController::class, 'versions'])->name('versions');
         Route::post('/{document}/version', [DocumentArchiveController::class, 'uploadVersion'])->name('upload-version');
+        Route::post('/{document}/compare-versions', [DocumentArchiveController::class, 'compareVersions'])->name('compare-versions');
         Route::post('/{document}/restore-version', [DocumentArchiveController::class, 'restoreVersion'])->name('restore-version');
 
         // ARCHIVE & RESTORE ROUTES
@@ -458,6 +470,7 @@ Route::middleware(['auth'])->group(function () {
 
         // SEARCH & FILTER ROUTES
         Route::get('/search', [DocumentArchiveController::class, 'search'])->name('search');
+        Route::get('/advanced-search', [DocumentArchiveController::class, 'advancedSearch'])->name('advanced-search');
         Route::get('/expiring', [DocumentArchiveController::class, 'expiring'])->name('expiring');
         Route::get('/tracking/expired', [DocumentArchiveController::class, 'expired'])->name('expired');
         Route::get('/candidate/{candidate}/documents', [DocumentArchiveController::class, 'candidateDocuments'])->name('candidate-documents');
@@ -526,6 +539,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('export-csv');
         Route::get('/trainer-performance', [ReportController::class, 'trainerPerformance'])
             ->middleware('throttle:5,1')->name('trainer-performance');
+        Route::get('/trainer-detail/{instructor}', [ReportController::class, 'trainerDetail'])
+            ->middleware('throttle:5,1')->name('trainer-detail');
+        Route::get('/assessment-analytics', [ReportController::class, 'assessmentAnalytics'])
+            ->middleware('throttle:5,1')->name('assessment-analytics');
         Route::get('/departure-updates', [ReportController::class, 'departureUpdatesReport'])
             ->middleware('throttle:5,1')->name('departure-updates');
         // Phase 3: Instructor Utilization Report
@@ -550,6 +567,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('trades', TradeController::class);
         Route::post('trades/{trade}/toggle-status', [TradeController::class, 'toggleStatus'])->name('trades.toggle-status');
         Route::resource('batches', BatchController::class);
+        Route::get('batches/{batch}/candidates', [BatchController::class, 'candidates'])->name('batches.candidates');
+        Route::get('batches/{batch}/statistics', [BatchController::class, 'statistics'])->name('batches.statistics');
+        Route::post('batches/bulk-assign', [BatchController::class, 'bulkAssign'])->name('batches.bulk-assign');
         Route::post('batches/{batch}/change-status', [BatchController::class, 'changeStatus'])->name('batches.change-status');
         Route::resource('users', UserController::class);
         Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');

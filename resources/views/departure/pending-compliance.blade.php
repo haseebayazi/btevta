@@ -30,7 +30,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th>Candidate</th>
-                            <th>BTEVTA ID</th>
+                            <th>TheLeap ID</th>
                             <th>Trade</th>
                             <th>Destination</th>
                             <th>Departure Date</th>

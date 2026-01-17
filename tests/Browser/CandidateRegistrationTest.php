@@ -24,7 +24,7 @@ class CandidateRegistrationTest extends DuskTestCase
     {
         parent::setUp();
         $this->admin = User::factory()->admin()->create([
-            'email' => 'admin@btevta.gov.pk',
+            'email' => 'admin@theleap.org',
             'password' => bcrypt('password'),
         ]);
         $this->trade = Trade::factory()->create();
@@ -36,7 +36,7 @@ class CandidateRegistrationTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->visit('/login')
-                    ->type('email', 'admin@btevta.gov.pk')
+                    ->type('email', 'admin@theleap.org')
                     ->type('password', 'password')
                     ->press('Login')
                     ->assertPathIs('/dashboard')

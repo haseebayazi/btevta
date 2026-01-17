@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Campus Management</h2>
-            <p class="text-gray-600 mt-1">Manage BTEVTA campus locations and details</p>
+            <p class="text-gray-600 mt-1">Manage TheLeap campus locations and details</p>
         </div>
         <div>
             @can('create', App\Models\Campus::class)

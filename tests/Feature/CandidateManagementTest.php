@@ -33,7 +33,7 @@ class CandidateManagementTest extends TestCase
         $campus = Campus::factory()->create();
 
         $data = [
-            'btevta_id' => 'BTEVTA-12345',
+            'btevta_id' => 'TLP-12345',
             'cnic' => '1234567890123',
             'name' => 'Test Candidate',
             'father_name' => 'Father Name',
@@ -49,7 +49,7 @@ class CandidateManagementTest extends TestCase
         $response = $this->actingAs($this->user)->post('/candidates', $data);
 
         $this->assertDatabaseHas('candidates', [
-            'btevta_id' => 'BTEVTA-12345',
+            'btevta_id' => 'TLP-12345',
             'name' => 'Test Candidate'
         ]);
     }
