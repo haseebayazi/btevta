@@ -2,108 +2,110 @@
 
 namespace App\Policies;
 
-use App\Models\Remittance;
 use App\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\Remittance;
 
 class RemittancePolicy
 {
-    use HandlesAuthorization;
-
+    /**
+     * Determine if the user can view any remittances
+     */
     public function viewAny(User $user): bool
     {
-        // Allow admins, project directors, campus admins, OEPs, and viewers
-        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isOep() || $user->isViewer();
+        return $user->hasAnyRole(['super_admin', 'project_director', 'campus_admin', 'staff']);
     }
 
+    /**
+     * Determine if the user can view the remittance
+     */
     public function view(User $user, Remittance $remittance): bool
     {
-        // Admin and Project Director can view all
-        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
+        // Super admin and project director can view all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
-        // Campus admin can view remittances from their campus
-        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
-            return $remittance->candidate->campus_id === $user->campus_id;
+        // Campus admin can only view remittances from their campus
+        if ($user->isCampusAdmin()) {
+            return $remittance->campus_id === $user->campus_id;
         }
 
-        // OEP can view remittances from their candidates
-        if ($user->isOep() && $user->oep_id && $remittance->candidate) {
-            return $remittance->candidate->oep_id === $user->oep_id;
-        }
-
-        // Candidates can view their own remittances
-        if ($user->isCandidate() && $remittance->candidate) {
-            return $remittance->candidate->user_id === $user->id;
+        // Staff can view remittances from their campus
+        if ($user->hasRole('staff')) {
+            return $remittance->campus_id === $user->campus_id;
         }
 
         return false;
     }
 
+    /**
+     * Determine if the user can create remittances
+     */
     public function create(User $user): bool
     {
-        // Only admin, project director, and campus_admin can create remittances
-        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+        return $user->hasAnyRole(['super_admin', 'project_director', 'campus_admin', 'staff']);
     }
 
+    /**
+     * Determine if the user can update the remittance
+     */
     public function update(User $user, Remittance $remittance): bool
     {
-        // Admin and Project Director can update all
+        // Cannot update if already verified
+        if ($remittance->is_verified) {
+            return false;
+        }
+
+        // Super admin and project director can update all
         if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
         // Campus admin can update remittances from their campus
-        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
-            return $remittance->candidate->campus_id === $user->campus_id;
+        if ($user->isCampusAdmin()) {
+            return $remittance->campus_id === $user->campus_id;
         }
 
         return false;
     }
 
+    /**
+     * Determine if the user can delete the remittance
+     */
     public function delete(User $user, Remittance $remittance): bool
     {
-        // Only admin can delete
-        return $user->isSuperAdmin();
-    }
+        // Cannot delete if verified
+        if ($remittance->is_verified) {
+            return false;
+        }
 
-    public function verify(User $user, Remittance $remittance): bool
-    {
-        // Only admin and project director can verify
+        // Only super admin and project director can delete
         return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
-    public function uploadReceipt(User $user, Remittance $remittance): bool
+    /**
+     * Determine if the user can verify the remittance
+     */
+    public function verify(User $user, Remittance $remittance): bool
     {
-        // Admin and Project Director can upload for any
+        // Super admin and project director can verify all
         if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
         }
 
-        // Campus admin can upload for their campus
-        if ($user->isCampusAdmin() && $user->campus_id && $remittance->candidate) {
-            return $remittance->candidate->campus_id === $user->campus_id;
+        // Campus admin can verify remittances from their campus
+        if ($user->isCampusAdmin()) {
+            return $remittance->campus_id === $user->campus_id;
         }
 
         return false;
     }
 
-    public function deleteReceipt(User $user): bool
+    /**
+     * Determine if the user can download proof documents
+     */
+    public function downloadProof(User $user, Remittance $remittance): bool
     {
-        // Only admin can delete receipts
-        return $user->isSuperAdmin();
-    }
-
-    public function export(User $user): bool
-    {
-        // Admin, project director, and campus_admin can export
-        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
-    }
-
-    public function viewReports(User $user): bool
-    {
-        // Admin, project director, campus_admin, and viewer can view reports
-        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin() || $user->isViewer();
+        return $this->view($user, $remittance);
     }
 }

@@ -161,16 +161,17 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
     // Remittances CRUD
     Route::prefix('remittances')->name('remittances.')->group(function () {
         Route::get('/', [RemittanceApiController::class, 'index'])->name('index');
+        Route::get('/stats/overview', [RemittanceApiController::class, 'statistics'])->name('statistics');
+        Route::get('/search/query', [RemittanceApiController::class, 'search'])->name('search');
+        Route::get('/pending-verifications', [RemittanceApiController::class, 'pendingVerifications'])->name('pending-verifications');
+        Route::get('/candidate/{candidateId}', [RemittanceApiController::class, 'byCandidate'])->name('by-candidate');
         Route::get('/{id}', [RemittanceApiController::class, 'show'])->name('show');
+        Route::get('/{id}/download-proof', [RemittanceApiController::class, 'downloadProof'])->name('download-proof');
         Route::post('/', [RemittanceApiController::class, 'store'])->name('store');
         Route::put('/{id}', [RemittanceApiController::class, 'update'])->name('update');
         Route::delete('/{id}', [RemittanceApiController::class, 'destroy'])->name('destroy');
-
-        // Additional endpoints
-        Route::get('/candidate/{candidateId}', [RemittanceApiController::class, 'byCandidate'])->name('by-candidate');
-        Route::get('/search/query', [RemittanceApiController::class, 'search'])->name('search');
-        Route::get('/stats/overview', [RemittanceApiController::class, 'statistics'])->name('statistics');
         Route::post('/{id}/verify', [RemittanceApiController::class, 'verify'])->name('verify');
+        Route::post('/{id}/reject', [RemittanceApiController::class, 'reject'])->name('reject');
     });
 
     // Remittance Reports

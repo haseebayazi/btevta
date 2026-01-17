@@ -5,422 +5,391 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Remittance;
 use App\Models\Candidate;
+use App\Services\RemittanceService;
+use App\Http\Resources\RemittanceResource;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class RemittanceApiController extends Controller
 {
-    /**
-     * Get all remittances (paginated)
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function index(Request $request)
-    {
-        $this->authorize('viewAny', Remittance::class);
+    protected RemittanceService $remittanceService;
 
-        $query = Remittance::with(['candidate', 'departure', 'recordedBy']);
+    public function __construct(RemittanceService $remittanceService)
+    {
+        $this->remittanceService = $remittanceService;
+    }
+
+    /**
+     * Display a listing of remittances
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = Remittance::with(['candidate', 'campus', 'departure', 'verifiedBy', 'recordedBy']);
+
+        // Campus filtering for campus admin
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
 
         // Apply filters
-        if ($request->filled('candidate_id')) {
-            $query->where('candidate_id', $request->candidate_id);
+        if ($request->filled('verification_status')) {
+            $query->where('verification_status', $request->verification_status);
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('year')) {
-            $query->where('year', $request->year);
+        if ($request->filled('candidate_id')) {
+            $query->where('candidate_id', $request->candidate_id);
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('transfer_date', '>=', $request->date_from);
+        if ($request->filled('campus_id') && ($user->isSuperAdmin() || $user->isProjectDirector())) {
+            $query->where('campus_id', $request->campus_id);
         }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('transfer_date', '<=', $request->date_to);
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->betweenDates($request->start_date, $request->end_date);
         }
 
-        // Role-based filtering
-        $user = Auth::user();
-        if ($user->role === 'candidate') {
-            $query->whereHas('candidate', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
-        } elseif ($user->role === 'campus_admin') {
-            // Campus admins can only see remittances for candidates at their campus
-            $query->whereHas('candidate', function($q) use ($user) {
-                $q->where('campus_id', $user->campus_id);
-            });
+        if ($request->filled('transaction_type')) {
+            $query->where('transaction_type', $request->transaction_type);
         }
 
-        $perPage = $request->input('per_page', 20);
-        $remittances = $query->orderBy('transfer_date', 'desc')->paginate($perPage);
-
-        return response()->json($remittances);
-    }
-
-    /**
-     * Get remittance by ID
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function show($id)
-    {
-        $remittance = Remittance::with([
-            'candidate',
-            'departure',
-            'recordedBy',
-            'verifiedBy',
-            'receipts.uploadedBy',
-            'usageBreakdown'
-        ])->find($id);
-
-        if (!$remittance) {
-            return response()->json(['error' => 'Remittance not found'], 404);
+        if ($request->filled('currency')) {
+            $query->where('currency', $request->currency);
         }
 
-        $this->authorize('view', $remittance);
-
-        return response()->json($remittance);
-    }
-
-    /**
-     * Get remittances by candidate ID
-     * AUDIT FIX: Added proper candidate-level authorization to prevent cross-campus data access
-     *
-     * @param int $candidateId
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function byCandidate($candidateId)
-    {
-        $this->authorize('viewAny', Remittance::class);
-
-        $candidate = Candidate::find($candidateId);
-
-        if (!$candidate) {
-            return response()->json(['error' => 'Candidate not found'], 404);
-        }
-
-        // AUDIT FIX: Verify user has access to this specific candidate
-        // This prevents cross-campus data leakage
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector()) {
-            // Campus admins can only view remittances for their campus
-            if ($user->role === 'campus_admin' && $user->campus_id !== $candidate->campus_id) {
-                return response()->json([
-                    'error' => 'Unauthorized: You do not have access to this candidate\'s remittances'
-                ], 403);
-            }
-            // OEP users can only view remittances for their OEP's candidates
-            if ($user->role === 'oep' && $user->oep_id !== $candidate->oep_id) {
-                return response()->json([
-                    'error' => 'Unauthorized: You do not have access to this candidate\'s remittances'
-                ], 403);
-            }
-        }
-
-        $remittances = Remittance::where('candidate_id', $candidateId)
-            ->with(['departure', 'recordedBy'])
-            ->orderBy('transfer_date', 'desc')
-            ->get();
+        $perPage = $request->get('per_page', 20);
+        $remittances = $query->latest()->paginate($perPage);
 
         return response()->json([
-            'candidate' => $candidate,
-            'remittances' => $remittances,
-            'summary' => [
-                'total_count' => $remittances->count(),
-                'total_amount' => $remittances->sum('amount'),
-                'average_amount' => $remittances->avg('amount'),
-                'latest_remittance' => $remittances->first(),
+            'success' => true,
+            'data' => RemittanceResource::collection($remittances),
+            'meta' => [
+                'current_page' => $remittances->currentPage(),
+                'last_page' => $remittances->lastPage(),
+                'per_page' => $remittances->perPage(),
+                'total' => $remittances->total(),
             ],
         ]);
     }
 
     /**
-     * Create a new remittance
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * Store a newly created remittance
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $this->authorize('create', Remittance::class);
-
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
             'departure_id' => 'nullable|exists:departures,id',
-            'transaction_reference' => 'required|string|unique:remittances,transaction_reference',
+            'transaction_reference' => 'nullable|unique:remittances,transaction_reference',
+            'transaction_type' => 'required|string',
+            'transaction_date' => 'required|date',
             'amount' => 'required|numeric|min:0',
-            'currency' => 'required|string|size:3',
-            'amount_foreign' => 'nullable|numeric|min:0',
-            'foreign_currency' => 'nullable|string|size:3',
+            'currency' => 'required|string|max:3',
             'exchange_rate' => 'nullable|numeric|min:0',
-            'transfer_date' => 'required|date',
             'transfer_method' => 'nullable|string',
-            'sender_name' => 'required|string',
-            'sender_location' => 'nullable|string',
-            'receiver_name' => 'required|string',
-            'receiver_account' => 'nullable|string',
             'bank_name' => 'nullable|string',
-            'primary_purpose' => 'required|string',
-            'purpose_description' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'swift_code' => 'nullable|string',
+            'iban' => 'nullable|string',
+            'purpose' => 'required|string',
+            'description' => 'nullable|string',
+            'month_year' => 'nullable|string',
+            'proof_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        // Get candidate's campus
+        $candidate = Candidate::findOrFail($validated['candidate_id']);
+        $validated['campus_id'] = $candidate->campus_id;
+        $validated['recorded_by'] = $request->user()->id;
 
-        $validated = $validator->validated();
-        $validated['recorded_by'] = Auth::id();
-        $validated['status'] = 'pending';
+        $proofFile = $request->hasFile('proof_document') ? $request->file('proof_document') : null;
 
-        // Check if this is the first remittance for this candidate
-        $isFirst = !Remittance::where('candidate_id', $validated['candidate_id'])->exists();
-        $validated['is_first_remittance'] = $isFirst;
-
-        $remittance = Remittance::create($validated);
-
-        // Calculate month number if departure exists
-        if ($remittance->departure_id) {
-            $monthNumber = $remittance->calculateMonthNumber();
-            $remittance->update(['month_number' => $monthNumber]);
-        }
+        $remittance = $this->remittanceService->createRemittance($validated, $proofFile);
 
         return response()->json([
+            'success' => true,
             'message' => 'Remittance created successfully',
-            'remittance' => $remittance->load(['candidate', 'departure']),
+            'data' => new RemittanceResource($remittance->load(['candidate', 'campus', 'verifiedBy', 'recordedBy'])),
         ], 201);
     }
 
     /**
-     * Update a remittance
-     *
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Display the specified remittance
      */
-    public function update(Request $request, $id)
+    public function show(Request $request, $id): JsonResponse
     {
-        $remittance = Remittance::find($id);
-
-        if (!$remittance) {
-            return response()->json(['error' => 'Remittance not found'], 404);
-        }
-
-        $this->authorize('update', $remittance);
-
-        $validator = Validator::make($request->all(), [
-            'candidate_id' => 'sometimes|required|exists:candidates,id',
-            'departure_id' => 'nullable|exists:departures,id',
-            'transaction_reference' => 'sometimes|required|string|unique:remittances,transaction_reference,' . $id,
-            'amount' => 'sometimes|required|numeric|min:0',
-            'currency' => 'sometimes|required|string|size:3',
-            'transfer_date' => 'sometimes|required|date',
-            'sender_name' => 'sometimes|required|string',
-            'receiver_name' => 'sometimes|required|string',
-            'primary_purpose' => 'sometimes|required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $validated = $validator->validated();
-
-        // AUDIT FIX: Validate candidate reassignment based on user role
-        if (isset($validated['candidate_id']) && $validated['candidate_id'] != $remittance->candidate_id) {
-            $user = Auth::user();
-            $newCandidate = \App\Models\Candidate::find($validated['candidate_id']);
-
-            if (!$newCandidate) {
-                return response()->json(['error' => 'Target candidate not found'], 404);
-            }
-
-            // Campus admins can only reassign to candidates in their own campus
-            if ($user->role === 'campus_admin' && $user->campus_id) {
-                if ($newCandidate->campus_id != $user->campus_id) {
-                    return response()->json([
-                        'error' => 'You cannot reassign remittance to a candidate outside your campus'
-                    ], 403);
-                }
-            }
-
-            // OEP users can only reassign to candidates in their own OEP
-            if ($user->role === 'oep' && $user->oep_id) {
-                if ($newCandidate->oep_id != $user->oep_id) {
-                    return response()->json([
-                        'error' => 'You cannot reassign remittance to a candidate outside your OEP'
-                    ], 403);
-                }
-            }
-        }
-
-        $remittance->update($validated);
-
-        // Recalculate month number if departure changed
-        if ($remittance->departure_id) {
-            $monthNumber = $remittance->calculateMonthNumber();
-            $remittance->update(['month_number' => $monthNumber]);
-        }
+        $remittance = Remittance::with(['candidate', 'campus', 'departure', 'verifiedBy', 'recordedBy'])
+            ->findOrFail($id);
 
         return response()->json([
+            'success' => true,
+            'data' => new RemittanceResource($remittance),
+        ]);
+    }
+
+    /**
+     * Update the specified remittance
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $remittance = Remittance::findOrFail($id);
+
+        $validated = $request->validate([
+            'transaction_date' => 'required|date',
+            'amount' => 'required|numeric|min:0',
+            'currency' => 'required|string|max:3',
+            'exchange_rate' => 'nullable|numeric|min:0',
+            'transfer_method' => 'nullable|string',
+            'bank_name' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'swift_code' => 'nullable|string',
+            'iban' => 'nullable|string',
+            'purpose' => 'required|string',
+            'description' => 'nullable|string',
+            'month_year' => 'nullable|string',
+            'proof_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $proofFile = $request->hasFile('proof_document') ? $request->file('proof_document') : null;
+
+        $remittance = $this->remittanceService->updateRemittance($remittance, $validated, $proofFile);
+
+        return response()->json([
+            'success' => true,
             'message' => 'Remittance updated successfully',
-            'remittance' => $remittance->load(['candidate', 'departure']),
+            'data' => new RemittanceResource($remittance->load(['candidate', 'campus', 'verifiedBy', 'recordedBy'])),
         ]);
     }
 
     /**
-     * Delete a remittance
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Verify a remittance
      */
-    public function destroy($id)
+    public function verify(Request $request, $id): JsonResponse
     {
-        $remittance = Remittance::find($id);
+        $remittance = Remittance::findOrFail($id);
 
-        if (!$remittance) {
-            return response()->json(['error' => 'Remittance not found'], 404);
-        }
+        $request->validate([
+            'verification_notes' => 'nullable|string',
+        ]);
 
-        $this->authorize('delete', $remittance);
+        $remittance = $this->remittanceService->verifyRemittance(
+            $remittance,
+            $request->user()->id,
+            $request->verification_notes
+        );
 
-        $remittance->delete();
-
-        return response()->json(['message' => 'Remittance deleted successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Remittance verified successfully',
+            'data' => new RemittanceResource($remittance->load(['candidate', 'campus', 'verifiedBy', 'recordedBy'])),
+        ]);
     }
 
     /**
-     * Search remittances
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * Reject a remittance
      */
-    public function search(Request $request)
+    public function reject(Request $request, $id): JsonResponse
     {
-        $this->authorize('viewAny', Remittance::class);
+        $remittance = Remittance::findOrFail($id);
 
-        $query = Remittance::with(['candidate', 'departure']);
+        $request->validate([
+            'rejection_reason' => 'required|string',
+        ]);
 
-        // Search by transaction reference
-        if ($request->filled('transaction_reference')) {
-            // Escape special LIKE characters to prevent SQL LIKE injection
-            $escapedRef = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->transaction_reference);
-            $query->where('transaction_reference', 'like', '%' . $escapedRef . '%');
-        }
-
-        // Search by candidate name or CNIC
-        if ($request->filled('candidate')) {
-            // Escape special LIKE characters to prevent SQL LIKE injection
-            $escapedCandidate = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->candidate);
-            $query->whereHas('candidate', function($q) use ($escapedCandidate) {
-                $q->where('full_name', 'like', '%' . $escapedCandidate . '%')
-                  ->orWhere('cnic', 'like', '%' . $escapedCandidate . '%');
-            });
-        }
-
-        // Search by amount range
-        if ($request->filled('min_amount')) {
-            $query->where('amount', '>=', $request->min_amount);
-        }
-
-        if ($request->filled('max_amount')) {
-            $query->where('amount', '<=', $request->max_amount);
-        }
-
-        $results = $query->orderBy('transfer_date', 'desc')->limit(50)->get();
+        $remittance = $this->remittanceService->rejectRemittance(
+            $remittance,
+            $request->user()->id,
+            $request->rejection_reason
+        );
 
         return response()->json([
-            'count' => $results->count(),
-            'results' => $results,
+            'success' => true,
+            'message' => 'Remittance rejected',
+            'data' => new RemittanceResource($remittance->load(['candidate', 'campus', 'verifiedBy', 'recordedBy'])),
         ]);
     }
 
     /**
      * Get remittance statistics
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function statistics()
+    public function statistics(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Remittance::class);
+        $user = $request->user();
+        $filters = [];
 
-        // AUDIT FIX: Apply campus/OEP filtering for statistics
-        $baseQuery = Remittance::query();
-        $user = Auth::user();
-
-        if ($user->role === 'campus_admin' && $user->campus_id) {
-            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
-        } elseif ($user->role === 'oep' && $user->oep_id) {
-            $baseQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
+        // Campus filtering
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $filters['campus_id'] = $user->campus_id;
+        } elseif ($request->filled('campus_id')) {
+            $filters['campus_id'] = $request->campus_id;
         }
 
-        $totalCount = (clone $baseQuery)->count();
-        $withProofCount = (clone $baseQuery)->where('has_proof', true)->count();
+        // Date range
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $filters['start_date'] = $request->start_date;
+            $filters['end_date'] = $request->end_date;
+        }
 
-        $stats = [
-            'total_remittances' => $totalCount,
-            'total_amount' => (clone $baseQuery)->sum('amount'),
-            'average_amount' => (clone $baseQuery)->avg('amount'),
-            'total_candidates' => (clone $baseQuery)->distinct('candidate_id')->count(),
-            'with_proof' => $withProofCount,
-            'proof_compliance_rate' => $totalCount > 0
-                ? round(($withProofCount / $totalCount) * 100, 2)
-                : 0,
-            'by_status' => (clone $baseQuery)->selectRaw('status, count(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status'),
-            'current_year' => [
-                'count' => (clone $baseQuery)->where('year', date('Y'))->count(),
-                'amount' => (clone $baseQuery)->where('year', date('Y'))->sum('amount'),
-            ],
-            'current_month' => [
-                'count' => (clone $baseQuery)->where('year', date('Y'))
-                    ->where('month', date('n'))->count(),
-                'amount' => (clone $baseQuery)->where('year', date('Y'))
-                    ->where('month', date('n'))->sum('amount'),
-            ],
-        ];
+        $statistics = $this->remittanceService->getStatistics($filters);
 
-        return response()->json($stats);
+        return response()->json([
+            'success' => true,
+            'data' => $statistics,
+        ]);
     }
 
     /**
-     * Verify a remittance
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Get remittances by candidate
      */
-    public function verify($id)
+    public function byCandidate(Request $request, $candidateId): JsonResponse
     {
-        $remittance = Remittance::find($id);
+        $candidate = Candidate::findOrFail($candidateId);
 
-        if (!$remittance) {
-            return response()->json(['error' => 'Remittance not found'], 404);
-        }
-
-        $this->authorize('verify', $remittance);
-
-        // Prevent duplicate verification
-        if ($remittance->status === 'verified') {
-            return response()->json([
-                'error' => 'Remittance is already verified',
-                'verified_by' => $remittance->verifiedBy?->name,
-                'verified_date' => $remittance->proof_verified_date,
-            ], 400);
-        }
-
-        $remittance->markAsVerified(Auth::id());
+        $remittances = $this->remittanceService->getCandidateRemittances(
+            $candidate->id,
+            $request->only(['verification_status', 'status'])
+        );
 
         return response()->json([
-            'message' => 'Remittance verified successfully',
-            'remittance' => $remittance,
+            'success' => true,
+            'data' => RemittanceResource::collection($remittances),
+            'meta' => [
+                'candidate_id' => $candidate->id,
+                'candidate_name' => $candidate->name,
+                'total_remittances' => $remittances->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get pending verifications
+     */
+    public function pendingVerifications(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $campusId = null;
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $campusId = $user->campus_id;
+        }
+
+        $remittances = $this->remittanceService->getPendingVerifications($campusId);
+
+        return response()->json([
+            'success' => true,
+            'data' => RemittanceResource::collection($remittances),
+            'meta' => [
+                'current_page' => $remittances->currentPage(),
+                'last_page' => $remittances->lastPage(),
+                'per_page' => $remittances->perPage(),
+                'total' => $remittances->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Download proof document
+     */
+    public function downloadProof(Request $request, $id): JsonResponse
+    {
+        $remittance = Remittance::findOrFail($id);
+
+        if (!$remittance->hasProof()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proof document not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'remittance_id' => $remittance->id,
+                'transaction_reference' => $remittance->transaction_reference,
+                'proof_url' => $remittance->proof_url,
+                'file_type' => $remittance->proof_document_type,
+                'file_size' => $remittance->proof_document_size,
+            ],
+        ]);
+    }
+
+    /**
+     * Delete a remittance
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $remittance = Remittance::findOrFail($id);
+
+        // Check if already verified - cannot delete verified remittances
+        if ($remittance->isVerified()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete verified remittance',
+            ], 403);
+        }
+
+        // Delete proof document if exists
+        if ($remittance->hasProof()) {
+            $this->remittanceService->deleteProof($remittance);
+        }
+
+        $remittance->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Remittance deleted successfully',
+        ]);
+    }
+
+    /**
+     * Search remittances
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q' => 'required|string|min:2',
+        ]);
+
+        $user = $request->user();
+        $searchTerm = $request->get('q');
+
+        // Escape special characters for SQL LIKE
+        $escapedQuery = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm);
+
+        $query = Remittance::with(['candidate', 'campus', 'departure', 'verifiedBy', 'recordedBy'])
+            ->where(function($q) use ($escapedQuery) {
+                $q->where('transaction_reference', 'LIKE', "%{$escapedQuery}%")
+                  ->orWhere('purpose', 'LIKE', "%{$escapedQuery}%")
+                  ->orWhere('description', 'LIKE', "%{$escapedQuery}%")
+                  ->orWhere('bank_name', 'LIKE', "%{$escapedQuery}%")
+                  ->orWhereHas('candidate', function($candidateQuery) use ($escapedQuery) {
+                      $candidateQuery->where('name', 'LIKE', "%{$escapedQuery}%")
+                          ->orWhere('passport_number', 'LIKE', "%{$escapedQuery}%");
+                  });
+            });
+
+        // Campus filtering for campus admin
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        }
+
+        $perPage = $request->get('per_page', 20);
+        $remittances = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => RemittanceResource::collection($remittances),
+            'meta' => [
+                'current_page' => $remittances->currentPage(),
+                'last_page' => $remittances->lastPage(),
+                'per_page' => $remittances->perPage(),
+                'total' => $remittances->total(),
+                'search_query' => $searchTerm,
+            ],
         ]);
     }
 }

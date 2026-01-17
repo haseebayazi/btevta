@@ -2,173 +2,146 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Remittance extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'candidate_id',
         'departure_id',
-        'beneficiary_id',
-        'recorded_by',
+        'campus_id',
         'transaction_reference',
+        'transaction_type',
+        'transaction_date',
         'amount',
         'currency',
-        'amount_foreign',
-        'foreign_currency',
         'exchange_rate',
-        'transfer_date',
+        'amount_in_pkr',
         'transfer_method',
-        'sender_name',
-        'sender_location',
-        'receiver_name',
-        'receiver_account',
         'bank_name',
-        'primary_purpose',
-        'purpose_description',
-        'has_proof',
-        'proof_verified_date',
+        'account_number',
+        'swift_code',
+        'iban',
+        'purpose',
+        'description',
+        'month_year',
+        'proof_document_path',
+        'proof_document_type',
+        'proof_document_size',
+        'verification_status',
         'verified_by',
+        'verified_at',
+        'verification_notes',
+        'rejection_reason',
         'status',
-        'notes',
-        'alert_message',
-        'is_first_remittance',
-        'month_number',
-        'year',
-        'month',
-        'quarter',
+        'metadata',
+        'recorded_by',
     ];
 
     protected $casts = [
-        'transfer_date' => 'date',
-        'proof_verified_date' => 'date',
+        'transaction_date' => 'date',
         'amount' => 'decimal:2',
-        'amount_foreign' => 'decimal:2',
         'exchange_rate' => 'decimal:4',
-        'has_proof' => 'boolean',
-        'is_first_remittance' => 'boolean',
-        'year' => 'integer',
-        'month' => 'integer',
-        'quarter' => 'integer',
+        'amount_in_pkr' => 'decimal:2',
+        'verified_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
-    // Relationships
-    public function candidate()
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['transaction_reference', 'amount', 'currency', 'verification_status', 'status'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    public function candidate(): BelongsTo
     {
         return $this->belongsTo(Candidate::class);
     }
 
-    public function departure()
+    public function departure(): BelongsTo
     {
         return $this->belongsTo(Departure::class);
     }
 
-    /**
-     * AUDIT FIX: Added missing beneficiary relationship
-     * The beneficiary_id column was added in migration phase2_model_relationship_fixes
-     */
-    public function beneficiary()
+    public function campus(): BelongsTo
     {
-        return $this->belongsTo(RemittanceBeneficiary::class);
+        return $this->belongsTo(Campus::class);
     }
 
-    public function recordedBy()
-    {
-        return $this->belongsTo(User::class, 'recorded_by');
-    }
-
-    public function verifiedBy()
+    public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    public function receipts()
+    public function recordedBy(): BelongsTo
     {
-        return $this->hasMany(RemittanceReceipt::class);
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 
-    public function usageBreakdown()
+    public function scopeVerificationStatus($query, $status)
     {
-        return $this->hasMany(RemittanceUsageBreakdown::class);
+        return $query->where('verification_status', $status);
     }
 
-    // Scopes
+    public function scopeStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    public function scopeForCampus($query, $campusId)
+    {
+        return $query->where('campus_id', $campusId);
+    }
+
+    public function scopeBetweenDates($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('transaction_date', [$startDate, $endDate]);
+    }
+
+    public function scopePendingVerification($query)
+    {
+        return $query->where('verification_status', 'pending');
+    }
+
     public function scopeVerified($query)
     {
-        return $query->where('status', 'verified');
+        return $query->where('verification_status', 'verified');
     }
 
-    public function scopePending($query)
+    public function hasProof(): bool
     {
-        return $query->where('status', 'pending');
+        return !empty($this->proof_document_path);
     }
 
-    public function scopeByYear($query, $year)
+    public function isVerified(): bool
     {
-        return $query->where('year', $year);
+        return $this->verification_status === 'verified';
     }
 
-    public function scopeByMonth($query, $year, $month)
+    public function isPending(): bool
     {
-        return $query->where('year', $year)->where('month', $month);
+        return $this->verification_status === 'pending';
     }
 
-    public function scopeByPurpose($query, $purpose)
+    public function getFormattedAmountAttribute(): string
     {
-        return $query->where('primary_purpose', $purpose);
+        return $this->currency . ' ' . number_format($this->amount, 2);
     }
 
-    // Accessors
-    public function getFormattedAmountAttribute()
+    public function getProofUrlAttribute(): ?string
     {
-        return number_format($this->amount, 2) . ' ' . $this->currency;
-    }
-
-    public function getMonthNameAttribute()
-    {
-        return date('F', mktime(0, 0, 0, $this->month, 1));
-    }
-
-    // Mutators
-    public function setTransferDateAttribute($value)
-    {
-        $this->attributes['transfer_date'] = $value;
-
-        // Auto-set year, month, quarter
-        if ($value) {
-            $date = \Carbon\Carbon::parse($value);
-            $this->attributes['year'] = $date->year;
-            $this->attributes['month'] = $date->month;
-            $this->attributes['quarter'] = $date->quarter;
-        }
-    }
-
-    // Methods
-    public function calculateMonthNumber()
-    {
-        if ($this->departure && $this->departure->departure_date) {
-            $deploymentDate = \Carbon\Carbon::parse($this->departure->departure_date);
-            $transferDate = \Carbon\Carbon::parse($this->transfer_date);
-            return $deploymentDate->diffInMonths($transferDate) + 1;
+        if ($this->proof_document_path) {
+            return asset('storage/' . $this->proof_document_path);
         }
         return null;
-    }
-
-    public function markAsVerified($userId)
-    {
-        $this->update([
-            'status' => 'verified',
-            'verified_by' => $userId,
-            'proof_verified_date' => now(),
-        ]);
-    }
-
-    public function hasCompleteProof()
-    {
-        return $this->has_proof && $this->receipts()->where('is_verified', true)->exists();
     }
 }

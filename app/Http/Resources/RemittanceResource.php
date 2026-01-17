@@ -7,235 +7,83 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class RemittanceResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'candidate_id' => $this->candidate_id,
-            'departure_id' => $this->departure_id,
             'transaction_reference' => $this->transaction_reference,
-
-            // Amount Information
-            'amount' => [
-                'value' => (float) $this->amount,
-                'currency' => $this->currency ?? 'PKR',
-                'formatted' => $this->getFormattedAmount(),
-            ],
-
-            'foreign_amount' => $this->when($this->amount_foreign, [
-                'value' => (float) $this->amount_foreign,
-                'currency' => $this->foreign_currency,
-                'exchange_rate' => $this->exchange_rate,
-            ]),
-
-            // Transfer Details
-            'transfer' => [
-                'date' => $this->transfer_date?->format('Y-m-d'),
-                'method' => $this->transfer_method,
-                'method_label' => $this->getTransferMethodLabel(),
-            ],
-
-            // Sender Information
-            'sender' => [
-                'name' => $this->sender_name,
-                'location' => $this->sender_location,
-            ],
-
-            // Receiver Information
-            'receiver' => [
-                'name' => $this->receiver_name,
-                'account' => $this->when($this->canViewSensitive($request), $this->receiver_account),
-                'bank_name' => $this->bank_name,
-            ],
-
+            'transaction_type' => $this->transaction_type,
+            'transaction_date' => $this->transaction_date?->format('Y-m-d'),
+            
+            // Amount details
+            'amount' => $this->amount,
+            'currency' => $this->currency,
+            'exchange_rate' => $this->exchange_rate,
+            'amount_in_pkr' => $this->amount_in_pkr,
+            'formatted_amount' => $this->formatted_amount,
+            
+            // Transfer details
+            'transfer_method' => $this->transfer_method,
+            'bank_name' => $this->bank_name,
+            'account_number' => $this->account_number,
+            'swift_code' => $this->swift_code,
+            'iban' => $this->iban,
+            
             // Purpose
-            'purpose' => [
-                'primary' => $this->primary_purpose,
-                'primary_label' => $this->getPurposeLabel(),
-                'description' => $this->purpose_description,
-            ],
-
-            // Usage Breakdown
-            'usage_breakdown' => $this->whenLoaded('usageBreakdown', fn() =>
-                $this->usageBreakdown->map(fn($usage) => [
-                    'purpose' => $usage->purpose,
-                    'amount' => (float) $usage->amount,
-                    'percentage' => $usage->percentage,
-                    'description' => $usage->description,
-                ])
-            ),
-
-            // Proof & Verification
-            'proof' => [
-                'has_proof' => (bool) $this->has_proof,
-                'verified' => (bool) $this->proof_verified_date,
-                'verified_date' => $this->proof_verified_date?->format('Y-m-d'),
-            ],
-
-            'receipts' => $this->whenLoaded('receipts', fn() =>
-                $this->receipts->map(fn($receipt) => [
-                    'id' => $receipt->id,
-                    'file_name' => $receipt->file_name,
-                    'file_type' => $receipt->file_type,
-                    'file_size' => $receipt->file_size,
-                    'is_verified' => (bool) $receipt->is_verified,
-                    'uploaded_at' => $receipt->created_at?->toIso8601String(),
-                ])
-            ),
-
+            'purpose' => $this->purpose,
+            'description' => $this->description,
+            'month_year' => $this->month_year,
+            
+            // Documentation
+            'has_proof' => $this->hasProof(),
+            'proof_url' => $this->proof_url,
+            'proof_document_type' => $this->proof_document_type,
+            'proof_document_size' => $this->proof_document_size,
+            
+            // Verification
+            'verification_status' => $this->verification_status,
+            'is_verified' => $this->isVerified(),
+            'is_pending' => $this->isPending(),
+            'verified_at' => $this->verified_at?->format('Y-m-d H:i:s'),
+            'verification_notes' => $this->verification_notes,
+            'rejection_reason' => $this->rejection_reason,
+            
             // Status
-            'status' => [
-                'value' => $this->status,
-                'label' => $this->getStatusLabel(),
-                'color' => $this->getStatusColor(),
-            ],
-
-            // Metadata
-            'is_first_remittance' => (bool) $this->is_first_remittance,
-            'month_number' => $this->month_number,
-            'notes' => $this->notes,
-            'alert_message' => $this->alert_message,
-
-            // Time Period
-            'period' => [
-                'year' => $this->year,
-                'month' => $this->month,
-                'quarter' => $this->quarter,
-            ],
-
+            'status' => $this->status,
+            
             // Relationships
-            'candidate' => $this->whenLoaded('candidate', fn() => [
-                'id' => $this->candidate->id,
-                'name' => $this->candidate->name,
-                'btevta_id' => $this->candidate->btevta_id,
+            'candidate' => $this->when($this->relationLoaded('candidate'), [
+                'id' => $this->candidate?->id,
+                'name' => $this->candidate?->name,
+                'passport_number' => $this->candidate?->passport_number,
             ]),
-
-            'departure' => $this->whenLoaded('departure', fn() => [
-                'id' => $this->departure->id,
-                'departure_date' => $this->departure->departure_date?->format('Y-m-d'),
-                'destination' => $this->departure->destination,
+            
+            'campus' => $this->when($this->relationLoaded('campus'), [
+                'id' => $this->campus?->id,
+                'name' => $this->campus?->name,
             ]),
-
-            'recorded_by' => $this->whenLoaded('recordedBy', fn() => [
-                'id' => $this->recordedBy->id,
-                'name' => $this->recordedBy->name,
+            
+            'departure' => $this->when($this->relationLoaded('departure'), [
+                'id' => $this->departure?->id,
+                'departure_date' => $this->departure?->departure_date?->format('Y-m-d'),
             ]),
-
-            'verified_by' => $this->whenLoaded('verifiedBy', fn() => [
-                'id' => $this->verifiedBy->id,
-                'name' => $this->verifiedBy->name,
+            
+            'verified_by' => $this->when($this->relationLoaded('verifiedBy'), [
+                'id' => $this->verifiedBy?->id,
+                'name' => $this->verifiedBy?->name,
             ]),
-
+            
+            'recorded_by' => $this->when($this->relationLoaded('recordedBy'), [
+                'id' => $this->recordedBy?->id,
+                'name' => $this->recordedBy?->name,
+            ]),
+            
+            // Metadata
+            'metadata' => $this->metadata,
+            
             // Timestamps
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
-        ];
-    }
-
-    /**
-     * Get formatted amount with currency
-     */
-    protected function getFormattedAmount(): string
-    {
-        $currency = $this->currency ?? 'PKR';
-        return $currency . ' ' . number_format($this->amount, 2);
-    }
-
-    /**
-     * Get transfer method label
-     */
-    protected function getTransferMethodLabel(): string
-    {
-        $methods = [
-            'bank_transfer' => 'Bank Transfer',
-            'money_exchange' => 'Money Exchange',
-            'online_transfer' => 'Online Transfer',
-            'cash_deposit' => 'Cash Deposit',
-            'mobile_wallet' => 'Mobile Wallet',
-            'other' => 'Other',
-        ];
-
-        return $methods[$this->transfer_method] ?? $this->transfer_method ?? 'Unknown';
-    }
-
-    /**
-     * Get purpose label
-     */
-    protected function getPurposeLabel(): string
-    {
-        $purposes = [
-            'family_support' => 'Family Support',
-            'education' => 'Education',
-            'healthcare' => 'Healthcare',
-            'debt_repayment' => 'Debt Repayment',
-            'savings' => 'Savings',
-            'investment' => 'Investment',
-            'property' => 'Property/Real Estate',
-            'business' => 'Business',
-            'other' => 'Other',
-        ];
-
-        return $purposes[$this->primary_purpose] ?? $this->primary_purpose ?? 'Unknown';
-    }
-
-    /**
-     * Get status label
-     */
-    protected function getStatusLabel(): string
-    {
-        $statuses = [
-            'pending' => 'Pending Verification',
-            'verified' => 'Verified',
-            'flagged' => 'Flagged for Review',
-        ];
-
-        return $statuses[$this->status] ?? $this->status ?? 'Unknown';
-    }
-
-    /**
-     * Get status color
-     */
-    protected function getStatusColor(): string
-    {
-        return match($this->status) {
-            'pending' => 'warning',
-            'verified' => 'success',
-            'flagged' => 'danger',
-            default => 'secondary',
-        };
-    }
-
-    /**
-     * Check if the authenticated user can view sensitive information
-     */
-    protected function canViewSensitive(Request $request): bool
-    {
-        $user = $request->user();
-        if (!$user) {
-            return false;
-        }
-
-        return $user->hasRole(['admin', 'campus_admin', 'project_director', 'oep']);
-    }
-
-    /**
-     * Get additional data that should be returned with the resource array.
-     *
-     * @return array<string, mixed>
-     */
-    public function with(Request $request): array
-    {
-        return [
-            'meta' => [
-                'purposes' => config('remittance.purposes', []),
-                'transfer_methods' => config('remittance.transfer_methods', []),
-                'statuses' => config('remittance.statuses', []),
-            ],
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 }
