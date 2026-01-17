@@ -283,7 +283,7 @@ class ImportController extends Controller
 
             // Add sample data row with note
             $sampleData = [
-                'BTV-2025-00001',       // TheLeap ID
+                'TLP-2025-00001',       // TheLeap ID
                 '3520112345678',        // CNIC (realistic Pakistani CNIC)
                 'Muhammad Ali',         // Full Name
                 'Muhammad Akbar',       // Father Name

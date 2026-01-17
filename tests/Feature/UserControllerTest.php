@@ -139,7 +139,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->post(route('settings.save'), [
             'app_name' => 'BTEVTA System',
-            'support_email' => 'support@btevta.gov.pk',
+            'support_email' => 'support@theleap.org',
         ]);
 
         $response->assertRedirect();

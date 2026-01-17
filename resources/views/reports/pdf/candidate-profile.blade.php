@@ -92,7 +92,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>BTEVTA Candidate Profile</h1>
+        <h1>TheLeap Candidate Profile</h1>
         <p>Generated on {{ now()->format('d M Y, h:i A') }}</p>
     </div>
 
@@ -290,7 +290,7 @@
     @endif
 
     <div class="footer">
-        <p>This is an auto-generated document from BTEVTA Candidate Management System</p>
+        <p>This is an auto-generated document from TheLeap Candidate Management System</p>
         <p>Document ID: {{ $candidate->btevta_id }}-{{ now()->format('YmdHis') }}</p>
     </div>
 </body>

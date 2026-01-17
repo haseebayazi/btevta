@@ -9,7 +9,7 @@
             <!-- Header -->
             <div class="text-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-900">Registration Verification</h2>
-                <p class="text-sm text-gray-600 mt-2">BTEVTA Overseas Employment Program</p>
+                <p class="text-sm text-gray-600 mt-2">TheLeap Overseas Employment Program</p>
             </div>
 
             @if($success)
@@ -83,7 +83,7 @@
                     This verification was performed on {{ now()->format('d M, Y \a\t H:i') }}
                 </p>
                 <p class="text-xs text-gray-400 mt-1">
-                    BTEVTA Overseas Employment Management System
+                    TheLeap Overseas Employment Management System
                 </p>
             </div>
         </div>

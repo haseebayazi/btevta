@@ -141,7 +141,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">BTEVTA</div>
+        <div class="logo">TheLeap</div>
         <h1>Monthly Remittance Report</h1>
         <p>Year: {{ $year }} | Generated: {{ now()->format('M d, Y H:i') }}</p>
     </div>
@@ -239,7 +239,7 @@
     </div>
 
     <div class="footer">
-        BTEVTA Remittance Management System | Page 1 | Confidential
+        TheLeap Remittance Management System | Page 1 | Confidential
     </div>
 </body>
 </html>

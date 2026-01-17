@@ -141,7 +141,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">BTEVTA</div>
+        <div class="logo">TheLeap</div>
         <h1>Remittance Impact Report</h1>
         <p>Analysis Period: {{ $period ?? 'All Time' }} | Generated: {{ now()->format('M d, Y H:i') }}</p>
     </div>
@@ -149,7 +149,7 @@
     <!-- Total Impact -->
     <div class="impact-card">
         <h2>PKR {{ number_format($stats['total_remitted'] ?? 0, 0) }}</h2>
-        <p>Total Remittances Sent Home by BTEVTA Candidates</p>
+        <p>Total Remittances Sent Home by TheLeap Candidates</p>
     </div>
 
     <!-- Key Metrics -->
@@ -237,14 +237,14 @@
     <div class="highlight-box">
         <h4>Key Insights</h4>
         <p>
-            BTEVTA trained workers have contributed significantly to the national economy through foreign remittances.
+            TheLeap trained workers have contributed significantly to the national economy through foreign remittances.
             These funds support {{ number_format($stats['total_beneficiaries'] ?? 0) }} families across Pakistan,
             providing essential financial support for education, healthcare, and household expenses.
         </p>
     </div>
 
     <div class="footer">
-        BTEVTA Remittance Management System | Impact Assessment Report | Confidential
+        TheLeap Remittance Management System | Impact Assessment Report | Confidential
     </div>
 </body>
 </html>

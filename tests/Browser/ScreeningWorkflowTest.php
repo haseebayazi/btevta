@@ -27,7 +27,7 @@ class ScreeningWorkflowTest extends DuskTestCase
     {
         parent::setUp();
         $this->admin = User::factory()->admin()->create([
-            'email' => 'admin@btevta.gov.pk',
+            'email' => 'admin@theleap.org',
             'password' => bcrypt('password'),
         ]);
         $this->trade = Trade::factory()->create();

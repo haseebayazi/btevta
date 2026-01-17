@@ -123,7 +123,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">BTEVTA</div>
+        <div class="logo">TheLeap</div>
         <h1>Beneficiary Remittance Report</h1>
         <p>Generated: {{ now()->format('M d, Y H:i') }}</p>
     </div>
@@ -220,7 +220,7 @@
     @endif
 
     <div class="footer">
-        BTEVTA Remittance Management System | Confidential Report
+        TheLeap Remittance Management System | Confidential Report
     </div>
 </body>
 </html>

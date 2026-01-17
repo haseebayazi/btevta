@@ -498,7 +498,7 @@ class TestDataSeeder extends Seeder
                 $oepIndex = array_rand($oeps);
 
                 $candidates[$status][] = Candidate::create([
-                    'btevta_id' => 'BTV-' . date('Y') . '-' . str_pad($counter++, 5, '0', STR_PAD_LEFT),
+                    'btevta_id' => 'TLP-' . date('Y') . '-' . str_pad($counter++, 5, '0', STR_PAD_LEFT),
                     'name' => $this->generateName(),
                     'father_name' => $this->generateName(),
                     'cnic' => $this->generateCNIC(),

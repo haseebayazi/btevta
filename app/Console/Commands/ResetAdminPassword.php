@@ -20,7 +20,7 @@ class ResetAdminPassword extends Command
      */
     protected $signature = 'admin:reset-password
                             {--force : Force password reset without confirmation}
-                            {--email=admin@btevta.gov.pk : Email of the admin user}';
+                            {--email=admin@theleap.org : Email of the admin user}';
 
     /**
      * The console command description.
@@ -56,7 +56,7 @@ class ResetAdminPassword extends Command
         $password = $this->generateSecurePassword();
 
         if (!$admin) {
-            if ($email !== 'admin@btevta.gov.pk') {
+            if ($email !== 'admin@theleap.org') {
                 $this->error("User with email '{$email}' not found.");
                 return 1;
             }

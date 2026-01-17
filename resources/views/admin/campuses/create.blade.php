@@ -113,7 +113,7 @@
                     </label>
                     <input type="email" name="email" id="email" required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('email') border-red-500 @enderror"
-                           value="{{ old('email') }}" placeholder="campus@btevta.gov.pk">
+                           value="{{ old('email') }}" placeholder="campus@theleap.org">
                     @error('email')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

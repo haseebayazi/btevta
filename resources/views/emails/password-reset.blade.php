@@ -126,19 +126,19 @@
         <p style="font-size: 14px; color: #666;">
             <strong>Did you not request this reset?</strong><br>
             If you did not request this password reset, please contact the system administrator immediately at
-            <a href="mailto:admin@btevta.gov.pk">admin@btevta.gov.pk</a>. Your account may be at risk.
+            <a href="mailto:admin@theleap.org">admin@theleap.org</a>. Your account may be at risk.
         </p>
     </div>
 
     <div class="footer">
         <p>
-            <strong>Bureau of Technical Education and Vocational Training Authority (BTEVTA)</strong><br>
+            <strong>Bureau of Technical Education and Vocational Training Authority (TheLeap)</strong><br>
             Overseas Employment Management System<br>
             Punjab, Pakistan
         </p>
         <p style="margin-top: 15px;">
             This is an automated email. Please do not reply to this message.<br>
-            &copy; {{ date('Y') }} BTEVTA. All rights reserved.
+            &copy; {{ date('Y') }} TheLeap. All rights reserved.
         </p>
     </div>
 </body>
