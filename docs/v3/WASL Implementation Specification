@@ -1,0 +1,1511 @@
+# WASL Implementation Specification - Supplementary Document
+
+**Document Version:** 1.0  
+**Date:** January 17, 2026  
+**Purpose:** Fill gaps and provide implementation-ready specifications for the Change Impact Analysis  
+**Companion To:** WASL_CHANGE_IMPACT_ANALYSIS.md
+
+---
+
+# PART 1: IDENTIFIED GAPS IN ORIGINAL ANALYSIS
+
+## 1.1 Missing Items from Requirements
+
+| Gap ID | Description | Severity | Resolution |
+|--------|-------------|----------|------------|
+| GAP-001 | Countries/Destinations configuration table not addressed | HIGH | Need countries table with destination-specific settings |
+| GAP-002 | Financial Account Types (EasyPaisa, Bank, JazzCash) need lookup table | MEDIUM | Create payment_methods table |
+| GAP-003 | Batch Number Generation format not specified | HIGH | Define format: `{CAMPUS_CODE}-{PROGRAM_CODE}-{TRADE_CODE}-{YYYY}-{SEQ}` |
+| GAP-004 | PTN Deferred specific UI flow not detailed | MEDIUM | Need modal/list for marking PTN not issued vs refused |
+| GAP-005 | Video upload infrastructure (formats, size limits, storage) | HIGH | Define: MP4/WebM, 500MB max, S3/local storage |
+| GAP-006 | Role-based access for new modules not mapped | HIGH | Create RBAC matrix for all new features |
+| GAP-007 | Notification triggers for stage changes | MEDIUM | Define events and notification recipients |
+| GAP-008 | Data migration strategy for existing records | CRITICAL | Need migration scripts for status mapping |
+| GAP-009 | API versioning strategy for breaking changes | MEDIUM | Use /api/v2 for new endpoints |
+| GAP-010 | Seeder data for new lookup tables | LOW | Create seeders for countries, payment_methods, etc. |
+| GAP-011 | Factory updates for testing new models | LOW | Create factories for all new models |
+| GAP-012 | Exact validation rules per field | HIGH | Define in this document |
+| GAP-013 | Database indexes for new tables | MEDIUM | Define performance indexes |
+| GAP-014 | Queue jobs for heavy operations | MEDIUM | Video processing, bulk reports |
+| GAP-015 | Soft delete strategy for new tables | LOW | All new tables should have soft deletes |
+
+## 1.2 Requirements Clarifications Needed from Client
+
+| Clarification ID | Question | Default Assumption |
+|------------------|----------|-------------------|
+| CLR-001 | Is the document checklist the same for all countries or country-specific? | Same for all, admin can customize |
+| CLR-002 | Can a candidate have multiple employers simultaneously? | No, one active employer at a time |
+| CLR-003 | What is the maximum number of company switches to track? | 2 (as per requirements) |
+| CLR-004 | Should success stories be public/featured on a website? | Internal only, admin can mark featured |
+| CLR-005 | Is consent for work a one-time capture or needs re-confirmation? | One-time at Initial Screening |
+| CLR-006 | What happens if batch size changes mid-registration? | Existing batches unaffected, new logic applies |
+| CLR-007 | Can training type change after course assignment? | No, locked at assignment |
+| CLR-008 | Is video upload mandatory or optional for pre-departure briefing? | Optional but recommended |
+
+---
+
+# PART 2: DETAILED IMPLEMENTATION SPECIFICATIONS
+
+## 2.1 New Enum Definitions
+
+### ScreeningStatus Enum
+```php
+// app/Enums/ScreeningStatus.php
+enum ScreeningStatus: string
+{
+    case PENDING = 'pending';
+    case SCREENED = 'screened';
+    case DEFERRED = 'deferred';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::PENDING => 'Pending',
+            self::SCREENED => 'Screened',
+            self::DEFERRED => 'Deferred',
+        };
+    }
+    
+    public function color(): string
+    {
+        return match($this) {
+            self::PENDING => 'warning',
+            self::SCREENED => 'success',
+            self::DEFERRED => 'danger',
+        };
+    }
+}
+```
+
+### PlacementInterest Enum
+```php
+// app/Enums/PlacementInterest.php
+enum PlacementInterest: string
+{
+    case LOCAL = 'local';
+    case INTERNATIONAL = 'international';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::LOCAL => 'Local Placement',
+            self::INTERNATIONAL => 'International Placement',
+        };
+    }
+}
+```
+
+### TrainingType Enum
+```php
+// app/Enums/TrainingType.php
+enum TrainingType: string
+{
+    case TECHNICAL = 'technical';
+    case SOFT_SKILLS = 'soft_skills';
+    case BOTH = 'both';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::TECHNICAL => 'Technical Training',
+            self::SOFT_SKILLS => 'Soft Skills Training',
+            self::BOTH => 'Technical & Soft Skills',
+        };
+    }
+}
+```
+
+### TrainingProgress Enum
+```php
+// app/Enums/TrainingProgress.php
+enum TrainingProgress: string
+{
+    case NOT_STARTED = 'not_started';
+    case IN_PROGRESS = 'in_progress';
+    case COMPLETED = 'completed';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::NOT_STARTED => 'Not Started',
+            self::IN_PROGRESS => 'In Progress',
+            self::COMPLETED => 'Completed',
+        };
+    }
+    
+    public function color(): string
+    {
+        return match($this) {
+            self::NOT_STARTED => 'secondary',
+            self::IN_PROGRESS => 'warning',
+            self::COMPLETED => 'success',
+        };
+    }
+}
+```
+
+### AssessmentType Enum
+```php
+// app/Enums/AssessmentType.php
+enum AssessmentType: string
+{
+    case INTERIM = 'interim';
+    case FINAL = 'final';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::INTERIM => 'Interim Assessment',
+            self::FINAL => 'Final Assessment',
+        };
+    }
+}
+```
+
+### PTNStatus Enum
+```php
+// app/Enums/PTNStatus.php
+enum PTNStatus: string
+{
+    case NOT_APPLIED = 'not_applied';
+    case ISSUED = 'issued';
+    case DONE = 'done';
+    case PENDING = 'pending';
+    case NOT_ISSUED = 'not_issued';
+    case REFUSED = 'refused';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'Not Applied',
+            self::ISSUED => 'PTN Issued',
+            self::DONE => 'PTN Done',
+            self::PENDING => 'PTN Pending',
+            self::NOT_ISSUED => 'Not Issued',
+            self::REFUSED => 'Refused',
+        };
+    }
+    
+    public function isDeferred(): bool
+    {
+        return in_array($this, [self::NOT_ISSUED, self::REFUSED]);
+    }
+}
+```
+
+### ProtectorStatus Enum
+```php
+// app/Enums/ProtectorStatus.php
+enum ProtectorStatus: string
+{
+    case NOT_APPLIED = 'not_applied';
+    case APPLIED = 'applied';
+    case DONE = 'done';
+    case PENDING = 'pending';
+    case NOT_ISSUED = 'not_issued';
+    case REFUSED = 'refused';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'Not Applied',
+            self::APPLIED => 'Protector Applied',
+            self::DONE => 'Protector Done',
+            self::PENDING => 'Protector Pending',
+            self::NOT_ISSUED => 'Not Issued',
+            self::REFUSED => 'Refused',
+        };
+    }
+}
+```
+
+### FlightType Enum
+```php
+// app/Enums/FlightType.php
+enum FlightType: string
+{
+    case DIRECT = 'direct';
+    case CONNECTED = 'connected';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::DIRECT => 'Direct Flight',
+            self::CONNECTED => 'Connected Flight',
+        };
+    }
+}
+```
+
+### DepartureStatus Enum
+```php
+// app/Enums/DepartureStatus.php
+enum DepartureStatus: string
+{
+    case PROCESSING = 'processing';
+    case READY_TO_DEPART = 'ready_to_depart';
+    case DEPARTED = 'departed';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::PROCESSING => 'Processing',
+            self::READY_TO_DEPART => 'Ready to Depart',
+            self::DEPARTED => 'Departed',
+        };
+    }
+}
+```
+
+### VisaApplicationStatus Enum
+```php
+// app/Enums/VisaApplicationStatus.php
+enum VisaApplicationStatus: string
+{
+    case NOT_APPLIED = 'not_applied';
+    case APPLIED = 'applied';
+    case REFUSED = 'refused';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'Not Applied',
+            self::APPLIED => 'Applied',
+            self::REFUSED => 'Refused',
+        };
+    }
+}
+```
+
+### VisaIssuedStatus Enum
+```php
+// app/Enums/VisaIssuedStatus.php
+enum VisaIssuedStatus: string
+{
+    case PENDING = 'pending';
+    case CONFIRMED = 'confirmed';
+    case REFUSED = 'refused';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::PENDING => 'Pending',
+            self::CONFIRMED => 'Confirmed',
+            self::REFUSED => 'Refused',
+        };
+    }
+}
+```
+
+### VisaStageResult Enum
+```php
+// app/Enums/VisaStageResult.php
+enum VisaStageResult: string
+{
+    case PENDING = 'pending';
+    case PASS = 'pass';
+    case FAIL = 'fail';
+    case REFUSED = 'refused';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::PENDING => 'Pending',
+            self::PASS => 'Pass',
+            self::FAIL => 'Fail',
+            self::REFUSED => 'Refused',
+        };
+    }
+}
+```
+
+### EvidenceType Enum
+```php
+// app/Enums/EvidenceType.php
+enum EvidenceType: string
+{
+    case AUDIO = 'audio';
+    case VIDEO = 'video';
+    case WRITTEN = 'written';
+    case SCREENSHOT = 'screenshot';
+    case DOCUMENT = 'document';
+    case OTHER = 'other';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::AUDIO => 'Audio Recording',
+            self::VIDEO => 'Video Recording',
+            self::WRITTEN => 'Written Note',
+            self::SCREENSHOT => 'Screenshot',
+            self::DOCUMENT => 'Document',
+            self::OTHER => 'Other',
+        };
+    }
+    
+    public function allowedMimes(): array
+    {
+        return match($this) {
+            self::AUDIO => ['audio/mpeg', 'audio/wav', 'audio/ogg'],
+            self::VIDEO => ['video/mp4', 'video/webm', 'video/quicktime'],
+            self::WRITTEN => ['text/plain'],
+            self::SCREENSHOT => ['image/png', 'image/jpeg'],
+            self::DOCUMENT => ['application/pdf', 'image/png', 'image/jpeg'],
+            self::OTHER => ['application/pdf', 'image/png', 'image/jpeg', 'audio/mpeg', 'video/mp4'],
+        };
+    }
+}
+```
+
+### Updated CandidateStatus Enum
+```php
+// app/Enums/CandidateStatus.php - UPDATED
+enum CandidateStatus: string
+{
+    // New sequential workflow
+    case LISTED = 'listed';
+    case PRE_DEPARTURE_DOCS = 'pre_departure_docs';
+    case SCREENING = 'screening';
+    case SCREENED = 'screened';
+    case REGISTERED = 'registered';
+    case TRAINING = 'training';
+    case TRAINING_COMPLETED = 'training_completed';
+    case VISA_PROCESS = 'visa_process';
+    case VISA_APPROVED = 'visa_approved';
+    case DEPARTURE_PROCESSING = 'departure_processing';
+    case READY_TO_DEPART = 'ready_to_depart';
+    case DEPARTED = 'departed';
+    case POST_DEPARTURE = 'post_departure';
+    case COMPLETED = 'completed';
+    
+    // Terminal states
+    case DEFERRED = 'deferred';
+    case REJECTED = 'rejected';
+    case WITHDRAWN = 'withdrawn';
+    
+    public function label(): string
+    {
+        return match($this) {
+            self::LISTED => 'Listed',
+            self::PRE_DEPARTURE_DOCS => 'Pre-Departure Documents',
+            self::SCREENING => 'In Screening',
+            self::SCREENED => 'Screened',
+            self::REGISTERED => 'Registered',
+            self::TRAINING => 'In Training',
+            self::TRAINING_COMPLETED => 'Training Completed',
+            self::VISA_PROCESS => 'Visa Processing',
+            self::VISA_APPROVED => 'Visa Approved',
+            self::DEPARTURE_PROCESSING => 'Departure Processing',
+            self::READY_TO_DEPART => 'Ready to Depart',
+            self::DEPARTED => 'Departed',
+            self::POST_DEPARTURE => 'Post Departure',
+            self::COMPLETED => 'Completed',
+            self::DEFERRED => 'Deferred',
+            self::REJECTED => 'Rejected',
+            self::WITHDRAWN => 'Withdrawn',
+        };
+    }
+    
+    public function color(): string
+    {
+        return match($this) {
+            self::LISTED => 'secondary',
+            self::PRE_DEPARTURE_DOCS => 'info',
+            self::SCREENING => 'warning',
+            self::SCREENED => 'primary',
+            self::REGISTERED => 'info',
+            self::TRAINING => 'warning',
+            self::TRAINING_COMPLETED => 'success',
+            self::VISA_PROCESS => 'warning',
+            self::VISA_APPROVED => 'success',
+            self::DEPARTURE_PROCESSING => 'warning',
+            self::READY_TO_DEPART => 'primary',
+            self::DEPARTED => 'success',
+            self::POST_DEPARTURE => 'info',
+            self::COMPLETED => 'success',
+            self::DEFERRED => 'secondary',
+            self::REJECTED => 'danger',
+            self::WITHDRAWN => 'dark',
+        };
+    }
+    
+    public function canTransitionTo(CandidateStatus $target): bool
+    {
+        $transitions = [
+            self::LISTED->value => [self::PRE_DEPARTURE_DOCS, self::DEFERRED, self::WITHDRAWN],
+            self::PRE_DEPARTURE_DOCS->value => [self::SCREENING, self::DEFERRED, self::WITHDRAWN],
+            self::SCREENING->value => [self::SCREENED, self::DEFERRED, self::WITHDRAWN],
+            self::SCREENED->value => [self::REGISTERED, self::DEFERRED, self::WITHDRAWN],
+            self::REGISTERED->value => [self::TRAINING, self::DEFERRED, self::WITHDRAWN],
+            self::TRAINING->value => [self::TRAINING_COMPLETED, self::DEFERRED, self::WITHDRAWN],
+            self::TRAINING_COMPLETED->value => [self::VISA_PROCESS, self::DEFERRED, self::WITHDRAWN],
+            self::VISA_PROCESS->value => [self::VISA_APPROVED, self::REJECTED, self::WITHDRAWN],
+            self::VISA_APPROVED->value => [self::DEPARTURE_PROCESSING, self::WITHDRAWN],
+            self::DEPARTURE_PROCESSING->value => [self::READY_TO_DEPART, self::WITHDRAWN],
+            self::READY_TO_DEPART->value => [self::DEPARTED, self::WITHDRAWN],
+            self::DEPARTED->value => [self::POST_DEPARTURE],
+            self::POST_DEPARTURE->value => [self::COMPLETED],
+        ];
+        
+        return in_array($target, $transitions[$this->value] ?? []);
+    }
+    
+    public function isTerminal(): bool
+    {
+        return in_array($this, [self::COMPLETED, self::REJECTED, self::WITHDRAWN]);
+    }
+    
+    public function allowsEdit(): bool
+    {
+        return !$this->isTerminal();
+    }
+    
+    public static function getActiveStatuses(): array
+    {
+        return [
+            self::LISTED,
+            self::PRE_DEPARTURE_DOCS,
+            self::SCREENING,
+            self::SCREENED,
+            self::REGISTERED,
+            self::TRAINING,
+            self::TRAINING_COMPLETED,
+            self::VISA_PROCESS,
+            self::VISA_APPROVED,
+            self::DEPARTURE_PROCESSING,
+            self::READY_TO_DEPART,
+            self::DEPARTED,
+            self::POST_DEPARTURE,
+        ];
+    }
+}
+```
+
+---
+
+## 2.2 Complete Migration Specifications
+
+### Migration: create_countries_table (MISSING - ADD)
+```php
+// database/migrations/YYYY_MM_DD_000001_create_countries_table.php
+Schema::create('countries', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 100);
+    $table->string('code', 3)->unique(); // ISO 3166-1 alpha-3
+    $table->string('code_2', 2)->unique(); // ISO 3166-1 alpha-2
+    $table->string('currency_code', 3)->nullable();
+    $table->string('phone_code', 10)->nullable();
+    $table->boolean('is_destination')->default(false); // Destination country for workers
+    $table->json('specific_requirements')->nullable(); // Country-specific fields/docs
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+    
+    $table->index('is_destination');
+    $table->index('is_active');
+});
+```
+
+### Migration: create_payment_methods_table (MISSING - ADD)
+```php
+// database/migrations/YYYY_MM_DD_000002_create_payment_methods_table.php
+Schema::create('payment_methods', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 50); // EasyPaisa, JazzCash, Bank Account
+    $table->string('code', 20)->unique();
+    $table->string('icon')->nullable();
+    $table->boolean('requires_account_number')->default(true);
+    $table->boolean('requires_bank_name')->default(false);
+    $table->boolean('is_active')->default(true);
+    $table->integer('display_order')->default(0);
+    $table->timestamps();
+});
+```
+
+### Migration: create_programs_table
+```php
+// database/migrations/YYYY_MM_DD_100001_create_programs_table.php
+Schema::create('programs', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 150);
+    $table->string('code', 20)->unique();
+    $table->text('description')->nullable();
+    $table->integer('duration_weeks')->nullable();
+    $table->foreignId('country_id')->nullable()->constrained()->nullOnDelete();
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+    $table->softDeletes();
+    
+    $table->index('is_active');
+    $table->index('country_id');
+});
+```
+
+### Migration: create_implementing_partners_table
+```php
+// database/migrations/YYYY_MM_DD_100002_create_implementing_partners_table.php
+Schema::create('implementing_partners', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 200);
+    $table->string('code', 20)->unique();
+    $table->string('contact_person', 100)->nullable();
+    $table->string('contact_email', 150)->nullable();
+    $table->string('contact_phone', 20)->nullable();
+    $table->text('address')->nullable();
+    $table->string('city', 100)->nullable();
+    $table->foreignId('country_id')->nullable()->constrained()->nullOnDelete();
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+    $table->softDeletes();
+    
+    $table->index('is_active');
+});
+```
+
+### Migration: create_employers_table
+```php
+// database/migrations/YYYY_MM_DD_100003_create_employers_table.php
+Schema::create('employers', function (Blueprint $table) {
+    $table->id();
+    $table->string('permission_number', 50)->nullable()->unique();
+    $table->string('visa_issuing_company', 200);
+    $table->foreignId('country_id')->constrained();
+    $table->string('sector', 100)->nullable();
+    $table->string('trade', 100)->nullable();
+    
+    // Employment Package
+    $table->decimal('basic_salary', 12, 2)->nullable();
+    $table->string('salary_currency', 3)->default('SAR');
+    $table->boolean('food_by_company')->default(false);
+    $table->boolean('transport_by_company')->default(false);
+    $table->boolean('accommodation_by_company')->default(false);
+    $table->text('other_conditions')->nullable();
+    
+    // Evidence
+    $table->string('evidence_path', 500)->nullable();
+    
+    // Metadata
+    $table->boolean('is_active')->default(true);
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+    $table->softDeletes();
+    
+    $table->index('country_id');
+    $table->index('is_active');
+    $table->index('visa_issuing_company');
+});
+```
+
+### Migration: create_document_checklists_table
+```php
+// database/migrations/YYYY_MM_DD_100004_create_document_checklists_table.php
+Schema::create('document_checklists', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 100);
+    $table->string('code', 30)->unique();
+    $table->text('description')->nullable();
+    $table->enum('category', ['mandatory', 'optional'])->default('mandatory');
+    $table->boolean('is_mandatory')->default(true);
+    $table->integer('display_order')->default(0);
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+    
+    $table->index(['category', 'is_active']);
+});
+
+// Seeder data
+$items = [
+    // Mandatory
+    ['name' => 'CNIC Front & Back', 'code' => 'cnic', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 1],
+    ['name' => 'Passport 1st & 2nd Page', 'code' => 'passport', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 2],
+    ['name' => 'Domicile', 'code' => 'domicile', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 3],
+    ['name' => 'Family Registration Certificate (FRC)', 'code' => 'frc', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 4],
+    ['name' => 'Police Character Certificate (PCC)', 'code' => 'pcc', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 5],
+    ['name' => 'Driving License', 'code' => 'driving_license', 'category' => 'mandatory', 'is_mandatory' => false, 'display_order' => 6],
+    ['name' => 'Professional License (RN, etc.)', 'code' => 'professional_license', 'category' => 'mandatory', 'is_mandatory' => false, 'display_order' => 7],
+    ['name' => 'Other Mandatory Documents', 'code' => 'other_mandatory', 'category' => 'mandatory', 'is_mandatory' => false, 'display_order' => 99],
+    
+    // Optional
+    ['name' => 'Pre-Medical Reports', 'code' => 'pre_medical', 'category' => 'optional', 'is_mandatory' => false, 'display_order' => 1],
+    ['name' => 'Other Certifications', 'code' => 'certifications', 'category' => 'optional', 'is_mandatory' => false, 'display_order' => 2],
+    ['name' => 'Candidate Resume/CV', 'code' => 'resume', 'category' => 'optional', 'is_mandatory' => false, 'display_order' => 3],
+];
+```
+
+### Migration: create_pre_departure_documents_table
+```php
+// database/migrations/YYYY_MM_DD_100005_create_pre_departure_documents_table.php
+Schema::create('pre_departure_documents', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('candidate_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('document_checklist_id')->constrained()->cascadeOnDelete();
+    $table->string('file_path', 500);
+    $table->string('original_filename', 255);
+    $table->string('mime_type', 100);
+    $table->integer('file_size'); // bytes
+    $table->text('notes')->nullable();
+    
+    // Verification
+    $table->timestamp('uploaded_at');
+    $table->foreignId('uploaded_by')->constrained('users');
+    $table->timestamp('verified_at')->nullable();
+    $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->text('verification_notes')->nullable();
+    
+    $table->timestamps();
+    
+    $table->unique(['candidate_id', 'document_checklist_id']);
+    $table->index('candidate_id');
+});
+```
+
+### Migration: create_courses_table
+```php
+// database/migrations/YYYY_MM_DD_100006_create_courses_table.php
+Schema::create('courses', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 150);
+    $table->string('code', 30)->unique();
+    $table->text('description')->nullable();
+    $table->integer('duration_days');
+    $table->enum('training_type', ['technical', 'soft_skills', 'both'])->default('both');
+    $table->foreignId('program_id')->nullable()->constrained()->nullOnDelete();
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+    $table->softDeletes();
+    
+    $table->index('training_type');
+    $table->index('is_active');
+});
+```
+
+### Migration: create_candidate_courses_table
+```php
+// database/migrations/YYYY_MM_DD_100007_create_candidate_courses_table.php
+Schema::create('candidate_courses', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('candidate_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('course_id')->constrained()->cascadeOnDelete();
+    $table->date('start_date');
+    $table->date('end_date');
+    $table->enum('status', ['assigned', 'in_progress', 'completed', 'cancelled'])->default('assigned');
+    $table->foreignId('assigned_by')->constrained('users');
+    $table->timestamp('assigned_at');
+    $table->timestamps();
+    
+    $table->unique(['candidate_id', 'course_id']);
+    $table->index('status');
+});
+```
+
+### Migration: create_training_assessments_table
+```php
+// database/migrations/YYYY_MM_DD_100008_create_training_assessments_table.php
+Schema::create('training_assessments', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('training_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('candidate_id')->constrained()->cascadeOnDelete();
+    $table->enum('assessment_type', ['interim', 'final']);
+    $table->decimal('score', 5, 2);
+    $table->decimal('max_score', 5, 2)->default(100);
+    $table->string('grade', 5)->nullable(); // A, B, C, D, F
+    $table->string('evidence_path', 500)->nullable();
+    $table->text('notes')->nullable();
+    $table->foreignId('assessed_by')->constrained('users');
+    $table->timestamp('assessed_at');
+    $table->timestamps();
+    
+    $table->unique(['training_id', 'candidate_id', 'assessment_type']);
+    $table->index(['candidate_id', 'assessment_type']);
+});
+```
+
+### Migration: create_post_departure_details_table
+```php
+// database/migrations/YYYY_MM_DD_100009_create_post_departure_details_table.php
+Schema::create('post_departure_details', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('departure_id')->constrained()->cascadeOnDelete();
+    
+    // Residency & Identity
+    $table->string('residency_proof_path', 500)->nullable(); // Iqama
+    $table->string('residency_number', 50)->nullable();
+    $table->date('residency_expiry')->nullable();
+    $table->string('foreign_license_path', 500)->nullable();
+    $table->string('foreign_license_number', 50)->nullable();
+    $table->string('foreign_mobile_number', 20)->nullable();
+    $table->string('foreign_bank_name', 100)->nullable();
+    $table->string('foreign_bank_account', 50)->nullable();
+    $table->string('tracking_app_registration', 100)->nullable(); // Absher ID
+    $table->string('final_contract_path', 500)->nullable(); // Qiwa
+    
+    // Final Employment Details
+    $table->string('company_name', 200)->nullable();
+    $table->string('employer_name', 100)->nullable();
+    $table->string('employer_designation', 100)->nullable();
+    $table->string('employer_contact', 50)->nullable();
+    $table->string('work_location', 200)->nullable();
+    $table->decimal('final_salary', 12, 2)->nullable();
+    $table->string('salary_currency', 3)->default('SAR');
+    $table->text('final_job_terms')->nullable();
+    $table->date('job_commencement_date')->nullable();
+    $table->text('special_conditions')->nullable();
+    
+    $table->timestamps();
+    
+    $table->unique('departure_id');
+});
+```
+
+### Migration: create_employment_histories_table
+```php
+// database/migrations/YYYY_MM_DD_100010_create_employment_histories_table.php
+Schema::create('employment_histories', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('departure_id')->constrained()->cascadeOnDelete();
+    $table->tinyInteger('switch_number'); // 1 = First Switch, 2 = Second Switch
+    $table->string('company_name', 200);
+    $table->string('work_location', 200)->nullable();
+    $table->decimal('salary', 12, 2)->nullable();
+    $table->string('salary_currency', 3)->default('SAR');
+    $table->text('job_terms')->nullable();
+    $table->date('commencement_date')->nullable();
+    $table->text('special_conditions')->nullable();
+    $table->date('switch_date');
+    $table->text('reason_for_switch')->nullable();
+    $table->foreignId('recorded_by')->constrained('users');
+    $table->timestamps();
+    
+    $table->unique(['departure_id', 'switch_number']);
+    $table->index('departure_id');
+});
+```
+
+### Migration: create_success_stories_table
+```php
+// database/migrations/YYYY_MM_DD_100011_create_success_stories_table.php
+Schema::create('success_stories', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('candidate_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('departure_id')->nullable()->constrained()->nullOnDelete();
+    $table->text('written_note');
+    $table->enum('evidence_type', ['audio', 'video', 'written', 'other'])->nullable();
+    $table->string('evidence_path', 500)->nullable();
+    $table->string('evidence_filename', 255)->nullable();
+    $table->boolean('is_featured')->default(false);
+    $table->foreignId('recorded_by')->constrained('users');
+    $table->timestamp('recorded_at');
+    $table->timestamps();
+    $table->softDeletes();
+    
+    $table->index('candidate_id');
+    $table->index('is_featured');
+});
+```
+
+### Migration: create_candidate_employer_table
+```php
+// database/migrations/YYYY_MM_DD_100012_create_candidate_employer_table.php
+Schema::create('candidate_employer', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('candidate_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('employer_id')->constrained()->cascadeOnDelete();
+    $table->boolean('is_current')->default(true);
+    $table->timestamp('assigned_at');
+    $table->foreignId('assigned_by')->constrained('users');
+    $table->timestamps();
+    
+    $table->index(['candidate_id', 'is_current']);
+});
+```
+
+### Migration: add_allocation_fields_to_candidates_table
+```php
+// database/migrations/YYYY_MM_DD_100013_add_allocation_fields_to_candidates_table.php
+Schema::table('candidates', function (Blueprint $table) {
+    $table->foreignId('program_id')->nullable()->after('campus_id')->constrained()->nullOnDelete();
+    $table->foreignId('implementing_partner_id')->nullable()->after('oep_id')->constrained()->nullOnDelete();
+    $table->string('allocated_number', 50)->nullable()->unique()->after('batch_id');
+    
+    $table->index('program_id');
+    $table->index('implementing_partner_id');
+});
+```
+
+### Migration: modify_screenings_table_for_initial_screening
+```php
+// database/migrations/YYYY_MM_DD_100014_modify_screenings_table_for_initial_screening.php
+Schema::table('screenings', function (Blueprint $table) {
+    // New fields for Initial Screening
+    $table->boolean('consent_for_work')->default(false)->after('candidate_id');
+    $table->enum('placement_interest', ['local', 'international'])->nullable()->after('consent_for_work');
+    $table->foreignId('target_country_id')->nullable()->after('placement_interest')->constrained('countries')->nullOnDelete();
+    $table->enum('screening_status', ['pending', 'screened', 'deferred'])->default('pending')->after('target_country_id');
+    $table->string('evidence_path', 500)->nullable()->after('notes');
+    $table->foreignId('reviewer_id')->nullable()->after('evidence_path')->constrained('users')->nullOnDelete();
+    $table->timestamp('reviewed_at')->nullable()->after('reviewer_id');
+    
+    // Soft-deprecate old columns (keep for historical data)
+    // call_1_date, call_1_outcome, call_2_date, call_2_outcome, call_3_date, call_3_outcome
+    // DO NOT DROP - mark as deprecated in model
+    
+    $table->index('screening_status');
+    $table->index('placement_interest');
+});
+```
+
+### Migration: add_dual_status_to_trainings_table
+```php
+// database/migrations/YYYY_MM_DD_100015_add_dual_status_to_trainings_table.php
+Schema::table('trainings', function (Blueprint $table) {
+    $table->enum('technical_training_status', ['not_started', 'in_progress', 'completed'])
+        ->default('not_started')->after('status');
+    $table->enum('soft_skills_status', ['not_started', 'in_progress', 'completed'])
+        ->default('not_started')->after('technical_training_status');
+    
+    $table->index('technical_training_status');
+    $table->index('soft_skills_status');
+});
+```
+
+### Migration: enhance_visa_processes_table
+```php
+// database/migrations/YYYY_MM_DD_100016_enhance_visa_processes_table.php
+Schema::table('visa_processes', function (Blueprint $table) {
+    // JSON columns for stage details
+    // Each contains: appointment_date, appointment_time, center, result_status, evidence_path, notes
+    $table->json('interview_details')->nullable()->after('interview_status');
+    $table->json('trade_test_details')->nullable()->after('trade_test_status');
+    $table->json('medical_details')->nullable()->after('medical_status');
+    $table->json('biometric_details')->nullable()->after('biometric_status');
+    
+    // Visa application status breakdown
+    $table->enum('visa_application_status', ['not_applied', 'applied', 'refused'])
+        ->default('not_applied')->after('visa_status');
+    $table->enum('visa_issued_status', ['pending', 'confirmed', 'refused'])
+        ->nullable()->after('visa_application_status');
+    $table->json('visa_application_details')->nullable()->after('visa_issued_status');
+});
+```
+
+### Migration: enhance_departures_table
+```php
+// database/migrations/YYYY_MM_DD_100017_enhance_departures_table.php
+Schema::table('departures', function (Blueprint $table) {
+    // PTN Status
+    $table->enum('ptn_status', ['not_applied', 'issued', 'done', 'pending', 'not_issued', 'refused'])
+        ->default('not_applied')->after('status');
+    $table->timestamp('ptn_issued_at')->nullable()->after('ptn_status');
+    $table->text('ptn_deferred_reason')->nullable()->after('ptn_issued_at');
+    
+    // Protector Status
+    $table->enum('protector_status', ['not_applied', 'applied', 'done', 'pending', 'not_issued', 'refused'])
+        ->default('not_applied')->after('ptn_deferred_reason');
+    $table->timestamp('protector_applied_at')->nullable()->after('protector_status');
+    $table->timestamp('protector_done_at')->nullable()->after('protector_applied_at');
+    $table->text('protector_deferred_reason')->nullable()->after('protector_done_at');
+    
+    // Ticket Details
+    $table->date('ticket_date')->nullable()->after('protector_deferred_reason');
+    $table->time('ticket_time')->nullable()->after('ticket_date');
+    $table->string('departure_platform', 100)->nullable()->after('ticket_time');
+    $table->string('landing_platform', 100)->nullable()->after('departure_platform');
+    $table->enum('flight_type', ['direct', 'connected'])->nullable()->after('landing_platform');
+    
+    // Pre-Departure Briefing
+    $table->string('pre_departure_doc_path', 500)->nullable()->after('flight_type');
+    $table->string('pre_departure_video_path', 500)->nullable()->after('pre_departure_doc_path');
+    
+    // Final Status
+    $table->enum('final_departure_status', ['processing', 'ready_to_depart', 'departed'])
+        ->default('processing')->after('pre_departure_video_path');
+    
+    $table->index('ptn_status');
+    $table->index('protector_status');
+    $table->index('final_departure_status');
+});
+```
+
+### Migration: enhance_complaints_table
+```php
+// database/migrations/YYYY_MM_DD_100018_enhance_complaints_table.php
+Schema::table('complaints', function (Blueprint $table) {
+    $table->text('current_issue')->nullable()->after('description');
+    $table->text('support_steps_taken')->nullable()->after('current_issue');
+    $table->text('suggestions')->nullable()->after('support_steps_taken');
+    $table->text('conclusion')->nullable()->after('suggestions');
+    $table->enum('evidence_type', ['audio', 'video', 'screenshot', 'document', 'other'])
+        ->nullable()->after('evidence_path');
+});
+```
+
+---
+
+## 2.3 Validation Rules Specifications
+
+### Pre-Departure Document Upload
+```php
+// app/Http/Requests/PreDepartureDocumentRequest.php
+public function rules(): array
+{
+    return [
+        'candidate_id' => 'required|exists:candidates,id',
+        'document_checklist_id' => 'required|exists:document_checklists,id',
+        'file' => [
+            'required',
+            'file',
+            'max:10240', // 10MB
+            'mimes:pdf,jpg,jpeg,png',
+        ],
+        'notes' => 'nullable|string|max:1000',
+    ];
+}
+```
+
+### Initial Screening
+```php
+// app/Http/Requests/InitialScreeningRequest.php
+public function rules(): array
+{
+    return [
+        'candidate_id' => 'required|exists:candidates,id',
+        'consent_for_work' => 'required|boolean|accepted',
+        'placement_interest' => 'required|in:local,international',
+        'target_country_id' => 'required_if:placement_interest,international|nullable|exists:countries,id',
+        'screening_status' => 'required|in:pending,screened,deferred',
+        'notes' => 'nullable|string|max:2000',
+        'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+    ];
+}
+```
+
+### Registration with Allocation
+```php
+// app/Http/Requests/RegistrationRequest.php
+public function rules(): array
+{
+    return [
+        // ... existing rules ...
+        
+        // Allocation
+        'campus_id' => 'required|exists:campuses,id',
+        'program_id' => 'required|exists:programs,id',
+        'oep_id' => 'required|exists:oeps,id',
+        'implementing_partner_id' => 'required|exists:implementing_partners,id',
+        
+        // Course Assignment
+        'course_id' => 'required|exists:courses,id',
+        'course_start_date' => 'required|date|after_or_equal:today',
+        'course_end_date' => 'required|date|after:course_start_date',
+        
+        // Next of Kin
+        'nok_name' => 'required|string|max:100',
+        'nok_relation' => 'required|string|max:50',
+        'nok_payment_method_id' => 'required|exists:payment_methods,id',
+        'nok_account_number' => 'required|string|max:50',
+        'nok_bank_name' => 'required_if:nok_payment_method_id,1|nullable|string|max:100', // 1 = Bank
+        'nok_id_card' => 'required|file|max:5120|mimes:pdf,jpg,jpeg,png',
+    ];
+}
+```
+
+### Employer
+```php
+// app/Http/Requests/EmployerRequest.php
+public function rules(): array
+{
+    return [
+        'permission_number' => 'nullable|string|max:50|unique:employers,permission_number,' . $this->employer?->id,
+        'visa_issuing_company' => 'required|string|max:200',
+        'country_id' => 'required|exists:countries,id',
+        'sector' => 'nullable|string|max:100',
+        'trade' => 'nullable|string|max:100',
+        'basic_salary' => 'nullable|numeric|min:0|max:999999999.99',
+        'salary_currency' => 'required|string|size:3',
+        'food_by_company' => 'required|boolean',
+        'transport_by_company' => 'required|boolean',
+        'accommodation_by_company' => 'required|boolean',
+        'other_conditions' => 'nullable|string|max:2000',
+        'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+    ];
+}
+```
+
+### Training Assessment
+```php
+// app/Http/Requests/TrainingAssessmentRequest.php
+public function rules(): array
+{
+    return [
+        'training_id' => 'required|exists:trainings,id',
+        'candidate_id' => 'required|exists:candidates,id',
+        'assessment_type' => 'required|in:interim,final',
+        'score' => 'required|numeric|min:0|max:100',
+        'max_score' => 'required|numeric|min:1|max:100',
+        'notes' => 'nullable|string|max:1000',
+        'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+    ];
+}
+```
+
+### Pre-Departure Briefing
+```php
+// app/Http/Requests/PreDepartureBriefingRequest.php
+public function rules(): array
+{
+    return [
+        'departure_id' => 'required|exists:departures,id',
+        'document' => 'required|file|max:20480|mimes:pdf', // 20MB for scanned docs
+        'video' => 'nullable|file|max:512000|mimes:mp4,webm,mov', // 500MB for video
+    ];
+}
+```
+
+### Success Story
+```php
+// app/Http/Requests/SuccessStoryRequest.php
+public function rules(): array
+{
+    return [
+        'candidate_id' => 'required|exists:candidates,id',
+        'departure_id' => 'nullable|exists:departures,id',
+        'written_note' => 'required|string|max:5000',
+        'evidence_type' => 'nullable|in:audio,video,written,other',
+        'evidence' => [
+            'nullable',
+            'file',
+            'max:512000', // 500MB
+            Rule::when($this->evidence_type === 'audio', 'mimes:mp3,wav,ogg'),
+            Rule::when($this->evidence_type === 'video', 'mimes:mp4,webm,mov'),
+            Rule::when($this->evidence_type === 'written', 'mimes:pdf,doc,docx'),
+            Rule::when($this->evidence_type === 'other', 'mimes:pdf,jpg,jpeg,png,mp3,mp4'),
+        ],
+    ];
+}
+```
+
+---
+
+## 2.4 Role-Based Access Control Matrix
+
+### New Features RBAC
+
+| Feature | Super Admin | Admin | Campus Admin | OEP | Instructor | Viewer |
+|---------|-------------|-------|--------------|-----|------------|--------|
+| **Pre-Departure Documents** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Upload | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Verify | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Initial Screening** | | | | | | |
+| View Dashboard | ✅ | ✅ | Campus Only | ❌ | ❌ | ✅ |
+| Perform Screening | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Override Status | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Registration Allocation** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Assign Campus | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Assign Program | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Assign OEP | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Assign Partner | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| **Course Assignment** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | Batch Only | ❌ |
+| Assign | ✅ | ✅ | Campus Only | ❌ | ❌ | ❌ |
+| Modify | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Training Assessments** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | Batch Only | ✅ |
+| Record | ✅ | ✅ | Campus Only | ❌ | Batch Only | ❌ |
+| Override | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Employer Information** | | | | | | |
+| View All | ✅ | ✅ | ❌ | Linked | ❌ | ✅ |
+| Create | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Edit | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Delete | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Link to Candidate | ✅ | ✅ | ❌ | Assigned | ❌ | ❌ |
+| **Departure Enhanced** | | | | | | |
+| View Dashboard | ✅ | ✅ | Campus Only | Assigned | ❌ | ✅ |
+| Update PTN | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Update Protector | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Update Ticket | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Upload Briefing | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Upload Video | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| **Post-Departure** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | ❌ | ✅ |
+| Update Residency | ✅ | ✅ | ❌ | Assigned | ❌ | ❌ |
+| Update Employment | ✅ | ✅ | ❌ | Assigned | ❌ | ❌ |
+| Record Switch | ✅ | ✅ | ❌ | Assigned | ❌ | ❌ |
+| **Success Stories** | | | | | | |
+| View | ✅ | ✅ | Campus Only | Assigned | ❌ | ✅ |
+| Create | ✅ | ✅ | Campus Only | Assigned | ❌ | ❌ |
+| Feature/Unfeature | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Admin Configuration** | | | | | | |
+| Document Checklist | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Batch Size Config | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Programs | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Partners | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Countries | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Payment Methods | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+## 2.5 Event & Notification Specifications
+
+### Events to Create
+
+```php
+// app/Events/CandidateStatusChanged.php
+class CandidateStatusChanged implements ShouldBroadcast
+{
+    public function __construct(
+        public Candidate $candidate,
+        public string $oldStatus,
+        public string $newStatus,
+        public User $changedBy
+    ) {}
+}
+
+// app/Events/CandidateScreened.php
+class CandidateScreened
+{
+    public function __construct(
+        public Candidate $candidate,
+        public Screening $screening
+    ) {}
+}
+
+// app/Events/CandidateRegistered.php
+class CandidateRegistered
+{
+    public function __construct(
+        public Candidate $candidate,
+        public Batch $batch
+    ) {}
+}
+
+// app/Events/BatchCreated.php
+class BatchCreated
+{
+    public function __construct(
+        public Batch $batch,
+        public int $candidateCount
+    ) {}
+}
+
+// app/Events/TrainingCompleted.php
+class TrainingCompleted
+{
+    public function __construct(
+        public Training $training,
+        public Candidate $candidate
+    ) {}
+}
+
+// app/Events/VisaStageUpdated.php
+class VisaStageUpdated
+{
+    public function __construct(
+        public VisaProcess $visaProcess,
+        public string $stage,
+        public string $result
+    ) {}
+}
+
+// app/Events/DepartureStatusChanged.php
+class DepartureStatusChanged
+{
+    public function __construct(
+        public Departure $departure,
+        public string $oldStatus,
+        public string $newStatus
+    ) {}
+}
+
+// app/Events/ComplaintEscalated.php
+class ComplaintEscalated
+{
+    public function __construct(
+        public Complaint $complaint,
+        public string $escalationReason
+    ) {}
+}
+```
+
+### Notification Recipients
+
+| Event | Notify |
+|-------|--------|
+| CandidateStatusChanged | Campus Admin, OEP (if assigned) |
+| CandidateScreened | Candidate (SMS), Campus Admin |
+| CandidateRegistered | Candidate (SMS), OEP, Campus Admin |
+| BatchCreated | Campus Admin, Admin |
+| TrainingCompleted | Candidate (SMS), OEP |
+| VisaStageUpdated (Pass) | Candidate (SMS), OEP |
+| VisaStageUpdated (Fail) | OEP, Campus Admin |
+| DepartureStatusChanged (Departed) | Admin, OEP |
+| ComplaintEscalated | Admin, Campus Admin |
+
+---
+
+## 2.6 Data Migration Strategy
+
+### Existing Data Handling
+
+```php
+// database/migrations/YYYY_MM_DD_999999_migrate_existing_data.php
+
+// 1. Migrate existing candidates to new status system
+// Map old statuses to new statuses
+$statusMapping = [
+    'listed' => 'listed',
+    'screening' => 'screening',
+    'eligible' => 'screened', // New status
+    'registered' => 'registered',
+    'training' => 'training',
+    'training_completed' => 'training_completed',
+    'visa_processing' => 'visa_process',
+    'visa_approved' => 'visa_approved',
+    'departure_ready' => 'ready_to_depart',
+    'departed' => 'departed',
+    'rejected' => 'rejected',
+    'withdrawn' => 'withdrawn',
+];
+
+// 2. Create default document checklist entries
+// Run seeder
+
+// 3. Create default countries from existing data
+// Extract unique countries from candidates and create
+
+// 4. Backfill screening_status from existing outcomes
+DB::statement("
+    UPDATE screenings 
+    SET screening_status = CASE 
+        WHEN outcome = 'eligible' THEN 'screened'
+        WHEN outcome = 'pending' THEN 'pending'
+        WHEN outcome = 'rejected' THEN 'deferred'
+        ELSE 'pending'
+    END
+    WHERE screening_status IS NULL
+");
+
+// 5. Set default training dual status based on current status
+DB::statement("
+    UPDATE trainings 
+    SET technical_training_status = CASE 
+        WHEN status = 'completed' THEN 'completed'
+        WHEN status = 'in_progress' THEN 'in_progress'
+        ELSE 'not_started'
+    END,
+    soft_skills_status = CASE 
+        WHEN status = 'completed' THEN 'completed'
+        WHEN status = 'in_progress' THEN 'in_progress'
+        ELSE 'not_started'
+    END
+");
+```
+
+---
+
+## 2.7 Configuration Specifications
+
+### config/wasl.php
+```php
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Batch Configuration
+    |--------------------------------------------------------------------------
+    */
+    'batch' => [
+        'default_size' => env('WASL_BATCH_SIZE', 25),
+        'allowed_sizes' => [20, 25, 30],
+        'number_format' => '{CAMPUS_CODE}-{PROGRAM_CODE}-{TRADE_CODE}-{YEAR}-{SEQ}',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | File Upload Configuration
+    |--------------------------------------------------------------------------
+    */
+    'uploads' => [
+        'documents' => [
+            'max_size' => 10 * 1024, // 10MB in KB
+            'allowed_mimes' => ['pdf', 'jpg', 'jpeg', 'png'],
+            'disk' => 'private',
+        ],
+        'videos' => [
+            'max_size' => 500 * 1024, // 500MB in KB
+            'allowed_mimes' => ['mp4', 'webm', 'mov'],
+            'disk' => 'private',
+        ],
+        'audio' => [
+            'max_size' => 50 * 1024, // 50MB in KB
+            'allowed_mimes' => ['mp3', 'wav', 'ogg'],
+            'disk' => 'private',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Workflow Configuration
+    |--------------------------------------------------------------------------
+    */
+    'workflow' => [
+        'enforce_stage_gates' => env('WASL_ENFORCE_GATES', true),
+        'allow_status_override' => env('WASL_ALLOW_OVERRIDE', false),
+        'require_evidence' => [
+            'screening' => false,
+            'visa_stages' => true,
+            'departure_briefing' => true,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Configuration
+    |--------------------------------------------------------------------------
+    */
+    'notifications' => [
+        'sms_enabled' => env('WASL_SMS_ENABLED', false),
+        'email_enabled' => env('WASL_EMAIL_ENABLED', true),
+        'channels' => [
+            'candidate_status_change' => ['database', 'mail'],
+            'visa_stage_update' => ['database', 'mail'],
+            'complaint_escalation' => ['database', 'mail'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Values
+    |--------------------------------------------------------------------------
+    */
+    'defaults' => [
+        'salary_currency' => 'SAR',
+        'country_code' => 'PK',
+    ],
+];
+```
+
+---
+
+## 2.8 Batch Number Generation Algorithm
+
+```php
+// app/Services/AutoBatchService.php
+
+public function generateBatchNumber(Campus $campus, Program $program, Trade $trade): string
+{
+    $year = now()->format('Y');
+    
+    // Get the next sequence number for this combination
+    $lastBatch = Batch::where('campus_id', $campus->id)
+        ->where('program_id', $program->id)
+        ->where('trade_id', $trade->id)
+        ->whereYear('created_at', $year)
+        ->orderBy('id', 'desc')
+        ->first();
+    
+    $sequence = $lastBatch 
+        ? (int) substr($lastBatch->batch_number, -4) + 1 
+        : 1;
+    
+    // Format: LHR-KSAWP-ELEC-2026-0001
+    return sprintf(
+        '%s-%s-%s-%s-%04d',
+        $campus->code,
+        $program->code,
+        $trade->code,
+        $year,
+        $sequence
+    );
+}
+
+public function generateAllocatedNumber(Candidate $candidate, Batch $batch): string
+{
+    // Get position in batch
+    $position = $batch->candidates()->count() + 1;
+    
+    // Format: LHR-KSAWP-ELEC-2026-0001-025
+    return sprintf(
+        '%s-%03d',
+        $batch->batch_number,
+        $position
+    );
+}
+```
+
+---
+
+## 2.9 Additional Tasks Identified
+
+### Missing from Original Roadmap
+
+| Task ID | Description | Phase | Priority |
+|---------|-------------|-------|----------|
+| T1.0A | Create countries table and model | Phase 1 | HIGH |
+| T1.0B | Create payment_methods table and model | Phase 1 | MEDIUM |
+| T1.0C | Create CountriesSeeder with destination countries | Phase 1 | HIGH |
+| T1.0D | Create PaymentMethodsSeeder | Phase 1 | MEDIUM |
+| T1.0E | Create DocumentChecklistSeeder | Phase 1 | HIGH |
+| T2.8 | Create NotificationService for status changes | Phase 2 | MEDIUM |
+| T2.9 | Configure queue jobs for video processing | Phase 2 | MEDIUM |
+| T3.7 | Create data migration script for existing screenings | Phase 3 | HIGH |
+| T4.6 | Create data migration script for existing registrations | Phase 4 | HIGH |
+| T5.8 | Create VideoProcessingJob for briefing videos | Phase 5 | MEDIUM |
+| T7.8 | Update all Factories for new models | Phase 7 | MEDIUM |
+| T7.9 | Create comprehensive API tests for new endpoints | Phase 7 | HIGH |
+| T7.10 | Security audit of new file upload paths | Phase 7 | CRITICAL |
+
+---
+
+# PART 3: DECISION LOG
+
+## Assumptions Made (Requiring Client Confirmation)
+
+| ID | Assumption | Default | Risk if Wrong |
+|----|------------|---------|---------------|
+| ASM-001 | Document checklist is same for all countries | Yes | LOW - Can add country filtering later |
+| ASM-002 | One employer per candidate at a time | Yes | MEDIUM - Would need pivot redesign |
+| ASM-003 | Maximum 2 company switches | Yes | LOW - Can extend table |
+| ASM-004 | Video upload is optional | Yes | LOW - Can make mandatory |
+| ASM-005 | Consent is one-time | Yes | MEDIUM - Would need re-consent flow |
+| ASM-006 | Batch size change doesn't affect existing | Yes | LOW - Standard behavior |
+
+---
+
+# PART 4: CHECKLIST FOR IMPLEMENTATION READINESS
+
+## Is this Document Sufficient for Claude to Build?
+
+| Criteria | Status | Notes |
+|----------|--------|-------|
+| All database schemas defined | ✅ | 18 migrations fully specified |
+| All enums defined | ✅ | 14 new enums with methods |
+| Validation rules specified | ✅ | All request classes defined |
+| RBAC matrix complete | ✅ | All roles × all features |
+| Event/Listener definitions | ✅ | 8 events with recipients |
+| File upload specs | ✅ | Types, sizes, storage paths |
+| Configuration options | ✅ | config/wasl.php defined |
+| Data migration strategy | ✅ | Existing data handling |
+| Business logic algorithms | ✅ | Batch number generation |
+| API versioning strategy | ✅ | v2 for new endpoints |
+| Error handling patterns | ⚠️ | Follows Laravel conventions |
+| Test specifications | ⚠️ | Test names, not full specs |
+| UI wireframes | ❌ | Not included - text descriptions only |
+
+## Recommendation
+
+**YES, with the original document + this supplement, Claude can build the system.**
+
+However, I recommend:
+
+1. **Client Review** - Send "Clarifications Needed" section to client
+2. **UI Mockups** - Create Figma/wireframes for new screens (optional but helpful)
+3. **Phased Delivery** - Build in order: Phase 1 → 2 → 3 → 4 → 5 → 6 → 7
+4. **Incremental Testing** - Test each phase before proceeding
+
+---
+
+*End of Supplementary Document*
