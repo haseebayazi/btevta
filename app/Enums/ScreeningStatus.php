@@ -11,8 +11,7 @@ namespace App\Enums;
 enum ScreeningStatus: string
 {
     case PENDING = 'pending';
-    case PASSED = 'passed';
-    case FAILED = 'failed';
+    case SCREENED = 'screened';
     case DEFERRED = 'deferred';
 
     /**
@@ -22,8 +21,7 @@ enum ScreeningStatus: string
     {
         return match($this) {
             self::PENDING => 'Pending',
-            self::PASSED => 'Passed',
-            self::FAILED => 'Failed',
+            self::SCREENED => 'Screened',
             self::DEFERRED => 'Deferred',
         };
     }
@@ -35,9 +33,8 @@ enum ScreeningStatus: string
     {
         return match($this) {
             self::PENDING => 'warning',
-            self::PASSED => 'success',
-            self::FAILED => 'danger',
-            self::DEFERRED => 'info',
+            self::SCREENED => 'success',
+            self::DEFERRED => 'danger',
         };
     }
 
@@ -46,7 +43,7 @@ enum ScreeningStatus: string
      */
     public function allowsProgression(): bool
     {
-        return $this === self::PASSED;
+        return $this === self::SCREENED;
     }
 
     /**
@@ -54,7 +51,7 @@ enum ScreeningStatus: string
      */
     public function isTerminal(): bool
     {
-        return $this === self::FAILED;
+        return $this === self::DEFERRED;
     }
 
     /**
