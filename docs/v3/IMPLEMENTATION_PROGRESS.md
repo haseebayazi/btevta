@@ -1,8 +1,8 @@
 # WASL v3 Implementation Progress
 
 **Last Updated:** January 18, 2026
-**Current Phase:** Phase 1 - COMPLETED ✅
-**Overall Completion:** ~15% (Phase 1 of 7)
+**Current Phase:** Phase 2 - COMPLETED ✅
+**Overall Completion:** ~30% (Phase 1-2 of 7 complete)
 
 ---
 
@@ -98,21 +98,48 @@ Exit: DEFERRED, REJECTED, WITHDRAWN
 
 ---
 
-## Phase 2: Controllers & API Resources ⏳ PENDING
+## Phase 2: Controllers & API Resources ✅ COMPLETED
 
-**Status:** Not Started
-**Estimated Completion:** TBD
+**Status:** 100% Complete
+**Completed:** January 18, 2026
+**Commit:** 15fdf19
 
-### Planned Deliverables
-- [ ] ProgramController (CRUD)
-- [ ] ImplementingPartnerController (CRUD)
-- [ ] EmployerController (CRUD + API)
-- [ ] DocumentChecklistController (Admin CRUD)
-- [ ] PreDepartureDocumentController (Upload/Verify)
-- [ ] CourseController (CRUD)
-- [ ] SuccessStoryController (Create/Feature/List)
-- [ ] Update existing controllers for new fields
-- [ ] API Resources for all new models
+### Deliverables
+- ✅ ProgramController (CRUD + toggle status)
+- ✅ ImplementingPartnerController (CRUD + toggle status)
+- ✅ EmployerController (CRUD + file uploads + evidence download)
+- ✅ DocumentChecklistController (Admin CRUD + reorder)
+- ✅ PreDepartureDocumentController (Upload/Verify/Bulk Upload/Download)
+- ✅ CourseController (CRUD + toggle status)
+- ✅ SuccessStoryController (CRUD + media uploads + toggle featured)
+- ✅ EmployerApiController (REST API endpoints)
+- ✅ API Resources for all new models (7 resources)
+- ✅ Authorization Policies (7 policies)
+- ✅ Web Routes (all admin + candidate-scoped)
+- ✅ API Routes (Employer API)
+
+### Controller Features Implemented
+**File Management:**
+- Evidence file uploads (Employer, PreDepartureDocument)
+- Media uploads with type validation (SuccessStory)
+- Secure file downloads with authorization
+- Automatic file cleanup on delete
+
+**Bulk Operations:**
+- Bulk document upload (PreDepartureDocument)
+- AJAX reorder (DocumentChecklist)
+
+**Status Management:**
+- Toggle active/inactive (all resources)
+- Toggle featured (SuccessStory)
+- Document verification workflow
+
+**Security:**
+- Policy-based authorization on all actions
+- File upload throttling (10-30 req/min)
+- Private file storage
+- Activity logging on all mutations
+- Relationship checks before delete
 
 ---
 
