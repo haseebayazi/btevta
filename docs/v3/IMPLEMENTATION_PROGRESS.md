@@ -1,8 +1,8 @@
 # WASL v3 Implementation Progress
 
-**Last Updated:** January 18, 2026
-**Current Phase:** Phase 2 - COMPLETED ✅
-**Overall Completion:** ~30% (Phase 1-2 of 7 complete)
+**Last Updated:** January 19, 2026
+**Current Phase:** Phase 3 - COMPLETED ✅
+**Overall Completion:** ~43% (Phase 1-3 of 7 complete)
 
 ---
 
@@ -143,20 +143,79 @@ Exit: DEFERRED, REJECTED, WITHDRAWN
 
 ---
 
-## Phase 3: Request Validation ⏳ PENDING
+## Phase 3: Request Validation ✅ COMPLETED
 
-**Status:** Not Started
-**Estimated Completion:** TBD
+**Status:** 100% Complete
+**Completed:** January 19, 2026
+**Commits:** 597db25 (Part 1), d106c55 (Part 2)
 
-### Planned Deliverables
-- [ ] PreDepartureDocumentRequest
-- [ ] InitialScreeningRequest
-- [ ] RegistrationRequest (update)
-- [ ] EmployerRequest
-- [ ] TrainingAssessmentRequest
-- [ ] PreDepartureBriefingRequest
-- [ ] SuccessStoryRequest
-- [ ] CourseRequest
+### Deliverables
+
+#### ✅ Form Request Classes (13 Total)
+
+**Store Requests:**
+1. ✅ StoreProgramRequest - Program creation validation
+2. ✅ StoreImplementingPartnerRequest - Partner creation validation
+3. ✅ StoreEmployerRequest - Employer creation with file upload validation
+4. ✅ StoreCourseRequest - Course creation validation
+5. ✅ StoreDocumentChecklistRequest - Document checklist creation validation
+6. ✅ StorePreDepartureDocumentRequest - Document upload validation
+7. ✅ StoreSuccessStoryRequest - Success story creation with evidence validation
+
+**Update Requests:**
+8. ✅ UpdateProgramRequest - Program update validation
+9. ✅ UpdateImplementingPartnerRequest - Partner update validation
+10. ✅ UpdateEmployerRequest - Employer update with file upload validation
+11. ✅ UpdateCourseRequest - Course update validation
+12. ✅ UpdateDocumentChecklistRequest - Document checklist update validation
+13. ✅ UpdateSuccessStoryRequest - Success story update with evidence validation
+
+#### ✅ Controller Updates (7 Controllers)
+
+All controllers updated to use Form Request type-hinting:
+1. ✅ ProgramController - Using Store/Update ProgramRequest
+2. ✅ ImplementingPartnerController - Using Store/Update ImplementingPartnerRequest
+3. ✅ EmployerController - Using Store/Update EmployerRequest
+4. ✅ CourseController - Using Store/Update CourseRequest
+5. ✅ DocumentChecklistController - Using Store/Update DocumentChecklistRequest
+6. ✅ PreDepartureDocumentController - Using StorePreDepartureDocumentRequest
+7. ✅ SuccessStoryController - Using Store/Update SuccessStoryRequest
+
+### Features Implemented
+
+**Authorization:**
+- Authorization moved to Form Request level via authorize() method
+- Removed duplicate $this->authorize() calls from controllers
+- Uses Policy-based authorization (can create/update)
+
+**Custom Validation:**
+- Custom error messages for user-friendly feedback
+- Custom attribute names for cleaner error messages
+- prepareForValidation() for data transformation
+- withValidator() for complex validation logic
+
+**File Upload Validation:**
+- MIME type validation based on evidence type (SuccessStory)
+- File size limits (5MB for documents, 10MB for pre-departure docs, 50MB for media)
+- Allowed extensions: PDF, JPG, JPEG, PNG for documents
+- Dynamic MIME validation for audio/video/screenshot evidence types
+
+**Enum-Based Validation:**
+- TrainingType enum validation in Course requests
+- EvidenceType enum validation in SuccessStory requests
+- Dynamic rule generation from enum values
+
+**Unique Constraints:**
+- Program name uniqueness
+- Partner name uniqueness
+- Employer permission number uniqueness
+- Course name uniqueness
+- Document checklist code uniqueness (alpha_dash validation)
+
+**Data Preparation:**
+- Auto-set is_mandatory based on category in DocumentChecklist
+- Boolean field handling for checkboxes (is_active, food_by_company, etc.)
+- Default value handling in controllers
 
 ---
 
@@ -257,51 +316,88 @@ Exit: DEFERRED, REJECTED, WITHDRAWN
 
 ## Files Changed
 
-**Total Files:** 50
-**Insertions:** 2,382
-**Deletions:** 61
+**Total Files:** 77 (Phases 1-3)
 
-### Breakdown by Type:
+### Phase 1 Changes:
 - Migrations: 18 new files
 - Models: 12 new files
 - Enums: 12 new + 2 modified
 - Seeders: 3 new + 1 modified
-- Documentation: 1 new
+
+### Phase 2 Changes:
+- Controllers: 8 new files
+- API Resources: 7 new files
+- Policies: 7 new files
+- Routes: 2 modified files
+
+### Phase 3 Changes:
+- Form Requests: 13 new files
+- Controllers: 7 modified files (updated to use Form Requests)
+- Documentation: 1 updated file
 
 ---
 
 ## Next Actions
 
-### Immediate (Phase 2)
-1. Create all controller classes
-2. Implement CRUD operations
-3. Create API resources
-4. Add route definitions
+### Immediate (Phase 4)
+1. Create AutoBatchService for batch number generation
+2. Implement AllocationService for campus/program/partner assignment
+3. Update ScreeningService for new workflow
+4. Create TrainingAssessmentService
+5. Implement VideoProcessingJob for success stories
+6. Create NotificationService for status change events
+7. Update existing services for new workflow
 
-### Short Term (Phases 3-4)
-1. Implement validation classes
-2. Create service layer
-3. Implement business logic
-4. Add event listeners
+### Short Term (Phase 5)
+1. Build Pre-Departure Documents upload interface
+2. Update Initial Screening form
+3. Create Registration form allocation section
+4. Build Employer Information module
+5. Create Training Assessment forms
+6. Enhance Departure forms
+7. Build Post-Departure tracking interface
+8. Create Success Stories interface
+9. Enhance Complaints workflow UI
 
-### Medium Term (Phases 5-7)
-1. Build UI components
-2. Create Blade views
-3. Write comprehensive tests
-4. Complete documentation
+### Medium Term (Phases 6-7)
+1. Write comprehensive tests for all new features
+2. Create API documentation
+3. Update user manuals
+4. Create admin guides
+5. Prepare deployment checklist
+6. Create migration guide for existing data
 
 ---
 
 ## Notes
 
-- All Phase 1 changes follow the specifications in `docs/v3/WASL Implementation Specification`
+**Phase 1 (Foundation):**
+- All changes follow the specifications in `docs/v3/WASL Implementation Specification`
 - Database migrations are reversible
 - Models include proper relationships and scopes
 - Enums include label(), color(), and helper methods
 - Seeders provide comprehensive reference data
+
+**Phase 2 (Controllers & API):**
+- All controllers implement complete CRUD operations
+- File upload/download with proper security
+- Policy-based authorization throughout
+- Activity logging on all mutations
+- API resources for proper data transformation
+
+**Phase 3 (Request Validation):**
+- All Form Requests include authorization at request level
+- Custom validation messages for user-friendly feedback
+- File upload validation with MIME type checking
+- Enum-based dynamic validation
+- Complex validation logic via withValidator()
+- Controllers simplified by removing inline validation
+
+**General:**
 - No breaking changes to existing functionality
-- Ready for Phase 2 implementation
+- All code follows Laravel 11.x best practices
+- Ready for Phase 4 implementation
 
 ---
 
-*Generated automatically on January 18, 2026*
+*Last updated on January 19, 2026*
