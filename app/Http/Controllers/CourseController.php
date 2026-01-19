@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Enums\TrainingType;
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
 
 class CourseController extends Controller
@@ -56,19 +58,10 @@ class CourseController extends Controller
     /**
      * Store a newly created course.
      */
-    public function store(Request $request)
+    public function store(StoreCourseRequest $request)
     {
-        $this->authorize('create', Course::class);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:courses,name',
-            'description' => 'nullable|string|max:1000',
-            'duration_days' => 'required|integer|min:1|max:365',
-            'training_type' => 'required|string|in:' . implode(',', array_keys(TrainingType::toArray())),
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', true);
             $course = Course::create($validated);
 
@@ -115,19 +108,10 @@ class CourseController extends Controller
     /**
      * Update the specified course.
      */
-    public function update(Request $request, Course $course)
+    public function update(UpdateCourseRequest $request, Course $course)
     {
-        $this->authorize('update', $course);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:courses,name,' . $course->id,
-            'description' => 'nullable|string|max:1000',
-            'duration_days' => 'required|integer|min:1|max:365',
-            'training_type' => 'required|string|in:' . implode(',', array_keys(TrainingType::toArray())),
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', $course->is_active);
             $course->update($validated);
 

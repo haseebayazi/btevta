@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Employer;
 use App\Models\Country;
+use App\Http\Requests\StoreEmployerRequest;
+use App\Http\Requests\UpdateEmployerRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,27 +62,10 @@ class EmployerController extends Controller
     /**
      * Store a newly created employer.
      */
-    public function store(Request $request)
+    public function store(StoreEmployerRequest $request)
     {
-        $this->authorize('create', Employer::class);
-
-        $validated = $request->validate([
-            'permission_number' => 'nullable|string|max:50|unique:employers,permission_number',
-            'visa_issuing_company' => 'required|string|max:200',
-            'country_id' => 'required|exists:countries,id',
-            'sector' => 'nullable|string|max:100',
-            'trade' => 'nullable|string|max:100',
-            'basic_salary' => 'nullable|numeric|min:0',
-            'salary_currency' => 'nullable|string|size:3',
-            'food_by_company' => 'boolean',
-            'transport_by_company' => 'boolean',
-            'accommodation_by_company' => 'boolean',
-            'other_conditions' => 'nullable|string|max:2000',
-            'evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             // Handle evidence upload
             if ($request->hasFile('evidence')) {
                 $path = $request->file('evidence')->store('employers/evidence', 'private');
@@ -138,27 +123,10 @@ class EmployerController extends Controller
     /**
      * Update the specified employer.
      */
-    public function update(Request $request, Employer $employer)
+    public function update(UpdateEmployerRequest $request, Employer $employer)
     {
-        $this->authorize('update', $employer);
-
-        $validated = $request->validate([
-            'permission_number' => 'nullable|string|max:50|unique:employers,permission_number,' . $employer->id,
-            'visa_issuing_company' => 'required|string|max:200',
-            'country_id' => 'required|exists:countries,id',
-            'sector' => 'nullable|string|max:100',
-            'trade' => 'nullable|string|max:100',
-            'basic_salary' => 'nullable|numeric|min:0',
-            'salary_currency' => 'nullable|string|size:3',
-            'food_by_company' => 'boolean',
-            'transport_by_company' => 'boolean',
-            'accommodation_by_company' => 'boolean',
-            'other_conditions' => 'nullable|string|max:2000',
-            'evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             // Handle evidence upload
             if ($request->hasFile('evidence')) {
                 // Delete old evidence
