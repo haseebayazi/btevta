@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\DocumentChecklist;
+use App\Http\Requests\StoreDocumentChecklistRequest;
+use App\Http\Requests\UpdateDocumentChecklistRequest;
 use Illuminate\Http\Request;
 
 class DocumentChecklistController extends Controller
@@ -49,21 +51,10 @@ class DocumentChecklistController extends Controller
     /**
      * Store a newly created document checklist.
      */
-    public function store(Request $request)
+    public function store(StoreDocumentChecklistRequest $request)
     {
-        $this->authorize('create', DocumentChecklist::class);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:document_checklists,code',
-            'description' => 'nullable|string|max:1000',
-            'category' => 'required|string|in:mandatory,optional',
-            'is_mandatory' => 'boolean',
-            'display_order' => 'required|integer|min:0',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_mandatory'] = $request->boolean('is_mandatory');
             $validated['is_active'] = $request->boolean('is_active', true);
 
@@ -110,21 +101,10 @@ class DocumentChecklistController extends Controller
     /**
      * Update the specified document checklist.
      */
-    public function update(Request $request, DocumentChecklist $documentChecklist)
+    public function update(UpdateDocumentChecklistRequest $request, DocumentChecklist $documentChecklist)
     {
-        $this->authorize('update', $documentChecklist);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:document_checklists,code,' . $documentChecklist->id,
-            'description' => 'nullable|string|max:1000',
-            'category' => 'required|string|in:mandatory,optional',
-            'is_mandatory' => 'boolean',
-            'display_order' => 'required|integer|min:0',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_mandatory'] = $request->boolean('is_mandatory');
             $validated['is_active'] = $request->boolean('is_active', $documentChecklist->is_active);
 

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\SuccessStory;
 use App\Models\Candidate;
 use App\Enums\EvidenceType;
+use App\Http\Requests\StoreSuccessStoryRequest;
+use App\Http\Requests\UpdateSuccessStoryRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -64,31 +66,13 @@ class SuccessStoryController extends Controller
     /**
      * Store a newly created success story.
      */
-    public function store(Request $request)
+    public function store(StoreSuccessStoryRequest $request)
     {
-        $this->authorize('create', SuccessStory::class);
-
-        $validated = $request->validate([
-            'candidate_id' => 'required|exists:candidates,id',
-            'departure_id' => 'nullable|exists:departures,id',
-            'written_note' => 'required|string|max:5000',
-            'evidence_type' => 'required|string|in:' . implode(',', array_keys(EvidenceType::toArray())),
-            'evidence' => 'nullable|file|max:51200', // 50MB max
-            'is_featured' => 'boolean',
-        ]);
-
         try {
-            // Validate evidence file based on type
+            $validated = $request->validated();
+
+            // Handle evidence upload
             if ($request->hasFile('evidence')) {
-                $evidenceType = EvidenceType::from($validated['evidence_type']);
-                $allowedMimes = $evidenceType->allowedMimes();
-                $mime = $request->file('evidence')->getMimeType();
-
-                if (!in_array($mime, $allowedMimes)) {
-                    return back()->withInput()
-                        ->with('error', 'Invalid file type for selected evidence type. Allowed types: ' . implode(', ', $allowedMimes));
-                }
-
                 $path = $request->file('evidence')->store(
                     'success-stories/' . $validated['candidate_id'],
                     'private'
@@ -144,29 +128,13 @@ class SuccessStoryController extends Controller
     /**
      * Update the specified success story.
      */
-    public function update(Request $request, SuccessStory $successStory)
+    public function update(UpdateSuccessStoryRequest $request, SuccessStory $successStory)
     {
-        $this->authorize('update', $successStory);
-
-        $validated = $request->validate([
-            'written_note' => 'required|string|max:5000',
-            'evidence_type' => 'required|string|in:' . implode(',', array_keys(EvidenceType::toArray())),
-            'evidence' => 'nullable|file|max:51200', // 50MB max
-            'is_featured' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
+
             // Handle evidence upload
             if ($request->hasFile('evidence')) {
-                $evidenceType = EvidenceType::from($validated['evidence_type']);
-                $allowedMimes = $evidenceType->allowedMimes();
-                $mime = $request->file('evidence')->getMimeType();
-
-                if (!in_array($mime, $allowedMimes)) {
-                    return back()->withInput()
-                        ->with('error', 'Invalid file type for selected evidence type.');
-                }
-
                 // Delete old evidence
                 if ($successStory->evidence_path) {
                     Storage::disk('private')->delete($successStory->evidence_path);

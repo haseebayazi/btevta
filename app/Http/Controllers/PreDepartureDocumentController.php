@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PreDepartureDocument;
 use App\Models\Candidate;
 use App\Models\DocumentChecklist;
+use App\Http\Requests\StorePreDepartureDocumentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -47,17 +48,10 @@ class PreDepartureDocumentController extends Controller
     /**
      * Store a newly uploaded pre-departure document.
      */
-    public function store(Request $request, Candidate $candidate)
+    public function store(StorePreDepartureDocumentRequest $request, Candidate $candidate)
     {
-        $this->authorize('create', PreDepartureDocument::class);
-
-        $validated = $request->validate([
-            'document_checklist_id' => 'required|exists:document_checklists,id',
-            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'notes' => 'nullable|string|max:500',
-        ]);
-
         try {
+            $validated = $request->validated();
             // Check if document already exists for this type
             $existing = $candidate->preDepartureDocuments()
                 ->where('document_checklist_id', $validated['document_checklist_id'])
