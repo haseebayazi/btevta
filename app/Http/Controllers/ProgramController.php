@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Program;
+use App\Http\Requests\StoreProgramRequest;
+use App\Http\Requests\UpdateProgramRequest;
 use Illuminate\Http\Request;
 
 class ProgramController extends Controller
@@ -34,18 +36,10 @@ class ProgramController extends Controller
     /**
      * Store a newly created program.
      */
-    public function store(Request $request)
+    public function store(StoreProgramRequest $request)
     {
-        $this->authorize('create', Program::class);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:programs,name',
-            'description' => 'nullable|string|max:1000',
-            'duration_weeks' => 'required|integer|min:1|max:104',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', true);
             $program = Program::create($validated);
 
@@ -90,18 +84,10 @@ class ProgramController extends Controller
     /**
      * Update the specified program.
      */
-    public function update(Request $request, Program $program)
+    public function update(UpdateProgramRequest $request, Program $program)
     {
-        $this->authorize('update', $program);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:programs,name,' . $program->id,
-            'description' => 'nullable|string|max:1000',
-            'duration_weeks' => 'required|integer|min:1|max:104',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', $program->is_active);
             $program->update($validated);
 

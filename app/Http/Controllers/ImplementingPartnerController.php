@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ImplementingPartner;
+use App\Http\Requests\StoreImplementingPartnerRequest;
+use App\Http\Requests\UpdateImplementingPartnerRequest;
 use Illuminate\Http\Request;
 
 class ImplementingPartnerController extends Controller
@@ -34,20 +36,10 @@ class ImplementingPartnerController extends Controller
     /**
      * Store a newly created implementing partner.
      */
-    public function store(Request $request)
+    public function store(StoreImplementingPartnerRequest $request)
     {
-        $this->authorize('create', ImplementingPartner::class);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:implementing_partners,name',
-            'contact_person' => 'required|string|max:255',
-            'contact_email' => 'required|email|max:255',
-            'contact_phone' => 'required|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', true);
             $partner = ImplementingPartner::create($validated);
 
@@ -92,20 +84,10 @@ class ImplementingPartnerController extends Controller
     /**
      * Update the specified implementing partner.
      */
-    public function update(Request $request, ImplementingPartner $implementingPartner)
+    public function update(UpdateImplementingPartnerRequest $request, ImplementingPartner $implementingPartner)
     {
-        $this->authorize('update', $implementingPartner);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:implementing_partners,name,' . $implementingPartner->id,
-            'contact_person' => 'required|string|max:255',
-            'contact_email' => 'required|email|max:255',
-            'contact_phone' => 'required|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'is_active' => 'boolean',
-        ]);
-
         try {
+            $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', $implementingPartner->is_active);
             $implementingPartner->update($validated);
 
