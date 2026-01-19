@@ -6,7 +6,10 @@ use App\Models\CandidateScreening;
 use App\Models\Candidate;
 use App\Models\Undertaking;
 use App\Enums\CandidateStatus;
+use App\Enums\ScreeningStatus;
+use App\Enums\PlacementInterest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class ScreeningService
@@ -565,5 +568,337 @@ class ScreeningService
             ->where('final_outcome', 'pending')
             ->orderBy('created_at')
             ->get();
+    }
+
+    // =========================================================================
+    // UPDATED SCREENING WORKFLOW (Single Review - WASL v3)
+    // =========================================================================
+
+    /**
+     * Conduct initial screening for a candidate (new single-review workflow).
+     *
+     * @param Candidate $candidate
+     * @param array $screeningData
+     * @return CandidateScreening
+     * @throws \Exception
+     */
+    public function conductInitialScreening(Candidate $candidate, array $screeningData): CandidateScreening
+    {
+        DB::beginTransaction();
+        try {
+            // Validate screening data
+            $this->validateScreeningData($screeningData);
+
+            // Handle evidence file upload if present
+            $evidencePath = null;
+            $evidenceFilename = null;
+            if (isset($screeningData['evidence_file'])) {
+                $evidencePath = $screeningData['evidence_file']->store(
+                    'screenings/' . $candidate->id,
+                    'private'
+                );
+                $evidenceFilename = $screeningData['evidence_file']->getClientOriginalName();
+                unset($screeningData['evidence_file']);
+            }
+
+            // Create or update screening record
+            $screening = CandidateScreening::updateOrCreate(
+                ['candidate_id' => $candidate->id],
+                [
+                    'consent_for_work' => $screeningData['consent_for_work'],
+                    'placement_interest' => $screeningData['placement_interest'],
+                    'target_country_id' => $screeningData['target_country_id'] ?? null,
+                    'screening_status' => $screeningData['screening_status'],
+                    'notes' => $screeningData['notes'] ?? null,
+                    'evidence_path' => $evidencePath,
+                    'evidence_filename' => $evidenceFilename,
+                    'reviewer_id' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            // Update candidate status based on screening result
+            if ($screening->screening_status === ScreeningStatus::SCREENED->value) {
+                $candidate->update(['status' => CandidateStatus::SCREENED->value]);
+            } elseif ($screening->screening_status === ScreeningStatus::DEFERRED->value) {
+                $candidate->update(['status' => CandidateStatus::DEFERRED->value]);
+            }
+
+            DB::commit();
+
+            // Log activity
+            activity()
+                ->performedOn($screening)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'screening_status' => $screening->screening_status,
+                    'placement_interest' => $screening->placement_interest,
+                ])
+                ->log('Initial screening conducted');
+
+            return $screening->fresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Validate screening data for the new workflow.
+     *
+     * @param array $data
+     * @return void
+     * @throws \Exception
+     */
+    protected function validateScreeningData(array $data): void
+    {
+        if (!isset($data['consent_for_work'])) {
+            throw new \Exception('Consent for work is required.');
+        }
+
+        if (!isset($data['placement_interest'])) {
+            throw new \Exception('Placement interest is required.');
+        }
+
+        if (!isset($data['screening_status'])) {
+            throw new \Exception('Screening status is required.');
+        }
+
+        // Validate placement interest enum
+        try {
+            PlacementInterest::from($data['placement_interest']);
+        } catch (\ValueError $e) {
+            throw new \Exception('Invalid placement interest value.');
+        }
+
+        // Validate screening status enum
+        try {
+            ScreeningStatus::from($data['screening_status']);
+        } catch (\ValueError $e) {
+            throw new \Exception('Invalid screening status value.');
+        }
+
+        // If international placement, country must be specified
+        if ($data['placement_interest'] === PlacementInterest::INTERNATIONAL->value && empty($data['target_country_id'])) {
+            throw new \Exception('Target country is required for international placement interest.');
+        }
+    }
+
+    /**
+     * Get screening dashboard statistics (new workflow).
+     *
+     * @return array
+     */
+    public function getScreeningDashboardStats(): array
+    {
+        $total = CandidateScreening::count();
+        $screened = CandidateScreening::where('screening_status', ScreeningStatus::SCREENED->value)->count();
+        $pending = CandidateScreening::where('screening_status', ScreeningStatus::PENDING->value)->count();
+        $deferred = CandidateScreening::where('screening_status', ScreeningStatus::DEFERRED->value)->count();
+
+        $byPlacementInterest = CandidateScreening::select('placement_interest', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('placement_interest')
+            ->groupBy('placement_interest')
+            ->pluck('count', 'placement_interest')
+            ->toArray();
+
+        $byTargetCountry = CandidateScreening::with('targetCountry')
+            ->whereNotNull('target_country_id')
+            ->get()
+            ->groupBy('target_country_id')
+            ->map(function ($screenings, $countryId) {
+                return [
+                    'country' => $screenings->first()->targetCountry->name ?? 'Unknown',
+                    'count' => $screenings->count(),
+                ];
+            })
+            ->values();
+
+        return [
+            'total' => $total,
+            'screened' => $screened,
+            'pending' => $pending,
+            'deferred' => $deferred,
+            'by_placement_interest' => $byPlacementInterest,
+            'by_target_country' => $byTargetCountry,
+            'screening_rate' => $total > 0 ? round(($screened / $total) * 100, 1) : 0,
+            'deferral_rate' => $total > 0 ? round(($deferred / $total) * 100, 1) : 0,
+        ];
+    }
+
+    /**
+     * Check if a candidate can proceed to registration.
+     *
+     * @param Candidate $candidate
+     * @return array
+     */
+    public function canProceedToRegistration(Candidate $candidate): array
+    {
+        $screening = CandidateScreening::where('candidate_id', $candidate->id)->first();
+
+        if (!$screening) {
+            return [
+                'can_proceed' => false,
+                'reason' => 'Candidate has not been screened yet.',
+            ];
+        }
+
+        if ($screening->screening_status !== ScreeningStatus::SCREENED->value) {
+            return [
+                'can_proceed' => false,
+                'reason' => 'Only screened candidates can proceed to registration. Current status: ' . $screening->screening_status,
+            ];
+        }
+
+        if (!$screening->consent_for_work) {
+            return [
+                'can_proceed' => false,
+                'reason' => 'Candidate must provide consent for work verification.',
+            ];
+        }
+
+        return [
+            'can_proceed' => true,
+            'screening' => $screening,
+        ];
+    }
+
+    /**
+     * Update screening status.
+     *
+     * @param CandidateScreening $screening
+     * @param string $newStatus
+     * @param string|null $notes
+     * @return CandidateScreening
+     * @throws \Exception
+     */
+    public function updateScreeningStatus(CandidateScreening $screening, string $newStatus, ?string $notes = null): CandidateScreening
+    {
+        DB::beginTransaction();
+        try {
+            // Validate new status
+            ScreeningStatus::from($newStatus);
+
+            $screening->update([
+                'screening_status' => $newStatus,
+                'notes' => $notes ?? $screening->notes,
+                'reviewer_id' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            // Update candidate status accordingly
+            $candidate = $screening->candidate;
+            if ($newStatus === ScreeningStatus::SCREENED->value) {
+                $candidate->update(['status' => CandidateStatus::SCREENED->value]);
+            } elseif ($newStatus === ScreeningStatus::DEFERRED->value) {
+                $candidate->update(['status' => CandidateStatus::DEFERRED->value]);
+            }
+
+            DB::commit();
+
+            // Log activity
+            activity()
+                ->performedOn($screening)
+                ->causedBy(auth()->user())
+                ->withProperties(['new_status' => $newStatus])
+                ->log('Screening status updated');
+
+            return $screening->fresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Get candidates pending screening.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingScreenings()
+    {
+        return CandidateScreening::with('candidate')
+            ->where('screening_status', ScreeningStatus::PENDING->value)
+            ->orderBy('created_at')
+            ->get();
+    }
+
+    /**
+     * Get recently screened candidates.
+     *
+     * @param int $days
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getRecentlyScreened(int $days = 7)
+    {
+        return CandidateScreening::with('candidate')
+            ->where('screening_status', ScreeningStatus::SCREENED->value)
+            ->where('reviewed_at', '>=', now()->subDays($days))
+            ->orderBy('reviewed_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get deferred candidates.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getDeferredCandidates()
+    {
+        return CandidateScreening::with('candidate')
+            ->where('screening_status', ScreeningStatus::DEFERRED->value)
+            ->orderBy('reviewed_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Bulk update screening status.
+     *
+     * @param array $candidateIds
+     * @param string $newStatus
+     * @param string|null $notes
+     * @return array
+     */
+    public function bulkUpdateScreeningStatus(array $candidateIds, string $newStatus, ?string $notes = null): array
+    {
+        $successful = [];
+        $failed = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($candidateIds as $candidateId) {
+                try {
+                    $screening = CandidateScreening::where('candidate_id', $candidateId)->firstOrFail();
+                    $this->updateScreeningStatus($screening, $newStatus, $notes);
+                    $successful[] = $candidateId;
+                } catch (\Exception $e) {
+                    $failed[] = [
+                        'candidate_id' => $candidateId,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            // Log bulk update
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'new_status' => $newStatus,
+                    'successful_count' => count($successful),
+                    'failed_count' => count($failed),
+                ])
+                ->log('Bulk screening status update');
+
+            return [
+                'successful' => $successful,
+                'failed' => $failed,
+                'total_processed' => count($candidateIds),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }

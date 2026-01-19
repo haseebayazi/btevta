@@ -158,6 +158,21 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
+    // PRE-DEPARTURE DOCUMENTS - WASL v3
+    // Purpose: Document collection before screening
+    // ========================================================================
+    Route::prefix('candidates/{candidate}/pre-departure-documents')->name('pre-departure-documents.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'store'])
+            ->middleware('throttle:30,1')->name('store');
+        Route::post('/bulk-upload', [\App\Http\Controllers\PreDepartureDocumentController::class, 'bulkUpload'])
+            ->middleware('throttle:10,1')->name('bulk-upload');
+        Route::post('/{preDepartureDocument}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
+        Route::get('/{preDepartureDocument}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
+        Route::delete('/{preDepartureDocument}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
     // BULK OPERATIONS
     // Throttle: 30/min for bulk operations to prevent abuse
     // ========================================================================
@@ -586,6 +601,37 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity-logs.export');
         Route::post('/activity-logs/clean', [ActivityLogController::class, 'clean'])->name('activity-logs.clean');
         Route::get('/activity-logs/{activity}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
+
+        // ========================================================================
+        // WASL v3: NEW ADMIN RESOURCES
+        // ========================================================================
+
+        // Programs
+        Route::resource('programs', \App\Http\Controllers\ProgramController::class);
+        Route::post('programs/{program}/toggle-status', [\App\Http\Controllers\ProgramController::class, 'toggleStatus'])->name('programs.toggle-status');
+
+        // Implementing Partners
+        Route::resource('implementing-partners', \App\Http\Controllers\ImplementingPartnerController::class);
+        Route::post('implementing-partners/{implementingPartner}/toggle-status', [\App\Http\Controllers\ImplementingPartnerController::class, 'toggleStatus'])->name('implementing-partners.toggle-status');
+
+        // Employers
+        Route::resource('employers', \App\Http\Controllers\EmployerController::class);
+        Route::post('employers/{employer}/toggle-status', [\App\Http\Controllers\EmployerController::class, 'toggleStatus'])->name('employers.toggle-status');
+        Route::get('employers/{employer}/download-evidence', [\App\Http\Controllers\EmployerController::class, 'downloadEvidence'])->name('employers.download-evidence');
+
+        // Document Checklists
+        Route::resource('document-checklists', \App\Http\Controllers\DocumentChecklistController::class);
+        Route::post('document-checklists/{documentChecklist}/toggle-status', [\App\Http\Controllers\DocumentChecklistController::class, 'toggleStatus'])->name('document-checklists.toggle-status');
+        Route::post('document-checklists/reorder', [\App\Http\Controllers\DocumentChecklistController::class, 'reorder'])->name('document-checklists.reorder');
+
+        // Courses
+        Route::resource('courses', \App\Http\Controllers\CourseController::class);
+        Route::post('courses/{course}/toggle-status', [\App\Http\Controllers\CourseController::class, 'toggleStatus'])->name('courses.toggle-status');
+
+        // Success Stories
+        Route::resource('success-stories', \App\Http\Controllers\SuccessStoryController::class);
+        Route::post('success-stories/{successStory}/toggle-featured', [\App\Http\Controllers\SuccessStoryController::class, 'toggleFeatured'])->name('success-stories.toggle-featured');
+        Route::get('success-stories/{successStory}/download-evidence', [\App\Http\Controllers\SuccessStoryController::class, 'downloadEvidence'])->name('success-stories.download-evidence');
     });
 
     // ========================================================================

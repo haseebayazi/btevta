@@ -49,6 +49,13 @@ class Complaint extends Model
         'closed_by',
         'reopened_at',
         'reopened_by',
+        // WASL v3 Enhanced Workflow Fields
+        'current_issue',
+        'support_steps_taken',
+        'suggestions',
+        'conclusion',
+        'evidence_type',
+        'evidence_path',
     ];
 
     protected $casts = [

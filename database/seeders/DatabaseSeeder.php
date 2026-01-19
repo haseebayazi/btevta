@@ -277,6 +277,18 @@ class DatabaseSeeder extends Seeder
             echo "✓ Batches already exist, skipping...\n";
         }
 
+        // Seed WASL v3 data
+        echo "\n";
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        echo "🌍 WASL v3 - REFERENCE DATA\n";
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        $this->call(CountriesSeeder::class);
+        $this->call(PaymentMethodsSeeder::class);
+        $this->call(DocumentChecklistsSeeder::class);
+
+        echo "\n";
+
         // Create Sample Candidates using factories
         if (\App\Models\Candidate::count() === 0) {
             echo "Creating sample candidates using factories...\n";

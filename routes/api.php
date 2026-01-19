@@ -257,4 +257,16 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::get('/{id}', [DocumentArchiveApiController::class, 'show'])->name('show');
         Route::get('/{id}/download', [DocumentArchiveApiController::class, 'download'])->name('download');
     });
+
+    // ========================================================================
+    // WASL v3: NEW API ROUTES
+    // ========================================================================
+
+    // Employers API
+    Route::prefix('employers')->name('employers.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\EmployerApiController::class, 'index'])->name('index');
+        Route::get('/search', [\App\Http\Controllers\Api\EmployerApiController::class, 'search'])->name('search');
+        Route::get('/by-country/{countryId}', [\App\Http\Controllers\Api\EmployerApiController::class, 'byCountry'])->name('by-country');
+        Route::get('/{employer}', [\App\Http\Controllers\Api\EmployerApiController::class, 'show'])->name('show');
+    });
 });

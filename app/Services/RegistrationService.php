@@ -6,12 +6,43 @@ use App\Models\Candidate;
 use App\Models\Oep;
 use App\Models\RegistrationDocument;
 use App\Models\Undertaking;
+use App\Services\AllocationService;
+use App\Services\AutoBatchService;
+use App\Services\ScreeningService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class RegistrationService
 {
+    /**
+     * The allocation service instance.
+     */
+    protected AllocationService $allocationService;
+
+    /**
+     * The auto batch service instance.
+     */
+    protected AutoBatchService $autoBatchService;
+
+    /**
+     * The screening service instance.
+     */
+    protected ScreeningService $screeningService;
+
+    /**
+     * Create a new service instance.
+     */
+    public function __construct(
+        AllocationService $allocationService,
+        AutoBatchService $autoBatchService,
+        ScreeningService $screeningService
+    ) {
+        $this->allocationService = $allocationService;
+        $this->autoBatchService = $autoBatchService;
+        $this->screeningService = $screeningService;
+    }
+
     /**
      * Get required documents list
      */
@@ -429,5 +460,204 @@ class RegistrationService
             ] : null,
             'completion' => $this->checkDocumentCompleteness($candidate),
         ];
+    }
+
+    // =========================================================================
+    // UPDATED REGISTRATION WORKFLOW (WASL v3)
+    // =========================================================================
+
+    /**
+     * Register a candidate with allocation and auto-batch assignment.
+     *
+     * @param Candidate $candidate
+     * @param array $registrationData
+     * @return array
+     * @throws \Exception
+     */
+    public function registerCandidateWithAllocation(Candidate $candidate, array $registrationData): array
+    {
+        // Check if candidate can proceed to registration (must be screened)
+        $eligibility = $this->screeningService->canProceedToRegistration($candidate);
+        if (!$eligibility['can_proceed']) {
+            throw new \Exception($eligibility['reason']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Step 1: Allocate campus, program, implementing partner, and trade
+            $allocationData = [
+                'campus_id' => $registrationData['campus_id'],
+                'program_id' => $registrationData['program_id'],
+                'implementing_partner_id' => $registrationData['implementing_partner_id'] ?? null,
+                'trade_id' => $registrationData['trade_id'],
+                'oep_id' => $registrationData['oep_id'] ?? $this->allocateOEP($candidate),
+            ];
+
+            $candidate = $this->allocationService->allocate($candidate, $allocationData);
+
+            // Step 2: Auto-create or assign to batch
+            $batch = $this->autoBatchService->assignOrCreateBatch($candidate);
+
+            // Step 3: Update candidate with registration data
+            $candidate->update([
+                'status' => \App\Enums\CandidateStatus::REGISTERED->value,
+                'registration_date' => now(),
+            ]);
+
+            DB::commit();
+
+            // Log registration
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'batch_id' => $batch->id,
+                    'batch_number' => $batch->batch_code,
+                    'allocated_number' => $candidate->allocated_number,
+                ])
+                ->log('Candidate registered with allocation and batch assignment');
+
+            return [
+                'success' => true,
+                'candidate' => $candidate->fresh(),
+                'batch' => $batch,
+                'allocation' => $this->allocationService->getAllocationSummary($candidate),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Get registration statistics.
+     *
+     * @return array
+     */
+    public function getRegistrationStatistics(): array
+    {
+        $total = Candidate::where('status', \App\Enums\CandidateStatus::REGISTERED->value)->count();
+
+        $byBatch = DB::table('candidates')
+            ->select('batch_id', DB::raw('COUNT(*) as count'))
+            ->where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+            ->whereNotNull('batch_id')
+            ->groupBy('batch_id')
+            ->get();
+
+        $byCampus = DB::table('candidates')
+            ->select('campus_id', DB::raw('COUNT(*) as count'))
+            ->where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+            ->whereNotNull('campus_id')
+            ->groupBy('campus_id')
+            ->get();
+
+        $byProgram = DB::table('candidates')
+            ->select('program_id', DB::raw('COUNT(*) as count'))
+            ->where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+            ->whereNotNull('program_id')
+            ->groupBy('program_id')
+            ->get();
+
+        return [
+            'total_registered' => $total,
+            'by_batch' => $byBatch,
+            'by_campus' => $byCampus,
+            'by_program' => $byProgram,
+            'registrations_today' => Candidate::where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+                ->whereDate('registration_date', today())
+                ->count(),
+            'registrations_this_week' => Candidate::where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+                ->whereBetween('registration_date', [now()->startOfWeek(), now()->endOfWeek()])
+                ->count(),
+            'registrations_this_month' => Candidate::where('status', \App\Enums\CandidateStatus::REGISTERED->value)
+                ->whereMonth('registration_date', now()->month)
+                ->whereYear('registration_date', now()->year)
+                ->count(),
+        ];
+    }
+
+    /**
+     * Validate candidate eligibility for registration.
+     *
+     * @param Candidate $candidate
+     * @return array
+     */
+    public function validateRegistrationEligibility(Candidate $candidate): array
+    {
+        $errors = [];
+
+        // Check screening status
+        $screeningCheck = $this->screeningService->canProceedToRegistration($candidate);
+        if (!$screeningCheck['can_proceed']) {
+            $errors[] = $screeningCheck['reason'];
+        }
+
+        // Check if candidate already registered
+        if ($candidate->status === \App\Enums\CandidateStatus::REGISTERED->value) {
+            $errors[] = 'Candidate is already registered.';
+        }
+
+        // Check if candidate has required pre-departure documents
+        // (if documents are mandatory before registration)
+        // This can be customized based on requirements
+
+        return [
+            'is_eligible' => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Bulk register candidates with allocation and batch assignment.
+     *
+     * @param array $candidateIds
+     * @param array $registrationData
+     * @return array
+     */
+    public function bulkRegisterCandidates(array $candidateIds, array $registrationData): array
+    {
+        $successful = [];
+        $failed = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($candidateIds as $candidateId) {
+                try {
+                    $candidate = Candidate::findOrFail($candidateId);
+                    $result = $this->registerCandidateWithAllocation($candidate, $registrationData);
+                    $successful[] = [
+                        'candidate_id' => $candidateId,
+                        'batch_number' => $result['batch']->batch_code,
+                        'allocated_number' => $result['candidate']->allocated_number,
+                    ];
+                } catch (\Exception $e) {
+                    $failed[] = [
+                        'candidate_id' => $candidateId,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            // Log bulk registration
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'successful_count' => count($successful),
+                    'failed_count' => count($failed),
+                ])
+                ->log('Bulk candidate registration');
+
+            return [
+                'successful' => $successful,
+                'failed' => $failed,
+                'total_processed' => count($candidateIds),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }
