@@ -76,6 +76,22 @@ class Departure extends Model
         'return_reason',
         'return_remarks',
         'salary_proof_path',
+        // WASL v3 Enhancement Fields (Phase 1)
+        'ptn_status',
+        'ptn_issued_at',
+        'ptn_deferred_reason',
+        'protector_status',
+        'protector_applied_at',
+        'protector_done_at',
+        'protector_deferred_reason',
+        'ticket_date',
+        'ticket_time',
+        'departure_platform',
+        'landing_platform',
+        'flight_type',
+        'pre_departure_doc_path',
+        'pre_departure_video_path',
+        'final_departure_status',
     ];
 
     protected $casts = [
@@ -104,6 +120,11 @@ class Departure extends Model
         'salary_confirmed' => 'boolean',
         'ninety_day_report_submitted' => 'boolean',
         'ninety_day_compliance_checked' => 'boolean',
+        // WASL v3 Enhancement Field Casts
+        'ptn_issued_at' => 'datetime',
+        'protector_applied_at' => 'datetime',
+        'protector_done_at' => 'datetime',
+        'ticket_date' => 'date',
     ];
 
     /**
