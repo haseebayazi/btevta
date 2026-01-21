@@ -30,8 +30,10 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['candidate_id', 'document_checklist_id']);
-            $table->index('candidate_id');
+$table->unique(
+    ['candidate_id', 'document_checklist_id'],
+    'pre_departure_candidate_checklist_unique' // <= Short name under 64 chars
+);            $table->index('candidate_id');
         });
     }
 
