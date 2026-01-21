@@ -14,44 +14,100 @@ class Remittance extends Model
     use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
+        // Core fields
         'candidate_id',
         'departure_id',
-        'campus_id',
+        'campus_id', // v3
+        'recorded_by',
+
+        // Transaction identification
         'transaction_reference',
-        'transaction_type',
-        'transaction_date',
+        'transaction_type', // v3
+        'transaction_date', // v3
+        'transfer_date', // legacy 2025
+
+        // Amount details
         'amount',
         'currency',
+        'amount_foreign', // legacy 2025
+        'foreign_currency', // legacy 2025
         'exchange_rate',
-        'amount_in_pkr',
+        'amount_in_pkr', // v3
+
+        // Transfer details
         'transfer_method',
         'bank_name',
-        'account_number',
-        'swift_code',
-        'iban',
-        'purpose',
-        'description',
-        'month_year',
-        'proof_document_path',
-        'proof_document_type',
-        'proof_document_size',
-        'verification_status',
+        'account_number', // v3
+        'swift_code', // v3
+        'iban', // v3
+        'sender_name', // legacy 2025
+        'sender_location', // legacy 2025
+        'receiver_name', // legacy 2025
+        'receiver_account', // legacy 2025
+
+        // Purpose & description
+        'primary_purpose', // legacy 2025 (enum)
+        'purpose', // v3 (string)
+        'purpose_description', // legacy 2025
+        'description', // v3
+
+        // Date tracking
+        'month_year', // v3 (YYYY-MM)
+        'year', // legacy 2025
+        'month', // legacy 2025 (1-12)
+        'quarter', // legacy 2025 (1-4)
+        'month_number', // legacy 2025
+
+        // Proof documentation
+        'has_proof', // legacy 2025 (boolean)
+        'proof_document_path', // v3
+        'proof_document_type', // v3
+        'proof_document_size', // v3
+        'proof_verified_date', // legacy 2025
+
+        // Verification workflow
+        'verification_status', // v3 (enum)
         'verified_by',
-        'verified_at',
-        'verification_notes',
-        'rejection_reason',
-        'status',
-        'metadata',
-        'recorded_by',
+        'verified_at', // v3 (timestamp)
+        'verification_notes', // v3
+        'rejection_reason', // v3
+
+        // Status & tracking
+        'status', // legacy 2025 (pending, verified, flagged, completed)
+        'notes', // legacy 2025
+        'alert_message', // legacy 2025
+        'is_first_remittance', // legacy 2025
+
+        // Flexible data
+        'metadata', // v3 (JSON)
     ];
 
     protected $casts = [
-        'transaction_date' => 'date',
+        // Dates
+        'transaction_date' => 'date', // v3
+        'transfer_date' => 'date', // legacy 2025
+        'proof_verified_date' => 'date', // legacy 2025
+        'verified_at' => 'datetime', // v3
+
+        // Decimals
         'amount' => 'decimal:2',
+        'amount_foreign' => 'decimal:2', // legacy 2025
         'exchange_rate' => 'decimal:4',
-        'amount_in_pkr' => 'decimal:2',
-        'verified_at' => 'datetime',
-        'metadata' => 'array',
+        'amount_in_pkr' => 'decimal:2', // v3
+
+        // Integers
+        'year' => 'integer', // legacy 2025
+        'month' => 'integer', // legacy 2025
+        'quarter' => 'integer', // legacy 2025
+        'month_number' => 'integer', // legacy 2025
+        'proof_document_size' => 'integer', // v3
+
+        // Booleans
+        'has_proof' => 'boolean', // legacy 2025
+        'is_first_remittance' => 'boolean', // legacy 2025
+
+        // JSON
+        'metadata' => 'array', // v3
     ];
 
     public function getActivitylogOptions(): LogOptions
