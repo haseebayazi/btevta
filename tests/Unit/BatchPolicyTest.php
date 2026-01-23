@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Batch;
@@ -26,7 +28,7 @@ class BatchPolicyTest extends TestCase
     // SUPER ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -34,7 +36,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_specific_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -43,7 +45,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -51,7 +53,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -60,7 +62,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_empty_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -69,7 +71,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_cannot_delete_batch_with_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -79,7 +81,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_assign_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -88,7 +90,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->assignCandidates($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_change_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -101,7 +103,7 @@ class BatchPolicyTest extends TestCase
     // PROJECT DIRECTOR
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_batch()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -109,7 +111,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_specific_batch()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -118,7 +120,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_create_batch()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -126,7 +128,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_update_batch()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -135,7 +137,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_cannot_delete_batch_with_candidates()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -145,7 +147,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_change_status()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -158,7 +160,7 @@ class BatchPolicyTest extends TestCase
     // CAMPUS ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_batches_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -171,7 +173,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_batches_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -185,7 +187,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_batch()
     {
         $campus = Campus::factory()->create();
@@ -197,7 +199,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_update_batches_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -210,7 +212,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_update_batches_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -224,7 +226,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_delete_planned_batch_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -240,7 +242,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_active_batch()
     {
         $campus = Campus::factory()->create();
@@ -256,7 +258,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_batch_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -273,7 +275,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_assign_candidates_to_their_campus_batch()
     {
         $campus = Campus::factory()->create();
@@ -286,7 +288,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->assignCandidates($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_change_status()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -299,7 +301,7 @@ class BatchPolicyTest extends TestCase
     // TRAINER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function trainer_can_view_batches_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -312,7 +314,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_cannot_view_batches_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -326,7 +328,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_cannot_create_batch()
     {
         $user = User::factory()->create(['role' => 'trainer']);
@@ -334,7 +336,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_cannot_update_batch()
     {
         $campus = Campus::factory()->create();
@@ -347,7 +349,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_cannot_delete_batch()
     {
         $campus = Campus::factory()->create();
@@ -360,7 +362,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_cannot_change_status()
     {
         $user = User::factory()->create(['role' => 'trainer']);
@@ -373,7 +375,7 @@ class BatchPolicyTest extends TestCase
     // VIEWER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_any_batch()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -381,7 +383,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_specific_batch()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -390,7 +392,7 @@ class BatchPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_batch()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -398,7 +400,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_update_batch()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -407,7 +409,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_delete_batch()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -416,7 +418,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_change_status()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -429,7 +431,7 @@ class BatchPolicyTest extends TestCase
     // API METHODS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_access_api_list()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -440,7 +442,7 @@ class BatchPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_access_api_list()
     {
         $user = User::factory()->create(['role' => 'oep']);
@@ -448,7 +450,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->apiList($user));
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_access_by_campus_endpoint()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -463,7 +465,7 @@ class BatchPolicyTest extends TestCase
     // EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_without_campus_id_cannot_view_batches()
     {
         $user = User::factory()->create([
@@ -475,7 +477,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function trainer_without_campus_id_cannot_view_batches()
     {
         $user = User::factory()->create([
@@ -487,7 +489,7 @@ class BatchPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $batch));
     }
 
-    /** @test */
+    #[Test]
     public function no_one_can_delete_batch_with_candidates_regardless_of_role()
     {
         $batch = Batch::factory()->create();

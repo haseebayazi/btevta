@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -40,7 +42,7 @@ class LoadTest extends TestCase
 
     // ==================== CONCURRENT BATCH ENROLLMENT ====================
 
-    /** @test */
+    #[Test]
     public function it_handles_concurrent_batch_enrollment()
     {
         $batch = Batch::factory()->create([
@@ -81,7 +83,7 @@ class LoadTest extends TestCase
         $this->assertEquals($enrolledCount, $actualEnrolled);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_bulk_candidate_creation()
     {
         $startTime = microtime(true);
@@ -103,7 +105,7 @@ class LoadTest extends TestCase
         $this->assertEquals(100, Candidate::count());
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_concurrent_screening_updates()
     {
         $candidates = Candidate::factory()->count(50)->create([
@@ -134,7 +136,7 @@ class LoadTest extends TestCase
         $this->assertEquals(150, CandidateScreening::count()); // 50 * 3
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_bulk_attendance_recording()
     {
         $batch = Batch::factory()->create([
@@ -170,7 +172,7 @@ class LoadTest extends TestCase
         $this->assertEquals(1500, TrainingAttendance::count()); // 50 * 30
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_concurrent_api_requests()
     {
         $candidates = Candidate::factory()->count(20)->create([
@@ -197,7 +199,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(10, $duration, "Concurrent API requests took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_dashboard_with_large_dataset()
     {
         // Create large dataset
@@ -233,7 +235,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(5, $duration, "Dashboard took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_report_generation_with_large_dataset()
     {
         $batch = Batch::factory()->create([
@@ -285,7 +287,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(10, $duration, "Report generation took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_search_with_large_dataset()
     {
         // Create 500 candidates with various names
@@ -313,7 +315,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(3, $duration, "Search took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_export_with_large_dataset()
     {
         Candidate::factory()->count(500)->create([
@@ -334,7 +336,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(30, $duration, "Export took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_maintains_data_integrity_under_concurrent_updates()
     {
         $candidate = Candidate::factory()->create([
@@ -364,7 +366,7 @@ class LoadTest extends TestCase
         $this->assertNotNull($candidate->remarks);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_batch_status_transition_under_load()
     {
         $candidates = Candidate::factory()->count(50)->create([
@@ -394,7 +396,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(30, $duration, "Batch transitions took too long: {$duration}s");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_memory_efficiently_with_large_queries()
     {
         // Create 1000 candidates
@@ -419,7 +421,7 @@ class LoadTest extends TestCase
         $this->assertLessThan(50, $memoryUsed, "Memory usage too high: {$memoryUsed}MB");
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_duplicate_check_with_large_dataset()
     {
         // Create 1000 candidates
@@ -446,7 +448,7 @@ class LoadTest extends TestCase
 
     // ==================== STRESS TESTS ====================
 
-    /** @test */
+    #[Test]
     public function stress_test_rapid_candidate_creation()
     {
         $startTime = microtime(true);
@@ -468,7 +470,7 @@ class LoadTest extends TestCase
         $this->assertGreaterThan(10, $rate, "Creation rate too slow: {$rate}/s");
     }
 
-    /** @test */
+    #[Test]
     public function stress_test_rapid_status_transitions()
     {
         $candidate = Candidate::factory()->create([

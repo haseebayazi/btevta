@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Oep;
@@ -22,7 +24,7 @@ class OepPolicyTest extends TestCase
         $this->policy = new OepPolicy();
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_view_any_oep()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'oep', 'viewer'];
@@ -33,14 +35,14 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_view_any_oep()
     {
         $user = User::factory()->create(['role' => 'trainer']);
         $this->assertFalse($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_oep()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -49,7 +51,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_oep()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -58,7 +60,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_any_oep()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -67,7 +69,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function oep_user_can_view_their_own_oep()
     {
         $oep = Oep::factory()->create();
@@ -79,7 +81,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function oep_user_cannot_view_other_oep()
     {
         $oep1 = Oep::factory()->create();
@@ -92,7 +94,7 @@ class OepPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $oep2));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_oep_with_candidates_in_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -111,7 +113,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_oep_without_candidates_in_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -125,7 +127,7 @@ class OepPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_without_campus_id_cannot_view_oep()
     {
         $user = User::factory()->create([
@@ -137,14 +139,14 @@ class OepPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_oep()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_create_oep()
     {
         $roles = ['project_director', 'campus_admin', 'oep', 'viewer'];
@@ -155,7 +157,7 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_oep()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -163,7 +165,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_update_oep()
     {
         $oep = Oep::factory()->create();
@@ -175,7 +177,7 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_oep()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -183,7 +185,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_delete_oep()
     {
         $oep = Oep::factory()->create();
@@ -195,7 +197,7 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_toggle_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -203,7 +205,7 @@ class OepPolicyTest extends TestCase
         $this->assertTrue($this->policy->toggleStatus($user, $oep));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_toggle_status()
     {
         $oep = Oep::factory()->create();
@@ -215,7 +217,7 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_access_api_list()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'oep', 'viewer'];
@@ -226,7 +228,7 @@ class OepPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_access_api_list()
     {
         $user = User::factory()->create(['role' => 'trainer']);

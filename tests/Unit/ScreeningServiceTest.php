@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\ScreeningService;
 use App\Models\Candidate;
@@ -25,7 +27,7 @@ class ScreeningServiceTest extends TestCase
     // UNDERTAKING CONTENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_undertaking_content()
     {
         $candidate = Candidate::factory()->create([
@@ -48,7 +50,7 @@ class ScreeningServiceTest extends TestCase
     // CALL LOGS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_parses_call_logs_from_remarks()
     {
         $candidate = Candidate::factory()->create();
@@ -62,7 +64,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertIsArray($logs);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_logs_when_no_remarks()
     {
         $candidate = Candidate::factory()->create();
@@ -80,7 +82,7 @@ class ScreeningServiceTest extends TestCase
     // SCREENING REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_screening_report()
     {
         $candidate = Candidate::factory()->create();
@@ -107,7 +109,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertArrayHasKey('by_type', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_report_by_date_range()
     {
         $candidate = Candidate::factory()->create();
@@ -130,7 +132,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertArrayHasKey('total_screenings', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_report_by_screening_type()
     {
         $candidate = Candidate::factory()->create();
@@ -158,7 +160,7 @@ class ScreeningServiceTest extends TestCase
     // SCHEDULE NEXT SCREENING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_schedules_call_screening_after_desk()
     {
         $candidate = Candidate::factory()->create();
@@ -172,7 +174,7 @@ class ScreeningServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_schedules_physical_screening_after_call()
     {
         $candidate = Candidate::factory()->create();
@@ -186,7 +188,7 @@ class ScreeningServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_does_not_schedule_after_physical()
     {
         $candidate = Candidate::factory()->create();
@@ -201,7 +203,7 @@ class ScreeningServiceTest extends TestCase
     // CHECK ELIGIBILITY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_ineligible_for_nonexistent_candidate()
     {
         $result = $this->service->checkEligibility(99999, 'desk');
@@ -210,7 +212,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertEquals('Candidate not found', $result['reason']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_eligible_for_desk_screening()
     {
         $candidate = Candidate::factory()->create();
@@ -220,7 +222,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertTrue($result['eligible']);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_desk_screening_for_call()
     {
         $candidate = Candidate::factory()->create();
@@ -231,7 +233,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertStringContainsString('desk', $result['reason']);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_call_after_desk_passed()
     {
         $candidate = Candidate::factory()->create();
@@ -246,7 +248,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertTrue($result['eligible']);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_all_prerequisites_for_physical()
     {
         $candidate = Candidate::factory()->create();
@@ -260,7 +262,7 @@ class ScreeningServiceTest extends TestCase
     // 3-CALL WORKFLOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_records_call_attempt()
     {
         $user = User::factory()->create();
@@ -284,7 +286,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertEquals(1, $result->total_call_attempts);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_invalid_call_number()
     {
         $user = User::factory()->create();
@@ -302,7 +304,7 @@ class ScreeningServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_progresses_call_stage_on_successful_call()
     {
         $user = User::factory()->create();
@@ -322,7 +324,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertEquals('call_2_registration', $result->call_stage);
     }
 
-    /** @test */
+    #[Test]
     public function it_marks_unreachable_after_max_attempts()
     {
         $user = User::factory()->create();
@@ -342,7 +344,7 @@ class ScreeningServiceTest extends TestCase
         $this->assertEquals('unreachable', $result->call_stage);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_callback_request()
     {
         $user = User::factory()->create();
@@ -370,7 +372,7 @@ class ScreeningServiceTest extends TestCase
     // PENDING CALLBACKS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_pending_callbacks()
     {
         $candidate = Candidate::factory()->create();
@@ -389,7 +391,7 @@ class ScreeningServiceTest extends TestCase
     // CALL STAGE STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_call_stage_statistics()
     {
         $candidate = Candidate::factory()->create();
@@ -415,7 +417,7 @@ class ScreeningServiceTest extends TestCase
     // CALL SUCCESS RATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_call_success_rates()
     {
         $candidate = Candidate::factory()->create();
@@ -444,7 +446,7 @@ class ScreeningServiceTest extends TestCase
     // PENDING APPOINTMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_pending_appointments()
     {
         $candidate = Candidate::factory()->create();
@@ -463,7 +465,7 @@ class ScreeningServiceTest extends TestCase
     // TODAY'S APPOINTMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_todays_appointments()
     {
         $candidate = Candidate::factory()->create();
@@ -481,7 +483,7 @@ class ScreeningServiceTest extends TestCase
     // RESPONSE RATE ANALYTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_response_rate_analytics()
     {
         $candidate = Candidate::factory()->create();
@@ -510,7 +512,7 @@ class ScreeningServiceTest extends TestCase
     // BULK UPDATE CALL STAGE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_bulk_update_call_stage()
     {
         $candidate = Candidate::factory()->create();
@@ -531,7 +533,7 @@ class ScreeningServiceTest extends TestCase
     // CANDIDATES NEEDING FOLLOW-UP
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_candidates_needing_follow_up()
     {
         $candidate = Candidate::factory()->create();

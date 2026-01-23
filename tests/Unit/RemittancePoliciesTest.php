@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Oep;
@@ -21,7 +23,7 @@ class RemittancePoliciesTest extends TestCase
     // REMITTANCE RECEIPT POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_receipt()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -30,7 +32,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_receipt()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -39,7 +41,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function oep_can_view_receipts()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -52,7 +54,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function oep_can_view_receipt_for_assigned_candidates()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -68,7 +70,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $receipt));
     }
 
-    /** @test */
+    #[Test]
     public function oep_cannot_view_receipt_for_other_candidates()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -85,7 +87,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertFalse($policy->view($user, $receipt));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_and_project_director_can_update_receipts()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -97,7 +99,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->update($admin, $receipt));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_receipts()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -109,7 +111,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertFalse($policy->delete($admin, $receipt));
     }
 
-    /** @test */
+    #[Test]
     public function user_who_can_view_receipt_can_download()
     {
         $policy = new RemittanceReceiptPolicy();
@@ -123,7 +125,7 @@ class RemittancePoliciesTest extends TestCase
     // REMITTANCE USAGE BREAKDOWN POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_breakdown()
     {
         $policy = new RemittanceUsageBreakdownPolicy();
@@ -132,7 +134,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function oep_can_create_breakdown()
     {
         $policy = new RemittanceUsageBreakdownPolicy();
@@ -145,7 +147,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function oep_can_view_breakdown_for_assigned_candidates()
     {
         $policy = new RemittanceUsageBreakdownPolicy();
@@ -161,7 +163,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $breakdown));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_and_project_director_can_update_breakdown()
     {
         $policy = new RemittanceUsageBreakdownPolicy();
@@ -173,7 +175,7 @@ class RemittancePoliciesTest extends TestCase
         $this->assertTrue($policy->update($admin, $breakdown));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_breakdown()
     {
         $policy = new RemittanceUsageBreakdownPolicy();

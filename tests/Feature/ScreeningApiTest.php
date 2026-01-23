@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -36,7 +38,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== DESK SCREENING ====================
 
-    /** @test */
+    #[Test]
     public function it_creates_desk_screening()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
@@ -53,7 +55,7 @@ class ScreeningApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_desk_screening_status()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
@@ -65,7 +67,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== CALL SCREENING ====================
 
-    /** @test */
+    #[Test]
     public function it_creates_call_screening()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/call", [
@@ -84,7 +86,7 @@ class ScreeningApiTest extends TestCase
         $this->assertEquals(1, $screening->call_count);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_existing_call_screening()
     {
         // Create initial call screening
@@ -107,7 +109,7 @@ class ScreeningApiTest extends TestCase
         $this->assertEquals('passed', $screening->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_enforces_max_call_attempts()
     {
         $screening = CandidateScreening::create([
@@ -130,7 +132,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== PHYSICAL SCREENING ====================
 
-    /** @test */
+    #[Test]
     public function it_creates_physical_screening()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/physical", [
@@ -149,7 +151,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== SCREENING PROGRESS ====================
 
-    /** @test */
+    #[Test]
     public function it_returns_screening_progress()
     {
         // Create some screenings
@@ -188,7 +190,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== EVIDENCE UPLOAD ====================
 
-    /** @test */
+    #[Test]
     public function it_uploads_screening_evidence()
     {
         $screening = CandidateScreening::create([
@@ -213,7 +215,7 @@ class ScreeningApiTest extends TestCase
         $this->assertNotNull($screening->evidence_path);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_file_types_for_evidence()
     {
         $screening = CandidateScreening::create([
@@ -235,7 +237,7 @@ class ScreeningApiTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_oversized_evidence_files()
     {
         $screening = CandidateScreening::create([
@@ -260,7 +262,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== AUTO-PROGRESSION ====================
 
-    /** @test */
+    #[Test]
     public function it_auto_progresses_candidate_when_all_screenings_pass()
     {
         // Pass desk screening
@@ -291,7 +293,7 @@ class ScreeningApiTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REGISTERED, $this->candidate->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_candidate_on_screening_failure()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
@@ -307,7 +309,7 @@ class ScreeningApiTest extends TestCase
 
     // ==================== AUTHORIZATION ====================
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
         $response = $this->postJson("/screening/{$this->candidate->id}/desk", [
@@ -317,7 +319,7 @@ class ScreeningApiTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_invalid_candidate()
     {
         $response = $this->actingAs($this->admin)->postJson("/screening/99999/desk", [

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -48,7 +50,7 @@ class DocumentArchiveRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_all_documents_with_authentication()
     {
         Sanctum::actingAs($this->admin);
@@ -72,7 +74,7 @@ class DocumentArchiveRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
         $response = $this->getJson('/api/v1/documents');
@@ -80,7 +82,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_documents_for_campus_admin()
     {
         $otherCampus = Campus::factory()->create();
@@ -101,7 +103,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertEquals($this->campus->id, $data[0]['campus']['id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_specific_document()
     {
         Sanctum::actingAs($this->admin);
@@ -124,7 +126,7 @@ class DocumentArchiveRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_documents_for_specific_candidate()
     {
         DocumentArchive::factory()->count(3)->create([
@@ -145,7 +147,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_document_statistics()
     {
         Sanctum::actingAs($this->admin);
@@ -167,7 +169,7 @@ class DocumentArchiveRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_expiring_documents()
     {
         // Create documents expiring in 15 days
@@ -199,7 +201,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertEquals(30, $meta['expiry_window_days']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_expired_documents()
     {
         // Create expired documents
@@ -226,7 +228,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_documents()
     {
         $uniqueTerm = 'UniquePassport123';
@@ -246,7 +248,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertStringContainsString($uniqueTerm, $data[0]['document_name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_download_information()
     {
         Sanctum::actingAs($this->admin);
@@ -266,7 +268,7 @@ class DocumentArchiveRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_document_type()
     {
         DocumentArchive::factory()->create([
@@ -286,7 +288,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_category()
     {
         DocumentArchive::factory()->create([
@@ -306,7 +308,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_status()
     {
         DocumentArchive::factory()->create([
@@ -326,7 +328,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_candidate()
     {
         $otherCandidate = Candidate::factory()->create(['campus_id' => $this->campus->id]);
@@ -347,7 +349,7 @@ class DocumentArchiveRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_date_range()
     {
         // Create document from yesterday
@@ -375,7 +377,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertNotEmpty($data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_expiring_soon_documents()
     {
         // Create document expiring in 10 days
@@ -394,7 +396,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertNotEmpty($data);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_search_query_minimum_length()
     {
         Sanctum::actingAs($this->admin);
@@ -405,7 +407,7 @@ class DocumentArchiveRestApiTest extends TestCase
             ->assertJsonValidationErrors(['q']);
     }
 
-    /** @test */
+    #[Test]
     public function it_supports_pagination()
     {
         DocumentArchive::factory()->count(25)->create([
@@ -423,7 +425,7 @@ class DocumentArchiveRestApiTest extends TestCase
         $this->assertGreaterThan(1, $meta['last_page']);
     }
 
-    /** @test */
+    #[Test]
     public function it_orders_documents_by_latest()
     {
         // Create documents with different timestamps

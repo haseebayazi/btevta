@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Batch;
@@ -35,7 +37,7 @@ class BatchApiControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_paginated_batches()
     {
         Batch::factory()->count(25)->create();
@@ -56,7 +58,7 @@ class BatchApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_batches_by_status()
     {
         Batch::factory()->count(5)->create(['status' => 'active']);
@@ -71,7 +73,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertCount(5, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_batches_by_campus()
     {
         Batch::factory()->count(4)->create(['campus_id' => $this->campus->id]);
@@ -84,7 +86,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertCount(4, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_batches_by_trade()
     {
         Batch::factory()->count(6)->create(['trade_id' => $this->trade->id]);
@@ -97,7 +99,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertCount(6, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_batches()
     {
         Batch::factory()->create(['batch_code' => 'BATCH-202501-001']);
@@ -111,7 +113,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertCount(2, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_available_batches_only()
     {
         Batch::factory()->create(['capacity' => 30]); // Has space
@@ -131,7 +133,7 @@ class BatchApiControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_single_batch_details()
     {
         $batch = Batch::factory()->create();
@@ -150,7 +152,7 @@ class BatchApiControllerTest extends TestCase
             ->assertJsonPath('data.id', $batch->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_nonexistent_batch()
     {
         $response = $this->getJson('/api/v1/batches/9999');
@@ -162,7 +164,7 @@ class BatchApiControllerTest extends TestCase
     // STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_creates_new_batch()
     {
         $batchData = [
@@ -191,7 +193,7 @@ class BatchApiControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields_on_create()
     {
         $response = $this->postJson('/api/v1/batches', []);
@@ -203,7 +205,7 @@ class BatchApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_unique_batch_code()
     {
         $existingBatch = Batch::factory()->create(['batch_code' => 'BATCH-202501-001']);
@@ -226,7 +228,7 @@ class BatchApiControllerTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_updates_existing_batch()
     {
         $batch = Batch::factory()->create(['capacity' => 30]);
@@ -248,7 +250,7 @@ class BatchApiControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_capacity_reduction_below_enrollment()
     {
         $batch = Batch::factory()->create(['capacity' => 30]);
@@ -266,7 +268,7 @@ class BatchApiControllerTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_deletes_empty_batch()
     {
         $batch = Batch::factory()->create();
@@ -279,7 +281,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertSoftDeleted('batches', ['id' => $batch->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_deletion_of_batch_with_candidates()
     {
         $batch = Batch::factory()->create();
@@ -297,7 +299,7 @@ class BatchApiControllerTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_batch_statistics()
     {
         $batch = Batch::factory()->create(['capacity' => 50]);
@@ -320,7 +322,7 @@ class BatchApiControllerTest extends TestCase
     // CANDIDATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_batch_candidates()
     {
         $batch = Batch::factory()->create();
@@ -334,7 +336,7 @@ class BatchApiControllerTest extends TestCase
         $this->assertCount(10, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_batch_candidates_by_training_status()
     {
         $batch = Batch::factory()->create();
@@ -358,7 +360,7 @@ class BatchApiControllerTest extends TestCase
     // BULK ASSIGN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_bulk_assigns_candidates_to_batch()
     {
         $batch = Batch::factory()->create(['capacity' => 50]);
@@ -381,7 +383,7 @@ class BatchApiControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_bulk_assign_capacity()
     {
         $batch = Batch::factory()->create(['capacity' => 3]);
@@ -395,7 +397,7 @@ class BatchApiControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_bulk_assign_max_100_candidates()
     {
         $batch = Batch::factory()->create(['capacity' => 200]);
@@ -414,7 +416,7 @@ class BatchApiControllerTest extends TestCase
     // CHANGE STATUS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_changes_batch_status()
     {
         $batch = Batch::factory()->create(['status' => 'planned']);
@@ -432,7 +434,7 @@ class BatchApiControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_status_change_value()
     {
         $batch = Batch::factory()->create();
@@ -449,7 +451,7 @@ class BatchApiControllerTest extends TestCase
     // ACTIVE BATCHES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_active_batches_only()
     {
         Batch::factory()->count(5)->create(['status' => 'active']);
@@ -471,7 +473,7 @@ class BatchApiControllerTest extends TestCase
     // BY CAMPUS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_batches_by_campus()
     {
         Batch::factory()->count(4)->create([
@@ -495,7 +497,7 @@ class BatchApiControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
         Sanctum::actingAs($this->user, []); // No abilities
@@ -506,7 +508,7 @@ class BatchApiControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_batches()
     {
         $campusAdmin = User::factory()->create([

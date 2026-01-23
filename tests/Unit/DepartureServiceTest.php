@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\DepartureService;
 use App\Models\Candidate;
@@ -27,7 +29,7 @@ class DepartureServiceTest extends TestCase
     // STAGES AND CONSTANTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_all_departure_stages()
     {
         $stages = $this->service->getStages();
@@ -39,7 +41,7 @@ class DepartureServiceTest extends TestCase
         $this->assertArrayHasKey('compliance_verified', $stages);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_compliance_status_types()
     {
         $statuses = $this->service->getComplianceStatus();
@@ -54,7 +56,7 @@ class DepartureServiceTest extends TestCase
     // PRE-DEPARTURE BRIEFING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_pre_departure_briefing()
     {
         $user = User::factory()->create();
@@ -77,7 +79,7 @@ class DepartureServiceTest extends TestCase
         $this->assertEquals($data['briefing_date'], $departure->pre_briefing_date);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_nonexistent_candidate_on_briefing()
     {
         $user = User::factory()->create();
@@ -95,7 +97,7 @@ class DepartureServiceTest extends TestCase
     // RECORD DEPARTURE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_departure()
     {
         $user = User::factory()->create();
@@ -125,7 +127,7 @@ class DepartureServiceTest extends TestCase
     // IQAMA RECORDING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_iqama_number()
     {
         $user = User::factory()->create();
@@ -148,7 +150,7 @@ class DepartureServiceTest extends TestCase
     // 90-DAY COMPLIANCE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_calculates_90_day_compliance_for_pending_departure()
     {
         $candidate = Candidate::factory()->create();
@@ -163,7 +165,7 @@ class DepartureServiceTest extends TestCase
         $this->assertEquals('Departure date not recorded', $compliance['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_90_day_compliance_items()
     {
         $candidate = Candidate::factory()->create();
@@ -184,7 +186,7 @@ class DepartureServiceTest extends TestCase
         $this->assertEquals(5, $compliance['completed_items']);
     }
 
-    /** @test */
+    #[Test]
     public function it_marks_overdue_compliance_as_non_compliant()
     {
         $candidate = Candidate::factory()->create();
@@ -201,7 +203,7 @@ class DepartureServiceTest extends TestCase
         $this->assertTrue($compliance['is_overdue']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_days_remaining_correctly()
     {
         $candidate = Candidate::factory()->create();
@@ -220,7 +222,7 @@ class DepartureServiceTest extends TestCase
     // SALARY CONFIRMATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_salary_confirmation()
     {
         $user = User::factory()->create();
@@ -246,7 +248,7 @@ class DepartureServiceTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_get_departure_statistics()
     {
         $candidate1 = Candidate::factory()->create();
@@ -276,7 +278,7 @@ class DepartureServiceTest extends TestCase
     // COMMUNICATION LOG
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_add_communication_log()
     {
         $user = User::factory()->create();
@@ -303,7 +305,7 @@ class DepartureServiceTest extends TestCase
     // COMPLIANCE CHECKLIST
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_checklist_for_missing_departure()
     {
         $candidate = Candidate::factory()->create();
@@ -314,7 +316,7 @@ class DepartureServiceTest extends TestCase
         $this->assertEquals(0, $checklist['percentage']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_correct_checklist_percentage()
     {
         $candidate = Candidate::factory()->create();
@@ -338,7 +340,7 @@ class DepartureServiceTest extends TestCase
     // TIMELINE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_departure_timeline()
     {
         $candidate = Candidate::factory()->create();

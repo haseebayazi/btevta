@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -43,7 +45,7 @@ class CorrespondenceRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_all_correspondence_with_authentication()
     {
         Sanctum::actingAs($this->admin);
@@ -66,7 +68,7 @@ class CorrespondenceRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
         $response = $this->getJson('/api/v1/correspondence');
@@ -74,7 +76,7 @@ class CorrespondenceRestApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_correspondence_for_campus_admin()
     {
         // Create correspondence for different campus
@@ -94,7 +96,7 @@ class CorrespondenceRestApiTest extends TestCase
         $this->assertEquals($this->campus->id, $data[0]['campus']['id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_specific_correspondence()
     {
         Sanctum::actingAs($this->admin);
@@ -111,7 +113,7 @@ class CorrespondenceRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_correspondence()
     {
         Sanctum::actingAs($this->admin);
@@ -142,7 +144,7 @@ class CorrespondenceRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_correspondence()
     {
         Sanctum::actingAs($this->admin);
@@ -165,7 +167,7 @@ class CorrespondenceRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_deletes_correspondence()
     {
         Sanctum::actingAs($this->admin);
@@ -183,7 +185,7 @@ class CorrespondenceRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_correspondence_statistics()
     {
         Sanctum::actingAs($this->admin);
@@ -206,7 +208,7 @@ class CorrespondenceRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_pending_correspondence()
     {
         Sanctum::actingAs($this->admin);
@@ -226,7 +228,7 @@ class CorrespondenceRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_status()
     {
         Correspondence::factory()->create([
@@ -246,7 +248,7 @@ class CorrespondenceRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_type()
     {
         Sanctum::actingAs($this->admin);
@@ -262,7 +264,7 @@ class CorrespondenceRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_correspondence()
     {
         $uniqueWord = 'UniqueSearchTerm123';
@@ -282,7 +284,7 @@ class CorrespondenceRestApiTest extends TestCase
         $this->assertStringContainsString($uniqueWord, $data[0]['subject']);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_date_range()
     {
         Sanctum::actingAs($this->admin);
@@ -295,7 +297,7 @@ class CorrespondenceRestApiTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields_on_create()
     {
         Sanctum::actingAs($this->admin);
@@ -315,7 +317,7 @@ class CorrespondenceRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_type_field_values()
     {
         Sanctum::actingAs($this->admin);
@@ -334,7 +336,7 @@ class CorrespondenceRestApiTest extends TestCase
             ->assertJsonValidationErrors(['type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_supports_pagination()
     {
         Correspondence::factory()->count(25)->create([

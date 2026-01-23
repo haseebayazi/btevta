@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Batch;
@@ -43,7 +45,7 @@ class BatchControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_batches_index()
     {
         Batch::factory()->count(5)->create();
@@ -56,7 +58,7 @@ class BatchControllerTest extends TestCase
             ->assertViewHas('batches');
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus_batches()
     {
         Batch::factory()->count(3)->create(['campus_id' => $this->campus->id]);
@@ -70,7 +72,7 @@ class BatchControllerTest extends TestCase
         $this->assertCount(3, $batches);
     }
 
-    /** @test */
+    #[Test]
     public function batches_can_be_filtered_by_status()
     {
         Batch::factory()->count(3)->create(['status' => 'active']);
@@ -84,7 +86,7 @@ class BatchControllerTest extends TestCase
         $this->assertCount(3, $batches);
     }
 
-    /** @test */
+    #[Test]
     public function batches_can_be_searched()
     {
         Batch::factory()->create(['batch_code' => 'BATCH-202501-001']);
@@ -103,7 +105,7 @@ class BatchControllerTest extends TestCase
     // CREATE & STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_create_batch_form()
     {
         $response = $this->actingAs($this->admin)
@@ -114,7 +116,7 @@ class BatchControllerTest extends TestCase
             ->assertViewHas(['campuses', 'trades', 'oeps', 'users', 'statuses']);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_create_batch()
     {
         $batchData = [
@@ -140,7 +142,7 @@ class BatchControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function batch_creation_requires_valid_data()
     {
         $response = $this->actingAs($this->admin)
@@ -149,7 +151,7 @@ class BatchControllerTest extends TestCase
         $response->assertSessionHasErrors(['batch_code', 'campus_id', 'trade_id', 'start_date', 'end_date', 'capacity', 'status']);
     }
 
-    /** @test */
+    #[Test]
     public function batch_code_must_be_unique()
     {
         $batch = Batch::factory()->create(['batch_code' => 'BATCH-202501-001']);
@@ -168,7 +170,7 @@ class BatchControllerTest extends TestCase
         $response->assertSessionHasErrors('batch_code');
     }
 
-    /** @test */
+    #[Test]
     public function start_date_must_be_today_or_future()
     {
         $response = $this->actingAs($this->admin)
@@ -185,7 +187,7 @@ class BatchControllerTest extends TestCase
         $response->assertSessionHasErrors('start_date');
     }
 
-    /** @test */
+    #[Test]
     public function end_date_must_be_after_start_date()
     {
         $response = $this->actingAs($this->admin)
@@ -206,7 +208,7 @@ class BatchControllerTest extends TestCase
     // EDIT & UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_edit_batch_form()
     {
         $batch = Batch::factory()->create();
@@ -219,7 +221,7 @@ class BatchControllerTest extends TestCase
             ->assertViewHas('batch', $batch);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_batch()
     {
         $batch = Batch::factory()->create(['capacity' => 30]);
@@ -245,7 +247,7 @@ class BatchControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function cannot_reduce_capacity_below_enrollment()
     {
         $batch = Batch::factory()->create(['capacity' => 30]);
@@ -269,7 +271,7 @@ class BatchControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_batch_details()
     {
         $batch = Batch::factory()->create();
@@ -286,7 +288,7 @@ class BatchControllerTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_delete_empty_batch()
     {
         $batch = Batch::factory()->create();
@@ -300,7 +302,7 @@ class BatchControllerTest extends TestCase
         $this->assertSoftDeleted('batches', ['id' => $batch->id]);
     }
 
-    /** @test */
+    #[Test]
     public function cannot_delete_batch_with_candidates()
     {
         $batch = Batch::factory()->create();
@@ -317,7 +319,7 @@ class BatchControllerTest extends TestCase
     // CANDIDATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_batch_candidates()
     {
         $batch = Batch::factory()->create();
@@ -331,7 +333,7 @@ class BatchControllerTest extends TestCase
             ->assertViewHas('batch', $batch);
     }
 
-    /** @test */
+    #[Test]
     public function batch_candidates_can_be_filtered()
     {
         $batch = Batch::factory()->create();
@@ -356,7 +358,7 @@ class BatchControllerTest extends TestCase
     // BULK ASSIGN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_bulk_assign_candidates_to_batch()
     {
         $batch = Batch::factory()->create(['capacity' => 50]);
@@ -380,7 +382,7 @@ class BatchControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function cannot_assign_more_candidates_than_capacity()
     {
         $batch = Batch::factory()->create(['capacity' => 3]);
@@ -399,14 +401,14 @@ class BatchControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function guest_cannot_access_batches()
     {
         $response = $this->get(route('admin.batches.index'));
         $response->assertRedirect(route('login'));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_edit_other_campus_batch()
     {
         $otherCampus = Campus::factory()->create();

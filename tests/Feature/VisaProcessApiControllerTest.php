@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -26,7 +28,7 @@ class VisaProcessApiControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_paginated_visa_processes()
     {
         $candidates = Candidate::factory()->count(15)->create(['status' => 'visa_process']);
@@ -45,7 +47,7 @@ class VisaProcessApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_current_stage()
     {
         $candidates = Candidate::factory()->count(10)->create();
@@ -68,7 +70,7 @@ class VisaProcessApiControllerTest extends TestCase
         $this->assertCount(3, $response->json('data'));
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_status()
     {
         $candidates = Candidate::factory()->count(8)->create();
@@ -95,7 +97,7 @@ class VisaProcessApiControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_single_visa_process()
     {
         $candidate = Candidate::factory()->create();
@@ -114,7 +116,7 @@ class VisaProcessApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_nonexistent_visa_process()
     {
         $response = $this->getJson('/api/v1/visa-processes/99999');
@@ -126,7 +128,7 @@ class VisaProcessApiControllerTest extends TestCase
     // BY CANDIDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_visa_process_by_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -138,7 +140,7 @@ class VisaProcessApiControllerTest extends TestCase
             ->assertJsonPath('data.id', $visaProcess->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_candidate_without_visa_process()
     {
         $candidate = Candidate::factory()->create();
@@ -152,7 +154,7 @@ class VisaProcessApiControllerTest extends TestCase
     // STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_creates_a_visa_process()
     {
         $candidate = Candidate::factory()->create(['status' => 'training']);
@@ -172,7 +174,7 @@ class VisaProcessApiControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields()
     {
         $response = $this->postJson('/api/v1/visa-processes', []);
@@ -181,7 +183,7 @@ class VisaProcessApiControllerTest extends TestCase
             ->assertJsonValidationErrors(['candidate_id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_duplicate_visa_process()
     {
         $candidate = Candidate::factory()->create();
@@ -199,7 +201,7 @@ class VisaProcessApiControllerTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_updates_visa_process()
     {
         $candidate = Candidate::factory()->create();
@@ -218,7 +220,7 @@ class VisaProcessApiControllerTest extends TestCase
             ->assertJsonPath('data.interview_status', 'passed');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_stage_prerequisites()
     {
         $candidate = Candidate::factory()->create();
@@ -236,7 +238,7 @@ class VisaProcessApiControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_progression_when_prerequisites_met()
     {
         $candidate = Candidate::factory()->create();
@@ -258,7 +260,7 @@ class VisaProcessApiControllerTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_visa_statistics()
     {
         $candidates = Candidate::factory()->count(20)->create();
@@ -287,7 +289,7 @@ class VisaProcessApiControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_visa_processes()
     {
         $this->app['auth']->forgetGuards();

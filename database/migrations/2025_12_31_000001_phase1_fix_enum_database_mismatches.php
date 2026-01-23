@@ -93,15 +93,22 @@ return new class extends Migration
             // For MySQL, we need to modify the enum or convert to string
             // Converting to string is safer and more flexible
 
-            // Check if it's currently an enum (MySQL specific)
-            $columnType = DB::select("SHOW COLUMNS FROM candidates WHERE Field = 'training_status'");
+            $driver = Schema::getConnection()->getDriverName();
 
-            if (!empty($columnType) && str_contains($columnType[0]->Type, 'enum')) {
-                // MySQL: Modify column from enum to string
-                DB::statement("ALTER TABLE candidates MODIFY COLUMN training_status VARCHAR(50) DEFAULT 'pending'");
+            if ($driver === 'mysql') {
+                // MySQL: Check if it's an enum and convert to string
+                $columnType = DB::select("SHOW COLUMNS FROM candidates WHERE Field = 'training_status'");
+
+                if (!empty($columnType) && str_contains($columnType[0]->Type, 'enum')) {
+                    DB::statement("ALTER TABLE candidates MODIFY COLUMN training_status VARCHAR(50) DEFAULT 'pending'");
+                }
+            } elseif ($driver === 'sqlite') {
+                // SQLite: Column is already string-compatible, no action needed
+                // SQLite doesn't support ENUM types, so columns are already flexible
             }
 
             // Update any 'ongoing' status to 'in_progress' for consistency
+            // Data updates work for both databases
             DB::table('candidates')
                 ->where('training_status', 'ongoing')
                 ->update(['training_status' => 'in_progress']);

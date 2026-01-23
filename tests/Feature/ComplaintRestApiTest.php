@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -50,7 +52,7 @@ class ComplaintRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_all_complaints_with_authentication()
     {
         Sanctum::actingAs($this->admin);
@@ -73,7 +75,7 @@ class ComplaintRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication()
     {
         $response = $this->getJson('/api/v1/complaints');
@@ -81,7 +83,7 @@ class ComplaintRestApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_complaints_for_campus_admin()
     {
         $otherCampus = Campus::factory()->create();
@@ -102,7 +104,7 @@ class ComplaintRestApiTest extends TestCase
         $this->assertEquals($this->campus->id, $data[0]['campus']['id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_specific_complaint_with_sla_status()
     {
         Sanctum::actingAs($this->admin);
@@ -124,7 +126,7 @@ class ComplaintRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_registers_complaint()
     {
         Sanctum::actingAs($this->admin);
@@ -153,7 +155,7 @@ class ComplaintRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_complaint()
     {
         Sanctum::actingAs($this->admin);
@@ -176,7 +178,7 @@ class ComplaintRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_assigns_complaint()
     {
         $assignee = User::factory()->create();
@@ -200,7 +202,7 @@ class ComplaintRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_escalates_complaint()
     {
         Sanctum::actingAs($this->admin);
@@ -221,7 +223,7 @@ class ComplaintRestApiTest extends TestCase
         $this->assertEquals($currentLevel + 1, $this->complaint->escalation_level);
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_complaint()
     {
         $this->complaint->update(['status' => 'in_progress']);
@@ -246,7 +248,7 @@ class ComplaintRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_complaint_statistics()
     {
         Sanctum::actingAs($this->admin);
@@ -267,7 +269,7 @@ class ComplaintRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_overdue_complaints()
     {
         // Create overdue complaint
@@ -289,7 +291,7 @@ class ComplaintRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_status()
     {
         Complaint::factory()->create([
@@ -309,7 +311,7 @@ class ComplaintRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_priority()
     {
         Sanctum::actingAs($this->admin);
@@ -324,7 +326,7 @@ class ComplaintRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_sla_breached()
     {
         Complaint::factory()->create([
@@ -344,7 +346,7 @@ class ComplaintRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_complaints()
     {
         $uniqueTerm = 'UniqueComplaintTerm123';
@@ -364,7 +366,7 @@ class ComplaintRestApiTest extends TestCase
         $this->assertStringContainsString($uniqueTerm, $data[0]['subject']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields_on_create()
     {
         Sanctum::actingAs($this->admin);
@@ -384,7 +386,7 @@ class ComplaintRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_supports_pagination()
     {
         Complaint::factory()->count(25)->create([

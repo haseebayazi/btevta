@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -17,7 +19,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK STATUS UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_bulk_update_candidate_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -35,7 +37,7 @@ class BulkOperationsControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_only_update_their_campus_candidates()
     {
         $campus1 = Campus::factory()->create();
@@ -69,7 +71,7 @@ class BulkOperationsControllerTest extends TestCase
         $this->assertEquals(1, $data['failed']);
     }
 
-    /** @test */
+    #[Test]
     public function bulk_update_validates_status_transitions()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -89,7 +91,7 @@ class BulkOperationsControllerTest extends TestCase
         $this->assertEquals(1, $data['failed']);
     }
 
-    /** @test */
+    #[Test]
     public function bulk_update_requires_authentication()
     {
         $candidates = Candidate::factory()->count(2)->create();
@@ -102,7 +104,7 @@ class BulkOperationsControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function bulk_update_validates_required_fields()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -113,7 +115,7 @@ class BulkOperationsControllerTest extends TestCase
             ->assertJsonValidationErrors(['candidate_ids', 'status']);
     }
 
-    /** @test */
+    #[Test]
     public function bulk_update_limits_to_100_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -132,7 +134,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK BATCH ASSIGNMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_bulk_assign_candidates_to_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -157,7 +159,7 @@ class BulkOperationsControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function batch_assignment_respects_capacity()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -181,7 +183,7 @@ class BulkOperationsControllerTest extends TestCase
         $this->assertNotEmpty($data['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function batch_assignment_requires_valid_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -200,7 +202,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK CAMPUS ASSIGNMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_bulk_assign_candidates_to_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -225,7 +227,7 @@ class BulkOperationsControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function campus_assignment_clears_batch()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -254,7 +256,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK EXPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_export_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -270,7 +272,7 @@ class BulkOperationsControllerTest extends TestCase
             ->assertJsonStructure(['download_url']);
     }
 
-    /** @test */
+    #[Test]
     public function export_validates_format()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -285,7 +287,7 @@ class BulkOperationsControllerTest extends TestCase
             ->assertJsonValidationErrors(['format']);
     }
 
-    /** @test */
+    #[Test]
     public function export_filters_by_user_permissions()
     {
         $campus1 = Campus::factory()->create();
@@ -312,7 +314,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function only_admin_can_bulk_delete()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -325,7 +327,7 @@ class BulkOperationsControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_bulk_delete_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -347,7 +349,7 @@ class BulkOperationsControllerTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function cannot_delete_departed_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -368,7 +370,7 @@ class BulkOperationsControllerTest extends TestCase
         $this->assertDatabaseHas('candidates', ['id' => $departedCandidate->id, 'deleted_at' => null]);
     }
 
-    /** @test */
+    #[Test]
     public function bulk_delete_limits_to_50_candidates()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -386,7 +388,7 @@ class BulkOperationsControllerTest extends TestCase
     // BULK NOTIFICATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_send_bulk_notifications()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -405,7 +407,7 @@ class BulkOperationsControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function email_notification_requires_subject()
     {
         $user = User::factory()->create(['role' => 'super_admin']);

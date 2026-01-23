@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -18,7 +20,7 @@ class VisaProcessingControllerTest extends TestCase
     // INDEX / LIST
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_visa_processing_list()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -31,7 +33,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertViewIs('visa-processing.index');
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus_candidates()
     {
         $campus = Campus::factory()->create();
@@ -63,7 +65,7 @@ class VisaProcessingControllerTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function index_filters_by_stage()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -89,7 +91,7 @@ class VisaProcessingControllerTest extends TestCase
     // CREATE VISA PROCESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_create_visa_process_for_eligible_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -110,7 +112,7 @@ class VisaProcessingControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function create_validates_candidate_exists()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -127,7 +129,7 @@ class VisaProcessingControllerTest extends TestCase
     // SHOW VISA PROCESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_visa_process_details()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -140,7 +142,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertViewIs('visa-processing.show');
     }
 
-    /** @test */
+    #[Test]
     public function show_redirects_if_no_visa_process()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -156,7 +158,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE INTERVIEW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_update_interview_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -173,7 +175,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function interview_update_validates_required_fields()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -185,7 +187,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHasErrors(['interview_date', 'interview_status']);
     }
 
-    /** @test */
+    #[Test]
     public function interview_status_must_be_valid_value()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -204,7 +206,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE TRADE TEST
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_update_trade_test()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -224,7 +226,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE MEDICAL - WITH PREREQUISITES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function medical_update_requires_takamol_passed()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -243,7 +245,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHasErrors(['prerequisites']);
     }
 
-    /** @test */
+    #[Test]
     public function medical_update_succeeds_when_prerequisites_met()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -267,7 +269,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE BIOMETRIC - WITH PREREQUISITES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function biometric_requires_medical_cleared()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -289,7 +291,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE E-NUMBER - WITH PREREQUISITES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function enumber_requires_biometrics_completed()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -307,7 +309,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHasErrors(['prerequisites']);
     }
 
-    /** @test */
+    #[Test]
     public function enumber_validates_format()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -330,7 +332,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPDATE VISA ISSUANCE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_update_visa_issuance()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -347,7 +349,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function visa_number_is_required_for_issuance()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -367,7 +369,7 @@ class VisaProcessingControllerTest extends TestCase
     // UPLOAD DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_upload_travel_plan()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -385,7 +387,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function travel_plan_validates_file_type()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -406,7 +408,7 @@ class VisaProcessingControllerTest extends TestCase
     // COMPLETE VISA PROCESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_complete_visa_process()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -429,7 +431,7 @@ class VisaProcessingControllerTest extends TestCase
     // DELETE VISA PROCESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_delete_visa_process()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -449,7 +451,7 @@ class VisaProcessingControllerTest extends TestCase
     // TIMELINE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_visa_timeline()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -462,7 +464,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertViewIs('visa-processing.timeline');
     }
 
-    /** @test */
+    #[Test]
     public function timeline_redirects_if_no_visa_process()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -478,7 +480,7 @@ class VisaProcessingControllerTest extends TestCase
     // OVERDUE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_overdue_processes()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -493,7 +495,7 @@ class VisaProcessingControllerTest extends TestCase
     // REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_generate_visa_report()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -511,7 +513,7 @@ class VisaProcessingControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_visa_processing()
     {
         $response = $this->get('/visa-processing');
@@ -519,7 +521,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    /** @test */
+    #[Test]
     public function regular_user_cannot_access_visa_processing()
     {
         $user = User::factory()->create(['role' => 'user']);

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -57,7 +59,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 1: REGISTRATION ====================
 
-    /** @test */
+    #[Test]
     public function it_creates_new_candidate_with_generated_ids()
     {
         $candidateData = [
@@ -85,7 +87,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertMatchesRegularExpression('/^TLP-\d{4}-\d{5}-\d$/', $candidate->btevta_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_cnic_format_on_creation()
     {
         $candidateData = [
@@ -105,7 +107,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $response->assertSessionHasErrors('cnic');
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_phone_numbers()
     {
         // Create first candidate
@@ -123,7 +125,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 2: SCREENING ====================
 
-    /** @test */
+    #[Test]
     public function it_transitions_from_new_to_screening()
     {
         $candidate = Candidate::factory()->create([
@@ -141,7 +143,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(Candidate::STATUS_SCREENING, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_desk_screening()
     {
         $candidate = Candidate::factory()->create([
@@ -159,7 +161,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(CandidateScreening::STATUS_PASSED, $screening->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_call_screening_with_attempts()
     {
         $candidate = Candidate::factory()->create([
@@ -180,7 +182,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(1, $screening->fresh()->call_count);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_physical_screening()
     {
         $candidate = Candidate::factory()->create([
@@ -197,7 +199,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertNotNull($screening);
     }
 
-    /** @test */
+    #[Test]
     public function it_auto_progresses_to_registered_when_all_screenings_pass()
     {
         $candidate = Candidate::factory()->create([
@@ -233,7 +235,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REGISTERED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_fails_screening_and_rejects_candidate()
     {
         $candidate = Candidate::factory()->create([
@@ -254,7 +256,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 3: DOCUMENTS ====================
 
-    /** @test */
+    #[Test]
     public function it_uploads_required_documents()
     {
         $candidate = Candidate::factory()->create([
@@ -277,7 +279,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(4, $candidate->registrationDocuments()->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_verifies_documents()
     {
         $candidate = Candidate::factory()->create([
@@ -297,7 +299,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals('verified', $document->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_completion_with_expired_documents()
     {
         $candidate = Candidate::factory()->create([
@@ -321,7 +323,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 4: TRAINING ====================
 
-    /** @test */
+    #[Test]
     public function it_transitions_to_training()
     {
         $candidate = $this->createCandidateReadyForTraining();
@@ -335,7 +337,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals($this->batch->id, $candidate->batch_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_training_attendance()
     {
         $candidate = Candidate::factory()->create([
@@ -358,7 +360,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(90, $candidate->getAttendancePercentage());
     }
 
-    /** @test */
+    #[Test]
     public function it_records_training_assessments()
     {
         $candidate = Candidate::factory()->create([
@@ -393,7 +395,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertTrue($candidate->hasPassedAllAssessments());
     }
 
-    /** @test */
+    #[Test]
     public function it_issues_training_certificate()
     {
         $candidate = Candidate::factory()->create([
@@ -416,7 +418,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 5: VISA PROCESS ====================
 
-    /** @test */
+    #[Test]
     public function it_transitions_to_visa_process()
     {
         $candidate = $this->createCandidateReadyForVisaProcess();
@@ -426,7 +428,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(Candidate::STATUS_VISA_PROCESS, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_visa_process_steps()
     {
         $candidate = Candidate::factory()->create([
@@ -453,7 +455,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertTrue($visaProcess->medical_passed);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_transition_to_ready()
     {
         $candidate = Candidate::factory()->create([
@@ -482,7 +484,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== PHASE 6: DEPARTURE ====================
 
-    /** @test */
+    #[Test]
     public function it_transitions_to_ready_status()
     {
         $candidate = $this->createCandidateReadyForDeparture();
@@ -492,7 +494,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals(Candidate::STATUS_READY, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_records_departure()
     {
         $candidate = Candidate::factory()->create([
@@ -514,7 +516,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
         $this->assertEquals('PK-301', $departure->flight_number);
     }
 
-    /** @test */
+    #[Test]
     public function it_transitions_to_departed()
     {
         $candidate = Candidate::factory()->create([
@@ -542,7 +544,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
 
     // ==================== FULL LIFECYCLE TEST ====================
 
-    /** @test */
+    #[Test]
     public function it_completes_full_candidate_lifecycle()
     {
         // PHASE 1: Create new candidate

@@ -2,6 +2,8 @@
 
 namespace Tests\Browser;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use App\Models\User;
 use App\Models\Trade;
 use App\Models\Campus;
@@ -31,7 +33,7 @@ class CandidateRegistrationTest extends DuskTestCase
         $this->campus = Campus::factory()->create();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_login_as_admin()
     {
         $this->browse(function (Browser $browser) {
@@ -44,7 +46,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_navigate_to_candidates_list()
     {
         $this->browse(function (Browser $browser) {
@@ -56,7 +58,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_new_candidate()
     {
         $this->browse(function (Browser $browser) {
@@ -81,7 +83,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_validation_errors_for_invalid_cnic()
     {
         $this->browse(function (Browser $browser) {
@@ -101,7 +103,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_search_candidates()
     {
         $this->browse(function (Browser $browser) {
@@ -114,7 +116,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_view_candidate_details()
     {
         $this->browse(function (Browser $browser) {
@@ -128,7 +130,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_edit_candidate()
     {
         $this->browse(function (Browser $browser) {
@@ -142,7 +144,7 @@ class CandidateRegistrationTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_duplicate_warning_for_existing_phone()
     {
         $this->browse(function (Browser $browser) {

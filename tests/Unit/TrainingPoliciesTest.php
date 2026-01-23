@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -25,7 +27,7 @@ class TrainingPoliciesTest extends TestCase
     // TRAINING ASSESSMENT POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_assessment()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -34,7 +36,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_assessments_from_their_campus()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -49,7 +51,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $assessment));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_create_assessments()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -58,7 +60,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_update_their_own_assessments()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -68,7 +70,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->update($user, $assessment));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_update_other_instructors_assessments()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -79,7 +81,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertFalse($policy->update($user, $assessment));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_assessments()
     {
         $policy = new TrainingAssessmentPolicy();
@@ -95,7 +97,7 @@ class TrainingPoliciesTest extends TestCase
     // TRAINING ATTENDANCE POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_attendance()
     {
         $policy = new TrainingAttendancePolicy();
@@ -104,7 +106,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_record_attendance()
     {
         $policy = new TrainingAttendancePolicy();
@@ -113,7 +115,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_bulk_record_attendance()
     {
         $policy = new TrainingAttendancePolicy();
@@ -122,7 +124,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->bulkRecord($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_attendance_from_their_campus()
     {
         $policy = new TrainingAttendancePolicy();
@@ -137,7 +139,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $attendance));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_attendance()
     {
         $policy = new TrainingAttendancePolicy();
@@ -150,7 +152,7 @@ class TrainingPoliciesTest extends TestCase
     // TRAINING CERTIFICATE POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_issue_certificates()
     {
         $policy = new TrainingCertificatePolicy();
@@ -159,7 +161,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_issue_certificates()
     {
         $policy = new TrainingCertificatePolicy();
@@ -172,7 +174,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_revoke_certificates()
     {
         $policy = new TrainingCertificatePolicy();
@@ -184,7 +186,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertFalse($policy->revoke($campusAdmin, $certificate));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_download_certificates()
     {
         $policy = new TrainingCertificatePolicy();
@@ -198,7 +200,7 @@ class TrainingPoliciesTest extends TestCase
     // TRAINING SCHEDULE POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_schedules()
     {
         $policy = new TrainingSchedulePolicy();
@@ -207,7 +209,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_schedules()
     {
         $policy = new TrainingSchedulePolicy();
@@ -220,7 +222,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_view_schedules()
     {
         $policy = new TrainingSchedulePolicy();
@@ -229,7 +231,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_create_schedules()
     {
         $policy = new TrainingSchedulePolicy();
@@ -238,7 +240,7 @@ class TrainingPoliciesTest extends TestCase
         $this->assertFalse($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_schedules()
     {
         $policy = new TrainingSchedulePolicy();

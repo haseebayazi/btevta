@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\AllocationService;
 use App\Models\Candidate;
@@ -25,7 +27,7 @@ class AllocationServiceTest extends TestCase
         $this->service = app(AllocationService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_allocate_candidate_with_all_fields()
     {
         $candidate = Candidate::factory()->create();
@@ -52,7 +54,7 @@ class AllocationServiceTest extends TestCase
         $this->assertEquals($oep->id, $result->oep_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_allocate_without_optional_fields()
     {
         $candidate = Candidate::factory()->create();
@@ -73,7 +75,7 @@ class AllocationServiceTest extends TestCase
         $this->assertNull($result->oep_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_campus_exists()
     {
         $this->expectException(\Exception::class);
@@ -91,7 +93,7 @@ class AllocationServiceTest extends TestCase
         $this->service->allocate($candidate, $allocationData);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_program_exists()
     {
         $this->expectException(\Exception::class);
@@ -109,7 +111,7 @@ class AllocationServiceTest extends TestCase
         $this->service->allocate($candidate, $allocationData);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_trade_exists()
     {
         $this->expectException(\Exception::class);
@@ -127,7 +129,7 @@ class AllocationServiceTest extends TestCase
         $this->service->allocate($candidate, $allocationData);
     }
 
-    /** @test */
+    #[Test]
     public function it_uses_database_transaction()
     {
         $candidate = Candidate::factory()->create();
@@ -152,7 +154,7 @@ class AllocationServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_allocation_activity()
     {
         $candidate = Candidate::factory()->create();
@@ -179,7 +181,7 @@ class AllocationServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_allocation_summary()
     {
         $candidate = Candidate::factory()->create();
@@ -205,7 +207,7 @@ class AllocationServiceTest extends TestCase
         $this->assertEquals('Technical Training', $summary['program']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_null_optional_fields_in_summary()
     {
         $candidate = Candidate::factory()->create();
@@ -227,7 +229,7 @@ class AllocationServiceTest extends TestCase
         $this->assertNull($summary['oep']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_bulk_allocate_multiple_candidates()
     {
         $candidates = Candidate::factory()->count(5)->create();
@@ -256,7 +258,7 @@ class AllocationServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_bulk_allocation_failures_gracefully()
     {
         $validCandidate = Candidate::factory()->create();
@@ -279,7 +281,7 @@ class AllocationServiceTest extends TestCase
         $this->assertArrayHasKey(99999, $results['failed']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_all_required_fields_are_present()
     {
         $this->expectException(\Exception::class);
@@ -295,7 +297,7 @@ class AllocationServiceTest extends TestCase
         $this->service->allocate($candidate, $allocationData);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_existing_allocation()
     {
         $candidate = Candidate::factory()->create();
@@ -325,7 +327,7 @@ class AllocationServiceTest extends TestCase
         $this->assertEquals($campus2->id, $candidate->fresh()->campus_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_rolls_back_on_database_error()
     {
         $this->expectException(\Exception::class);

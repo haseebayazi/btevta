@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -25,7 +27,7 @@ class CampusEquipmentPolicyTest extends TestCase
     // SUPER ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_equipment()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -33,7 +35,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_specific_equipment()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -42,7 +44,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_equipment()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -50,7 +52,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_equipment()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -59,7 +61,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_equipment()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -68,7 +70,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_log_usage()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -77,7 +79,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->logUsage($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_reports()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -89,7 +91,7 @@ class CampusEquipmentPolicyTest extends TestCase
     // PROJECT DIRECTOR
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_equipment()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -97,7 +99,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_create_equipment()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -109,7 +111,7 @@ class CampusEquipmentPolicyTest extends TestCase
     // CAMPUS ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_equipment_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -122,7 +124,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_equipment_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -136,7 +138,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_equipment()
     {
         $campus = Campus::factory()->create();
@@ -148,7 +150,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_update_equipment_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -161,7 +163,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_update_equipment_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -175,7 +177,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_equipment()
     {
         $campus = Campus::factory()->create();
@@ -188,7 +190,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_log_usage_for_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -201,7 +203,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->logUsage($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_reports()
     {
         $campus = Campus::factory()->create();
@@ -217,7 +219,7 @@ class CampusEquipmentPolicyTest extends TestCase
     // INSTRUCTOR
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function instructor_can_log_usage_for_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -230,7 +232,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->logUsage($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_log_usage_for_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -248,7 +250,7 @@ class CampusEquipmentPolicyTest extends TestCase
     // VIEWER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_any_equipment()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -256,7 +258,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_specific_equipment()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -265,7 +267,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_equipment()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -273,7 +275,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertFalse($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_update_equipment()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -282,7 +284,7 @@ class CampusEquipmentPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $equipment));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_delete_equipment()
     {
         $user = User::factory()->create(['role' => 'viewer']);

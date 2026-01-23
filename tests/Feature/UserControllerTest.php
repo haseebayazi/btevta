@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -24,7 +26,7 @@ class UserControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_users_list()
     {
         $this->actingAs($this->admin);
@@ -36,7 +38,7 @@ class UserControllerTest extends TestCase
         $response->assertViewHas('users');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_create_user_form()
     {
         $this->actingAs($this->admin);
@@ -47,7 +49,7 @@ class UserControllerTest extends TestCase
         $response->assertViewIs('admin.users.create');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_create_new_user()
     {
         $this->actingAs($this->admin);
@@ -73,7 +75,7 @@ class UserControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_user_details()
     {
         $this->actingAs($this->admin);
@@ -87,7 +89,7 @@ class UserControllerTest extends TestCase
         $response->assertViewHas('user');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_user()
     {
         $this->actingAs($this->admin);
@@ -107,7 +109,7 @@ class UserControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_delete_user()
     {
         $this->actingAs($this->admin);
@@ -120,7 +122,7 @@ class UserControllerTest extends TestCase
         $this->assertSoftDeleted('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_settings_page()
     {
         $this->actingAs($this->admin);
@@ -132,7 +134,7 @@ class UserControllerTest extends TestCase
         $response->assertViewHas('settings');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_settings()
     {
         $this->actingAs($this->admin);
@@ -146,7 +148,7 @@ class UserControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_audit_logs()
     {
         $this->actingAs($this->admin);
@@ -159,7 +161,7 @@ class UserControllerTest extends TestCase
         $response->assertViewHas('users');
     }
 
-    /** @test */
+    #[Test]
     public function email_must_be_unique()
     {
         $this->actingAs($this->admin);
@@ -176,7 +178,7 @@ class UserControllerTest extends TestCase
         $response->assertSessionHasErrors('email');
     }
 
-    /** @test */
+    #[Test]
     public function password_must_be_at_least_8_characters()
     {
         $this->actingAs($this->admin);
@@ -191,7 +193,7 @@ class UserControllerTest extends TestCase
         $response->assertSessionHasErrors('password');
     }
 
-    /** @test */
+    #[Test]
     public function oep_id_can_be_assigned_to_user()
     {
         $this->actingAs($this->admin);

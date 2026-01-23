@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\DocumentTag;
 use App\Models\DocumentArchive;
@@ -12,7 +14,7 @@ class DocumentTagTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_creates_a_document_tag()
     {
         $tag = DocumentTag::factory()->create([
@@ -28,7 +30,7 @@ class DocumentTagTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_auto_generates_slug_from_name()
     {
         $user = User::factory()->create();
@@ -42,7 +44,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals('pending-review', $tag->slug);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_created_by_and_updated_by_on_creation()
     {
         $user = User::factory()->create();
@@ -57,7 +59,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals($user->id, $tag->updated_by);
     }
 
-    /** @test */
+    #[Test]
     public function it_has_many_to_many_relationship_with_documents()
     {
         $tag = DocumentTag::factory()->create();
@@ -69,7 +71,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals(1, $tag->documents->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_can_attach_multiple_documents()
     {
         $tag = DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -83,7 +85,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals(3, $tag->documents->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_can_detach_documents()
     {
         $tag = DocumentTag::factory()->create();
@@ -96,7 +98,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals(0, $tag->documents()->count());
     }
 
-    /** @test */
+    #[Test]
     public function document_can_have_multiple_tags()
     {
         $document = DocumentArchive::factory()->create();
@@ -113,7 +115,7 @@ class DocumentTagTest extends TestCase
         $this->assertTrue($document->tags->contains($confidentialTag));
     }
 
-    /** @test */
+    #[Test]
     public function it_syncs_tags_for_document()
     {
         $document = DocumentArchive::factory()->create();
@@ -134,7 +136,7 @@ class DocumentTagTest extends TestCase
         $this->assertTrue($document->tags->contains($tag3));
     }
 
-    /** @test */
+    #[Test]
     public function it_cascades_delete_on_pivot_table()
     {
         $tag = DocumentTag::factory()->create();
@@ -156,7 +158,7 @@ class DocumentTagTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_cascades_delete_when_document_is_deleted()
     {
         $tag = DocumentTag::factory()->create();
@@ -178,7 +180,7 @@ class DocumentTagTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_tags_by_name()
     {
         DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -191,7 +193,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals('Urgent', $results->first()->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_tags_by_slug()
     {
         DocumentTag::factory()->create(['name' => 'Urgent', 'slug' => 'urgent']);
@@ -203,7 +205,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals('Urgent', $results->first()->name);
     }
 
-    /** @test */
+    #[Test]
     public function tag_name_is_unique()
     {
         DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -213,7 +215,7 @@ class DocumentTagTest extends TestCase
         DocumentTag::factory()->create(['name' => 'Urgent']);
     }
 
-    /** @test */
+    #[Test]
     public function tag_slug_is_unique()
     {
         $user = User::factory()->create();
@@ -226,7 +228,7 @@ class DocumentTagTest extends TestCase
         DocumentTag::create(['name' => 'Test 2', 'slug' => 'test', 'color' => '#000']);
     }
 
-    /** @test */
+    #[Test]
     public function it_has_default_color()
     {
         $user = User::factory()->create();
@@ -239,7 +241,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals('#3b82f6', $tag->color);
     }
 
-    /** @test */
+    #[Test]
     public function pivot_table_has_timestamps()
     {
         $tag = DocumentTag::factory()->create();
@@ -253,7 +255,7 @@ class DocumentTagTest extends TestCase
         $this->assertNotNull($pivot->updated_at);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_duplicate_tag_attachments()
     {
         $tag = DocumentTag::factory()->create();
@@ -266,7 +268,7 @@ class DocumentTagTest extends TestCase
         $this->assertEquals(1, $tag->documents()->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_documents_with_specific_tag()
     {
         $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -290,7 +292,7 @@ class DocumentTagTest extends TestCase
         $this->assertFalse($urgentDocuments->contains($doc3));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_find_documents_with_multiple_tags()
     {
         $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -314,7 +316,7 @@ class DocumentTagTest extends TestCase
         $this->assertFalse($documentsWithBoth->contains($doc2));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_count_documents_per_tag()
     {
         $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);

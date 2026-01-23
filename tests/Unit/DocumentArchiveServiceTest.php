@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\DocumentArchiveService;
 use App\Models\Candidate;
@@ -29,7 +31,7 @@ class DocumentArchiveServiceTest extends TestCase
     // DOCUMENT TYPES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_all_document_types()
     {
         $types = $this->service->getDocumentTypes();
@@ -45,7 +47,7 @@ class DocumentArchiveServiceTest extends TestCase
     // UPLOAD DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_upload_document()
     {
         $user = User::factory()->create();
@@ -67,7 +69,7 @@ class DocumentArchiveServiceTest extends TestCase
         $this->assertTrue($document->is_current);
     }
 
-    /** @test */
+    #[Test]
     public function it_increments_version_on_re_upload()
     {
         $user = User::factory()->create();
@@ -104,7 +106,7 @@ class DocumentArchiveServiceTest extends TestCase
     // GET DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_get_document_and_increment_download_count()
     {
         $user = User::factory()->create();
@@ -130,7 +132,7 @@ class DocumentArchiveServiceTest extends TestCase
     // VERSION HISTORY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_version_history()
     {
         $user = User::factory()->create();
@@ -158,7 +160,7 @@ class DocumentArchiveServiceTest extends TestCase
     // SEARCH DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_search_documents_with_filters()
     {
         $user = User::factory()->create();
@@ -183,7 +185,7 @@ class DocumentArchiveServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $results->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_date_range()
     {
         $user = User::factory()->create();
@@ -209,7 +211,7 @@ class DocumentArchiveServiceTest extends TestCase
     // EXPIRING DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_expiring_documents()
     {
         $user = User::factory()->create();
@@ -229,7 +231,7 @@ class DocumentArchiveServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $expiring->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_expiry_urgency_correctly()
     {
         $user = User::factory()->create();
@@ -255,7 +257,7 @@ class DocumentArchiveServiceTest extends TestCase
     // EXPIRED DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_expired_documents()
     {
         $user = User::factory()->create();
@@ -279,7 +281,7 @@ class DocumentArchiveServiceTest extends TestCase
     // MISSING DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_missing_documents_for_candidate()
     {
         $candidate = Candidate::factory()->create(['status' => 'new']);
@@ -295,7 +297,7 @@ class DocumentArchiveServiceTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_document_statistics()
     {
         $user = User::factory()->create();
@@ -320,7 +322,7 @@ class DocumentArchiveServiceTest extends TestCase
     // BULK DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_bulk_delete_documents()
     {
         $user = User::factory()->create();
@@ -348,7 +350,7 @@ class DocumentArchiveServiceTest extends TestCase
     // CLEANUP OLD VERSIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_cleanup_old_versions()
     {
         $user = User::factory()->create();

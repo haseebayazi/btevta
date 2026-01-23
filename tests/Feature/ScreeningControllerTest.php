@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -29,7 +31,7 @@ class ScreeningControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function user_can_view_screening_index()
     {
         $this->actingAs($this->user);
@@ -40,7 +42,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertViewIs('screening.index');
     }
 
-    /** @test */
+    #[Test]
     public function user_can_view_create_screening_form()
     {
         $this->actingAs($this->user);
@@ -51,7 +53,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertViewIs('screening.create');
     }
 
-    /** @test */
+    #[Test]
     public function user_can_create_screening_record()
     {
         $this->actingAs($this->user);
@@ -74,7 +76,7 @@ class ScreeningControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function user_can_view_edit_screening_form()
     {
         $this->actingAs($this->user);
@@ -91,7 +93,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertViewHas('screening');
     }
 
-    /** @test */
+    #[Test]
     public function user_can_update_screening_record()
     {
         $this->actingAs($this->user);
@@ -118,7 +120,7 @@ class ScreeningControllerTest extends TestCase
         $this->assertEquals('Updated notes', $screening->call_notes);
     }
 
-    /** @test */
+    #[Test]
     public function screening_requires_candidate_id()
     {
         $this->actingAs($this->user);
@@ -134,7 +136,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertSessionHasErrors('candidate_id');
     }
 
-    /** @test */
+    #[Test]
     public function screening_requires_valid_outcome()
     {
         $this->actingAs($this->user);
@@ -151,7 +153,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertSessionHasErrors('screening_outcome');
     }
 
-    /** @test */
+    #[Test]
     public function call_duration_must_be_positive()
     {
         $this->actingAs($this->user);
@@ -168,7 +170,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertSessionHasErrors('call_duration');
     }
 
-    /** @test */
+    #[Test]
     public function edit_redirects_if_no_screening_exists()
     {
         $this->actingAs($this->user);
@@ -181,7 +183,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function user_can_log_call_for_candidate()
     {
         $this->actingAs($this->user);
@@ -200,7 +202,7 @@ class ScreeningControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function user_can_record_screening_outcome()
     {
         $this->actingAs($this->user);
@@ -219,7 +221,7 @@ class ScreeningControllerTest extends TestCase
         $this->assertEquals('registered', $this->candidate->status);
     }
 
-    /** @test */
+    #[Test]
     public function failed_screening_updates_candidate_status_to_rejected()
     {
         $this->actingAs($this->user);
@@ -237,7 +239,7 @@ class ScreeningControllerTest extends TestCase
         $this->assertEquals('rejected', $this->candidate->status);
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_users_cannot_access_screening()
     {
         $response = $this->get(route('screening.index'));

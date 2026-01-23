@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -26,7 +28,7 @@ class SystemPoliciesTest extends TestCase
     // SYSTEM SETTING POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_system_settings()
     {
         $policy = new SystemSettingPolicy();
@@ -35,7 +37,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_update_system_settings()
     {
         $policy = new SystemSettingPolicy();
@@ -47,7 +49,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->update($admin, $setting));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_create_system_settings()
     {
         $policy = new SystemSettingPolicy();
@@ -58,7 +60,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->create($admin));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_system_settings()
     {
         $policy = new SystemSettingPolicy();
@@ -70,7 +72,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->delete($admin, $setting));
     }
 
-    /** @test */
+    #[Test]
     public function regular_users_cannot_view_system_settings()
     {
         $policy = new SystemSettingPolicy();
@@ -85,7 +87,7 @@ class SystemPoliciesTest extends TestCase
     // VISA PARTNER POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_visa_partner()
     {
         $policy = new VisaPartnerPolicy();
@@ -94,7 +96,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_visa_partner()
     {
         $policy = new VisaPartnerPolicy();
@@ -103,7 +105,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_create_visa_partner()
     {
         $policy = new VisaPartnerPolicy();
@@ -114,7 +116,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->create($admin));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_and_project_director_can_update_visa_partner()
     {
         $policy = new VisaPartnerPolicy();
@@ -126,7 +128,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->update($admin, $partner));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_visa_partner()
     {
         $policy = new VisaPartnerPolicy();
@@ -142,7 +144,7 @@ class SystemPoliciesTest extends TestCase
     // CAMPUS KPI POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_kpi()
     {
         $policy = new CampusKpiPolicy();
@@ -151,7 +153,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_kpis_from_their_campus()
     {
         $policy = new CampusKpiPolicy();
@@ -165,7 +167,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $kpi));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_kpis_from_other_campus()
     {
         $policy = new CampusKpiPolicy();
@@ -180,7 +182,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->view($user, $kpi));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_and_project_director_can_create_kpis()
     {
         $policy = new CampusKpiPolicy();
@@ -197,7 +199,7 @@ class SystemPoliciesTest extends TestCase
     // PASSWORD HISTORY POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_view_password_history()
     {
         $policy = new PasswordHistoryPolicy();
@@ -208,7 +210,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->viewAny($admin));
     }
 
-    /** @test */
+    #[Test]
     public function nobody_can_create_password_history_directly()
     {
         $policy = new PasswordHistoryPolicy();
@@ -217,7 +219,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertFalse($policy->create($superAdmin));
     }
 
-    /** @test */
+    #[Test]
     public function nobody_can_delete_password_history()
     {
         $policy = new PasswordHistoryPolicy();
@@ -232,7 +234,7 @@ class SystemPoliciesTest extends TestCase
     // EQUIPMENT USAGE LOG POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_usage_log()
     {
         $policy = new EquipmentUsageLogPolicy();
@@ -241,7 +243,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_usage_logs_from_their_campus()
     {
         $policy = new EquipmentUsageLogPolicy();
@@ -256,7 +258,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $log));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_can_create_usage_log()
     {
         $policy = new EquipmentUsageLogPolicy();
@@ -265,7 +267,7 @@ class SystemPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_usage_log()
     {
         $policy = new EquipmentUsageLogPolicy();

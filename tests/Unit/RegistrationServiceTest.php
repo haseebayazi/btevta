@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\RegistrationService;
 use App\Models\Candidate;
@@ -27,7 +29,7 @@ class RegistrationServiceTest extends TestCase
     // REQUIRED DOCUMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_required_documents_list()
     {
         $documents = $this->service->getRequiredDocuments();
@@ -44,7 +46,7 @@ class RegistrationServiceTest extends TestCase
     // DOCUMENT COMPLETENESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_checks_document_completeness_for_candidate_with_no_documents()
     {
         $candidate = Candidate::factory()->create();
@@ -57,7 +59,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertArrayHasKey('optional', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_checks_document_completeness_for_candidate_with_partial_documents()
     {
         $candidate = Candidate::factory()->create();
@@ -81,7 +83,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertEquals(50, $result['completion_percentage']);
     }
 
-    /** @test */
+    #[Test]
     public function it_checks_document_completeness_for_candidate_with_all_required_documents()
     {
         $candidate = Candidate::factory()->create();
@@ -101,7 +103,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertEquals(100, $result['completion_percentage']);
     }
 
-    /** @test */
+    #[Test]
     public function it_marks_incomplete_if_documents_not_verified()
     {
         $candidate = Candidate::factory()->create();
@@ -124,7 +126,7 @@ class RegistrationServiceTest extends TestCase
     // UNDERTAKING CONTENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_undertaking_content()
     {
         $candidate = Candidate::factory()->create([
@@ -143,7 +145,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertStringContainsString('Lahore', $content);
     }
 
-    /** @test */
+    #[Test]
     public function it_includes_next_of_kin_in_undertaking()
     {
         $candidate = Candidate::factory()->create([
@@ -169,7 +171,7 @@ class RegistrationServiceTest extends TestCase
     // DOCUMENT VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_validates_document_file_not_found()
     {
         $result = $this->service->validateDocument('nonexistent/path.pdf', 'cnic');
@@ -178,7 +180,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertEquals('File not found', $result['reason']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_document_too_small()
     {
         Storage::disk('public')->put('documents/small.pdf', 'x');
@@ -189,7 +191,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertEquals('File too small', $result['reason']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_document_success()
     {
         // Create a file larger than 1KB
@@ -204,7 +206,7 @@ class RegistrationServiceTest extends TestCase
     // OEP ALLOCATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_allocates_oep_for_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -219,7 +221,7 @@ class RegistrationServiceTest extends TestCase
     // REGISTRATION SUMMARY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_creates_registration_summary()
     {
         $candidate = Candidate::factory()->create([
@@ -248,7 +250,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertEquals('Test Candidate', $summary['candidate_info']['name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_missing_next_of_kin_in_summary()
     {
         $candidate = Candidate::factory()->create();
@@ -258,7 +260,7 @@ class RegistrationServiceTest extends TestCase
         $this->assertNull($summary['next_of_kin']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_missing_undertaking_in_summary()
     {
         $candidate = Candidate::factory()->create();

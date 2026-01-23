@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -29,7 +31,7 @@ class TrainingServiceTest extends TestCase
     // BATCH TRAINING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_start_batch_training()
     {
         $batch = Batch::factory()->create(['status' => 'planned']);
@@ -54,7 +56,7 @@ class TrainingServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function starting_batch_training_is_transactional()
     {
         $batch = Batch::factory()->create(['status' => 'planned']);
@@ -74,7 +76,7 @@ class TrainingServiceTest extends TestCase
     // ATTENDANCE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_attendance()
     {
         $candidate = Candidate::factory()->create();
@@ -92,7 +94,7 @@ class TrainingServiceTest extends TestCase
         $this->assertEquals('present', $attendance->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_record_bulk_attendance()
     {
         $batch = Batch::factory()->create();
@@ -112,7 +114,7 @@ class TrainingServiceTest extends TestCase
         $this->assertCount(5, $records);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_attendance_statistics()
     {
         $candidate = Candidate::factory()->create();
@@ -150,7 +152,7 @@ class TrainingServiceTest extends TestCase
         $this->assertEquals(70.0, $stats['percentage']);
     }
 
-    /** @test */
+    #[Test]
     public function low_attendance_marks_candidate_at_risk()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'ongoing']);
@@ -172,7 +174,7 @@ class TrainingServiceTest extends TestCase
     // ASSESSMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_record_assessment()
     {
         $candidate = Candidate::factory()->create();
@@ -192,7 +194,7 @@ class TrainingServiceTest extends TestCase
         $this->assertEquals('pass', $assessment->result);
     }
 
-    /** @test */
+    #[Test]
     public function failed_assessment_marks_candidate_at_risk()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'ongoing']);
@@ -212,7 +214,7 @@ class TrainingServiceTest extends TestCase
         $this->assertEquals('at_risk', $candidate->training_status);
     }
 
-    /** @test */
+    #[Test]
     public function passed_final_assessment_updates_status_to_completed()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'ongoing']);
@@ -245,7 +247,7 @@ class TrainingServiceTest extends TestCase
     // CERTIFICATE GENERATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_certificate_for_eligible_candidate()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'completed']);
@@ -272,7 +274,7 @@ class TrainingServiceTest extends TestCase
         $this->assertNotNull($certificate->certificate_number);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_certificate_for_low_attendance()
     {
         $candidate = Candidate::factory()->create();
@@ -298,7 +300,7 @@ class TrainingServiceTest extends TestCase
         $this->service->generateCertificate($candidate->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_certificate_without_final_assessment()
     {
         $candidate = Candidate::factory()->create();
@@ -325,7 +327,7 @@ class TrainingServiceTest extends TestCase
         $this->service->generateCertificate($candidate->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_certificate_for_failed_final_assessment()
     {
         $candidate = Candidate::factory()->create();
@@ -352,7 +354,7 @@ class TrainingServiceTest extends TestCase
         $this->service->generateCertificate($candidate->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_certificate_for_at_risk_candidate()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'at_risk']);
@@ -382,7 +384,7 @@ class TrainingServiceTest extends TestCase
     // BATCH STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_calculates_batch_statistics()
     {
         $batch = Batch::factory()->create();
@@ -412,7 +414,7 @@ class TrainingServiceTest extends TestCase
     // AT-RISK CANDIDATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_at_risk_candidates()
     {
         $batch = Batch::factory()->create();
@@ -430,7 +432,7 @@ class TrainingServiceTest extends TestCase
         $this->assertCount(3, $atRisk);
     }
 
-    /** @test */
+    #[Test]
     public function at_risk_candidates_include_attendance_data()
     {
         $candidate = Candidate::factory()->create(['training_status' => 'at_risk']);

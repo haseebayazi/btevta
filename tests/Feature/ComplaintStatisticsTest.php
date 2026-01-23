@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Complaint;
@@ -24,7 +26,7 @@ class ComplaintStatisticsTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_view_complaint_statistics()
     {
         $this->actingAs($this->admin);
@@ -41,7 +43,7 @@ class ComplaintStatisticsTest extends TestCase
         $response->assertViewHas('statistics');
     }
 
-    /** @test */
+    #[Test]
     public function statistics_contain_total_complaints()
     {
         $this->actingAs($this->admin);
@@ -55,7 +57,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertEquals(10, $statistics['totalComplaints']);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_contain_status_breakdown()
     {
         $this->actingAs($this->admin);
@@ -72,7 +74,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertEquals(2, $statistics['resolvedComplaints']);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_contain_category_breakdown()
     {
         $this->actingAs($this->admin);
@@ -91,7 +93,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertEquals(1, $statistics['byCategory']['salary'] ?? 0);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_contain_priority_breakdown()
     {
         $this->actingAs($this->admin);
@@ -107,7 +109,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertArrayHasKey('byPriority', $statistics);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_contain_recent_complaints()
     {
         $this->actingAs($this->admin);
@@ -122,7 +124,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertCount(10, $statistics['recentComplaints']); // Should be limited to 10
     }
 
-    /** @test */
+    #[Test]
     public function statistics_calculate_sla_compliance_rate()
     {
         $this->actingAs($this->admin);
@@ -152,7 +154,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertEquals(70, $statistics['slaComplianceRate']);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_show_monthly_trends()
     {
         $this->actingAs($this->admin);
@@ -172,7 +174,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertArrayHasKey('monthlyTrends', $statistics);
     }
 
-    /** @test */
+    #[Test]
     public function statistics_show_top_assignees()
     {
         $this->actingAs($this->admin);
@@ -190,7 +192,7 @@ class ComplaintStatisticsTest extends TestCase
         $this->assertArrayHasKey('topAssignees', $statistics);
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_users_cannot_view_statistics()
     {
         $response = $this->get(route('complaints.statistics'));

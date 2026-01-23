@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Complaint;
 use App\Models\Candidate;
@@ -27,7 +29,7 @@ class ComplaintServiceTest extends TestCase
     // COMPLAINT REGISTRATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_register_a_complaint()
     {
         $data = [
@@ -48,7 +50,7 @@ class ComplaintServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_unique_reference_number()
     {
         $data = [
@@ -67,7 +69,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertStringStartsWith('CMP-TRA-', $complaint1->complaint_reference);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_sla_based_on_priority()
     {
         $normalComplaint = $this->service->registerComplaint([
@@ -96,7 +98,7 @@ class ComplaintServiceTest extends TestCase
     // STATUS TRANSITIONS - VALID
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function open_complaint_can_transition_to_assigned()
     {
         $complaint = Complaint::factory()->create(['status' => 'open']);
@@ -106,7 +108,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('assigned', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function open_complaint_can_transition_to_in_progress()
     {
         $complaint = Complaint::factory()->create(['status' => 'open']);
@@ -116,7 +118,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('in_progress', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function open_complaint_can_transition_to_resolved()
     {
         $complaint = Complaint::factory()->create(['status' => 'open']);
@@ -126,7 +128,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('resolved', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function assigned_complaint_can_transition_to_in_progress()
     {
         $complaint = Complaint::factory()->create(['status' => 'assigned']);
@@ -136,7 +138,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('in_progress', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function in_progress_complaint_can_transition_to_resolved()
     {
         $complaint = Complaint::factory()->create(['status' => 'in_progress']);
@@ -146,7 +148,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('resolved', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function resolved_complaint_can_transition_to_closed()
     {
         $complaint = Complaint::factory()->create(['status' => 'resolved']);
@@ -156,7 +158,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('closed', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function resolved_complaint_can_be_reopened()
     {
         $complaint = Complaint::factory()->create(['status' => 'resolved']);
@@ -166,7 +168,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('open', $result->status);
     }
 
-    /** @test */
+    #[Test]
     public function closed_complaint_can_be_reopened()
     {
         $complaint = Complaint::factory()->create(['status' => 'closed']);
@@ -180,7 +182,7 @@ class ComplaintServiceTest extends TestCase
     // STATUS TRANSITIONS - INVALID
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function open_complaint_cannot_transition_to_closed()
     {
         $complaint = Complaint::factory()->create(['status' => 'open']);
@@ -191,7 +193,7 @@ class ComplaintServiceTest extends TestCase
         $this->service->updateStatus($complaint->id, 'closed');
     }
 
-    /** @test */
+    #[Test]
     public function assigned_cannot_transition_to_closed()
     {
         $complaint = Complaint::factory()->create(['status' => 'assigned']);
@@ -202,7 +204,7 @@ class ComplaintServiceTest extends TestCase
         $this->service->updateStatus($complaint->id, 'closed');
     }
 
-    /** @test */
+    #[Test]
     public function in_progress_cannot_transition_to_closed()
     {
         $complaint = Complaint::factory()->create(['status' => 'in_progress']);
@@ -213,7 +215,7 @@ class ComplaintServiceTest extends TestCase
         $this->service->updateStatus($complaint->id, 'closed');
     }
 
-    /** @test */
+    #[Test]
     public function in_progress_cannot_transition_to_open()
     {
         $complaint = Complaint::factory()->create(['status' => 'in_progress']);
@@ -228,7 +230,7 @@ class ComplaintServiceTest extends TestCase
     // SLA CALCULATIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function escalation_recalculates_sla_from_current_date()
     {
         $complaint = Complaint::factory()->create([
@@ -251,7 +253,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertTrue($result->sla_due_date->isFuture());
     }
 
-    /** @test */
+    #[Test]
     public function escalation_increases_priority()
     {
         $lowPriority = Complaint::factory()->create(['priority' => 'low', 'escalation_level' => 0]);
@@ -271,7 +273,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('critical', $urgentPriority->fresh()->priority);
     }
 
-    /** @test */
+    #[Test]
     public function escalation_increases_level()
     {
         $complaint = Complaint::factory()->create(['escalation_level' => 0]);
@@ -283,7 +285,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals(2, $complaint->fresh()->escalation_level);
     }
 
-    /** @test */
+    #[Test]
     public function escalation_level_cannot_exceed_maximum()
     {
         $complaint = Complaint::factory()->create(['escalation_level' => 4]);
@@ -293,7 +295,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals(4, $complaint->fresh()->escalation_level);
     }
 
-    /** @test */
+    #[Test]
     public function check_sla_status_returns_correct_status()
     {
         // On track complaint
@@ -325,7 +327,7 @@ class ComplaintServiceTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_calculates_statistics_correctly()
     {
         // Create various complaints
@@ -346,7 +348,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals(1, $stats['overdue']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_sla_compliance_rate()
     {
         // Create resolved complaints within SLA
@@ -374,7 +376,7 @@ class ComplaintServiceTest extends TestCase
     // RESOLUTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function resolving_complaint_sets_resolution_details()
     {
         $complaint = Complaint::factory()->create(['status' => 'in_progress']);
@@ -390,7 +392,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('Issue was resolved by contacting the instructor.', $result->resolution_details);
     }
 
-    /** @test */
+    #[Test]
     public function close_complaint_requires_resolved_status()
     {
         $complaint = Complaint::factory()->create(['status' => 'in_progress']);
@@ -401,7 +403,7 @@ class ComplaintServiceTest extends TestCase
         $this->service->closeComplaint($complaint->id);
     }
 
-    /** @test */
+    #[Test]
     public function resolved_complaint_can_be_closed()
     {
         $complaint = Complaint::factory()->create(['status' => 'resolved']);
@@ -417,7 +419,7 @@ class ComplaintServiceTest extends TestCase
     // ASSIGNMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_assign_complaint_to_user()
     {
         $complaint = Complaint::factory()->create(['status' => 'open']);

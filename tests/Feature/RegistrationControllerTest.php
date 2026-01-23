@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -28,7 +30,7 @@ class RegistrationControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_registration_list()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -39,7 +41,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertViewIs('registration.index');
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_sees_only_their_campus_candidates()
     {
         $campus = Campus::factory()->create();
@@ -73,7 +75,7 @@ class RegistrationControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_candidate_registration_details()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -90,7 +92,7 @@ class RegistrationControllerTest extends TestCase
     // UPLOAD DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_upload_document()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -110,7 +112,7 @@ class RegistrationControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function document_upload_validates_file_type()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -125,7 +127,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHasErrors(['file']);
     }
 
-    /** @test */
+    #[Test]
     public function document_upload_validates_document_type()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -140,7 +142,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHasErrors(['document_type']);
     }
 
-    /** @test */
+    #[Test]
     public function document_upload_validates_file_size()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -159,7 +161,7 @@ class RegistrationControllerTest extends TestCase
     // DELETE DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_delete_document()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -175,7 +177,7 @@ class RegistrationControllerTest extends TestCase
         $this->assertDatabaseMissing('registration_documents', ['id' => $document->id]);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_other_campus_document()
     {
         $campus = Campus::factory()->create();
@@ -203,7 +205,7 @@ class RegistrationControllerTest extends TestCase
     // SAVE NEXT OF KIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_save_next_of_kin()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -225,7 +227,7 @@ class RegistrationControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function next_of_kin_validates_required_fields()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -236,7 +238,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHasErrors(['name', 'relationship', 'cnic', 'phone', 'address']);
     }
 
-    /** @test */
+    #[Test]
     public function next_of_kin_validates_cnic_format()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -257,7 +259,7 @@ class RegistrationControllerTest extends TestCase
     // SAVE UNDERTAKING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_save_undertaking()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -276,7 +278,7 @@ class RegistrationControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function undertaking_validates_type()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -294,7 +296,7 @@ class RegistrationControllerTest extends TestCase
     // COMPLETE REGISTRATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function registration_fails_without_required_documents()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -308,7 +310,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function registration_fails_without_next_of_kin()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -336,7 +338,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function registration_fails_without_undertaking()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -367,7 +369,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function registration_succeeds_with_all_requirements()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -405,7 +407,7 @@ class RegistrationControllerTest extends TestCase
         $this->assertEquals('registered', $candidate->status);
     }
 
-    /** @test */
+    #[Test]
     public function registration_fails_with_expired_documents()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -442,7 +444,7 @@ class RegistrationControllerTest extends TestCase
     // VERIFY DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_verify_document()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -463,7 +465,7 @@ class RegistrationControllerTest extends TestCase
         $this->assertEquals('verified', $document->status);
     }
 
-    /** @test */
+    #[Test]
     public function regular_user_cannot_verify_document()
     {
         $user = User::factory()->create(['role' => 'user']);
@@ -481,7 +483,7 @@ class RegistrationControllerTest extends TestCase
     // REJECT DOCUMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_reject_document()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -502,7 +504,7 @@ class RegistrationControllerTest extends TestCase
         $this->assertEquals('rejected', $document->status);
     }
 
-    /** @test */
+    #[Test]
     public function reject_document_requires_reason()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -520,7 +522,7 @@ class RegistrationControllerTest extends TestCase
     // REGISTRATION STATUS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_registration_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -532,7 +534,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertViewIs('registration.status');
     }
 
-    /** @test */
+    #[Test]
     public function status_returns_json_when_requested()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -558,7 +560,7 @@ class RegistrationControllerTest extends TestCase
     // START TRAINING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_start_training_for_registered_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -577,7 +579,7 @@ class RegistrationControllerTest extends TestCase
         $this->assertEquals($batch->id, $candidate->batch_id);
     }
 
-    /** @test */
+    #[Test]
     public function start_training_fails_for_non_registered_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -592,7 +594,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function start_training_validates_batch_exists()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -609,7 +611,7 @@ class RegistrationControllerTest extends TestCase
     // QR CODE VERIFICATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function valid_qr_code_shows_verification_result()
     {
         $candidate = Candidate::factory()->create([
@@ -626,7 +628,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertViewHas('success', true);
     }
 
-    /** @test */
+    #[Test]
     public function invalid_qr_token_returns_error()
     {
         $candidate = Candidate::factory()->create(['cnic' => '3520112345678']);
@@ -637,7 +639,7 @@ class RegistrationControllerTest extends TestCase
         $response->assertViewHas('success', false);
     }
 
-    /** @test */
+    #[Test]
     public function qr_verification_fails_for_nonexistent_candidate()
     {
         $response = $this->get('/registration/verify/99999/any-token');
@@ -649,7 +651,7 @@ class RegistrationControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_registration()
     {
         $response = $this->get('/registration');

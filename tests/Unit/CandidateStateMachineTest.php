@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Candidate;
 use App\Models\User;
@@ -21,7 +23,7 @@ class CandidateStateMachineTest extends TestCase
     // VALID TRANSITIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function new_candidate_can_transition_to_screening()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -32,7 +34,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_SCREENING, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function new_candidate_can_transition_to_rejected()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -43,7 +45,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REJECTED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function screening_candidate_can_transition_to_registered()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_SCREENING]);
@@ -54,7 +56,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REGISTERED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function screening_candidate_can_transition_to_rejected()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_SCREENING]);
@@ -65,7 +67,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REJECTED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function registered_candidate_can_transition_to_training()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_REGISTERED]);
@@ -76,7 +78,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_TRAINING, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function registered_candidate_can_transition_to_dropped()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_REGISTERED]);
@@ -87,7 +89,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_DROPPED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function training_candidate_can_transition_to_visa_process()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_TRAINING]);
@@ -98,7 +100,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_VISA_PROCESS, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function training_candidate_can_transition_to_dropped()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_TRAINING]);
@@ -109,7 +111,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_DROPPED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function visa_process_candidate_can_transition_to_ready()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_VISA_PROCESS]);
@@ -120,7 +122,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_READY, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function visa_process_candidate_can_transition_to_rejected()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_VISA_PROCESS]);
@@ -131,7 +133,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_REJECTED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function ready_candidate_can_transition_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_READY]);
@@ -142,7 +144,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_DEPARTED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function departed_candidate_can_transition_to_returned()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_DEPARTED]);
@@ -157,7 +159,7 @@ class CandidateStateMachineTest extends TestCase
     // INVALID TRANSITIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function new_candidate_cannot_transition_directly_to_training()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -168,7 +170,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_TRAINING);
     }
 
-    /** @test */
+    #[Test]
     public function new_candidate_cannot_transition_directly_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -179,7 +181,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_DEPARTED);
     }
 
-    /** @test */
+    #[Test]
     public function screening_cannot_transition_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_SCREENING]);
@@ -190,7 +192,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_DEPARTED);
     }
 
-    /** @test */
+    #[Test]
     public function registered_cannot_transition_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_REGISTERED]);
@@ -201,7 +203,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_DEPARTED);
     }
 
-    /** @test */
+    #[Test]
     public function training_cannot_transition_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_TRAINING]);
@@ -212,7 +214,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_DEPARTED);
     }
 
-    /** @test */
+    #[Test]
     public function visa_process_cannot_transition_directly_to_departed()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_VISA_PROCESS]);
@@ -223,7 +225,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_DEPARTED);
     }
 
-    /** @test */
+    #[Test]
     public function departed_cannot_transition_to_new()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_DEPARTED]);
@@ -234,7 +236,7 @@ class CandidateStateMachineTest extends TestCase
         $candidate->updateStatus(Candidate::STATUS_NEW);
     }
 
-    /** @test */
+    #[Test]
     public function rejected_cannot_transition_to_any_status()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_REJECTED]);
@@ -249,7 +251,7 @@ class CandidateStateMachineTest extends TestCase
     // FULL LIFECYCLE TEST
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function candidate_can_complete_full_lifecycle()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -277,7 +279,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertEquals(Candidate::STATUS_RETURNED, $candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function status_change_logs_activity()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -291,7 +293,7 @@ class CandidateStateMachineTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function status_change_records_remarks()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -306,7 +308,7 @@ class CandidateStateMachineTest extends TestCase
     // HELPER METHODS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function can_transition_to_returns_correct_result()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);
@@ -317,7 +319,7 @@ class CandidateStateMachineTest extends TestCase
         $this->assertFalse($candidate->canTransitionTo(Candidate::STATUS_DEPARTED));
     }
 
-    /** @test */
+    #[Test]
     public function get_allowed_transitions_returns_correct_statuses()
     {
         $candidate = Candidate::factory()->create(['status' => Candidate::STATUS_NEW]);

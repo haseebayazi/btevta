@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Policies\UserPolicy;
@@ -23,7 +25,7 @@ class UserPolicyTest extends TestCase
     // VIEW ANY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_user()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -31,7 +33,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_user()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -39,7 +41,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_any_user()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -47,7 +49,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function other_roles_cannot_view_any_user()
     {
         $roles = ['trainer', 'oep', 'viewer'];
@@ -62,7 +64,7 @@ class UserPolicyTest extends TestCase
     // VIEW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function user_can_view_their_own_profile()
     {
         $user = User::factory()->create(['role' => 'trainer']);
@@ -70,7 +72,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_user_profile()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -79,7 +81,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($admin, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_user_profile()
     {
         $director = User::factory()->create(['role' => 'project_director']);
@@ -88,7 +90,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($director, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function user_cannot_view_other_users_profile()
     {
         $user1 = User::factory()->create(['role' => 'campus_admin']);
@@ -101,7 +103,7 @@ class UserPolicyTest extends TestCase
     // CREATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_user()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -109,7 +111,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_create_user()
     {
         $roles = ['project_director', 'campus_admin', 'trainer', 'oep', 'viewer'];
@@ -124,7 +126,7 @@ class UserPolicyTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function user_can_update_their_own_profile()
     {
         $user = User::factory()->create(['role' => 'trainer']);
@@ -132,7 +134,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_any_user()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -141,7 +143,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($admin, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function user_cannot_update_other_users_profile()
     {
         $user1 = User::factory()->create(['role' => 'campus_admin']);
@@ -150,7 +152,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user1, $user2));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_cannot_update_other_users()
     {
         $director = User::factory()->create(['role' => 'project_director']);
@@ -163,7 +165,7 @@ class UserPolicyTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_other_users()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -172,7 +174,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($admin, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_cannot_delete_themselves()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -180,7 +182,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($this->policy->delete($admin, $admin));
     }
 
-    /** @test */
+    #[Test]
     public function non_admin_cannot_delete_users()
     {
         $roles = ['project_director', 'campus_admin', 'trainer', 'oep', 'viewer'];
@@ -196,7 +198,7 @@ class UserPolicyTest extends TestCase
     // TOGGLE STATUS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_toggle_other_users_status()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -205,7 +207,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->toggleStatus($admin, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_cannot_toggle_their_own_status()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -213,7 +215,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($this->policy->toggleStatus($admin, $admin));
     }
 
-    /** @test */
+    #[Test]
     public function non_admin_cannot_toggle_status()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -226,7 +228,7 @@ class UserPolicyTest extends TestCase
     // RESET PASSWORD
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_reset_other_users_password()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -235,7 +237,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->resetPassword($admin, $otherUser));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_cannot_reset_their_own_password()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -243,7 +245,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($this->policy->resetPassword($admin, $admin));
     }
 
-    /** @test */
+    #[Test]
     public function non_admin_cannot_reset_passwords()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -256,7 +258,7 @@ class UserPolicyTest extends TestCase
     // MANAGE SETTINGS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_manage_settings()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -264,7 +266,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->manageSettings($admin));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_manage_settings()
     {
         $roles = ['project_director', 'campus_admin', 'trainer', 'oep', 'viewer'];
@@ -279,7 +281,7 @@ class UserPolicyTest extends TestCase
     // VIEW AUDIT LOGS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_audit_logs()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -287,7 +289,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAuditLogs($admin));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_audit_logs()
     {
         $director = User::factory()->create(['role' => 'project_director']);
@@ -295,7 +297,7 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAuditLogs($director));
     }
 
-    /** @test */
+    #[Test]
     public function other_roles_cannot_view_audit_logs()
     {
         $roles = ['campus_admin', 'trainer', 'oep', 'viewer'];
@@ -310,7 +312,7 @@ class UserPolicyTest extends TestCase
     // GLOBAL SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_use_global_search()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'oep', 'viewer', 'trainer'];
@@ -321,7 +323,7 @@ class UserPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_use_global_search()
     {
         // Test with a role that doesn't exist in the authorized list
@@ -334,7 +336,7 @@ class UserPolicyTest extends TestCase
     // EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function inactive_super_admin_still_has_permissions()
     {
         // Policy doesn't check is_active, that's handled at middleware level

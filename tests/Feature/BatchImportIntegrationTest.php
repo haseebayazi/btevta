@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -41,7 +43,7 @@ class BatchImportIntegrationTest extends TestCase
     // FILE UPLOAD
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_accepts_valid_excel_file()
     {
         $file = $this->createValidImportFile();
@@ -56,7 +58,7 @@ class BatchImportIntegrationTest extends TestCase
         $response->assertSessionDoesntHaveErrors();
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_file_types()
     {
         $file = UploadedFile::fake()->create('candidates.txt', 100, 'text/plain');
@@ -70,7 +72,7 @@ class BatchImportIntegrationTest extends TestCase
         $response->assertSessionHasErrors('file');
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_oversized_files()
     {
         $file = UploadedFile::fake()->create('candidates.xlsx', 20000, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -88,7 +90,7 @@ class BatchImportIntegrationTest extends TestCase
     // VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_validates_required_columns()
     {
         $file = $this->createImportFileWithMissingColumns();
@@ -102,7 +104,7 @@ class BatchImportIntegrationTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_cnic_format_in_import()
     {
         $file = $this->createImportFileWithInvalidCNIC();
@@ -117,7 +119,7 @@ class BatchImportIntegrationTest extends TestCase
         $this->assertStringContainsString('CNIC', json_encode($response->json()));
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_date_formats_in_import()
     {
         $file = $this->createImportFileWithInvalidDates();
@@ -135,7 +137,7 @@ class BatchImportIntegrationTest extends TestCase
     // DEDUPLICATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_cnic_in_import()
     {
         // Create existing candidate
@@ -154,7 +156,7 @@ class BatchImportIntegrationTest extends TestCase
         $this->assertNotEmpty($data['duplicates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_phone_in_import()
     {
         // Create existing candidate
@@ -173,7 +175,7 @@ class BatchImportIntegrationTest extends TestCase
         $this->assertNotEmpty($data['potential_duplicates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_skipping_duplicates()
     {
         Candidate::factory()->create(['cnic' => '3520112345671']);
@@ -192,7 +194,7 @@ class BatchImportIntegrationTest extends TestCase
         $this->assertEquals(1, Candidate::count());
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_updating_duplicates()
     {
         $existing = Candidate::factory()->create([
@@ -218,7 +220,7 @@ class BatchImportIntegrationTest extends TestCase
     // BATCH PROCESSING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_processes_large_import_in_chunks()
     {
         Queue::fake();
@@ -236,7 +238,7 @@ class BatchImportIntegrationTest extends TestCase
         Queue::assertPushed(\App\Jobs\ProcessCandidateImport::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_import_progress()
     {
         $file = $this->createValidImportFile(10);
@@ -251,7 +253,7 @@ class BatchImportIntegrationTest extends TestCase
         $response->assertSessionHas('import_id');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_check_import_status()
     {
         $file = $this->createValidImportFile(5);
@@ -276,7 +278,7 @@ class BatchImportIntegrationTest extends TestCase
     // ERROR HANDLING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_logs_row_errors_without_stopping_import()
     {
         $file = $this->createImportFileWithMixedValidity();
@@ -293,7 +295,7 @@ class BatchImportIntegrationTest extends TestCase
         $this->assertGreaterThan(0, Candidate::count());
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_error_report()
     {
         $file = $this->createImportFileWithErrors();
@@ -308,7 +310,7 @@ class BatchImportIntegrationTest extends TestCase
         $response->assertSessionHas('import_errors');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_download_error_report()
     {
         $file = $this->createImportFileWithErrors();
@@ -332,7 +334,7 @@ class BatchImportIntegrationTest extends TestCase
     // ROLLBACK
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_rollback_failed_import()
     {
         $initialCount = Candidate::count();
@@ -354,7 +356,7 @@ class BatchImportIntegrationTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_only_import_to_their_campus()
     {
         $otherCampus = Campus::factory()->create();
@@ -374,7 +376,7 @@ class BatchImportIntegrationTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function regular_user_cannot_import()
     {
         $user = User::factory()->create(['role' => 'user']);

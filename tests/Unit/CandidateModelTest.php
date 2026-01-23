@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Candidate;
 use App\Models\Campus;
@@ -13,7 +15,7 @@ class CandidateModelTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_can_create_a_candidate()
     {
         $candidate = Candidate::factory()->create([
@@ -28,7 +30,7 @@ class CandidateModelTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_campus()
     {
         $campus = Campus::factory()->create();
@@ -38,7 +40,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals($campus->id, $candidate->campus->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_trade()
     {
         $trade = Trade::factory()->create();
@@ -48,7 +50,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals($trade->id, $candidate->trade->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_batch()
     {
         $batch = Batch::factory()->create();
@@ -58,7 +60,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals($batch->id, $candidate->batch->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_has_status_attribute()
     {
         $candidate = Candidate::factory()->create(['status' => 'screening']);
@@ -66,7 +68,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals('screening', $candidate->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_by_status()
     {
         Candidate::factory()->create(['status' => 'screening']);
@@ -78,7 +80,7 @@ class CandidateModelTest extends TestCase
         $this->assertCount(2, $screeningCandidates);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_search_by_name()
     {
         Candidate::factory()->create(['name' => 'Ahmed Ali']);
@@ -91,7 +93,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals('Ahmed Ali', $results->first()->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_name_cnic_and_phone()
     {
         $this->expectException(\Illuminate\Database\QueryException::class);
@@ -103,7 +105,7 @@ class CandidateModelTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function cnic_should_be_unique()
     {
         Candidate::factory()->create(['cnic' => '1234567890123']);
@@ -114,7 +116,7 @@ class CandidateModelTest extends TestCase
         Candidate::factory()->create(['cnic' => '1234567890123']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_soft_delete()
     {
         $candidate = Candidate::factory()->create();
@@ -127,7 +129,7 @@ class CandidateModelTest extends TestCase
 
     // ==================== PHASE 1 IMPROVEMENTS: VALIDATION TESTS ====================
 
-    /** @test */
+    #[Test]
     public function it_validates_pakistan_phone_format()
     {
         // Valid formats
@@ -143,7 +145,7 @@ class CandidateModelTest extends TestCase
         $this->assertFalse(Candidate::validatePakistanPhone('030012345'));  // Too short
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_luhn_check_digit_correctly()
     {
         // Test known values
@@ -152,7 +154,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals(0, Candidate::calculateLuhnCheckDigit('0')); // Edge case
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_btevta_id_with_check_digit()
     {
         $btevtaId = Candidate::generateBtevtaId();
@@ -164,7 +166,7 @@ class CandidateModelTest extends TestCase
         $this->assertTrue(Candidate::validateBtevtaId($btevtaId));
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_btevta_id_check_digit()
     {
         // Valid format with correct check digit
@@ -180,7 +182,7 @@ class CandidateModelTest extends TestCase
         $this->assertFalse(Candidate::validateBtevtaId('INVALID-ID'));
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_cnic_checksum()
     {
         // Note: Pakistani CNIC checksum validation uses a weighted algorithm
@@ -198,7 +200,7 @@ class CandidateModelTest extends TestCase
         $this->assertIsBool($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_potential_duplicates_by_phone()
     {
         $candidate1 = Candidate::factory()->create(['phone' => '03001234567']);
@@ -210,7 +212,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals($candidate1->id, $duplicates->first()['candidate']->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_potential_duplicates_by_email()
     {
         $candidate1 = Candidate::factory()->create(['email' => 'test@example.com']);
@@ -222,7 +224,7 @@ class CandidateModelTest extends TestCase
         $this->assertEquals($candidate1->id, $duplicates->first()['candidate']->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_potential_duplicates_by_similar_name()
     {
         $candidate1 = Candidate::factory()->create(['name' => 'Muhammad Ahmad Khan']);
@@ -233,7 +235,7 @@ class CandidateModelTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $duplicates->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_excludes_specified_candidate_from_duplicate_check()
     {
         $candidate1 = Candidate::factory()->create(['phone' => '03001234567']);
@@ -244,7 +246,7 @@ class CandidateModelTest extends TestCase
         $this->assertCount(0, $duplicates);
     }
 
-    /** @test */
+    #[Test]
     public function it_auto_generates_ids_with_checksums()
     {
         $candidate = Candidate::factory()->create();
@@ -259,7 +261,7 @@ class CandidateModelTest extends TestCase
         $this->assertMatchesRegularExpression('/^APP\d{10}$/', $candidate->application_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_sequential_btevta_ids()
     {
         $candidate1 = Candidate::factory()->create();
