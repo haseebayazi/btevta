@@ -56,7 +56,13 @@ class CandidateApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $candidates,
+            'data' => $candidates->items(),
+            'pagination' => [
+                'current_page' => $candidates->currentPage(),
+                'last_page' => $candidates->lastPage(),
+                'per_page' => $candidates->perPage(),
+                'total' => $candidates->total(),
+            ],
         ]);
     }
 
@@ -86,14 +92,14 @@ class CandidateApiController extends Controller
         $this->authorize('create', Candidate::class);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'cnic' => 'required|string|size:13|unique:candidates,cnic',
-            'phone' => 'required|string|max:20',
+            'name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
+            'cnic' => 'required|string|size:13|unique:candidates,cnic|regex:/^[0-9]{13}$/|not_in:0000000000000',
+            'phone' => 'required|string|max:20|regex:/^(\\+?92[-\\s]?)?0?3[0-9]{2}[-\\s]?[0-9]{7}$/',
             'email' => 'nullable|email|max:255',
-            'father_name' => 'required|string|max:255',
-            'date_of_birth' => 'required|date|before:today',
+            'father_name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
+            'date_of_birth' => 'required|date|before:today|after:1930-01-01|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
             'gender' => 'required|in:male,female,other',
-            'address' => 'required|string',
+            'address' => 'required|string|max:1000',
             'district' => 'required|string|max:100',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'nullable|exists:campuses,id',
@@ -107,22 +113,35 @@ class CandidateApiController extends Controller
         }
 
         $data = $validator->validated();
-        $data['btevta_id'] = Candidate::generateBtevtaId();
-        $data['status'] = Candidate::STATUS_NEW;
-        $data['created_by'] = auth()->id();
 
-        $candidate = Candidate::create($data);
+        try {
+            $data['btevta_id'] = Candidate::generateBtevtaId();
+            $data['status'] = Candidate::STATUS_NEW;
+            $data['created_by'] = auth()->id();
 
-        activity()
-            ->performedOn($candidate)
-            ->causedBy(auth()->user())
-            ->log('Candidate created via API');
+            $candidate = Candidate::create($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Candidate created successfully',
-            'data' => $candidate,
-        ], 201);
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->log('Candidate created via API');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Candidate created successfully',
+                'data' => $candidate,
+            ], 201);
+        } catch (\Exception $e) {
+            \Log::error('Candidate creation failed', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create candidate: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

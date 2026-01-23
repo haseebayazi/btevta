@@ -953,7 +953,6 @@ class Candidate extends Model
      */
     public function canTransitionTo($targetStatus)
     {
-        $validation = $this->validateTransition($targetStatus);
         return $this->validateTransition($targetStatus);
     }
 
@@ -977,7 +976,8 @@ class Candidate extends Model
 
         $allowed = [];
         foreach ($allStatuses as $status) {
-            if ($this->canTransitionTo($status)) {
+            $result = $this->canTransitionTo($status);
+            if (is_array($result) && $result['can_transition']) {
                 $allowed[] = $status;
             }
         }

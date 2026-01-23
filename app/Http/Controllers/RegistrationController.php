@@ -473,6 +473,22 @@ class RegistrationController extends Controller
             && $status['next_of_kin']
             && $status['undertaking'];
 
+        // Identify missing requirements
+        $missingRequirements = [];
+        if (!$status['documents_complete']) {
+            foreach ($docStatus as $type => $doc) {
+                if (!$doc['uploaded'] || $doc['expired']) {
+                    $missingRequirements[] = $doc['label'];
+                }
+            }
+        }
+        if (!$status['next_of_kin']) {
+            $missingRequirements[] = 'Next of Kin information';
+        }
+        if (!$status['undertaking']) {
+            $missingRequirements[] = 'Undertaking form';
+        }
+
         if (request()->wantsJson()) {
             return response()->json([
                 'candidate' => [
@@ -481,7 +497,11 @@ class RegistrationController extends Controller
                     'name' => $candidate->name,
                     'status' => $candidate->status,
                 ],
-                'registration_status' => $status,
+                'documents' => $docStatus,
+                'next_of_kin' => $status['next_of_kin'],
+                'undertaking' => $status['undertaking'],
+                'can_start_training' => $status['can_complete'],
+                'missing_requirements' => $missingRequirements,
             ]);
         }
 

@@ -56,8 +56,13 @@ class BulkOperationsController extends Controller
                 }
 
                 // Validate state transition
-                if (!$candidate->canTransitionTo($newStatus)) {
-                    $errors[] = "{$candidate->name}: Cannot transition from {$candidate->status} to {$newStatus}";
+                $transitionCheck = $candidate->canTransitionTo($newStatus);
+                if (!$transitionCheck['can_transition']) {
+                    $errorMsg = "{$candidate->name}: Cannot transition from {$candidate->status} to {$newStatus}";
+                    if (!empty($transitionCheck['issues'])) {
+                        $errorMsg .= " - " . implode(', ', $transitionCheck['issues']);
+                    }
+                    $errors[] = $errorMsg;
                     $failedCount++;
                     continue;
                 }
