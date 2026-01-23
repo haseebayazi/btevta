@@ -72,7 +72,7 @@ class CampusPolicyTest extends TestCase
     // =========================================================================
 
     /** @test */
-    public function super_admin_can_view_any_campus()
+    public function super_admin_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
         $campus = Campus::factory()->create();
@@ -81,7 +81,7 @@ class CampusPolicyTest extends TestCase
     }
 
     /** @test */
-    public function project_director_can_view_any_campus()
+    public function project_director_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'project_director']);
         $campus = Campus::factory()->create();
@@ -90,7 +90,7 @@ class CampusPolicyTest extends TestCase
     }
 
     /** @test */
-    public function viewer_can_view_any_campus()
+    public function viewer_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'viewer']);
         $campus = Campus::factory()->create();
