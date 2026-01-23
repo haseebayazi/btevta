@@ -22,6 +22,7 @@ class Complaint extends Model
         'description',
         'status',
         'priority',
+        'complaint_date',
         'sla_days',
         'sla_due_date',
         'sla_breached',
@@ -59,6 +60,7 @@ class Complaint extends Model
     ];
 
     protected $casts = [
+        'complaint_date' => 'date',
         'sla_due_date' => 'datetime',
         'sla_breached' => 'boolean',
         'sla_breached_at' => 'datetime',

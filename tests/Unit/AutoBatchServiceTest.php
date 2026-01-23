@@ -79,10 +79,27 @@ class AutoBatchServiceTest extends TestCase
     #[Test]
     public function it_generates_correct_allocated_number_format()
     {
-        $batchNumber = 'ISB-TEC-WLD-2026-0001';
-        $position = 15;
+        $campus = Campus::factory()->create(['code' => 'ISB']);
+        $program = Program::factory()->create(['code' => 'TEC']);
+        $trade = Trade::factory()->create(['code' => 'WLD']);
 
-        $allocatedNumber = $this->service->generateAllocatedNumber($batchNumber, $position);
+        $batch = Batch::factory()->create([
+            'campus_id' => $campus->id,
+            'trade_id' => $trade->id,
+            'batch_code' => 'ISB-TEC-WLD-2026-0001',
+        ]);
+
+        // Create 14 candidates already in the batch to make the next one position 15
+        $existingCandidates = Candidate::factory()->count(14)->create([
+            'batch_id' => $batch->id,
+            'campus_id' => $campus->id,
+        ]);
+
+        $candidate = Candidate::factory()->create([
+            'campus_id' => $campus->id,
+        ]);
+
+        $allocatedNumber = $this->service->generateAllocatedNumber($candidate, $batch);
 
         $this->assertEquals('ISB-TEC-WLD-2026-0001-015', $allocatedNumber);
     }
@@ -90,11 +107,33 @@ class AutoBatchServiceTest extends TestCase
     #[Test]
     public function it_pads_position_with_leading_zeros()
     {
-        $batchNumber = 'LHR-SKL-ELC-2026-0002';
+        $campus = Campus::factory()->create(['code' => 'LHR']);
+        $program = Program::factory()->create(['code' => 'SKL']);
+        $trade = Trade::factory()->create(['code' => 'ELC']);
 
-        $allocated1 = $this->service->generateAllocatedNumber($batchNumber, 1);
-        $allocated2 = $this->service->generateAllocatedNumber($batchNumber, 10);
-        $allocated3 = $this->service->generateAllocatedNumber($batchNumber, 100);
+        $batch = Batch::factory()->create([
+            'campus_id' => $campus->id,
+            'trade_id' => $trade->id,
+            'batch_code' => 'LHR-SKL-ELC-2026-0002',
+        ]);
+
+        // Test position 1 (no existing candidates)
+        $candidate1 = Candidate::factory()->create(['campus_id' => $campus->id]);
+        $allocated1 = $this->service->generateAllocatedNumber($candidate1, $batch);
+
+        // Add 9 candidates to batch to make next position 10
+        $batch->candidates()->saveMany(
+            Candidate::factory()->count(9)->create(['campus_id' => $campus->id])
+        );
+        $candidate2 = Candidate::factory()->create(['campus_id' => $campus->id]);
+        $allocated2 = $this->service->generateAllocatedNumber($candidate2, $batch);
+
+        // Add 90 more candidates to make next position 100
+        $batch->candidates()->saveMany(
+            Candidate::factory()->count(90)->create(['campus_id' => $campus->id])
+        );
+        $candidate3 = Candidate::factory()->create(['campus_id' => $campus->id]);
+        $allocated3 = $this->service->generateAllocatedNumber($candidate3, $batch);
 
         $this->assertStringEndsWith('-001', $allocated1);
         $this->assertStringEndsWith('-010', $allocated2);

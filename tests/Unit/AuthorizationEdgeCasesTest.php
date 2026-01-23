@@ -325,11 +325,8 @@ class AuthorizationEdgeCasesTest extends TestCase
         ]);
 
         // Should be rejected or redirected with error
-        $this->assertTrue(
-            $response->status() === 422 ||
-            $response->session()->has('error') ||
-            $response->session()->has('errors')
-        );
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors();
     }
 
     #[Test]
@@ -372,7 +369,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     #[Test]
     public function api_requests_require_valid_token()
     {
-        $response = $this->getJson('/api/candidates');
+        $response = $this->getJson('/api/v1/candidates');
 
         $response->assertStatus(401);
     }
@@ -386,7 +383,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $token = $user->createToken('test-token', ['*'], now()->subDay())->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/candidates');
+            ->getJson('/api/v1/candidates');
 
         // Should be unauthorized
         $this->assertTrue(in_array($response->status(), [401, 403]));
@@ -403,7 +400,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $user->tokens()->delete();
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/candidates');
+            ->getJson('/api/v1/candidates');
 
         $response->assertStatus(401);
     }

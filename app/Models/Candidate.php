@@ -928,6 +928,46 @@ class Candidate extends Model
     }
 
     /**
+     * Check if candidate can transition to a specific status.
+     *
+     * @param string $targetStatus
+     * @return bool
+     */
+    public function canTransitionTo($targetStatus)
+    {
+        $validation = $this->validateTransition($targetStatus);
+        return $validation['can_transition'];
+    }
+
+    /**
+     * Get all allowed transitions from current status.
+     *
+     * @return array
+     */
+    public function getAllowedTransitions()
+    {
+        $allStatuses = [
+            self::STATUS_SCREENING,
+            self::STATUS_REGISTERED,
+            self::STATUS_TRAINING,
+            self::STATUS_VISA_PROCESS,
+            self::STATUS_READY,
+            self::STATUS_DEPARTED,
+            self::STATUS_REJECTED,
+            self::STATUS_DROPPED,
+        ];
+
+        $allowed = [];
+        foreach ($allStatuses as $status) {
+            if ($this->canTransitionTo($status)) {
+                $allowed[] = $status;
+            }
+        }
+
+        return $allowed;
+    }
+
+    /**
      * Get attendance percentage.
      */
     public function getAttendancePercentage($fromDate = null, $toDate = null)
