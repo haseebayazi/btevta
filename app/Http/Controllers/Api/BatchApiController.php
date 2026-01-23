@@ -20,63 +20,81 @@ class BatchApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Batch::class);
+        try {
+            $this->authorize('viewAny', Batch::class);
 
-        $query = Batch::with(['campus:id,name', 'trade:id,name', 'oep:id,name'])
-            ->withCount('candidates');
+            $query = Batch::with(['campus:id,name', 'trade:id,name', 'oep:id,name'])
+                ->withCount('candidates');
 
-        // Apply role-based filtering
-        $user = auth()->user();
-        if ($user->isCampusAdmin() && $user->campus_id) {
-            $query->where('campus_id', $user->campus_id);
-        } elseif ($user->isTrainer() && $user->campus_id) {
-            $query->where('campus_id', $user->campus_id);
+            // Apply role-based filtering
+            $user = auth()->user();
+            if ($user->isCampusAdmin() && $user->campus_id) {
+                $query->where('campus_id', $user->campus_id);
+            } elseif ($user->isTrainer() && $user->campus_id) {
+                $query->where('campus_id', $user->campus_id);
+            }
+
+            // Apply OEP filtering for OEP users
+            if ($user->oep_id) {
+                $query->where('oep_id', $user->oep_id);
+            } elseif ($request->filled('oep_id')) {
+                $query->where('oep_id', $request->oep_id);
+            }
+
+            // Search filter
+            if ($request->filled('search')) {
+                $query->search($request->search);
+            }
+
+            // Status filter
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Campus filter
+            if ($request->filled('campus_id')) {
+                $query->where('campus_id', $request->campus_id);
+            }
+
+            // Trade filter
+            if ($request->filled('trade_id')) {
+                $query->where('trade_id', $request->trade_id);
+            }
+
+            // District filter
+            if ($request->filled('district')) {
+                $query->where('district', $request->district);
+            }
+
+            // Availability filter
+            if ($request->filled('available') && $request->available) {
+                $query->available();
+            }
+
+            $perPage = min($request->input('per_page', 20), 100);
+            $batches = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $batches->items(),
+                'pagination' => [
+                    'current_page' => $batches->currentPage(),
+                    'last_page' => $batches->lastPage(),
+                    'per_page' => $batches->perPage(),
+                    'total' => $batches->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('BatchApiController index error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch batches: ' . $e->getMessage(),
+            ], 500);
         }
-
-        // Apply OEP filtering for OEP users
-        if ($user->oep_id) {
-            $query->where('oep_id', $user->oep_id);
-        } elseif ($request->filled('oep_id')) {
-            $query->where('oep_id', $request->oep_id);
-        }
-
-        // Search filter
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Campus filter
-        if ($request->filled('campus_id')) {
-            $query->where('campus_id', $request->campus_id);
-        }
-
-        // Trade filter
-        if ($request->filled('trade_id')) {
-            $query->where('trade_id', $request->trade_id);
-        }
-
-        // District filter
-        if ($request->filled('district')) {
-            $query->where('district', $request->district);
-        }
-
-        // Availability filter
-        if ($request->filled('available') && $request->available) {
-            $query->available();
-        }
-
-        $perPage = min($request->input('per_page', 20), 100);
-        $batches = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        return response()->json([
-            'success' => true,
-            'data' => $batches,
-        ]);
     }
 
     /**

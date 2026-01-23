@@ -99,6 +99,24 @@ class Complaint extends Model
     const PRIORITY_HIGH = 'high';
     const PRIORITY_URGENT = 'urgent';
 
+    /**
+     * Set category (maps to complaint_category).
+     * For backward compatibility with tests and external APIs.
+     */
+    public function setCategoryAttribute($value)
+    {
+        $this->attributes['complaint_category'] = $value;
+    }
+
+    /**
+     * Get category (reads from complaint_category).
+     * For backward compatibility with tests and external APIs.
+     */
+    public function getCategoryAttribute()
+    {
+        return $this->attributes['complaint_category'] ?? null;
+    }
+
     public static function getStatuses()
     {
         return [
