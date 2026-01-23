@@ -1043,6 +1043,90 @@ class Candidate extends Model
         
         return count(array_diff($requiredScreenings, $completedScreenings)) === 0;
     }
+    /**
+     * Check if candidate can record screening.
+     */
+    public function canRecordScreening(): bool
+    {
+        return in_array($this->status, [
+            CandidateStatus::LISTED->value,
+            CandidateStatus::PRE_DEPARTURE_DOCS->value,
+            CandidateStatus::SCREENING->value,
+        ]);
+    }
+
+    /**
+     * Check if candidate can issue certificate.
+     */
+    public function canIssueCertificate(): bool
+    {
+        return in_array($this->status, [
+            CandidateStatus::TRAINING_COMPLETED->value,
+            CandidateStatus::VISA_PROCESS->value,
+            CandidateStatus::VISA_APPROVED->value,
+            CandidateStatus::DEPARTURE_PROCESSING->value,
+            CandidateStatus::READY_TO_DEPART->value,
+            CandidateStatus::DEPARTED->value,
+            CandidateStatus::POST_DEPARTURE->value,
+            CandidateStatus::COMPLETED->value,
+        ]);
+    }
+
+    /**
+     * Check if candidate can be reactivated.
+     */
+    public function canReactivate(): bool
+    {
+        return in_array($this->status, [
+            CandidateStatus::DEFERRED->value,
+            CandidateStatus::WITHDRAWN->value,
+        ]);
+    }
+
+    /**
+     * Check if candidate is in LISTED status.
+     */
+    public function isListed(): bool
+    {
+        return $this->status === CandidateStatus::LISTED->value;
+    }
+
+    /**
+     * Get valid statuses for transition.
+     */
+    public static function getValidStatuses(): array
+    {
+        return array_column(CandidateStatus::cases(), 'value');
+    }
+
+    /**
+     * Get candidate progress percentage.
+     */
+    public function getProgressPercentage(): float
+    {
+        $statusOrder = [
+            CandidateStatus::LISTED->value => 5,
+            CandidateStatus::PRE_DEPARTURE_DOCS->value => 10,
+            CandidateStatus::SCREENING->value => 15,
+            CandidateStatus::SCREENED->value => 20,
+            CandidateStatus::REGISTERED->value => 25,
+            CandidateStatus::TRAINING->value => 40,
+            CandidateStatus::TRAINING_COMPLETED->value => 55,
+            CandidateStatus::VISA_PROCESS->value => 65,
+            CandidateStatus::VISA_APPROVED->value => 75,
+            CandidateStatus::DEPARTURE_PROCESSING->value => 85,
+            CandidateStatus::READY_TO_DEPART->value => 90,
+            CandidateStatus::DEPARTED->value => 95,
+            CandidateStatus::POST_DEPARTURE->value => 98,
+            CandidateStatus::COMPLETED->value => 100,
+            CandidateStatus::DEFERRED->value => 0,
+            CandidateStatus::REJECTED->value => 0,
+            CandidateStatus::WITHDRAWN->value => 0,
+        ];
+
+        return $statusOrder[$this->status] ?? 0;
+    }
+
 
     /**
      * Assign to batch.
