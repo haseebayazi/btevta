@@ -20,11 +20,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Helper function to check if index exists
+        // Helper function to check if index exists (database-agnostic)
         $indexExists = function ($table, $indexName) {
             try {
-                $indexes = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = ?", [$indexName]);
-                return count($indexes) > 0;
+                $connection = Schema::getConnection();
+                $schemaManager = $connection->getDoctrineSchemaManager();
+                $indexes = $schemaManager->listTableIndexes($table);
+                return isset($indexes[strtolower($indexName)]);
             } catch (\Exception $e) {
                 return false;
             }

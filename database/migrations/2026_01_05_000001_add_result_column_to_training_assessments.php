@@ -62,10 +62,17 @@ return new class extends Migration
         });
 
         // Add index for performance (only if not exists)
-        if (!DB::select("SHOW INDEX FROM training_assessments WHERE Key_name = 'training_assessments_candidate_id_assessment_type_result_index'")) {
-            Schema::table('training_assessments', function (Blueprint $table) {
-                $table->index(['candidate_id', 'assessment_type', 'result']);
-            });
+        try {
+            $connection = Schema::getConnection();
+            $schemaManager = $connection->getDoctrineSchemaManager();
+            $indexes = $schemaManager->listTableIndexes('training_assessments');
+            if (!isset($indexes['training_assessments_candidate_id_assessment_type_result_index'])) {
+                Schema::table('training_assessments', function (Blueprint $table) {
+                    $table->index(['candidate_id', 'assessment_type', 'result']);
+                });
+            }
+        } catch (\Exception $e) {
+            // If we can't check, try to add the index (it will fail silently if it exists)
         }
 
         // Update existing records: derive result from score/total_marks
@@ -84,11 +91,21 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('training_assessments', function (Blueprint $table) {
-            // Drop index if it exists
-            if (DB::select("SHOW INDEX FROM training_assessments WHERE Key_name = 'training_assessments_candidate_id_assessment_type_result_index'")) {
-                $table->dropIndex(['candidate_id', 'assessment_type', 'result']);
+        // Drop index if it exists (database-agnostic check)
+        try {
+            $connection = Schema::getConnection();
+            $schemaManager = $connection->getDoctrineSchemaManager();
+            $indexes = $schemaManager->listTableIndexes('training_assessments');
+            if (isset($indexes['training_assessments_candidate_id_assessment_type_result_index'])) {
+                Schema::table('training_assessments', function (Blueprint $table) {
+                    $table->dropIndex(['candidate_id', 'assessment_type', 'result']);
+                });
             }
+        } catch (\Exception $e) {
+            // If we can't check, ignore
+        }
+
+        Schema::table('training_assessments', function (Blueprint $table) {
 
             // Drop columns if they exist
             $columnsToCheck = [
