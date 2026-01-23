@@ -63,6 +63,18 @@ Route::prefix('v1/auth')->name('v1.auth.')->group(function () {
     Route::post('/token', [ApiTokenController::class, 'createToken'])->name('token.create');
 });
 
+// ========================================================================
+// Non-Versioned Bulk Operations Routes (for backward compatibility)
+// ========================================================================
+Route::prefix('bulk')->middleware(['auth:sanctum'])->name('bulk.')->group(function () {
+    Route::post('/update-status', [BulkOperationsController::class, 'updateStatus'])->name('update-status');
+    Route::post('/assign-batch', [BulkOperationsController::class, 'assignToBatch'])->name('assign-batch');
+    Route::post('/assign-campus', [BulkOperationsController::class, 'assignToCampus'])->name('assign-campus');
+    Route::post('/export', [BulkOperationsController::class, 'export'])->name('export');
+    Route::post('/delete', [BulkOperationsController::class, 'delete'])->name('delete');
+    Route::post('/send-notification', [BulkOperationsController::class, 'sendNotification'])->name('send-notification');
+});
+
 Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function () {
 
     // Token Management

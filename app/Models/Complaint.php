@@ -45,6 +45,7 @@ class Complaint extends Model
         'registered_at',
         'registered_by',
         'evidence_files',
+        'category',  // Virtual field - mutator maps to complaint_category
         'closed_at',
         'closed_by',
         'reopened_at',
@@ -106,6 +107,8 @@ class Complaint extends Model
     public function setCategoryAttribute($value)
     {
         $this->attributes['complaint_category'] = $value;
+        // Unset category to prevent SQL error (field doesn't exist in DB)
+        unset($this->attributes['category']);
     }
 
     /**

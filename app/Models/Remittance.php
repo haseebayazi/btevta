@@ -110,6 +110,24 @@ class Remittance extends Model
         'metadata' => 'array', // v3
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Set default sender_name if not provided (database has NOT NULL constraint)
+        static::creating(function ($remittance) {
+            if (empty($remittance->sender_name)) {
+                // If we have a candidate, use their name as sender
+                if ($remittance->candidate_id) {
+                    $candidate = \App\Models\Candidate::find($remittance->candidate_id);
+                    $remittance->sender_name = $candidate ? $candidate->name : 'Unknown Sender';
+                } else {
+                    $remittance->sender_name = 'Unknown Sender';
+                }
+            }
+        });
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
