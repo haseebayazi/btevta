@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Candidate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 

@@ -47,8 +47,8 @@ return new class extends Migration
                 DB::table('activity_log')->insert([
                     'log_name' => 'migration',
                     'description' => 'Phase 2.1: Added beneficiary_id column to remittances table',
-                    'subject_type' => 'migration',
-                    'subject_id' => 0,
+                    'subject_type' => null,
+                    'subject_id' => null,
                     'causer_type' => null,
                     'causer_id' => null,
                     'properties' => json_encode(['phase' => '2.1', 'action' => 'add_fk']),
@@ -123,8 +123,8 @@ return new class extends Migration
             DB::table('activity_log')->insert([
                 'log_name' => 'migration',
                 'description' => 'Phase 2: Model & Relationship Fixes completed',
-                'subject_type' => 'migration',
-                'subject_id' => 0,
+                'subject_type' => null,
+                'subject_id' => null,
                 'causer_type' => null,
                 'causer_id' => null,
                 'properties' => json_encode(['phase' => '2', 'action' => 'complete']),

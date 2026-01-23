@@ -173,4 +173,28 @@ class CandidatePolicy
     {
         return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
+
+    /**
+     * Determine if the user can update departure information for a candidate.
+     * OEPs can update post-departure info for their assigned candidates.
+     */
+    public function updateDepartureInfo(User $user, Candidate $candidate): bool
+    {
+        // Admin and Project Director can update all
+        if ($user->isSuperAdmin() || $user->isProjectDirector()) {
+            return true;
+        }
+
+        // OEP users can update departure info for candidates assigned to them
+        if ($user->isOep() && $user->oep_id) {
+            return $candidate->oep_id === $user->oep_id;
+        }
+
+        // Campus admin can update for their campus candidates
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            return $candidate->campus_id === $user->campus_id;
+        }
+
+        return false;
+    }
 }

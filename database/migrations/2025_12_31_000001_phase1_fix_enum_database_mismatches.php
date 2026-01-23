@@ -40,7 +40,7 @@ return new class extends Migration
             DB::table('activity_log')->insert([
                 'log_name' => 'migration',
                 'description' => 'Phase 1.1: Updated candidate status from "visa" to "visa_process"',
-                'subject_type' => 'migration',
+                'subject_type' => null,
                 'subject_id' => 0,
                 'causer_type' => null,
                 'causer_id' => null,
@@ -73,7 +73,7 @@ return new class extends Migration
             DB::table('activity_log')->insert([
                 'log_name' => 'migration',
                 'description' => 'Phase 1.2: Fixed complaint priority default and updated "medium" to "normal"',
-                'subject_type' => 'migration',
+                'subject_type' => null,
                 'subject_id' => 0,
                 'causer_type' => null,
                 'causer_id' => null,
@@ -117,7 +117,7 @@ return new class extends Migration
             DB::table('activity_log')->insert([
                 'log_name' => 'migration',
                 'description' => 'Phase 1.3: Converted training_status from enum to string to support all 11 TrainingStatus values',
-                'subject_type' => 'migration',
+                'subject_type' => null,
                 'subject_id' => 0,
                 'causer_type' => null,
                 'causer_id' => null,
@@ -158,7 +158,7 @@ return new class extends Migration
             DB::table('activity_log')->insert([
                 'log_name' => 'migration',
                 'description' => 'Phase 1.4: Updated visa_processes "pending" to "initiated" to match VisaStage enum',
-                'subject_type' => 'migration',
+                'subject_type' => null,
                 'subject_id' => 0,
                 'causer_type' => null,
                 'causer_id' => null,
