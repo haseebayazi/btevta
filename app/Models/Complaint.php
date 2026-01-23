@@ -45,7 +45,7 @@ class Complaint extends Model
         'registered_at',
         'registered_by',
         'evidence_files',
-        'category',  // Alias for complaint_category
+        'category',  // Virtual field - mutator maps to complaint_category
         'closed_at',
         'closed_by',
         'reopened_at',
@@ -99,6 +99,26 @@ class Complaint extends Model
     const PRIORITY_NORMAL = 'normal';
     const PRIORITY_HIGH = 'high';
     const PRIORITY_URGENT = 'urgent';
+
+    /**
+     * Set category (maps to complaint_category).
+     * For backward compatibility with tests and external APIs.
+     */
+    public function setCategoryAttribute($value)
+    {
+        $this->attributes['complaint_category'] = $value;
+        // Unset category to prevent SQL error (field doesn't exist in DB)
+        unset($this->attributes['category']);
+    }
+
+    /**
+     * Get category (reads from complaint_category).
+     * For backward compatibility with tests and external APIs.
+     */
+    public function getCategoryAttribute()
+    {
+        return $this->attributes['complaint_category'] ?? null;
+    }
 
     public static function getStatuses()
     {

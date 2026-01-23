@@ -245,6 +245,7 @@ class AllocationService
                 ->log('Bulk candidate allocation');
 
             return [
+                'success' => true,
                 'successful' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
