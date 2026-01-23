@@ -33,9 +33,12 @@ class EnumDatabaseConsistencyTest extends TestCase
     #[Test]
     public function candidate_status_enum_values_are_valid_database_values(): void
     {
+        // WASL v3 Enhanced Workflow
         $expectedValues = [
-            'new', 'screening', 'registered', 'training',
-            'visa_process', 'ready', 'departed', 'rejected', 'dropped', 'returned'
+            'listed', 'pre_departure_docs', 'screening', 'screened', 'registered',
+            'training', 'training_completed', 'visa_process', 'visa_approved',
+            'departure_processing', 'ready_to_depart', 'departed', 'post_departure',
+            'completed', 'deferred', 'rejected', 'withdrawn'
         ];
 
         $enumValues = array_column(CandidateStatus::cases(), 'value');
