@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('placement_interest', ['local', 'international'])->nullable()->after('consent_for_work');
             $table->foreignId('target_country_id')->nullable()->after('placement_interest')->constrained('countries')->nullOnDelete();
             $table->enum('screening_status', ['pending', 'screened', 'deferred'])->default('pending')->after('target_country_id');
-            $table->string('evidence_path', 500)->nullable()->after('notes');
+            // evidence_path already exists in the table (created in 2025_11_04_add_missing_columns.php)
             $table->foreignId('reviewer_id')->nullable()->after('evidence_path')->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable()->after('reviewer_id');
 
@@ -45,7 +45,7 @@ return new class extends Migration
                 'placement_interest',
                 'target_country_id',
                 'screening_status',
-                'evidence_path',
+                // evidence_path is not dropped as it was created in an earlier migration
                 'reviewer_id',
                 'reviewed_at'
             ]);
