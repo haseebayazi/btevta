@@ -87,15 +87,25 @@ class AutoBatchService
     {
         $batchSize = $this->getBatchSize();
 
-        return Batch::where('campus_id', $campusId)
+        // Get all planned batches for the campus/trade
+        $batches = Batch::where('campus_id', $campusId)
             ->where('trade_id', $tradeId)
             ->where('status', Batch::STATUS_PLANNED)
-            ->whereHas('candidates', function ($query) use ($batchSize) {
-                // Only get batches in current year for auto-assignment
-                $query->whereYear('created_at', now()->year);
-            }, '<', $batchSize)
             ->orderBy('created_at', 'desc')
-            ->first();
+            ->get();
+
+        // Filter batches that have space (manual check to avoid SQL HAVING clause issues)
+        foreach ($batches as $batch) {
+            $currentYearCount = $batch->candidates()
+                ->whereYear('created_at', now()->year)
+                ->count();
+
+            if ($currentYearCount < $batchSize) {
+                return $batch;
+            }
+        }
+
+        return null;
     }
 
     /**

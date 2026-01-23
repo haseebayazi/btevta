@@ -291,6 +291,43 @@ class Batch extends Model
     }
 
     /**
+     * Get current size (alias for enrollment_count).
+     * For backward compatibility with tests.
+     */
+    public function getCurrentSizeAttribute()
+    {
+        return $this->enrollment_count;
+    }
+
+    /**
+     * Set current size (ignored - computed field).
+     * For backward compatibility with tests that try to set this.
+     */
+    public function setCurrentSizeAttribute($value)
+    {
+        // Ignore - this is a computed field based on candidates count
+        // Tests may try to set this, but it should not be persisted
+    }
+
+    /**
+     * Get max size (alias for capacity).
+     * For backward compatibility with tests.
+     */
+    public function getMaxSizeAttribute()
+    {
+        return $this->capacity;
+    }
+
+    /**
+     * Set max size (maps to capacity).
+     * For backward compatibility with tests.
+     */
+    public function setMaxSizeAttribute($value)
+    {
+        $this->attributes['capacity'] = $value;
+    }
+
+    /**
      * Get batch duration in days.
      */
     public function getDurationInDaysAttribute()

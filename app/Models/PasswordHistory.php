@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
 
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Hash;
  */
 class PasswordHistory extends Model
 {
+    use HasFactory;
     /**
      * Disable default timestamps (we only use created_at)
      */

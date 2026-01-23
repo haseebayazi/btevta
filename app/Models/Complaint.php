@@ -45,7 +45,6 @@ class Complaint extends Model
         'registered_at',
         'registered_by',
         'evidence_files',
-        'category',  // Alias for complaint_category
         'closed_at',
         'closed_by',
         'reopened_at',

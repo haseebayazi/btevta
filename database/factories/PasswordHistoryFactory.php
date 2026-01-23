@@ -15,7 +15,7 @@ class PasswordHistoryFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('password'),
             'created_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
         ];
     }

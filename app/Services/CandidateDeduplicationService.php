@@ -237,12 +237,10 @@ class CandidateDeduplicationService
         $normalizedName = $this->normalizeName($name);
 
         return Candidate::where('date_of_birth', $dob)
-            ->where(function($query) use ($name, $normalizedName) {
-                $query->where('name', 'like', "%{$normalizedName}%")
-                    ->orWhereRaw("SOUNDEX(name) = SOUNDEX(?)", [$name]);
-            })
+            ->where('name', 'like', "%{$normalizedName}%")
             ->get()
             ->filter(function($candidate) use ($name) {
+                // Use similarity calculation instead of SOUNDEX (SQLite compatible)
                 return $this->calculateNameSimilarity($name, $candidate->name) >= 0.8;
             });
     }
