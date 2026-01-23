@@ -89,32 +89,32 @@ class CandidateApiController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $this->authorize('create', Candidate::class);
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
-            'cnic' => 'required|string|size:13|unique:candidates,cnic|regex:/^[0-9]{13}$/|not_in:0000000000000',
-            'phone' => 'required|string|max:20|regex:/^(\\+?92[-\\s]?)?0?3[0-9]{2}[-\\s]?[0-9]{7}$/',
-            'email' => 'nullable|email|max:255',
-            'father_name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
-            'date_of_birth' => 'required|date|before:today|after:1930-01-01|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
-            'gender' => 'required|in:male,female,other',
-            'address' => 'required|string|max:1000',
-            'district' => 'required|string|max:100',
-            'trade_id' => 'required|exists:trades,id',
-            'campus_id' => 'nullable|exists:campuses,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
-
         try {
+            $this->authorize('create', Candidate::class);
+
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
+                'cnic' => 'required|string|size:13|unique:candidates,cnic|regex:/^[0-9]{13}$/|not_in:0000000000000',
+                'phone' => 'required|string|max:20|regex:/^(\\+?92[-\\s]?)?0?3[0-9]{2}[-\\s]?[0-9]{7}$/',
+                'email' => 'nullable|email|max:255',
+                'father_name' => 'required|string|max:255|regex:/^(?!\s+$).+/',
+                'date_of_birth' => 'required|date|before:today|after:1930-01-01|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+                'gender' => 'required|in:male,female,other',
+                'address' => 'required|string|max:1000',
+                'district' => 'required|string|max:100',
+                'trade_id' => 'required|exists:trades,id',
+                'campus_id' => 'nullable|exists:campuses,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
             $data['btevta_id'] = Candidate::generateBtevtaId();
             $data['status'] = Candidate::STATUS_NEW;
             $data['created_by'] = auth()->id();
@@ -131,10 +131,13 @@ class CandidateApiController extends Controller
                 'message' => 'Candidate created successfully',
                 'data' => $candidate,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to return 422 instead of 500
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Candidate creation failed', [
                 'error' => $e->getMessage(),
-                'data' => $data
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([

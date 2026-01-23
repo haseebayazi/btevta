@@ -57,6 +57,32 @@ class RegistrationDocument extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /**
+     * Set is_verified (maps to verification_status).
+     * For backward compatibility with tests.
+     */
+    public function setIsVerifiedAttribute($value)
+    {
+        // Map boolean to verification_status
+        if ($value) {
+            $this->attributes['verification_status'] = 'verified';
+            $this->attributes['status'] = 'verified';
+        } else {
+            $this->attributes['verification_status'] = 'pending';
+            $this->attributes['status'] = 'pending';
+        }
+    }
+
+    /**
+     * Get is_verified (reads from verification_status).
+     * For backward compatibility with tests.
+     */
+    public function getIsVerifiedAttribute()
+    {
+        return isset($this->attributes['verification_status']) &&
+               $this->attributes['verification_status'] === 'verified';
+    }
+
     protected static function boot()
     {
         parent::boot();
