@@ -90,12 +90,10 @@ class AutoBatchService
         return Batch::where('campus_id', $campusId)
             ->where('trade_id', $tradeId)
             ->where('status', Batch::STATUS_PLANNED)
-            ->whereHas('candidates', function ($query) {
+            ->whereHas('candidates', function ($query) use ($batchSize) {
                 // Only get batches in current year for auto-assignment
                 $query->whereYear('created_at', now()->year);
             }, '<', $batchSize)
-            ->withCount('candidates')
-            ->having('candidates_count', '<', $batchSize)
             ->orderBy('created_at', 'desc')
             ->first();
     }

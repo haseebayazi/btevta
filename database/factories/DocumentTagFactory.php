@@ -41,10 +41,11 @@ class DocumentTagFactory extends Factory
         ];
 
         $name = $this->faker->unique()->randomElement($tagNames);
+        $slug = \Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1000, 9999);
 
         return [
             'name' => $name,
-            'slug' => \Str::slug($name),
+            'slug' => $slug,
             'color' => $this->faker->randomElement($colors),
             'description' => $this->faker->optional()->sentence(),
             'created_by' => null,
