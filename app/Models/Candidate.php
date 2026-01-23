@@ -28,6 +28,8 @@ class Candidate extends Model
         'application_id',
         'batch_id',
         'campus_id',
+        'program_id',
+        'implementing_partner_id',
         'trade_id',
         'oep_id',
         'visa_partner_id',
@@ -199,6 +201,22 @@ class Candidate extends Model
     public function trade()
     {
         return $this->belongsTo(Trade::class);
+    }
+
+    /**
+     * Get the program that the candidate is enrolled in.
+     */
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    /**
+     * Get the implementing partner assigned to the candidate.
+     */
+    public function implementingPartner()
+    {
+        return $this->belongsTo(ImplementingPartner::class);
     }
 
     /**
