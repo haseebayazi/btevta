@@ -18,13 +18,16 @@ class RemittanceFactory extends Factory
         $amount = $this->faker->randomFloat(2, 1000, 50000);
         $exchangeRate = $this->faker->randomFloat(4, 0.5, 300);
 
+        $transactionDate = $this->faker->dateTimeBetween('-6 months', 'now');
+
         return [
             'candidate_id' => Candidate::factory(),
             'departure_id' => Departure::factory(),
             'campus_id' => Campus::factory(),
             'transaction_reference' => 'RMT-' . now()->format('Ymd') . '-' . strtoupper($this->faker->bothify('??####')),
             'transaction_type' => $this->faker->randomElement(['salary', 'bonus', 'allowance', 'reimbursement']),
-            'transaction_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
+            'transaction_date' => $transactionDate,
+            'transfer_date' => $transactionDate, // Legacy 2025 field - same as transaction_date
             'amount' => $amount,
             'currency' => $this->faker->randomElement(['SAR', 'PKR', 'USD']),
             'exchange_rate' => $exchangeRate,

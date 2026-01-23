@@ -108,6 +108,7 @@ class ComplaintService
             'priority' => $priority,
             'subject' => $data['subject'],
             'description' => $data['description'],
+            'complaint_date' => now(),
             'registered_at' => now(),
             'registered_by' => $data['registered_by'] ?? auth()->id(),
             'user_id' => $data['user_id'] ?? auth()->id(),
@@ -115,6 +116,7 @@ class ComplaintService
             'sla_days' => $slaDays,
             'sla_due_date' => $slaDueDate,
             'escalation_level' => 0,
+            'created_by' => $data['registered_by'] ?? auth()->id(),
         ]);
 
         // Upload evidence if provided
