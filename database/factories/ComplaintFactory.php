@@ -6,6 +6,7 @@ use App\Models\Campus;
 use App\Models\Candidate;
 use App\Models\Complaint;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 
 class ComplaintFactory extends Factory
 {
@@ -25,4 +26,47 @@ class ComplaintFactory extends Factory
             'complaint_date' => $this->faker->dateTimeBetween('-1 year', 'now'),
         ];
     }
-}
+
+    /**
+     * Override the make() method to handle 'category' parameter.
+     * Maps 'category' to 'complaint_category' before model instantiation.
+     */
+    public function make($attributes = [], ?Model $parent = null)
+    {
+        $attributes = $this->mapCategoryAttribute($attributes);
+        return parent::make($attributes, $parent);
+    }
+
+    /**
+     * Override the create() method to handle 'category' parameter.
+     * Maps 'category' to 'complaint_category' before model creation.
+     */
+    public function create($attributes = [], ?Model $parent = null)
+    {
+        $attributes = $this->mapCategoryAttribute($attributes);
+        return parent::create($attributes, $parent);
+    }
+
+    /**
+     * Override the raw() method to handle 'category' parameter.
+     * Maps 'category' to 'complaint_category' in raw attributes.
+     */
+    public function raw($attributes = [])
+    {
+        $attributes = $this->mapCategoryAttribute($attributes);
+        return parent::raw($attributes);
+    }
+
+    /**
+     * Map 'category' attribute to 'complaint_category'.
+     * Helper method to ensure consistent mapping across all factory methods.
+     */
+    protected function mapCategoryAttribute(array $attributes): array
+    {
+        if (isset($attributes['category'])) {
+            $attributes['complaint_category'] = $attributes['category'];
+            unset($attributes['category']);
+        }
+
+        return $attributes;
+    }
