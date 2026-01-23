@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Employer;
 use App\Models\Country;
@@ -13,7 +15,7 @@ class EmployerModelTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_can_create_an_employer()
     {
         $country = Country::factory()->create();
@@ -38,7 +40,7 @@ class EmployerModelTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_country()
     {
         $country = Country::factory()->create(['name' => 'Saudi Arabia']);
@@ -48,7 +50,7 @@ class EmployerModelTest extends TestCase
         $this->assertEquals('Saudi Arabia', $employer->country->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_have_many_candidates()
     {
         $employer = Employer::factory()->create();
@@ -70,7 +72,7 @@ class EmployerModelTest extends TestCase
         $this->assertCount(2, $employer->candidates);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_current_candidates_only()
     {
         $employer = Employer::factory()->create();
@@ -87,7 +89,7 @@ class EmployerModelTest extends TestCase
         $this->assertCount(2, $currentCandidates);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_creator()
     {
         $user = User::factory()->create();
@@ -97,7 +99,7 @@ class EmployerModelTest extends TestCase
         $this->assertEquals($user->id, $employer->creator->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_active_employers()
     {
         Employer::factory()->create(['is_active' => true]);
@@ -109,7 +111,7 @@ class EmployerModelTest extends TestCase
         $this->assertCount(2, $activeEmployers);
     }
 
-    /** @test */
+    #[Test]
     public function it_casts_salary_to_decimal()
     {
         $employer = Employer::factory()->create(['basic_salary' => 2500.50]);
@@ -118,7 +120,7 @@ class EmployerModelTest extends TestCase
         $this->assertEquals(2500.50, $employer->basic_salary);
     }
 
-    /** @test */
+    #[Test]
     public function it_casts_benefits_to_boolean()
     {
         $employer = Employer::factory()->create([
@@ -132,7 +134,7 @@ class EmployerModelTest extends TestCase
         $this->assertTrue($employer->transport_by_company);
     }
 
-    /** @test */
+    #[Test]
     public function it_has_fillable_attributes()
     {
         $fillable = [
@@ -157,7 +159,7 @@ class EmployerModelTest extends TestCase
         $this->assertEquals($fillable, $employer->getFillable());
     }
 
-    /** @test */
+    #[Test]
     public function it_soft_deletes()
     {
         $employer = Employer::factory()->create();
@@ -169,7 +171,7 @@ class EmployerModelTest extends TestCase
         $this->assertNotNull(Employer::withTrashed()->find($employerId)->deleted_at);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_store_evidence_path()
     {
         $employer = Employer::factory()->create([
@@ -179,7 +181,7 @@ class EmployerModelTest extends TestCase
         $this->assertEquals('employers/evidence/demand_letter.pdf', $employer->evidence_path);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_store_other_conditions()
     {
         $conditions = "Overtime: 1.5x base rate\nLeave: 30 days annual\nWorking hours: 8 hours/day";

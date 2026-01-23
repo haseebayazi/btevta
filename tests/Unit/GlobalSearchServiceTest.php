@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\GlobalSearchService;
 use App\Models\User;
@@ -28,7 +30,7 @@ class GlobalSearchServiceTest extends TestCase
     // BASIC SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_for_empty_search_term()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -39,7 +41,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertEmpty($results);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_for_whitespace_only_term()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -54,7 +56,7 @@ class GlobalSearchServiceTest extends TestCase
     // CANDIDATE SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_candidates_by_name()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -68,7 +70,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertNotEmpty($results['candidates']['items']);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_candidates_by_cnic()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -81,7 +83,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertArrayHasKey('candidates', $results);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus_candidates()
     {
         $campus1 = Campus::factory()->create();
@@ -119,7 +121,7 @@ class GlobalSearchServiceTest extends TestCase
     // BATCH SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_batches_by_name()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -135,7 +137,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertArrayHasKey('batches', $results);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_batches_by_code()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -152,7 +154,7 @@ class GlobalSearchServiceTest extends TestCase
     // TRADE SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_trades_by_name()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -173,7 +175,7 @@ class GlobalSearchServiceTest extends TestCase
     // CAMPUS SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_campuses_by_name()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -190,7 +192,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertArrayHasKey('campuses', $results);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus()
     {
         $campus1 = Campus::factory()->create([
@@ -222,7 +224,7 @@ class GlobalSearchServiceTest extends TestCase
     // OEP SEARCH
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_oeps_by_name()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -243,7 +245,7 @@ class GlobalSearchServiceTest extends TestCase
     // MULTIPLE TYPES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_searches_multiple_types_when_no_type_specified()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -258,7 +260,7 @@ class GlobalSearchServiceTest extends TestCase
         $this->assertIsArray($results);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_empty_result_sets()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -274,7 +276,7 @@ class GlobalSearchServiceTest extends TestCase
     // RESULT COUNT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_calculates_total_result_count()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -292,7 +294,7 @@ class GlobalSearchServiceTest extends TestCase
     // LIMIT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_respects_result_limit()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -311,7 +313,7 @@ class GlobalSearchServiceTest extends TestCase
     // RESULT STRUCTURE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_proper_result_structure()
     {
         $user = User::factory()->create(['role' => 'super_admin']);

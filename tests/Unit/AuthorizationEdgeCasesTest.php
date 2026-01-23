@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -25,7 +27,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // CROSS-CAMPUS ACCESS ATTEMPTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_other_campus_candidates()
     {
         $campus1 = Campus::factory()->create();
@@ -45,7 +47,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_edit_other_campus_candidates()
     {
         $campus1 = Campus::factory()->create();
@@ -67,7 +69,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_other_campus_candidates()
     {
         $campus1 = Campus::factory()->create();
@@ -87,7 +89,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_access_other_campus_batches()
     {
         $campus1 = Campus::factory()->create();
@@ -109,7 +111,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_other_campus_complaints()
     {
         $campus1 = Campus::factory()->create();
@@ -132,7 +134,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // ROLE ESCALATION ATTEMPTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function regular_user_cannot_access_admin_routes()
     {
         $user = User::factory()->create(['role' => 'user']);
@@ -153,7 +155,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_modify_data()
     {
         $viewer = User::factory()->create(['role' => 'viewer']);
@@ -176,7 +178,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_create_other_admins()
     {
         $campus = Campus::factory()->create();
@@ -195,7 +197,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function user_cannot_change_own_role()
     {
         $user = User::factory()->create(['role' => 'user']);
@@ -209,7 +211,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $this->assertEquals('user', $user->role);
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_access_administrative_functions()
     {
         $campus = Campus::factory()->create();
@@ -238,7 +240,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // OEP ISOLATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function oep_can_only_see_assigned_candidates()
     {
         $oep1 = Oep::factory()->create();
@@ -275,7 +277,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function oep_cannot_access_other_oep_remittances()
     {
         $oep1 = Oep::factory()->create();
@@ -308,7 +310,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // INACTIVE USER ACCESS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function inactive_user_cannot_login()
     {
         $user = User::factory()->create([
@@ -330,7 +332,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function deactivated_user_session_is_terminated()
     {
         $user = User::factory()->create(['is_active' => true]);
@@ -348,7 +350,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [302, 401, 403]));
     }
 
-    /** @test */
+    #[Test]
     public function deleted_user_cannot_access_system()
     {
         $user = User::factory()->create();
@@ -367,7 +369,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // TOKEN/SESSION EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function api_requests_require_valid_token()
     {
         $response = $this->getJson('/api/candidates');
@@ -375,7 +377,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function expired_token_is_rejected()
     {
         $user = User::factory()->create();
@@ -390,7 +392,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [401, 403]));
     }
 
-    /** @test */
+    #[Test]
     public function revoked_token_is_rejected()
     {
         $user = User::factory()->create();
@@ -410,7 +412,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // RESOURCE OWNERSHIP
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function user_cannot_access_other_users_api_tokens()
     {
         $user1 = User::factory()->create();
@@ -423,7 +425,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [403, 404]));
     }
 
-    /** @test */
+    #[Test]
     public function user_cannot_delete_other_users_tokens()
     {
         $user1 = User::factory()->create();
@@ -440,7 +442,7 @@ class AuthorizationEdgeCasesTest extends TestCase
     // SUPER ADMIN EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_access_all_campuses()
     {
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
@@ -452,7 +454,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_access_all_candidates()
     {
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
@@ -471,7 +473,7 @@ class AuthorizationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_access_system_settings()
     {
         $roles = ['admin', 'campus_admin', 'instructor', 'oep', 'viewer', 'user'];

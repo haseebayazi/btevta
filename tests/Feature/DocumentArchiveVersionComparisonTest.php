@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\DocumentArchive;
 use App\Models\User;
@@ -26,7 +28,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
-    /** @test */
+    #[Test]
     public function it_compares_two_document_versions()
     {
         $originalDoc = DocumentArchive::factory()->create([
@@ -65,7 +67,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertViewHas('comparison');
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_changes_between_versions()
     {
         $originalDoc = DocumentArchive::factory()->create([
@@ -106,7 +108,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $this->assertEquals('Original CNIC', $comparison['description']['v2']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_comparison_of_unrelated_documents()
     {
         $doc1 = DocumentArchive::factory()->create([
@@ -131,7 +133,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_comparison_when_version1_is_current_document()
     {
         $currentDoc = DocumentArchive::factory()->create([
@@ -157,7 +159,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_file_sizes_correctly()
     {
         $smallDoc = DocumentArchive::factory()->create([
@@ -186,7 +188,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $this->assertStringContainsString('MB', $comparison['file_size']['v2']);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_uploader_information()
     {
         $uploader1 = User::factory()->create(['name' => 'John Doe']);
@@ -218,7 +220,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $this->assertTrue($comparison['uploaded_by']['changed']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_parameters()
     {
         $doc = DocumentArchive::factory()->create();
@@ -240,7 +242,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertSessionHasErrors('version2_id');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_version_ids_exist()
     {
         $doc = DocumentArchive::factory()->create();
@@ -255,7 +257,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertSessionHasErrors(['version1_id', 'version2_id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_compares_expiry_dates()
     {
         $version1 = DocumentArchive::factory()->create([
@@ -283,7 +285,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $this->assertNotEquals($comparison['expiry_date']['v1'], $comparison['expiry_date']['v2']);
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_user_cannot_compare_versions()
     {
         $viewer = User::factory()->create(['role' => 'viewer']);
@@ -303,7 +305,7 @@ class DocumentArchiveVersionComparisonTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function it_compares_documents_with_null_values()
     {
         $version1 = DocumentArchive::factory()->create([

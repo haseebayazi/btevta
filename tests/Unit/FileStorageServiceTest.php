@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\FileStorageService;
 use App\Models\User;
@@ -29,7 +31,7 @@ class FileStorageServiceTest extends TestCase
     // FILE STORAGE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_store_a_file()
     {
         $file = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
@@ -43,7 +45,7 @@ class FileStorageServiceTest extends TestCase
         Storage::disk('private')->assertExists($result['path']);
     }
 
-    /** @test */
+    #[Test]
     public function it_stores_files_in_correct_category_paths()
     {
         $file = UploadedFile::fake()->create('passport.pdf', 100, 'application/pdf');
@@ -53,7 +55,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('candidates/456/passport', $result['path']);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_unknown_category()
     {
         $file = UploadedFile::fake()->create('document.pdf', 100);
@@ -68,7 +70,7 @@ class FileStorageServiceTest extends TestCase
     // MAGIC BYTES VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_validates_pdf_magic_bytes()
     {
         // Create a fake PDF with proper magic bytes
@@ -80,7 +82,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertTrue($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_pdf_with_wrong_magic_bytes()
     {
         // Create a file with .pdf extension but wrong content
@@ -93,7 +95,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('content does not match', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_jpg_magic_bytes()
     {
         // Create a fake JPG with proper magic bytes (JFIF)
@@ -105,7 +107,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertTrue($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_jpg_with_wrong_magic_bytes()
     {
         // Create a file with .jpg extension but wrong content
@@ -117,7 +119,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_png_magic_bytes()
     {
         // PNG magic bytes
@@ -129,7 +131,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertTrue($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_zip_magic_bytes_for_docx()
     {
         // DOCX is a ZIP file with PK header
@@ -145,7 +147,7 @@ class FileStorageServiceTest extends TestCase
     // DANGEROUS FILE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_php_files()
     {
         $file = UploadedFile::fake()->create('script.php', 100);
@@ -156,7 +158,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('security reasons', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_phtml_files()
     {
         $file = UploadedFile::fake()->create('script.phtml', 100);
@@ -166,7 +168,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_exe_files()
     {
         $file = UploadedFile::fake()->create('program.exe', 100);
@@ -176,7 +178,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_bat_files()
     {
         $file = UploadedFile::fake()->create('script.bat', 100);
@@ -186,7 +188,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_js_files()
     {
         $file = UploadedFile::fake()->create('script.js', 100);
@@ -196,7 +198,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_html_files()
     {
         $file = UploadedFile::fake()->create('page.html', 100);
@@ -206,7 +208,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_svg_files()
     {
         $file = UploadedFile::fake()->create('image.svg', 100);
@@ -220,7 +222,7 @@ class FileStorageServiceTest extends TestCase
     // DOUBLE EXTENSION ATTACKS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_double_extension_php_jpg()
     {
         $file = UploadedFile::fake()->create('image.php.jpg', 100);
@@ -231,7 +233,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('suspicious patterns', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_double_extension_exe_pdf()
     {
         $file = UploadedFile::fake()->create('document.exe.pdf', 100);
@@ -241,7 +243,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_double_extension_html_png()
     {
         $file = UploadedFile::fake()->create('file.html.png', 100);
@@ -255,7 +257,7 @@ class FileStorageServiceTest extends TestCase
     // PHP CODE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_php_code_in_file_content()
     {
         $maliciousContent = "GIF89a\n<?php echo 'hacked'; ?>";
@@ -267,7 +269,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('malicious content', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_short_php_tags()
     {
         $maliciousContent = "GIF89a\n<?= system('ls'); ?>";
@@ -278,7 +280,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_script_language_php()
     {
         $maliciousContent = "GIF89a\n<script language=\"php\">echo 'test';</script>";
@@ -293,7 +295,7 @@ class FileStorageServiceTest extends TestCase
     // FILE SIZE VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_files_exceeding_size_limit()
     {
         // Create file larger than 5MB (5120KB default)
@@ -305,7 +307,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('size exceeds', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_files_within_size_limit()
     {
         $pdfContent = "%PDF-1.4\n%Test content";
@@ -320,7 +322,7 @@ class FileStorageServiceTest extends TestCase
     // MIME TYPE VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_validates_allowed_mime_types()
     {
         $pdfContent = "%PDF-1.4\n%Test content";
@@ -331,7 +333,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertTrue($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_disallowed_mime_types()
     {
         $file = UploadedFile::fake()->create('document.txt', 100, 'text/plain');
@@ -346,7 +348,7 @@ class FileStorageServiceTest extends TestCase
     // URL GENERATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_secure_url_for_private_files()
     {
         $url = $this->service->generateUrl('private', 'candidates/123/cnic/document.pdf');
@@ -354,7 +356,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertStringContains('secure-file', $url);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_view_url_for_private_files()
     {
         $url = $this->service->generateViewUrl('private', 'candidates/123/cnic/document.pdf');
@@ -366,7 +368,7 @@ class FileStorageServiceTest extends TestCase
     // FILE OPERATIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_check_if_file_exists()
     {
         Storage::disk('private')->put('test/file.txt', 'content');
@@ -375,7 +377,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertFalse($this->service->exists('private', 'nonexistent.txt'));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_a_file()
     {
         Storage::disk('private')->put('test/delete-me.txt', 'content');
@@ -386,7 +388,7 @@ class FileStorageServiceTest extends TestCase
         Storage::disk('private')->assertMissing('test/delete-me.txt');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_file_contents()
     {
         Storage::disk('private')->put('test/content.txt', 'Hello World');
@@ -396,7 +398,7 @@ class FileStorageServiceTest extends TestCase
         $this->assertEquals('Hello World', $content);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_nonexistent_file()
     {
         $content = $this->service->get('private', 'nonexistent.txt');

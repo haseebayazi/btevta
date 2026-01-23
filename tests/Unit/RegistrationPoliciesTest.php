@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -22,7 +24,7 @@ class RegistrationPoliciesTest extends TestCase
     // NEXT OF KIN POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_next_of_kin()
     {
         $policy = new NextOfKinPolicy();
@@ -31,7 +33,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_next_of_kin()
     {
         $policy = new NextOfKinPolicy();
@@ -44,7 +46,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_next_of_kin_from_their_campus()
     {
         $policy = new NextOfKinPolicy();
@@ -59,7 +61,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $nextOfKin));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_next_of_kin_from_other_campus()
     {
         $policy = new NextOfKinPolicy();
@@ -75,7 +77,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertFalse($policy->view($user, $nextOfKin));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_next_of_kin()
     {
         $policy = new NextOfKinPolicy();
@@ -84,7 +86,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertFalse($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_next_of_kin()
     {
         $policy = new NextOfKinPolicy();
@@ -100,7 +102,7 @@ class RegistrationPoliciesTest extends TestCase
     // REGISTRATION DOCUMENT POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_document()
     {
         $policy = new RegistrationDocumentPolicy();
@@ -109,7 +111,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_upload_documents()
     {
         $policy = new RegistrationDocumentPolicy();
@@ -122,7 +124,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_documents_from_their_campus()
     {
         $policy = new RegistrationDocumentPolicy();
@@ -137,7 +139,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $document));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_download_documents()
     {
         $policy = new RegistrationDocumentPolicy();
@@ -147,7 +149,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->download($user, $document));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_and_project_director_can_verify_documents()
     {
         $policy = new RegistrationDocumentPolicy();
@@ -165,7 +167,7 @@ class RegistrationPoliciesTest extends TestCase
     // UNDERTAKING POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_undertaking()
     {
         $policy = new UndertakingPolicy();
@@ -174,7 +176,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_undertaking()
     {
         $policy = new UndertakingPolicy();
@@ -187,7 +189,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_undertakings_from_their_campus()
     {
         $policy = new UndertakingPolicy();
@@ -202,7 +204,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $undertaking));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_undertaking()
     {
         $policy = new UndertakingPolicy();
@@ -214,7 +216,7 @@ class RegistrationPoliciesTest extends TestCase
         $this->assertFalse($policy->delete($admin, $undertaking));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_download_undertaking()
     {
         $policy = new UndertakingPolicy();

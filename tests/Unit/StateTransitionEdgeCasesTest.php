@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Candidate;
 use App\Models\Campus;
@@ -44,7 +46,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // INVALID TRANSITIONS BLOCKED
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_from_new_directly_to_training()
     {
         $candidate = Candidate::factory()->create([
@@ -59,7 +61,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertNotEmpty($result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_from_new_directly_to_departed()
     {
         $candidate = Candidate::factory()->create([
@@ -73,7 +75,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($result['can_transition']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_from_departed_to_any_status()
     {
         $candidate = Candidate::factory()->create([
@@ -90,7 +92,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_from_rejected_without_reactivation()
     {
         $candidate = Candidate::factory()->create([
@@ -104,7 +106,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($result['can_transition']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_to_visa_process_without_training_completion()
     {
         $candidate = Candidate::factory()->create([
@@ -121,7 +123,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertContains('Training not completed', $result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_to_ready_without_visa_issued()
     {
         $candidate = Candidate::factory()->create([
@@ -140,7 +142,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($result['can_transition']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_transition_to_departed_without_briefing()
     {
         $candidate = Candidate::factory()->create([
@@ -163,7 +165,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // CONCURRENT STATUS UPDATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_handles_concurrent_status_updates_safely()
     {
         $candidate = Candidate::factory()->create([
@@ -188,7 +190,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         DB::rollBack();
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_race_condition_in_batch_assignment()
     {
         // Create batch with capacity 1
@@ -222,7 +224,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // PARTIAL COMPLETION SCENARIOS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_blocks_registration_with_partial_documents()
     {
         $candidate = Candidate::factory()->create([
@@ -243,7 +245,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_training_completion_with_partial_assessments()
     {
         $candidate = Candidate::factory()->create([
@@ -257,7 +259,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($candidate->hasPassedAllAssessments());
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_visa_process_with_partial_stages()
     {
         $candidate = Candidate::factory()->create([
@@ -283,7 +285,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // PREREQUISITE CHAIN VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_validates_screening_prerequisite_chain()
     {
         $candidate = Candidate::factory()->create([
@@ -298,7 +300,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_visa_stage_prerequisite_chain()
     {
         $candidate = Candidate::factory()->create([
@@ -322,7 +324,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // EDGE CASE STATUS VALUES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_handles_null_status_gracefully()
     {
         $candidate = new Candidate([
@@ -336,7 +338,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertNotNull($candidate->status ?? 'new');
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_invalid_status_value()
     {
         $candidate = Candidate::factory()->create([
@@ -360,7 +362,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // TRAINING STATUS EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_blocks_training_certificate_for_failed_training()
     {
         $candidate = Candidate::factory()->create([
@@ -376,7 +378,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertFalse($canIssueCertificate);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_training_certificate_for_withdrawn_candidate()
     {
         $candidate = Candidate::factory()->create([
@@ -396,7 +398,7 @@ class StateTransitionEdgeCasesTest extends TestCase
     // REACTIVATION SCENARIOS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_allows_reactivation_of_dropped_candidate_with_reason()
     {
         $candidate = Candidate::factory()->create([
@@ -410,7 +412,7 @@ class StateTransitionEdgeCasesTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_reactivation_without_reason()
     {
         $candidate = Candidate::factory()->create([

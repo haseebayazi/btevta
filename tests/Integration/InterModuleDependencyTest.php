@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -45,7 +47,7 @@ class InterModuleDependencyTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function screening_outcome_determines_registration_eligibility()
     {
         $this->candidate->update(['status' => 'screening']);
@@ -101,7 +103,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertNull($ineligibleCandidate->registration);
     }
 
-    /** @test */
+    #[Test]
     public function registration_requires_mandatory_documents()
     {
         $this->candidate->update(['status' => 'registration']);
@@ -196,7 +198,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertTrue($registration->fresh()->documents_verified);
     }
 
-    /** @test */
+    #[Test]
     public function training_completion_enables_visa_processing()
     {
         // Setup: Candidate has completed screening and registration
@@ -253,7 +255,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertEquals('visa_processing', $this->candidate->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function expired_documents_block_visa_processing()
     {
         // Setup: Candidate ready for visa processing
@@ -346,7 +348,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertNotNull($visaProcessing);
     }
 
-    /** @test */
+    #[Test]
     public function complaints_affect_candidate_status_and_processing()
     {
         // Candidate in visa processing
@@ -421,7 +423,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertEquals('in_progress', $this->candidate->fresh()->visaProcessing->overall_status);
     }
 
-    /** @test */
+    #[Test]
     public function correspondence_links_across_multiple_modules()
     {
         // Setup: Candidate in various stages
@@ -509,7 +511,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertFalse($hasPendingCorrespondence);
     }
 
-    /** @test */
+    #[Test]
     public function document_expiry_triggers_correspondence_and_blocks_departure()
     {
         // Setup: Candidate ready for departure
@@ -592,7 +594,7 @@ class InterModuleDependencyTest extends TestCase
         $this->assertFalse($hasExpiringCriticalDocs);
     }
 
-    /** @test */
+    #[Test]
     public function module_data_consistency_across_candidate_lifecycle()
     {
         // Full lifecycle test - verify data consistency

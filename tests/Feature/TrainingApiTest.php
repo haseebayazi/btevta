@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -42,7 +44,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== BATCH ENROLLMENT ====================
 
-    /** @test */
+    #[Test]
     public function it_assigns_candidates_to_batch()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -66,7 +68,7 @@ class TrainingApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_respects_batch_capacity()
     {
         $batch = Batch::factory()->create([
@@ -97,7 +99,7 @@ class TrainingApiTest extends TestCase
         $this->assertEquals(2, count($result['failed']));
     }
 
-    /** @test */
+    #[Test]
     public function it_skips_already_assigned_candidates()
     {
         $candidate = Candidate::factory()->create([
@@ -116,7 +118,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== ATTENDANCE ====================
 
-    /** @test */
+    #[Test]
     public function it_records_attendance()
     {
         $candidate = Candidate::factory()->create([
@@ -141,7 +143,7 @@ class TrainingApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_attendance_percentage()
     {
         $candidate = Candidate::factory()->create([
@@ -165,7 +167,7 @@ class TrainingApiTest extends TestCase
         $this->assertEquals(80, $percentage);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_attendance_report()
     {
         $candidates = Candidate::factory()->count(3)->create([
@@ -196,7 +198,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== ASSESSMENTS ====================
 
-    /** @test */
+    #[Test]
     public function it_records_assessment()
     {
         $candidate = Candidate::factory()->create([
@@ -224,7 +226,7 @@ class TrainingApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_average_score()
     {
         $candidate = Candidate::factory()->create([
@@ -257,7 +259,7 @@ class TrainingApiTest extends TestCase
         $this->assertEquals(75, $average);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_passing_all_assessments()
     {
         $candidate = Candidate::factory()->create([
@@ -289,7 +291,7 @@ class TrainingApiTest extends TestCase
         $this->assertFalse($candidate->hasPassedAllAssessments());
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_assessment_report()
     {
         $candidates = Candidate::factory()->count(3)->create([
@@ -320,7 +322,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== CERTIFICATES ====================
 
-    /** @test */
+    #[Test]
     public function it_issues_certificate()
     {
         $candidate = Candidate::factory()->create([
@@ -360,7 +362,7 @@ class TrainingApiTest extends TestCase
         $this->assertNotNull($candidate->fresh()->certificate);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_certificate_requirements()
     {
         $candidate = Candidate::factory()->create([
@@ -378,7 +380,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== TRAINING COMPLETION ====================
 
-    /** @test */
+    #[Test]
     public function it_completes_training()
     {
         $candidate = $this->createTrainingReadyCandidate();
@@ -392,7 +394,7 @@ class TrainingApiTest extends TestCase
         $this->assertEquals(Candidate::TRAINING_COMPLETED, $candidate->training_status);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_completion_without_attendance()
     {
         $candidate = Candidate::factory()->create([
@@ -418,7 +420,7 @@ class TrainingApiTest extends TestCase
         $this->assertStringContainsString('attendance', strtolower($result['message']));
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_completion_without_final_assessment()
     {
         $candidate = Candidate::factory()->create([
@@ -447,7 +449,7 @@ class TrainingApiTest extends TestCase
 
     // ==================== BATCH PERFORMANCE ====================
 
-    /** @test */
+    #[Test]
     public function it_returns_batch_performance()
     {
         $candidates = Candidate::factory()->count(5)->create([

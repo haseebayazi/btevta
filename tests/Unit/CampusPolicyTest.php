@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -24,7 +26,7 @@ class CampusPolicyTest extends TestCase
     // VIEW ANY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -32,7 +34,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_campus()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -40,7 +42,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_campus_list()
     {
         $user = User::factory()->create(['role' => 'campus_admin']);
@@ -48,7 +50,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_campus_list()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -56,7 +58,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_view_campus_list()
     {
         $roles = ['trainer', 'oep'];
@@ -71,7 +73,7 @@ class CampusPolicyTest extends TestCase
     // VIEW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -80,7 +82,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'project_director']);
@@ -89,7 +91,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_specific_campus()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -98,7 +100,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_their_own_campus()
     {
         $campus = Campus::factory()->create();
@@ -110,7 +112,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -123,7 +125,7 @@ class CampusPolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $campus2));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_without_campus_id_cannot_view_campus()
     {
         $user = User::factory()->create([
@@ -139,7 +141,7 @@ class CampusPolicyTest extends TestCase
     // CREATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -147,7 +149,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_create_campus()
     {
         $roles = ['project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -162,7 +164,7 @@ class CampusPolicyTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -171,7 +173,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_update_campus()
     {
         $campus = Campus::factory()->create();
@@ -187,7 +189,7 @@ class CampusPolicyTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_campus()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -196,7 +198,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_delete_campus()
     {
         $campus = Campus::factory()->create();
@@ -212,7 +214,7 @@ class CampusPolicyTest extends TestCase
     // TOGGLE STATUS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_toggle_campus_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -221,7 +223,7 @@ class CampusPolicyTest extends TestCase
         $this->assertTrue($this->policy->toggleStatus($user, $campus));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_toggle_campus_status()
     {
         $campus = Campus::factory()->create();
@@ -237,7 +239,7 @@ class CampusPolicyTest extends TestCase
     // API LIST
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_access_api_list()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'viewer'];
@@ -248,7 +250,7 @@ class CampusPolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_access_api_list()
     {
         $roles = ['trainer', 'oep'];

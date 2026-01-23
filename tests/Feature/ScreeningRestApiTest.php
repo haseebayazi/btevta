@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -50,7 +52,7 @@ class ScreeningRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_all_screenings_with_authentication()
     {
         Sanctum::actingAs($this->admin);
@@ -78,7 +80,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication_for_screening_list()
     {
         $response = $this->getJson('/api/v1/screenings');
@@ -86,7 +88,7 @@ class ScreeningRestApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_screenings_by_campus_for_campus_admin()
     {
         // Create screening for different campus
@@ -109,7 +111,7 @@ class ScreeningRestApiTest extends TestCase
         $this->assertEquals($this->campus->id, $data[0]['candidate']['campus']['id']);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_specific_screening()
     {
         Sanctum::actingAs($this->admin);
@@ -126,7 +128,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_screenings_by_candidate()
     {
         Sanctum::actingAs($this->admin);
@@ -143,7 +145,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_screening_statistics()
     {
         Sanctum::actingAs($this->admin);
@@ -166,7 +168,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_pending_screenings()
     {
         // Create candidate in screening status
@@ -187,7 +189,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_screening_record()
     {
         $newCandidate = Candidate::factory()->create([
@@ -225,7 +227,7 @@ class ScreeningRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_screening_record()
     {
         Sanctum::actingAs($this->admin);
@@ -247,7 +249,7 @@ class ScreeningRestApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields_on_create()
     {
         Sanctum::actingAs($this->admin);
@@ -266,7 +268,7 @@ class ScreeningRestApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_screenings_by_status()
     {
         CandidateScreening::factory()->create([
@@ -286,7 +288,7 @@ class ScreeningRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_screenings_by_outcome()
     {
         Sanctum::actingAs($this->admin);
@@ -301,7 +303,7 @@ class ScreeningRestApiTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_screenings_by_date_range()
     {
         Sanctum::actingAs($this->admin);
@@ -314,7 +316,7 @@ class ScreeningRestApiTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function it_supports_pagination()
     {
         // Create multiple screenings

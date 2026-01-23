@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -27,7 +29,7 @@ class CandidateApiControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_paginated_candidates()
     {
         Candidate::factory()->count(25)->create();
@@ -43,7 +45,7 @@ class CandidateApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_candidates_by_status()
     {
         Candidate::factory()->count(5)->create(['status' => 'screening']);
@@ -55,7 +57,7 @@ class CandidateApiControllerTest extends TestCase
         $this->assertCount(5, $response->json('data'));
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_candidates_by_campus()
     {
         $campus = Campus::factory()->create();
@@ -68,7 +70,7 @@ class CandidateApiControllerTest extends TestCase
         $this->assertCount(4, $response->json('data'));
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_candidates_by_name()
     {
         Candidate::factory()->create(['name' => 'Ahmed Khan']);
@@ -81,7 +83,7 @@ class CandidateApiControllerTest extends TestCase
         $this->assertCount(2, $response->json('data'));
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_candidates_by_cnic()
     {
         Candidate::factory()->create(['cnic' => '1234567890123']);
@@ -97,7 +99,7 @@ class CandidateApiControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_single_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -110,7 +112,7 @@ class CandidateApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_nonexistent_candidate()
     {
         $response = $this->getJson('/api/v1/candidates/99999');
@@ -118,7 +120,7 @@ class CandidateApiControllerTest extends TestCase
         $response->assertStatus(404);
     }
 
-    /** @test */
+    #[Test]
     public function it_includes_relationships_in_show()
     {
         $campus = Campus::factory()->create();
@@ -139,7 +141,7 @@ class CandidateApiControllerTest extends TestCase
     // STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_creates_a_new_candidate()
     {
         $campus = Campus::factory()->create();
@@ -162,7 +164,7 @@ class CandidateApiControllerTest extends TestCase
         $this->assertDatabaseHas('candidates', ['cnic' => '1234567890123']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields()
     {
         $response = $this->postJson('/api/v1/candidates', []);
@@ -171,7 +173,7 @@ class CandidateApiControllerTest extends TestCase
             ->assertJsonValidationErrors(['name', 'cnic', 'phone']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_unique_cnic()
     {
         Candidate::factory()->create(['cnic' => '1234567890123']);
@@ -186,7 +188,7 @@ class CandidateApiControllerTest extends TestCase
             ->assertJsonValidationErrors(['cnic']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_cnic_format()
     {
         $response = $this->postJson('/api/v1/candidates', [
@@ -203,7 +205,7 @@ class CandidateApiControllerTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_updates_a_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -217,7 +219,7 @@ class CandidateApiControllerTest extends TestCase
             ->assertJsonPath('data.name', 'Updated Name');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_update_data()
     {
         $candidate = Candidate::factory()->create();
@@ -233,7 +235,7 @@ class CandidateApiControllerTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_soft_deletes_a_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -248,7 +250,7 @@ class CandidateApiControllerTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_candidate_statistics()
     {
         Candidate::factory()->count(10)->create(['status' => 'new']);
@@ -274,7 +276,7 @@ class CandidateApiControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_api()
     {
         // Clear the authenticated user
@@ -286,7 +288,7 @@ class CandidateApiControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus_candidates()
     {
         $campus = Campus::factory()->create();
@@ -309,7 +311,7 @@ class CandidateApiControllerTest extends TestCase
     // PAGINATION LIMITS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_respects_per_page_parameter()
     {
         Candidate::factory()->count(50)->create();
@@ -321,7 +323,7 @@ class CandidateApiControllerTest extends TestCase
         $this->assertEquals(10, $response->json('meta.per_page'));
     }
 
-    /** @test */
+    #[Test]
     public function it_limits_maximum_per_page()
     {
         Candidate::factory()->count(200)->create();

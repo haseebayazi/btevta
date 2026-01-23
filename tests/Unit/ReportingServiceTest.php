@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\ReportingService;
 use App\Models\Candidate;
@@ -35,7 +37,7 @@ class ReportingServiceTest extends TestCase
     // CANDIDATE PIPELINE REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_candidate_pipeline_report()
     {
         Campus::factory()->create();
@@ -52,7 +54,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('generated_at', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_pipeline_report_by_campus()
     {
         $campus = Campus::factory()->create();
@@ -67,7 +69,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(3, $report['total_candidates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_conversion_rates()
     {
         Campus::factory()->create();
@@ -90,7 +92,7 @@ class ReportingServiceTest extends TestCase
     // TRAINING REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_training_report()
     {
         $campus = Campus::factory()->create();
@@ -109,7 +111,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('completion_rates', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_batch_statistics()
     {
         $campus = Campus::factory()->create();
@@ -134,7 +136,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(2, $report['batch_statistics']['completed_batches']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_attendance_summary()
     {
         $campus = Campus::factory()->create();
@@ -169,7 +171,7 @@ class ReportingServiceTest extends TestCase
     // VISA PROCESSING REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_visa_processing_report()
     {
         $candidate = Candidate::factory()->create();
@@ -185,7 +187,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('bottleneck_analysis', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_average_processing_time()
     {
         $candidate = Candidate::factory()->create();
@@ -207,7 +209,7 @@ class ReportingServiceTest extends TestCase
     // COMPLIANCE REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_generates_compliance_report()
     {
         $report = $this->service->getComplianceReport();
@@ -218,7 +220,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('sla_performance', $report);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_departure_compliance()
     {
         $candidate1 = Candidate::factory()->create();
@@ -241,7 +243,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(1, $report['departure_compliance']['non_compliant']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_remittance_compliance()
     {
         $candidate = Candidate::factory()->create();
@@ -265,7 +267,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('total_amount', $report['remittance_compliance']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_complaint_resolution()
     {
         Complaint::factory()->create(['status' => 'registered']);
@@ -283,7 +285,7 @@ class ReportingServiceTest extends TestCase
     // CUSTOM REPORT BUILDER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_builds_custom_report_for_candidates()
     {
         Campus::factory()->create();
@@ -298,7 +300,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals('candidates', $report['report_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_filters_to_custom_report()
     {
         Campus::factory()->create();
@@ -313,7 +315,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(3, $report['data']->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_unknown_report_type()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -326,7 +328,7 @@ class ReportingServiceTest extends TestCase
     // FILTER OPERATORS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_applies_equals_filter()
     {
         Campus::factory()->create();
@@ -341,7 +343,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(1, $report['data']->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_contains_filter()
     {
         Campus::factory()->create();
@@ -357,7 +359,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(2, $report['data']->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_in_filter()
     {
         Campus::factory()->create();
@@ -373,7 +375,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals(2, $report['data']->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_between_filter()
     {
         Campus::factory()->create();
@@ -398,7 +400,7 @@ class ReportingServiceTest extends TestCase
     // AVAILABLE FILTERS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_available_filters_for_candidates()
     {
         Campus::factory()->create();
@@ -414,7 +416,7 @@ class ReportingServiceTest extends TestCase
         $this->assertArrayHasKey('status', $filters);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_available_filters_for_training()
     {
         Campus::factory()->create();
@@ -432,7 +434,7 @@ class ReportingServiceTest extends TestCase
     // CACHING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_caches_report_results()
     {
         Campus::factory()->create();
@@ -452,7 +454,7 @@ class ReportingServiceTest extends TestCase
         $this->assertEquals($report1['total_candidates'], $report2['total_candidates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_clear_cache()
     {
         $this->service->clearCache();

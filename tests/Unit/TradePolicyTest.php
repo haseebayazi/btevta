@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Trade;
@@ -20,7 +22,7 @@ class TradePolicyTest extends TestCase
         $this->policy = new TradePolicy();
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_view_any_trade()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -31,14 +33,14 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_view_any_trade()
     {
         $user = User::factory()->create(['role' => 'oep']);
         $this->assertFalse($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_view_trade()
     {
         $trade = Trade::factory()->create();
@@ -50,14 +52,14 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_trade()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_create_trade()
     {
         $roles = ['project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -68,7 +70,7 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_trade()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -76,7 +78,7 @@ class TradePolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $trade));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_update_trade()
     {
         $trade = Trade::factory()->create();
@@ -88,7 +90,7 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_trade()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -96,7 +98,7 @@ class TradePolicyTest extends TestCase
         $this->assertTrue($this->policy->delete($user, $trade));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_delete_trade()
     {
         $trade = Trade::factory()->create();
@@ -108,7 +110,7 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_toggle_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -116,7 +118,7 @@ class TradePolicyTest extends TestCase
         $this->assertTrue($this->policy->toggleStatus($user, $trade));
     }
 
-    /** @test */
+    #[Test]
     public function non_super_admin_cannot_toggle_status()
     {
         $trade = Trade::factory()->create();
@@ -128,7 +130,7 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_access_api_list()
     {
         $roles = ['super_admin', 'project_director', 'campus_admin', 'trainer', 'viewer'];
@@ -139,7 +141,7 @@ class TradePolicyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_roles_cannot_access_api_list()
     {
         $user = User::factory()->create(['role' => 'oep']);

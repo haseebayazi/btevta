@@ -2,6 +2,8 @@
 
 namespace Tests\Browser;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use App\Models\User;
 use App\Models\Candidate;
 use App\Models\Trade;
@@ -48,7 +50,7 @@ class TrainingWorkflowTest extends DuskTestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_access_training_dashboard()
     {
         $this->browse(function (Browser $browser) {
@@ -59,7 +61,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_view_batch_details()
     {
         $this->browse(function (Browser $browser) {
@@ -71,7 +73,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_record_attendance()
     {
         $this->browse(function (Browser $browser) {
@@ -86,7 +88,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_attendance_percentage()
     {
         // Create attendance records
@@ -108,7 +110,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_record_assessment()
     {
         $this->browse(function (Browser $browser) {
@@ -125,7 +127,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_assessment_history()
     {
         TrainingAssessment::create([
@@ -160,7 +162,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_issue_certificate()
     {
         // Setup - add required attendance and assessment
@@ -195,7 +197,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_certificate_requirements()
     {
         // Candidate with low attendance
@@ -217,7 +219,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_complete_training()
     {
         // Setup complete training requirements
@@ -251,7 +253,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_batch_performance_summary()
     {
         // Add multiple candidates with training data
@@ -292,7 +294,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_assign_candidates_to_batch()
     {
         $newCandidate = Candidate::factory()->create([
@@ -313,7 +315,7 @@ class TrainingWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_batch_capacity_warning()
     {
         $fullBatch = Batch::factory()->create([

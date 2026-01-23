@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -28,7 +30,7 @@ class ValidationApiTest extends TestCase
 
     // ==================== CNIC VALIDATION ====================
 
-    /** @test */
+    #[Test]
     public function it_validates_valid_cnic_format()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-cnic', [
@@ -42,7 +44,7 @@ class ValidationApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_cnic_length()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-cnic', [
@@ -54,7 +56,7 @@ class ValidationApiTest extends TestCase
         $this->assertFalse($data['format_valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_cnic_with_dashes()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-cnic', [
@@ -66,7 +68,7 @@ class ValidationApiTest extends TestCase
         $this->assertTrue($data['format_valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_non_numeric_cnic()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-cnic', [
@@ -80,7 +82,7 @@ class ValidationApiTest extends TestCase
 
     // ==================== PHONE VALIDATION ====================
 
-    /** @test */
+    #[Test]
     public function it_validates_pakistan_phone_03xx_format()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -92,7 +94,7 @@ class ValidationApiTest extends TestCase
         $this->assertTrue($data['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_pakistan_phone_with_plus92()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -104,7 +106,7 @@ class ValidationApiTest extends TestCase
         $this->assertTrue($data['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_pakistan_phone_with_92()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -116,7 +118,7 @@ class ValidationApiTest extends TestCase
         $this->assertTrue($data['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_phone_with_dashes()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -128,7 +130,7 @@ class ValidationApiTest extends TestCase
         $this->assertTrue($data['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_phone_format()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -140,7 +142,7 @@ class ValidationApiTest extends TestCase
         $this->assertFalse($data['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_non_pakistan_phone()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/validate-phone', [
@@ -154,7 +156,7 @@ class ValidationApiTest extends TestCase
 
     // ==================== DUPLICATE DETECTION ====================
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_by_phone()
     {
         Candidate::factory()->create([
@@ -172,7 +174,7 @@ class ValidationApiTest extends TestCase
         $this->assertEquals('phone', $data['duplicates'][0]['match_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_by_email()
     {
         Candidate::factory()->create([
@@ -190,7 +192,7 @@ class ValidationApiTest extends TestCase
         $this->assertEquals('email', $data['duplicates'][0]['match_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_duplicate_by_similar_name()
     {
         Candidate::factory()->create([
@@ -208,7 +210,7 @@ class ValidationApiTest extends TestCase
         $this->assertIsArray($data['duplicates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_excludes_specified_candidate_from_duplicates()
     {
         $existing = Candidate::factory()->create([
@@ -226,7 +228,7 @@ class ValidationApiTest extends TestCase
         $this->assertEmpty($data['duplicates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_when_no_duplicates()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/check-duplicates', [
@@ -239,7 +241,7 @@ class ValidationApiTest extends TestCase
         $this->assertEmpty($data['duplicates']);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication_for_validation_apis()
     {
         $response = $this->postJson('/api/validate-cnic', [
@@ -249,7 +251,7 @@ class ValidationApiTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_multiple_duplicate_types()
     {
         Candidate::factory()->create([

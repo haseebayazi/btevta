@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Enums\CandidateStatus;
 use App\Enums\ComplaintPriority;
@@ -28,7 +30,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // CandidateStatus Enum Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function candidate_status_enum_values_are_valid_database_values(): void
     {
         $expectedValues = [
@@ -41,7 +43,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertEquals($expectedValues, $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function candidate_status_visa_process_is_correctly_named(): void
     {
         // This test ensures we use 'visa_process' not 'visa'
@@ -49,7 +51,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertNotEquals('visa', CandidateStatus::VISA_PROCESS->value);
     }
 
-    /** @test */
+    #[Test]
     public function all_candidate_statuses_can_be_stored_in_database(): void
     {
         // Skip if candidates table doesn't exist
@@ -78,7 +80,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function candidate_status_transitions_are_valid(): void
     {
         // Test that valid transitions work
@@ -95,7 +97,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // ComplaintPriority Enum Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function complaint_priority_enum_values_are_valid(): void
     {
         $expectedValues = ['low', 'normal', 'high', 'urgent'];
@@ -105,7 +107,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertEquals($expectedValues, $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_priority_does_not_have_medium(): void
     {
         // Ensure 'medium' is NOT a valid priority (common mistake)
@@ -115,7 +117,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertContains('normal', $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_priority_normal_is_default(): void
     {
         // Skip if complaints table doesn't exist
@@ -127,7 +129,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertEquals('normal', ComplaintPriority::NORMAL->value);
     }
 
-    /** @test */
+    #[Test]
     public function all_complaint_priorities_can_be_stored(): void
     {
         if (!Schema::hasTable('complaints')) {
@@ -153,7 +155,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // ComplaintStatus Enum Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function complaint_status_enum_values_are_valid(): void
     {
         $expectedValues = ['open', 'assigned', 'in_progress', 'resolved', 'closed'];
@@ -163,7 +165,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertEquals($expectedValues, $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function all_complaint_statuses_can_be_stored(): void
     {
         if (!Schema::hasTable('complaints')) {
@@ -189,7 +191,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // TrainingStatus Enum Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function training_status_enum_has_all_eleven_values(): void
     {
         $expectedValues = [
@@ -207,7 +209,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function training_status_candidate_statuses_are_correct(): void
     {
         $candidateStatuses = TrainingStatus::candidateStatuses();
@@ -221,7 +223,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertContains(TrainingStatus::WITHDRAWN, $candidateStatuses);
     }
 
-    /** @test */
+    #[Test]
     public function training_status_class_statuses_are_correct(): void
     {
         $classStatuses = TrainingStatus::classStatuses();
@@ -235,7 +237,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertContains(TrainingStatus::RESCHEDULED, $classStatuses);
     }
 
-    /** @test */
+    #[Test]
     public function all_training_statuses_can_be_stored_in_candidates_table(): void
     {
         if (!Schema::hasTable('candidates')) {
@@ -274,7 +276,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // VisaStage Enum Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function visa_stage_enum_values_are_valid(): void
     {
         $expectedValues = [
@@ -287,7 +289,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertEquals($expectedValues, $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function visa_stage_does_not_have_pending(): void
     {
         // Ensure 'pending' is NOT a valid stage (common mistake)
@@ -297,14 +299,14 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertContains('initiated', $enumValues);
     }
 
-    /** @test */
+    #[Test]
     public function visa_stage_initiated_is_first(): void
     {
         $this->assertEquals('initiated', VisaStage::INITIATED->value);
         $this->assertEquals(1, VisaStage::INITIATED->order());
     }
 
-    /** @test */
+    #[Test]
     public function visa_stage_order_is_sequential(): void
     {
         $stages = VisaStage::cases();
@@ -316,7 +318,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function visa_stage_next_stage_returns_correct_stage(): void
     {
         $this->assertEquals(VisaStage::INTERVIEW, VisaStage::INITIATED->nextStage());
@@ -332,7 +334,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertNull(VisaStage::COMPLETED->nextStage());
     }
 
-    /** @test */
+    #[Test]
     public function all_visa_stages_can_be_stored(): void
     {
         if (!Schema::hasTable('visa_processes')) {
@@ -356,7 +358,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     // Cross-Enum Consistency Tests
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function all_enums_have_to_array_method(): void
     {
         $this->assertIsArray(CandidateStatus::toArray());
@@ -366,7 +368,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         $this->assertIsArray(VisaStage::toArray());
     }
 
-    /** @test */
+    #[Test]
     public function all_enums_have_label_method(): void
     {
         foreach (CandidateStatus::cases() as $status) {
@@ -395,7 +397,7 @@ class EnumDatabaseConsistencyTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function all_enums_have_color_method(): void
     {
         foreach (CandidateStatus::cases() as $status) {

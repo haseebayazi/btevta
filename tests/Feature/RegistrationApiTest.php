@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -48,7 +50,7 @@ class RegistrationApiTest extends TestCase
 
     // ==================== DOCUMENT UPLOAD ====================
 
-    /** @test */
+    #[Test]
     public function it_uploads_registration_document()
     {
         $file = UploadedFile::fake()->create('cnic.pdf', 100, 'application/pdf');
@@ -70,7 +72,7 @@ class RegistrationApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_document_type()
     {
         $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
@@ -86,7 +88,7 @@ class RegistrationApiTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_image_documents()
     {
         $file = UploadedFile::fake()->image('photo.jpg', 400, 400);
@@ -104,7 +106,7 @@ class RegistrationApiTest extends TestCase
 
     // ==================== DOCUMENT VERIFICATION ====================
 
-    /** @test */
+    #[Test]
     public function it_verifies_document()
     {
         $document = RegistrationDocument::create([
@@ -124,7 +126,7 @@ class RegistrationApiTest extends TestCase
         $this->assertEquals('verified', $document->status);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_document_with_reason()
     {
         $document = RegistrationDocument::create([
@@ -150,7 +152,7 @@ class RegistrationApiTest extends TestCase
 
     // ==================== REGISTRATION STATUS ====================
 
-    /** @test */
+    #[Test]
     public function it_returns_registration_status()
     {
         // Add some documents
@@ -183,7 +185,7 @@ class RegistrationApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_identifies_missing_requirements()
     {
         $response = $this->actingAs($this->admin)->getJson(
@@ -199,7 +201,7 @@ class RegistrationApiTest extends TestCase
 
     // ==================== START TRAINING ====================
 
-    /** @test */
+    #[Test]
     public function it_starts_training_for_eligible_candidate()
     {
         $this->setupCandidateForTraining();
@@ -218,7 +220,7 @@ class RegistrationApiTest extends TestCase
         $this->assertEquals($this->batch->id, $this->candidate->batch_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_training_start_without_documents()
     {
         $response = $this->actingAs($this->admin)->postJson(
@@ -232,7 +234,7 @@ class RegistrationApiTest extends TestCase
         $response->assertJsonFragment(['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_training_start_without_next_of_kin()
     {
         // Add documents but not next of kin
@@ -255,7 +257,7 @@ class RegistrationApiTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_training_start_without_undertaking()
     {
         // Add documents and next of kin but not undertaking
@@ -288,7 +290,7 @@ class RegistrationApiTest extends TestCase
 
     // ==================== COMPLETE REGISTRATION ====================
 
-    /** @test */
+    #[Test]
     public function it_completes_registration_with_valid_documents()
     {
         // Add all required documents with valid expiry
@@ -309,7 +311,7 @@ class RegistrationApiTest extends TestCase
         $response->assertOk();
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_completion_with_expired_documents()
     {
         // Add documents with one expired
@@ -340,7 +342,7 @@ class RegistrationApiTest extends TestCase
         $this->assertStringContainsString('expired', strtolower($data['message']));
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_completion_with_pending_documents()
     {
         // Add documents with one pending

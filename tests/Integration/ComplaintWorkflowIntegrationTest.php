@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -48,7 +50,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         $this->complaintService = app(ComplaintService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_processes_complete_complaint_workflow_from_registration_to_resolution()
     {
         // ============================================================
@@ -233,7 +235,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         $this->assertGreaterThan(0, $slaStatus['remaining_days']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_sla_breach_and_auto_escalation()
     {
         // Create complaint that's already past SLA
@@ -288,7 +290,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         $this->assertTrue($complaint->fresh()->sla_breached);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_multiple_escalation_levels()
     {
         $complaint = Complaint::factory()->create([
@@ -328,7 +330,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_complaint_resolution_time()
     {
         $reportedDate = now()->subDays(10);
@@ -371,7 +373,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_links_complaints_to_candidate_journey()
     {
         // Create candidate with visa processing
@@ -424,7 +426,7 @@ class ComplaintWorkflowIntegrationTest extends TestCase
         $this->assertEquals(66.67, round($resolutionRate, 2));
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_complaint_reopening()
     {
         $complaint = Complaint::factory()->create([

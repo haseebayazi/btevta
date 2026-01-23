@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -47,7 +49,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK STATUS UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_updates_multiple_candidates_status_atomically()
     {
         $candidates = Candidate::factory()->count(10)->create([
@@ -65,7 +67,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(10, Candidate::where('status', 'screening')->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_status_transitions_in_bulk()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -85,7 +87,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(5, Candidate::where('status', 'new')->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_rolls_back_on_partial_failure()
     {
         $validCandidates = Candidate::factory()->count(3)->create([
@@ -117,7 +119,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK BATCH ASSIGNMENT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_assigns_candidates_to_batch_with_capacity_check()
     {
         $candidates = Candidate::factory()->count(10)->create([
@@ -135,7 +137,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(10, Candidate::where('batch_id', $this->batch->id)->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_assignment_exceeding_capacity()
     {
         // Fill batch to capacity
@@ -160,7 +162,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertStringContainsString('capacity', strtolower($response->json('message')));
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_trade_compatibility_for_batch_assignment()
     {
         $otherTrade = Trade::factory()->create();
@@ -182,7 +184,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK CAMPUS TRANSFER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_transfers_candidates_between_campuses()
     {
         $newCampus = Campus::factory()->create();
@@ -201,7 +203,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(5, Candidate::where('campus_id', $newCampus->id)->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_clears_batch_on_campus_transfer()
     {
         $newCampus = Campus::factory()->create();
@@ -224,7 +226,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK EXPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_exports_selected_candidates_to_csv()
     {
         $candidates = Candidate::factory()->count(10)->create([
@@ -242,7 +244,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
     }
 
-    /** @test */
+    #[Test]
     public function it_exports_filtered_candidates_to_excel()
     {
         Candidate::factory()->count(20)->create([
@@ -262,7 +264,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $response->assertOk();
     }
 
-    /** @test */
+    #[Test]
     public function it_queues_large_exports()
     {
         Queue::fake();
@@ -285,7 +287,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_soft_deletes_candidates_in_bulk()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -303,7 +305,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(5, Candidate::onlyTrashed()->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_deletion_of_departed_candidates()
     {
         $departed = Candidate::factory()->count(3)->create([
@@ -321,7 +323,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $this->assertEquals(3, Candidate::where('status', 'departed')->count());
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_confirmation_for_bulk_delete()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -341,7 +343,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // BULK NOTIFICATIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_sends_notifications_to_selected_candidates()
     {
         $candidates = Candidate::factory()->count(10)->create([
@@ -362,7 +364,7 @@ class BulkOperationsIntegrationTest extends TestCase
         Notification::assertCount(10);
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_sms_notifications()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -384,7 +386,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // CONCURRENT OPERATIONS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_handles_optimistic_locking_for_concurrent_updates()
     {
         $candidate = Candidate::factory()->create([
@@ -413,7 +415,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // AUDIT LOGGING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_logs_bulk_operations()
     {
         $candidates = Candidate::factory()->count(5)->create([
@@ -440,7 +442,7 @@ class BulkOperationsIntegrationTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_only_operate_on_their_campus()
     {
         $campusAdmin = User::factory()->create([
@@ -462,7 +464,7 @@ class BulkOperationsIntegrationTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function only_admin_can_perform_bulk_delete()
     {
         $campusAdmin = User::factory()->create([

@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Enums\PlacementInterest;
 use App\Enums\TrainingType;
@@ -20,7 +22,7 @@ use App\Enums\CandidateStatus;
 
 class WASLv3EnumsTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function placement_interest_enum_has_correct_values()
     {
         $cases = PlacementInterest::cases();
@@ -30,7 +32,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('international', PlacementInterest::INTERNATIONAL->value);
     }
 
-    /** @test */
+    #[Test]
     public function training_type_enum_has_correct_values()
     {
         $cases = TrainingType::cases();
@@ -41,7 +43,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('both', TrainingType::BOTH->value);
     }
 
-    /** @test */
+    #[Test]
     public function training_progress_enum_has_correct_values()
     {
         $cases = TrainingProgress::cases();
@@ -52,7 +54,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('completed', TrainingProgress::COMPLETED->value);
     }
 
-    /** @test */
+    #[Test]
     public function assessment_type_enum_has_correct_values()
     {
         $cases = AssessmentType::cases();
@@ -62,7 +64,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('final', AssessmentType::FINAL->value);
     }
 
-    /** @test */
+    #[Test]
     public function ptn_status_enum_has_correct_values()
     {
         $cases = PTNStatus::cases();
@@ -76,7 +78,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('refused', PTNStatus::REFUSED->value);
     }
 
-    /** @test */
+    #[Test]
     public function protector_status_enum_has_correct_values()
     {
         $cases = ProtectorStatus::cases();
@@ -90,7 +92,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('refused', ProtectorStatus::REFUSED->value);
     }
 
-    /** @test */
+    #[Test]
     public function flight_type_enum_has_correct_values()
     {
         $cases = FlightType::cases();
@@ -100,7 +102,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('connected', FlightType::CONNECTED->value);
     }
 
-    /** @test */
+    #[Test]
     public function departure_status_enum_has_correct_values()
     {
         $cases = DepartureStatus::cases();
@@ -111,7 +113,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('departed', DepartureStatus::DEPARTED->value);
     }
 
-    /** @test */
+    #[Test]
     public function visa_application_status_enum_has_correct_values()
     {
         $cases = VisaApplicationStatus::cases();
@@ -122,7 +124,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('refused', VisaApplicationStatus::REFUSED->value);
     }
 
-    /** @test */
+    #[Test]
     public function visa_issued_status_enum_has_correct_values()
     {
         $cases = VisaIssuedStatus::cases();
@@ -133,7 +135,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('refused', VisaIssuedStatus::REFUSED->value);
     }
 
-    /** @test */
+    #[Test]
     public function visa_stage_result_enum_has_correct_values()
     {
         $cases = VisaStageResult::cases();
@@ -145,7 +147,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('refused', VisaStageResult::REFUSED->value);
     }
 
-    /** @test */
+    #[Test]
     public function evidence_type_enum_has_correct_values()
     {
         $cases = EvidenceType::cases();
@@ -159,17 +161,18 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('other', EvidenceType::OTHER->value);
     }
 
-    /** @test */
+    #[Test]
     public function updated_screening_status_enum_has_correct_values()
     {
         $cases = ScreeningStatus::cases();
 
-        $this->assertCount(2, $cases);
+        $this->assertCount(3, $cases);
+        $this->assertEquals('pending', ScreeningStatus::PENDING->value);
         $this->assertEquals('screened', ScreeningStatus::SCREENED->value);
         $this->assertEquals('deferred', ScreeningStatus::DEFERRED->value);
     }
 
-    /** @test */
+    #[Test]
     public function candidate_status_enum_has_17_statuses()
     {
         $cases = CandidateStatus::cases();
@@ -178,24 +181,23 @@ class WASLv3EnumsTest extends TestCase
         $this->assertCount(17, $cases);
     }
 
-    /** @test */
+    #[Test]
     public function candidate_status_has_active_statuses()
     {
         $activeStatuses = [
-            'initial',
+            'listed',
+            'pre_departure_docs',
             'screening',
             'screened',
             'registered',
             'training',
             'training_completed',
-            'visa_processing',
-            'visa_received',
-            'pre_departure',
+            'visa_process',
+            'visa_approved',
+            'departure_processing',
+            'ready_to_depart',
             'departed',
-            'post_arrival',
-            'employed',
-            'remitting',
-            'success_story',
+            'post_departure',
         ];
 
         foreach ($activeStatuses as $status) {
@@ -204,13 +206,13 @@ class WASLv3EnumsTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function candidate_status_has_terminal_statuses()
     {
         $terminalStatuses = [
+            'deferred',
             'rejected',
-            'dropped_out',
-            'returned',
+            'withdrawn',
         ];
 
         foreach ($terminalStatuses as $status) {
@@ -219,7 +221,7 @@ class WASLv3EnumsTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function enums_can_be_used_in_match_expressions()
     {
         $status = PTNStatus::ISSUED;
@@ -236,7 +238,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals('Issued', $result);
     }
 
-    /** @test */
+    #[Test]
     public function enums_can_be_compared_directly()
     {
         $status1 = TrainingProgress::IN_PROGRESS;
@@ -247,7 +249,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertFalse($status1 === $status3);
     }
 
-    /** @test */
+    #[Test]
     public function enums_provide_all_cases_method()
     {
         $assessmentTypes = AssessmentType::cases();
@@ -256,7 +258,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertContainsOnlyInstancesOf(AssessmentType::class, $assessmentTypes);
     }
 
-    /** @test */
+    #[Test]
     public function enums_can_be_serialized_to_value()
     {
         $flightType = FlightType::DIRECT;
@@ -265,7 +267,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertIsString($flightType->value);
     }
 
-    /** @test */
+    #[Test]
     public function enums_can_be_created_from_value()
     {
         $status = DepartureStatus::from('ready_to_depart');
@@ -274,7 +276,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertEquals(DepartureStatus::READY_TO_DEPART, $status);
     }
 
-    /** @test */
+    #[Test]
     public function enums_try_from_returns_null_for_invalid_value()
     {
         $status = EvidenceType::tryFrom('invalid_type');
@@ -282,7 +284,7 @@ class WASLv3EnumsTest extends TestCase
         $this->assertNull($status);
     }
 
-    /** @test */
+    #[Test]
     public function all_enums_are_backed_by_strings()
     {
         $enums = [

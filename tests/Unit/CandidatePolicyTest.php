@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -26,7 +28,7 @@ class CandidatePolicyTest extends TestCase
     // SUPER ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -34,7 +36,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_specific_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -43,7 +45,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_create_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -51,7 +53,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -60,7 +62,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_delete_candidate()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -73,7 +75,7 @@ class CandidatePolicyTest extends TestCase
     // ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_any_candidate()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -81,7 +83,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_create_candidate()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -89,7 +91,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_any_candidate()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -102,7 +104,7 @@ class CandidatePolicyTest extends TestCase
     // CAMPUS ADMIN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_candidates_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -115,7 +117,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_candidates_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -129,7 +131,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_create_candidate()
     {
         $campus = Campus::factory()->create();
@@ -141,7 +143,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_update_candidates_from_their_campus()
     {
         $campus = Campus::factory()->create();
@@ -154,7 +156,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->update($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_update_candidates_from_other_campus()
     {
         $campus1 = Campus::factory()->create();
@@ -168,7 +170,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_delete_candidates()
     {
         $campus = Campus::factory()->create();
@@ -185,7 +187,7 @@ class CandidatePolicyTest extends TestCase
     // OEP
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function oep_can_view_candidates_assigned_to_them()
     {
         $oep = Oep::factory()->create();
@@ -198,7 +200,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function oep_cannot_view_candidates_not_assigned_to_them()
     {
         $oep1 = Oep::factory()->create();
@@ -212,7 +214,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function oep_cannot_create_candidates()
     {
         $oep = Oep::factory()->create();
@@ -224,7 +226,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function oep_can_update_limited_fields_for_assigned_candidates()
     {
         $oep = Oep::factory()->create();
@@ -242,7 +244,7 @@ class CandidatePolicyTest extends TestCase
     // INSTRUCTOR
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function instructor_can_view_candidates_in_their_batch()
     {
         $user = User::factory()->create(['role' => 'instructor']);
@@ -252,7 +254,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_view_candidates_in_other_batches()
     {
         $user = User::factory()->create(['role' => 'instructor']);
@@ -262,7 +264,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function instructor_cannot_create_candidates()
     {
         $user = User::factory()->create(['role' => 'instructor']);
@@ -274,7 +276,7 @@ class CandidatePolicyTest extends TestCase
     // VIEWER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function viewer_can_view_candidates()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -283,7 +285,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertTrue($this->policy->view($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_candidates()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -291,7 +293,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_update_candidates()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -300,7 +302,7 @@ class CandidatePolicyTest extends TestCase
         $this->assertFalse($this->policy->update($user, $candidate));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_delete_candidates()
     {
         $user = User::factory()->create(['role' => 'viewer']);
@@ -313,7 +315,7 @@ class CandidatePolicyTest extends TestCase
     // INACTIVE USER
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function inactive_user_cannot_perform_any_action()
     {
         $user = User::factory()->create([

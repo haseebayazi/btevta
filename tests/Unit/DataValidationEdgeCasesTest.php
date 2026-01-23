@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Candidate;
 use App\Models\Campus;
@@ -35,7 +37,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // CNIC EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_accepts_cnic_with_leading_zeros()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -55,7 +57,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201, 422]));
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_cnic_with_all_zeros()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -74,7 +76,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_cnic_with_special_characters()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -94,7 +96,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201, 422]));
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_cnic_shorter_than_13_digits()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -114,7 +116,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertJsonValidationErrors(['cnic']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_cnic_longer_than_13_digits()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -138,7 +140,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // DATE RANGE BOUNDARIES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_future_date_of_birth()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -158,7 +160,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertJsonValidationErrors(['date_of_birth']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_date_of_birth_too_old()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -178,7 +180,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertJsonValidationErrors(['date_of_birth']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_underage_candidates()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -198,7 +200,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201, 422]));
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_boundary_age_candidates()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -218,7 +220,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201]));
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_leap_year_date_correctly()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -241,7 +243,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // MAXIMUM FIELD LENGTHS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_name_exceeding_max_length()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -261,7 +263,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertJsonValidationErrors(['name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_name_at_max_length()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -280,7 +282,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201]));
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_address_exceeding_max_length()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -299,7 +301,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_email_exceeding_max_length()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -323,7 +325,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // PHONE NUMBER VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_accepts_valid_pakistan_mobile_number()
     {
         $validNumbers = ['03001234567', '03451234567', '03321234567'];
@@ -349,7 +351,7 @@ class DataValidationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_phone_formats()
     {
         $invalidNumbers = ['123', '12345678901234', 'abcdefghijk', '0000000000'];
@@ -376,7 +378,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // EMAIL VALIDATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_email_formats()
     {
         $invalidEmails = ['notanemail', '@example.com', 'test@', 'test@.com'];
@@ -400,7 +402,7 @@ class DataValidationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_valid_email_formats()
     {
         $validEmails = ['test@example.com', 'user.name@domain.co.uk', 'user+tag@example.org'];
@@ -432,7 +434,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // SPECIAL CHARACTER HANDLING
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_handles_names_with_special_characters()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -451,7 +453,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 201]));
     }
 
-    /** @test */
+    #[Test]
     public function it_sanitizes_xss_in_text_fields()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -473,7 +475,7 @@ class DataValidationEdgeCasesTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_unicode_characters_in_names()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -496,7 +498,7 @@ class DataValidationEdgeCasesTest extends TestCase
     // REQUIRED FIELD EDGE CASES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_rejects_empty_required_fields()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [
@@ -516,7 +518,7 @@ class DataValidationEdgeCasesTest extends TestCase
         $response->assertJsonValidationErrors(['name', 'cnic', 'father_name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_whitespace_only_fields()
     {
         $response = $this->actingAs($this->admin)->postJson('/api/candidates', [

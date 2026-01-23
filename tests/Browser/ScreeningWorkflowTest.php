@@ -2,6 +2,8 @@
 
 namespace Tests\Browser;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use App\Models\User;
 use App\Models\Candidate;
 use App\Models\Trade;
@@ -39,7 +41,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_access_screening_page()
     {
         $this->browse(function (Browser $browser) {
@@ -50,7 +52,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_candidate_screening_status()
     {
         $this->browse(function (Browser $browser) {
@@ -63,7 +65,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_perform_desk_screening()
     {
         $this->browse(function (Browser $browser) {
@@ -79,7 +81,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_perform_call_screening()
     {
         $this->browse(function (Browser $browser) {
@@ -97,7 +99,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_can_perform_physical_screening()
     {
         $this->browse(function (Browser $browser) {
@@ -113,7 +115,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_uploads_evidence_for_screening()
     {
         CandidateScreening::create([
@@ -134,7 +136,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_screening_progress()
     {
         // Create passed screenings
@@ -160,7 +162,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_auto_progresses_when_all_pass()
     {
         // Create passed screenings for all types
@@ -188,7 +190,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_rejection_on_failure()
     {
         $this->browse(function (Browser $browser) {
@@ -203,7 +205,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_call_attempts_counter()
     {
         CandidateScreening::create([
@@ -222,7 +224,7 @@ class ScreeningWorkflowTest extends DuskTestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_screening_list_by_status()
     {
         $this->browse(function (Browser $browser) {

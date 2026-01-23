@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -26,7 +28,7 @@ class DepartureApiControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_paginated_departures()
     {
         $candidates = Candidate::factory()->count(15)->create(['status' => 'departed']);
@@ -45,7 +47,7 @@ class DepartureApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_departures_by_date_range()
     {
         $candidate1 = Candidate::factory()->create();
@@ -75,7 +77,7 @@ class DepartureApiControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_single_departure()
     {
         $candidate = Candidate::factory()->create();
@@ -89,7 +91,7 @@ class DepartureApiControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_nonexistent_departure()
     {
         $response = $this->getJson('/api/v1/departures/99999');
@@ -101,7 +103,7 @@ class DepartureApiControllerTest extends TestCase
     // BY CANDIDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_departure_by_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -113,7 +115,7 @@ class DepartureApiControllerTest extends TestCase
             ->assertJsonPath('data.id', $departure->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_candidate_without_departure()
     {
         $candidate = Candidate::factory()->create();
@@ -127,7 +129,7 @@ class DepartureApiControllerTest extends TestCase
     // STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_creates_a_departure()
     {
         $candidate = Candidate::factory()->create(['status' => 'ready']);
@@ -148,7 +150,7 @@ class DepartureApiControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_fields_for_departure()
     {
         $response = $this->postJson('/api/v1/departures', []);
@@ -157,7 +159,7 @@ class DepartureApiControllerTest extends TestCase
             ->assertJsonValidationErrors(['candidate_id', 'departure_date']);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_duplicate_departure_for_candidate()
     {
         $candidate = Candidate::factory()->create();
@@ -175,7 +177,7 @@ class DepartureApiControllerTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_updates_departure_details()
     {
         $candidate = Candidate::factory()->create();
@@ -190,7 +192,7 @@ class DepartureApiControllerTest extends TestCase
             ->assertJsonPath('data.iqama_number', 'IQ123456789');
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_salary_information()
     {
         $candidate = Candidate::factory()->create();
@@ -210,7 +212,7 @@ class DepartureApiControllerTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_departure_statistics()
     {
         $candidates = Candidate::factory()->count(20)->create();
@@ -241,7 +243,7 @@ class DepartureApiControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_departures()
     {
         $this->app['auth']->forgetGuards();

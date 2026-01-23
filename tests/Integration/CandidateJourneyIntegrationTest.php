@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -45,7 +47,7 @@ class CandidateJourneyIntegrationTest extends TestCase
         $this->oep = OverseasEmploymentPromoter::factory()->create();
     }
 
-    /** @test */
+    #[Test]
     public function it_processes_complete_candidate_journey_from_screening_to_departure()
     {
         // ============================================================
@@ -333,7 +335,7 @@ class CandidateJourneyIntegrationTest extends TestCase
         $this->assertTrue($finalCandidate->departure->arrival_confirmed);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_screening_rejection_workflow()
     {
         $candidate = Candidate::factory()->create([
@@ -368,7 +370,7 @@ class CandidateJourneyIntegrationTest extends TestCase
         $this->assertNull($candidate->visaProcessing);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_visa_processing_rejection_workflow()
     {
         $candidate = Candidate::factory()->create([
@@ -413,7 +415,7 @@ class CandidateJourneyIntegrationTest extends TestCase
         $this->assertNull($candidate->departure);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_document_dependencies_throughout_journey()
     {
         $candidate = Candidate::factory()->create([

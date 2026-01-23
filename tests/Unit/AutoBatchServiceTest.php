@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\AutoBatchService;
 use App\Models\Candidate;
@@ -23,7 +25,7 @@ class AutoBatchServiceTest extends TestCase
         $this->service = app(AutoBatchService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_correct_batch_number_format()
     {
         $campus = Campus::factory()->create(['code' => 'ISB']);
@@ -37,7 +39,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertMatchesRegularExpression("/^ISB-TEC-WLD-$year-\d{4}$/", $batchNumber);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_sequential_batch_numbers()
     {
         $campus = Campus::factory()->create(['code' => 'LHR']);
@@ -62,7 +64,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals($seq2, $seq1 + 1);
     }
 
-    /** @test */
+    #[Test]
     public function it_starts_sequence_at_0001_for_new_combination()
     {
         $campus = Campus::factory()->create(['code' => 'KHI']);
@@ -74,7 +76,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertStringEndsWith('-0001', $batchNumber);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_correct_allocated_number_format()
     {
         $batchNumber = 'ISB-TEC-WLD-2026-0001';
@@ -85,7 +87,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals('ISB-TEC-WLD-2026-0001-015', $allocatedNumber);
     }
 
-    /** @test */
+    #[Test]
     public function it_pads_position_with_leading_zeros()
     {
         $batchNumber = 'LHR-SKL-ELC-2026-0002';
@@ -99,7 +101,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertStringEndsWith('-100', $allocated3);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_new_batch_when_none_exists()
     {
         $campus = Campus::factory()->create();
@@ -120,7 +122,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals(1, $batch->current_size);
     }
 
-    /** @test */
+    #[Test]
     public function it_assigns_to_existing_batch_when_available()
     {
         $campus = Campus::factory()->create();
@@ -146,7 +148,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals(11, $batch->fresh()->current_size);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_new_batch_when_existing_is_full()
     {
         $campus = Campus::factory()->create();
@@ -172,7 +174,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals(1, $batch->current_size);
     }
 
-    /** @test */
+    #[Test]
     public function it_respects_configured_batch_size()
     {
         config(['wasl.batch_size' => 30]);
@@ -192,7 +194,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals(30, $batch->max_size);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_candidate_with_batch_and_allocated_number()
     {
         $campus = Campus::factory()->create();
@@ -214,7 +216,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertStringContainsString($batch->batch_code, $candidate->allocated_number);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_multiple_candidates_in_sequence()
     {
         $campus = Campus::factory()->create();
@@ -240,7 +242,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertEquals(3, $batches[0]->fresh()->current_size);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_unique_allocated_numbers_within_batch()
     {
         $campus = Campus::factory()->create();
@@ -263,7 +265,7 @@ class AutoBatchServiceTest extends TestCase
         $this->assertCount(5, array_unique($allocatedNumbers));
     }
 
-    /** @test */
+    #[Test]
     public function it_groups_by_campus_program_trade_combination()
     {
         $campus1 = Campus::factory()->create();

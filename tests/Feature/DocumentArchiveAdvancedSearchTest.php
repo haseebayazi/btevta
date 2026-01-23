@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\DocumentArchive;
 use App\Models\DocumentTag;
@@ -37,7 +39,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_access_advanced_search_page()
     {
         $response = $this->actingAs($this->admin)
@@ -47,7 +49,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertViewIs('document-archive.advanced-search');
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_by_keyword_across_multiple_fields()
     {
         $candidate = Candidate::factory()->create([
@@ -91,7 +93,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertSee('Passport Copy');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_document_type()
     {
         DocumentArchive::factory()->create([
@@ -112,7 +114,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee('Passport');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_tags()
     {
         $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -132,7 +134,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($doc2->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_campus()
     {
         DocumentArchive::factory()->create([
@@ -153,7 +155,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $this->assertEquals(1, $response->viewData('documents')->count());
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_only_sees_their_campus_documents()
     {
         DocumentArchive::factory()->create([
@@ -176,7 +178,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee('Campus 2 Doc');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_upload_date_range()
     {
         $oldDoc = DocumentArchive::factory()->create([
@@ -200,7 +202,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($oldDoc->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_expiry_date_range()
     {
         $expiringSoon = DocumentArchive::factory()->create([
@@ -224,7 +226,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($expiringLater->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_expired_status()
     {
         $expired = DocumentArchive::factory()->create([
@@ -245,7 +247,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($valid->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_has_expiry()
     {
         $withExpiry = DocumentArchive::factory()->create([
@@ -266,7 +268,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($withoutExpiry->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_by_file_type()
     {
         $pdfDoc = DocumentArchive::factory()->create([
@@ -287,7 +289,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($imageDoc->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_only_returns_current_version_documents()
     {
         $currentVersion = DocumentArchive::factory()->create([
@@ -309,7 +311,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee('Old Version Doc');
     }
 
-    /** @test */
+    #[Test]
     public function it_combines_multiple_filters()
     {
         $tag = DocumentTag::factory()->create(['name' => 'Urgent']);
@@ -341,7 +343,7 @@ class DocumentArchiveAdvancedSearchTest extends TestCase
         $response->assertDontSee($nonMatchingDoc->document_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_paginates_results()
     {
         // Create 25 documents (more than page size of 20)

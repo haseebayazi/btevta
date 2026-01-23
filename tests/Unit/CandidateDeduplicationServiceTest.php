@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Services\CandidateDeduplicationService;
 use App\Models\Candidate;
@@ -24,7 +26,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // CNIC DUPLICATE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_exact_cnic_match()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -43,7 +45,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals('cnic', $result['matches'][0]['match_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_cnic_with_dashes()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -61,7 +63,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals('cnic', $result['matches'][0]['match_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_no_match_for_unique_cnic()
     {
         Candidate::factory()->create([
@@ -83,7 +85,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // NAME + DOB DUPLICATE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_name_and_dob_match()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -105,7 +107,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals(85, $result['matches'][0]['confidence']);
     }
 
-    /** @test */
+    #[Test]
     public function it_does_not_match_different_dob()
     {
         Candidate::factory()->create([
@@ -129,7 +131,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // PHONE DUPLICATE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_phone_match_with_similar_name()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -150,7 +152,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals('phone', $result['matches'][0]['match_type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_assigns_lower_confidence_for_phone_match_with_different_name()
     {
         Candidate::factory()->create([
@@ -178,7 +180,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // TheLeap ID DUPLICATE DETECTION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_detects_btevta_id_match()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -203,7 +205,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // NAME SIMILARITY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_calculates_exact_name_similarity()
     {
         $similarity = $this->service->calculateNameSimilarity('Ali Hassan', 'Ali Hassan');
@@ -211,7 +213,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals(1.0, $similarity);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_similar_name_score()
     {
         $similarity = $this->service->calculateNameSimilarity('Muhammad Ali', 'Mohd Ali');
@@ -220,7 +222,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertGreaterThan(0.6, $similarity);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_low_score_for_different_names()
     {
         $similarity = $this->service->calculateNameSimilarity('Ali Hassan', 'Usman Khan');
@@ -232,7 +234,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // BATCH IMPORT WITH DEDUPLICATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_skips_duplicates_in_batch_import()
     {
         $existingCandidate = Candidate::factory()->create([
@@ -267,7 +269,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals(2, $result['total_processed']);
     }
 
-    /** @test */
+    #[Test]
     public function it_imports_all_when_no_duplicates()
     {
         $candidatesData = [
@@ -302,7 +304,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // DUPLICATE STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_returns_duplicate_statistics()
     {
         // Create candidates with duplicate CNICs
@@ -323,7 +325,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // MERGE DUPLICATES
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_can_merge_duplicate_candidates()
     {
         $user = User::factory()->create();
@@ -345,7 +347,7 @@ class CandidateDeduplicationServiceTest extends TestCase
     // FIND BY METHODS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function it_finds_candidates_by_cnic()
     {
         $candidate = Candidate::factory()->create(['cnic' => '3520112345671']);
@@ -356,7 +358,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals($candidate->id, $results->first()->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_candidates_by_phone()
     {
         $candidate = Candidate::factory()->create(['phone' => '03001234567']);
@@ -367,7 +369,7 @@ class CandidateDeduplicationServiceTest extends TestCase
         $this->assertEquals($candidate->id, $results->first()->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_candidates_by_btevta_id()
     {
         $candidate = Candidate::factory()->create(['btevta_id' => 'TLP-2024-0001']);

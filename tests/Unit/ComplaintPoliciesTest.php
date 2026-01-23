@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
@@ -20,7 +22,7 @@ class ComplaintPoliciesTest extends TestCase
     // COMPLAINT EVIDENCE POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_evidence()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -29,7 +31,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function project_director_can_view_any_evidence()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -38,7 +40,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_evidence_from_their_campus()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -53,7 +55,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $evidence));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_cannot_view_evidence_from_other_campus()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -69,7 +71,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertFalse($policy->view($user, $evidence));
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_upload_evidence()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -82,7 +84,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->create($campusAdmin));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_upload_evidence()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -91,7 +93,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertFalse($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_evidence()
     {
         $policy = new ComplaintEvidencePolicy();
@@ -107,7 +109,7 @@ class ComplaintPoliciesTest extends TestCase
     // COMPLAINT UPDATE POLICY
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function super_admin_can_view_any_update()
     {
         $policy = new ComplaintUpdatePolicy();
@@ -116,7 +118,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->viewAny($user));
     }
 
-    /** @test */
+    #[Test]
     public function authorized_roles_can_create_updates()
     {
         $policy = new ComplaintUpdatePolicy();
@@ -129,7 +131,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->create($campusAdmin));
     }
 
-    /** @test */
+    #[Test]
     public function viewer_cannot_create_updates()
     {
         $policy = new ComplaintUpdatePolicy();
@@ -138,7 +140,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertFalse($policy->create($user));
     }
 
-    /** @test */
+    #[Test]
     public function campus_admin_can_view_updates_from_their_campus()
     {
         $policy = new ComplaintUpdatePolicy();
@@ -153,7 +155,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->view($user, $update));
     }
 
-    /** @test */
+    #[Test]
     public function super_admin_can_update_any_complaint_update()
     {
         $policy = new ComplaintUpdatePolicy();
@@ -163,7 +165,7 @@ class ComplaintPoliciesTest extends TestCase
         $this->assertTrue($policy->update($user, $update));
     }
 
-    /** @test */
+    #[Test]
     public function only_super_admin_can_delete_updates()
     {
         $policy = new ComplaintUpdatePolicy();

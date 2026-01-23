@@ -2,6 +2,8 @@
 
 namespace Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\Candidate;
 use App\Models\Campus;
@@ -42,7 +44,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->actingAs($this->user);
     }
 
-    /** @test */
+    #[Test]
     public function complete_wasl_v3_candidate_journey()
     {
         // ===== PHASE 1: Initial Screening with New Workflow =====
@@ -233,7 +235,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->assertNotNull(SuccessStory::where('candidate_id', $candidate->id)->first());
     }
 
-    /** @test */
+    #[Test]
     public function screening_gate_prevents_unscreened_registration()
     {
         $candidate = Candidate::factory()->create([
@@ -261,7 +263,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $registrationService->registerCandidateWithAllocation($candidate, $registrationData);
     }
 
-    /** @test */
+    #[Test]
     public function auto_batch_creates_new_batch_when_full()
     {
         config(['wasl.batch_size' => 3]);
@@ -309,7 +311,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->assertEquals(2, $candidates[3]['batch']->fresh()->current_size);
     }
 
-    /** @test */
+    #[Test]
     public function training_completion_requires_both_assessments()
     {
         $candidate = Candidate::factory()->create([
@@ -345,7 +347,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         // (This would be checked by the service/controller logic)
     }
 
-    /** @test */
+    #[Test]
     public function post_departure_tracks_all_required_fields()
     {
         $departure = Departure::factory()->create();

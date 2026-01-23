@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
+
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Candidate;
@@ -26,7 +28,7 @@ class ComplaintControllerTest extends TestCase
     // INDEX
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_complaints_list()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -37,7 +39,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertViewIs('complaints.index');
     }
 
-    /** @test */
+    #[Test]
     public function index_can_filter_by_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -49,7 +51,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function index_can_filter_by_priority()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -61,7 +63,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function index_can_search_complaints()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -76,7 +78,7 @@ class ComplaintControllerTest extends TestCase
     // CREATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_create_complaint_form()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -91,7 +93,7 @@ class ComplaintControllerTest extends TestCase
     // STORE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_create_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -116,7 +118,7 @@ class ComplaintControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_validates_required_fields()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -133,7 +135,7 @@ class ComplaintControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_validates_category()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -150,7 +152,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHasErrors(['category']);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_validates_priority()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -167,7 +169,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHasErrors(['priority']);
     }
 
-    /** @test */
+    #[Test]
     public function complaint_can_include_evidence()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -191,7 +193,7 @@ class ComplaintControllerTest extends TestCase
     // SHOW
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_complaint_details()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -207,7 +209,7 @@ class ComplaintControllerTest extends TestCase
     // UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_update_complaint_priority()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -221,7 +223,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_complaint_status()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -239,7 +241,7 @@ class ComplaintControllerTest extends TestCase
     // ASSIGN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_assign_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -255,7 +257,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function assign_validates_user_exists()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -272,7 +274,7 @@ class ComplaintControllerTest extends TestCase
     // ADD UPDATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_add_update_to_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -286,7 +288,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function add_update_validates_text_required()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -301,7 +303,7 @@ class ComplaintControllerTest extends TestCase
     // ADD EVIDENCE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_add_evidence_to_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -317,7 +319,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function add_evidence_validates_file_type()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -335,7 +337,7 @@ class ComplaintControllerTest extends TestCase
     // ESCALATE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_escalate_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -349,7 +351,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function escalate_requires_reason()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -364,7 +366,7 @@ class ComplaintControllerTest extends TestCase
     // RESOLVE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_resolve_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -380,7 +382,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function resolve_validates_required_fields()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -395,7 +397,7 @@ class ComplaintControllerTest extends TestCase
     // CLOSE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_close_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -413,7 +415,7 @@ class ComplaintControllerTest extends TestCase
     // REOPEN
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_reopen_closed_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -427,7 +429,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertSessionHas('success');
     }
 
-    /** @test */
+    #[Test]
     public function reopen_requires_reason()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -442,7 +444,7 @@ class ComplaintControllerTest extends TestCase
     // OVERDUE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_overdue_complaints()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -457,7 +459,7 @@ class ComplaintControllerTest extends TestCase
     // MY ASSIGNMENTS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_their_assigned_complaints()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -472,7 +474,7 @@ class ComplaintControllerTest extends TestCase
     // STATISTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_complaint_statistics()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -490,7 +492,7 @@ class ComplaintControllerTest extends TestCase
     // ANALYTICS
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_generate_analytics_report()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -508,7 +510,7 @@ class ComplaintControllerTest extends TestCase
     // SLA REPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_view_sla_report()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -526,7 +528,7 @@ class ComplaintControllerTest extends TestCase
     // EXPORT
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_export_complaints()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -537,7 +539,7 @@ class ComplaintControllerTest extends TestCase
         $this->assertTrue(in_array($response->status(), [200, 302, 422]));
     }
 
-    /** @test */
+    #[Test]
     public function export_validates_format()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -551,7 +553,7 @@ class ComplaintControllerTest extends TestCase
     // DELETE
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function admin_can_delete_complaint()
     {
         $user = User::factory()->create(['role' => 'super_admin']);
@@ -567,7 +569,7 @@ class ComplaintControllerTest extends TestCase
     // AUTHORIZATION
     // =========================================================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_complaints()
     {
         $response = $this->get('/complaints');
@@ -575,7 +577,7 @@ class ComplaintControllerTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    /** @test */
+    #[Test]
     public function regular_user_cannot_access_complaints()
     {
         $user = User::factory()->create(['role' => 'user']);
