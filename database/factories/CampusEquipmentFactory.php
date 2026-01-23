@@ -15,12 +15,21 @@ class CampusEquipmentFactory extends Factory
         return [
             'campus_id' => Campus::factory(),
             'name' => $this->faker->words(3, true),
-            'type' => $this->faker->randomElement(['computer', 'projector', 'printer', 'machinery', 'tool']),
-            'serial_number' => $this->faker->unique()->bothify('EQ-####-????'),
+            'equipment_code' => $this->faker->unique()->bothify('EQ-####-????'),
+            'category' => $this->faker->randomElement(['computer', 'machinery', 'furniture', 'tools', 'vehicle']),
+            'description' => $this->faker->optional()->sentence(),
+            'brand' => $this->faker->optional()->company(),
+            'model' => $this->faker->optional()->bothify('Model-###??'),
+            'serial_number' => $this->faker->optional()->bothify('SN-####-????'),
+            'purchase_date' => $this->faker->optional()->date(),
+            'purchase_cost' => $this->faker->optional()->randomFloat(2, 100, 50000),
+            'current_value' => $this->faker->optional()->randomFloat(2, 50, 40000),
+            'condition' => $this->faker->randomElement(['excellent', 'good', 'fair', 'poor', 'unusable']),
             'status' => $this->faker->randomElement(['available', 'in_use', 'maintenance', 'retired']),
-            'purchase_date' => $this->faker->date(),
-            'purchase_price' => $this->faker->randomFloat(2, 100, 50000),
-            'condition' => $this->faker->randomElement(['new', 'good', 'fair', 'poor']),
+            'quantity' => $this->faker->numberBetween(1, 10),
+            'last_maintenance_date' => $this->faker->optional()->date(),
+            'next_maintenance_date' => $this->faker->optional()->date(),
+            'notes' => $this->faker->optional()->paragraph(),
         ];
     }
 }
