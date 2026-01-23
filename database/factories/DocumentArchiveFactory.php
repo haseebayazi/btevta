@@ -58,7 +58,6 @@ class DocumentArchiveFactory extends Factory
             'replaces_document_id' => null,
             'issue_date' => fake()->optional()->dateTimeBetween('-2 years', 'now'),
             'expiry_date' => fake()->optional()->dateTimeBetween('now', '+5 years'),
-            'description' => fake()->optional()->sentence(),
             'tags' => fake()->optional()->words(3, true),
         ];
     }

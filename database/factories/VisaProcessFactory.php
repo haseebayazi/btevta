@@ -31,7 +31,6 @@ class VisaProcessFactory extends Factory
 
             // Takamol Test
             'takamol_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
-            'takamol_booking_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'takamol_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'passed', 'failed']),
             'takamol_remarks' => fake()->optional()->sentence(),
             'takamol_result_path' => fake()->optional()->filePath(),
@@ -39,7 +38,6 @@ class VisaProcessFactory extends Factory
 
             // Medical/GAMCA
             'medical_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
-            'gamca_booking_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'medical_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'fit', 'unfit']),
             'medical_completed' => fake()->boolean(30),
             'medical_remarks' => fake()->optional()->sentence(),
@@ -87,7 +85,6 @@ class VisaProcessFactory extends Factory
 
             // General
             'overall_status' => fake()->randomElement(['initiated', 'in_progress', 'pending_documents', 'completed', 'rejected']),
-            'current_stage' => fake()->randomElement(['initiated', 'interview', 'trade_test', 'takamol', 'medical', 'enumber', 'biometrics', 'visa_submission', 'visa_issued', 'ticket', 'completed']),
             'remarks' => fake()->optional()->paragraph(),
             'created_by' => User::factory(),
             'updated_by' => fake()->optional()->passthrough(User::factory()),
@@ -100,7 +97,6 @@ class VisaProcessFactory extends Factory
     public function atInterviewStage(): static
     {
         return $this->state(fn (array $attributes) => [
-            'current_stage' => 'interview',
             'overall_status' => 'in_progress',
             'interview_date' => fake()->dateTimeBetween('now', '+2 weeks'),
             'interview_status' => 'scheduled',
@@ -113,7 +109,6 @@ class VisaProcessFactory extends Factory
     public function visaIssued(): static
     {
         return $this->state(fn (array $attributes) => [
-            'current_stage' => 'visa_issued',
             'overall_status' => 'completed',
             'visa_issued' => true,
             'visa_date' => fake()->dateTimeBetween('-1 month', 'now'),
@@ -130,7 +125,6 @@ class VisaProcessFactory extends Factory
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'current_stage' => 'completed',
             'overall_status' => 'completed',
             'interview_completed' => true,
             'trade_test_completed' => true,
@@ -147,7 +141,6 @@ class VisaProcessFactory extends Factory
     public function atMedicalStage(): static
     {
         return $this->state(fn (array $attributes) => [
-            'current_stage' => 'medical',
             'overall_status' => 'in_progress',
             'interview_completed' => true,
             'trade_test_completed' => true,

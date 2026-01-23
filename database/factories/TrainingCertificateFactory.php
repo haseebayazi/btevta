@@ -16,7 +16,6 @@ class TrainingCertificateFactory extends Factory
             'candidate_id' => Candidate::factory(),
             'certificate_number' => $this->faker->unique()->bothify('CERT-####-????'),
             'issue_date' => $this->faker->date(),
-            'certificate_type' => $this->faker->randomElement(['completion', 'participation', 'excellence']),
             'status' => $this->faker->randomElement(['issued', 'revoked']),
         ];
     }

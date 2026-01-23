@@ -17,7 +17,6 @@ class RegistrationDocumentFactory extends Factory
             'document_type' => $this->faker->randomElement(['cnic', 'passport', 'photo', 'education_certificate', 'domicile']),
             'document_number' => $this->faker->bothify('DOC-####-????'),
             'file_path' => 'documents/' . $this->faker->uuid() . '.pdf',
-            'is_verified' => $this->faker->boolean(),
         ];
     }
 }

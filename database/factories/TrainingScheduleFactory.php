@@ -14,7 +14,6 @@ class TrainingScheduleFactory extends Factory
     {
         return [
             'batch_id' => Batch::factory(),
-            'topic' => $this->faker->sentence(3),
             'date' => $this->faker->dateTimeBetween('now', '+30 days'),
             'start_time' => $this->faker->time('H:i'),
             'end_time' => $this->faker->time('H:i'),

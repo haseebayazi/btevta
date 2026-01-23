@@ -48,7 +48,7 @@ class ScreeningRestApiTest extends TestCase
         $this->screening = CandidateScreening::factory()->create([
             'candidate_id' => $this->candidate->id,
             'status' => 'completed',
-            'outcome' => 'eligible',
+            'status' => 'passed',
         ]);
     }
 
@@ -123,7 +123,7 @@ class ScreeningRestApiTest extends TestCase
                 'success' => true,
                 'data' => [
                     'id' => $this->screening->id,
-                    'outcome' => 'eligible',
+                    'status' => 'passed',
                 ],
             ]);
     }
@@ -204,7 +204,7 @@ class ScreeningRestApiTest extends TestCase
             'screening_date' => now()->format('Y-m-d'),
             'screener_name' => 'Test Screener',
             'contact_method' => 'phone',
-            'outcome' => 'eligible',
+            'status' => 'passed',
             'remarks' => 'Candidate is qualified',
         ]);
 
@@ -216,7 +216,7 @@ class ScreeningRestApiTest extends TestCase
 
         $this->assertDatabaseHas('candidate_screenings', [
             'candidate_id' => $newCandidate->id,
-            'outcome' => 'eligible',
+            'status' => 'passed',
             'status' => 'completed',
         ]);
 
