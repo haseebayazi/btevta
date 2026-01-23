@@ -378,7 +378,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'subject' => 'Basic Skills',
             'score' => 75,
             'result' => 'pass',
-            'assessed_at' => now(),
+            'assessment_date' => now(),
         ]);
 
         TrainingAssessment::create([
@@ -388,7 +388,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'subject' => 'Final Exam',
             'score' => 80,
             'result' => 'pass',
-            'assessed_at' => now(),
+            'assessment_date' => now(),
         ]);
 
         $this->assertEquals(77.5, $candidate->getAverageAssessmentScore());
@@ -624,7 +624,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'subject' => 'Final Exam',
             'score' => 75,
             'result' => 'pass',
-            'assessed_at' => now(),
+            'assessment_date' => now(),
         ]);
 
         // Issue certificate
@@ -729,7 +729,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'subject' => 'Final Exam',
             'score' => 75,
             'result' => 'pass',
-            'assessed_at' => now(),
+            'assessment_date' => now(),
         ]);
 
         // Add certificate

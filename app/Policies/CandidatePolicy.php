@@ -11,6 +11,20 @@ class CandidatePolicy
     use HandlesAuthorization;
 
     /**
+     * Perform pre-authorization checks.
+     * Inactive users are denied all actions.
+     */
+    public function before(User $user, string $ability): ?bool
+    {
+        // Inactive users cannot perform any actions
+        if (!$user->is_active) {
+            return false;
+        }
+
+        return null; // Continue to specific policy methods
+    }
+
+    /**
      * Determine if the user can view any candidates.
      * SECURITY FIX: Added role-based restrictions instead of allowing all users
      */
@@ -54,6 +68,11 @@ class CandidatePolicy
         // Trainers/Instructors can view candidates in their batches
         if ($user->isTrainer() || $user->isInstructor()) {
             return $candidate->batch && $candidate->batch->trainer_id === $user->id;
+        }
+
+        // Viewers can view all candidates (read-only access)
+        if ($user->isViewer()) {
+            return true;
         }
 
         return false;

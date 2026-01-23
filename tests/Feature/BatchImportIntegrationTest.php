@@ -264,8 +264,8 @@ class BatchImportIntegrationTest extends TestCase
             'trade_id' => $this->trade->id,
         ]);
 
-        if ($response->session()->has('import_id')) {
-            $importId = $response->session()->get('import_id');
+        if (session()->has('import_id')) {
+            $importId = session()->get('import_id');
 
             $statusResponse = $this->actingAs($this->admin)->get("/import/status/{$importId}");
             $statusResponse->assertOk();
@@ -321,8 +321,8 @@ class BatchImportIntegrationTest extends TestCase
             'trade_id' => $this->trade->id,
         ]);
 
-        if ($response->session()->has('import_id')) {
-            $importId = $response->session()->get('import_id');
+        if (session()->has('import_id')) {
+            $importId = session()->get('import_id');
             $errorResponse = $this->actingAs($this->admin)->get("/import/errors/{$importId}");
             $this->assertTrue(in_array($errorResponse->status(), [200, 404]));
         }
