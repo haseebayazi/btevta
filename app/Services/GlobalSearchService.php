@@ -149,7 +149,7 @@ class GlobalSearchService
                         'id' => $item->id,
                         'title' => $item->name,
                         'subtitle' => "Code: {$item->batch_code} | " . ($item->trade->name ?? 'N/A'),
-                        'url' => route('batches.show', $item->id),
+                        'url' => route('admin.batches.show', $item->id),
                         'badge' => $item->status,
                         'badge_class' => $item->status === 'active' ? 'bg-success' : 'bg-secondary',
                     ];

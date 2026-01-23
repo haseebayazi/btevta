@@ -22,6 +22,7 @@ class ComplaintFactory extends Factory
             'status' => $this->faker->randomElement(['open', 'assigned', 'in_progress', 'resolved', 'closed']),
             'priority' => $this->faker->randomElement(['low', 'normal', 'high', 'urgent']),
             'category' => $this->faker->randomElement(['training', 'accommodation', 'visa', 'payment', 'other']),
+            'complaint_date' => $this->faker->dateTimeBetween('-1 year', 'now'),
         ];
     }
 }
