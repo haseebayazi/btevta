@@ -100,3 +100,4 @@ run_*.php
 
 # Environment-specific
 .htaccess.local
+test-results.txt
