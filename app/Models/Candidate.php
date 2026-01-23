@@ -949,12 +949,12 @@ class Candidate extends Model
      * Check if candidate can transition to a specific status.
      *
      * @param string $targetStatus
-     * @return bool
+     * @return array
      */
     public function canTransitionTo($targetStatus)
     {
         $validation = $this->validateTransition($targetStatus);
-        return $validation['can_transition'];
+        return $this->validateTransition($targetStatus);
     }
 
     /**
@@ -1230,8 +1230,8 @@ class Candidate extends Model
 
         foreach ($digits as $index => $digit) {
             $d = (int) $digit;
-            // Double every second digit (odd index after reverse)
-            if ($index % 2 === 0) {
+            // Double every second digit (odd index in reversed array = even position from right)
+            if ($index % 2 === 1) {
                 $d *= 2;
                 if ($d > 9) {
                     $d -= 9;
