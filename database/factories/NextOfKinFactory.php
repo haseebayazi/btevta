@@ -19,7 +19,6 @@ class NextOfKinFactory extends Factory
             'cnic' => $this->faker->numerify('#####-#######-#'),
             'phone' => $this->faker->numerify('03#########'),
             'address' => $this->faker->address(),
-            'is_emergency_contact' => $this->faker->boolean(),
         ];
     }
 }

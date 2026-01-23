@@ -14,7 +14,6 @@ class CampusKpiFactory extends Factory
     {
         return [
             'campus_id' => Campus::factory(),
-            'kpi_name' => $this->faker->randomElement(['enrollment_rate', 'completion_rate', 'placement_rate', 'satisfaction_score']),
             'target_value' => $this->faker->numberBetween(70, 100),
             'actual_value' => $this->faker->numberBetween(50, 100),
             'period' => $this->faker->date('Y-m'),

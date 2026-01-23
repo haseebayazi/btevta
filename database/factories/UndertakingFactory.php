@@ -15,7 +15,6 @@ class UndertakingFactory extends Factory
         return [
             'candidate_id' => Candidate::factory(),
             'undertaking_type' => $this->faker->randomElement(['training', 'visa', 'departure', 'general', 'code_of_conduct']),
-            'undertaking_date' => $this->faker->date(),
             'file_path' => 'undertakings/' . $this->faker->uuid() . '.pdf',
             'terms_agreed' => true,
         ];

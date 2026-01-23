@@ -18,7 +18,6 @@ class TrainingAttendanceFactory extends Factory
             'trainer_id' => User::factory(),
             'date' => $this->faker->date(),
             'status' => $this->faker->randomElement(['present', 'absent', 'late', 'leave']),
-            'session_type' => $this->faker->randomElement(['theory', 'practical', 'assessment']),
             'remarks' => $this->faker->optional()->sentence(),
         ];
     }

@@ -21,7 +21,6 @@ class EquipmentUsageLogFactory extends Factory
             'user_id' => User::factory(),
             'start_time' => $startTime,
             'end_time' => $endTime,
-            'purpose' => $this->faker->sentence(),
             'notes' => $this->faker->optional()->paragraph(),
         ];
     }
