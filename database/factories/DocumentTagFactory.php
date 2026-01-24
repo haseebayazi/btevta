@@ -40,8 +40,8 @@ class DocumentTagFactory extends Factory
             'Cancelled',
         ];
 
-        $name = $this->faker->unique()->randomElement($tagNames);
-        $slug = \Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1000, 9999);
+        $name = $this->faker->unique()->words(2, true);
+        $slug = \Str::slug($name);
 
         return [
             'name' => $name,
