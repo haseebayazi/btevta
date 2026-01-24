@@ -36,6 +36,7 @@ class RemittanceFactory extends Factory
             'bank_name' => $this->faker->randomElement(['Meezan Bank', 'HBL', 'UBL', 'Allied Bank', 'MCB']),
             'account_number' => $this->faker->numerify('####-#######-###'),
             'sender_name' => $this->faker->name(),
+            'receiver_name' => $this->faker->name(),
             'purpose' => $this->faker->randomElement(['Monthly salary', 'Overtime payment', 'End of service benefit', 'Bonus payment']),
             'description' => $this->faker->optional()->sentence(),
             'month_year' => $this->faker->date('Y-m'),

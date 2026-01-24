@@ -32,7 +32,6 @@ class VisaProcessFactory extends Factory
             // Takamol Test
             'takamol_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'takamol_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'passed', 'failed']),
-            'takamol_result_path' => fake()->optional()->filePath(),
             'takamol_score' => fake()->optional()->numberBetween(50, 100),
 
             // Medical/GAMCA
@@ -40,7 +39,6 @@ class VisaProcessFactory extends Factory
             'medical_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'fit', 'unfit']),
             'medical_completed' => fake()->boolean(30),
             'medical_remarks' => fake()->optional()->sentence(),
-            'gamca_result_path' => fake()->optional()->filePath(),
             'gamca_barcode' => fake()->optional()->numerify('GAMCA########'),
             'gamca_expiry_date' => fake()->optional()->dateTimeBetween('+1 year', '+2 years'),
 
