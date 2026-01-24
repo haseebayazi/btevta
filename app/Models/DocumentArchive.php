@@ -31,7 +31,6 @@ class DocumentArchive extends Model
         'issue_date',             // ADDED - Used in controller validation
         'expiry_date',            // ADDED - Used in controller validation
         'description',            // ADDED - Used in controller validation
-        'tags',                   // ADDED - Used in controller validation
         'created_by',
         'updated_by'
     ];

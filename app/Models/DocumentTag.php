@@ -66,6 +66,11 @@ class DocumentTag extends Model
             if (empty($tag->slug)) {
                 $tag->slug = \Str::slug($tag->name);
             }
+
+            // Set default color if not provided
+            if (empty($tag->color)) {
+                $tag->color = '#3b82f6';
+            }
         });
 
         static::updating(function ($tag) {

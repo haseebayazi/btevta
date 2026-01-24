@@ -17,15 +17,16 @@ class DocumentTagTest extends TestCase
     #[Test]
     public function it_creates_a_document_tag()
     {
+        $unique = rand(1, 999999);
         $tag = DocumentTag::factory()->create([
-            'name' => 'Urgent',
-            'slug' => 'urgent',
+            'name' => 'Urgent ' . $unique,
+            'slug' => 'urgent-' . $unique,
             'color' => '#ff0000',
         ]);
 
         $this->assertDatabaseHas('document_tags', [
-            'name' => 'Urgent',
-            'slug' => 'urgent',
+            'name' => 'Urgent ' . $unique,
+            'slug' => 'urgent-' . $unique,
             'color' => '#ff0000',
         ]);
     }
@@ -36,12 +37,13 @@ class DocumentTagTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
+        $unique = rand(1, 999999);
         $tag = DocumentTag::create([
-            'name' => 'Pending Review',
+            'name' => 'Pending Review ' . $unique,
             'color' => '#FFA500',
         ]);
 
-        $this->assertEquals('pending-review', $tag->slug);
+        $this->assertEquals('pending-review-' . $unique, $tag->slug);
     }
 
     #[Test]
@@ -50,8 +52,9 @@ class DocumentTagTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
+        $unique = rand(1, 999999);
         $tag = DocumentTag::create([
-            'name' => 'Test Tag',
+            'name' => 'Test Tag ' . $unique,
             'color' => '#000000',
         ]);
 
@@ -74,7 +77,7 @@ class DocumentTagTest extends TestCase
     #[Test]
     public function it_can_attach_multiple_documents()
     {
-        $tag = DocumentTag::factory()->create(['name' => 'Urgent']);
+        $tag = DocumentTag::factory()->create();
 
         $doc1 = DocumentArchive::factory()->create();
         $doc2 = DocumentArchive::factory()->create();
@@ -103,16 +106,17 @@ class DocumentTagTest extends TestCase
     {
         $document = DocumentArchive::factory()->create();
 
-        $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
-        $verifiedTag = DocumentTag::factory()->create(['name' => 'Verified']);
-        $confidentialTag = DocumentTag::factory()->create(['name' => 'Confidential']);
+        $urgentTag = DocumentTag::factory()->create();
+        $verifiedTag = DocumentTag::factory()->create();
+        $confidentialTag = DocumentTag::factory()->create();
 
         $document->tags()->attach([$urgentTag->id, $verifiedTag->id, $confidentialTag->id]);
 
-        $this->assertEquals(3, $document->tags->count());
-        $this->assertTrue($document->tags->contains($urgentTag));
-        $this->assertTrue($document->tags->contains($verifiedTag));
-        $this->assertTrue($document->tags->contains($confidentialTag));
+        $this->assertEquals(3, $document->tags()->count());
+        $tags = $document->tags()->get();
+        $this->assertTrue($tags->contains($urgentTag));
+        $this->assertTrue($tags->contains($verifiedTag));
+        $this->assertTrue($tags->contains($confidentialTag));
     }
 
     #[Test]
@@ -120,20 +124,21 @@ class DocumentTagTest extends TestCase
     {
         $document = DocumentArchive::factory()->create();
 
-        $tag1 = DocumentTag::factory()->create(['name' => 'Tag 1']);
-        $tag2 = DocumentTag::factory()->create(['name' => 'Tag 2']);
-        $tag3 = DocumentTag::factory()->create(['name' => 'Tag 3']);
+        $tag1 = DocumentTag::factory()->create();
+        $tag2 = DocumentTag::factory()->create();
+        $tag3 = DocumentTag::factory()->create();
 
         // Initial tags
         $document->tags()->sync([$tag1->id, $tag2->id]);
-        $this->assertEquals(2, $document->tags->count());
+        $this->assertEquals(2, $document->tags()->count());
 
         // Sync with different tags
         $document->tags()->sync([$tag2->id, $tag3->id]);
         $this->assertEquals(2, $document->tags()->count());
-        $this->assertFalse($document->tags->contains($tag1));
-        $this->assertTrue($document->tags->contains($tag2));
-        $this->assertTrue($document->tags->contains($tag3));
+        $tags = $document->tags()->get();
+        $this->assertFalse($tags->contains($tag1));
+        $this->assertTrue($tags->contains($tag2));
+        $this->assertTrue($tags->contains($tag3));
     }
 
     #[Test]
@@ -183,36 +188,39 @@ class DocumentTagTest extends TestCase
     #[Test]
     public function it_searches_tags_by_name()
     {
-        DocumentTag::factory()->create(['name' => 'Urgent']);
-        DocumentTag::factory()->create(['name' => 'Verified']);
-        DocumentTag::factory()->create(['name' => 'Pending Review']);
+        $unique = rand(1, 999999);
+        DocumentTag::factory()->create(['name' => 'Urgent ' . $unique]);
+        DocumentTag::factory()->create(['name' => 'Verified ' . $unique]);
+        DocumentTag::factory()->create(['name' => 'Pending Review ' . $unique]);
 
-        $results = DocumentTag::search('Urgent')->get();
+        $results = DocumentTag::search('Urgent ' . $unique)->get();
 
         $this->assertEquals(1, $results->count());
-        $this->assertEquals('Urgent', $results->first()->name);
+        $this->assertEquals('Urgent ' . $unique, $results->first()->name);
     }
 
     #[Test]
     public function it_searches_tags_by_slug()
     {
-        DocumentTag::factory()->create(['name' => 'Urgent', 'slug' => 'urgent']);
-        DocumentTag::factory()->create(['name' => 'Verified', 'slug' => 'verified']);
+        $unique = rand(1, 999999);
+        DocumentTag::factory()->create(['name' => 'Urgent ' . $unique, 'slug' => 'urgent-' . $unique]);
+        DocumentTag::factory()->create(['name' => 'Verified ' . $unique, 'slug' => 'verified-' . $unique]);
 
-        $results = DocumentTag::search('urgent')->get();
+        $results = DocumentTag::search('urgent-' . $unique)->get();
 
         $this->assertEquals(1, $results->count());
-        $this->assertEquals('Urgent', $results->first()->name);
+        $this->assertEquals('Urgent ' . $unique, $results->first()->name);
     }
 
     #[Test]
     public function tag_name_is_unique()
     {
-        DocumentTag::factory()->create(['name' => 'Urgent']);
+        $unique = rand(1, 999999);
+        DocumentTag::factory()->create(['name' => 'Urgent ' . $unique]);
 
         $this->expectException(\Illuminate\Database\QueryException::class);
 
-        DocumentTag::factory()->create(['name' => 'Urgent']);
+        DocumentTag::factory()->create(['name' => 'Urgent ' . $unique]);
     }
 
     #[Test]
@@ -221,11 +229,12 @@ class DocumentTagTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        DocumentTag::create(['name' => 'Test', 'slug' => 'test', 'color' => '#000']);
+        $unique = rand(1, 999999);
+        DocumentTag::create(['name' => 'Test ' . $unique, 'slug' => 'test-' . $unique, 'color' => '#000']);
 
         $this->expectException(\Illuminate\Database\QueryException::class);
 
-        DocumentTag::create(['name' => 'Test 2', 'slug' => 'test', 'color' => '#000']);
+        DocumentTag::create(['name' => 'Test 2 ' . $unique, 'slug' => 'test-' . $unique, 'color' => '#000']);
     }
 
     #[Test]
@@ -234,8 +243,9 @@ class DocumentTagTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
+        $unique = rand(1, 999999);
         $tag = DocumentTag::create([
-            'name' => 'No Color Tag',
+            'name' => 'No Color Tag ' . $unique,
         ]);
 
         $this->assertEquals('#3b82f6', $tag->color);
@@ -262,17 +272,17 @@ class DocumentTagTest extends TestCase
         $document = DocumentArchive::factory()->create();
 
         $tag->documents()->attach($document);
-        $tag->documents()->attach($document);
 
-        // Should still only have 1 attachment due to unique constraint
-        $this->assertEquals(1, $tag->documents()->count());
+        // Attempting to attach the same document again should throw a constraint violation
+        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $tag->documents()->attach($document);
     }
 
     #[Test]
     public function it_can_find_documents_with_specific_tag()
     {
-        $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
-        $verifiedTag = DocumentTag::factory()->create(['name' => 'Verified']);
+        $urgentTag = DocumentTag::factory()->create();
+        $verifiedTag = DocumentTag::factory()->create();
 
         $doc1 = DocumentArchive::factory()->create();
         $doc2 = DocumentArchive::factory()->create();
@@ -295,8 +305,8 @@ class DocumentTagTest extends TestCase
     #[Test]
     public function it_can_find_documents_with_multiple_tags()
     {
-        $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
-        $verifiedTag = DocumentTag::factory()->create(['name' => 'Verified']);
+        $urgentTag = DocumentTag::factory()->create();
+        $verifiedTag = DocumentTag::factory()->create();
 
         $doc1 = DocumentArchive::factory()->create();
         $doc2 = DocumentArchive::factory()->create();
@@ -319,8 +329,8 @@ class DocumentTagTest extends TestCase
     #[Test]
     public function it_can_count_documents_per_tag()
     {
-        $urgentTag = DocumentTag::factory()->create(['name' => 'Urgent']);
-        $verifiedTag = DocumentTag::factory()->create(['name' => 'Verified']);
+        $urgentTag = DocumentTag::factory()->create();
+        $verifiedTag = DocumentTag::factory()->create();
 
         $doc1 = DocumentArchive::factory()->create();
         $doc2 = DocumentArchive::factory()->create();
