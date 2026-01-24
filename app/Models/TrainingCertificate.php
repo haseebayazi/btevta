@@ -15,6 +15,8 @@ class TrainingCertificate extends Model
         'batch_id',
         'certificate_number',
         'issue_date',
+        'issued_by',
+        'trainer_id',
         'validity_period',
         'certificate_path',
         'status',
