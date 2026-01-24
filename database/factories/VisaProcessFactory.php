@@ -32,7 +32,6 @@ class VisaProcessFactory extends Factory
             // Takamol Test
             'takamol_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'takamol_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'passed', 'failed']),
-            'takamol_remarks' => fake()->optional()->sentence(),
             'takamol_result_path' => fake()->optional()->filePath(),
             'takamol_score' => fake()->optional()->numberBetween(50, 100),
 

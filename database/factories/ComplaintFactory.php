@@ -51,10 +51,10 @@ class ComplaintFactory extends Factory
      * Override the raw() method to handle 'category' parameter.
      * Maps 'category' to 'complaint_category' in raw attributes.
      */
-    public function raw($attributes = [])
+    public function raw($attributes = [], ?Model $parent = null)
     {
         $attributes = $this->mapCategoryAttribute($attributes);
-        return parent::raw($attributes);
+        return parent::raw($attributes, $parent);
     }
 
     /**
@@ -70,3 +70,4 @@ class ComplaintFactory extends Factory
 
         return $attributes;
     }
+}
