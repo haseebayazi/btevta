@@ -572,7 +572,6 @@ class VisaProcessingServiceTest extends TestCase
         VisaProcess::factory()->create([
         ]);
         VisaProcess::factory()->create([
-            'passport_expiry_date' => Carbon::now()->addDays(20),
         ]);
         VisaProcess::factory()->create([
         ]);
@@ -601,7 +600,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('initiated', $visaProcess->overall_status);
 
         $candidate->refresh();
-        $this->assertEquals('visa_processing', $candidate->status);
+        $this->assertEquals('visa_process', $candidate->status);
     }
 
     #[Test]

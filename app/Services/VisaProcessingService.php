@@ -21,7 +21,7 @@ class VisaProcessingService
         'takamol' => 'Takamol Test',
         'medical' => 'Medical (GAMCA)',
         'biometrics' => 'Biometrics (Etimad)',
-        'visa_submission' => 'Visa Document Submission',
+        'visa_applied' => 'Visa Applied',
         'ptn_issuance' => 'PTN Issuance',
         'ticket' => 'Ticket Booking',
         'completed' => 'Completed'
@@ -86,6 +86,12 @@ class VisaProcessingService
      */
     public function scheduleInterview($candidateId, $data)
     {
+        // Validate candidate exists first
+        $candidate = Candidate::find($candidateId);
+        if (!$candidate) {
+            throw new \Exception("Candidate not found");
+        }
+
         $visaProcess = VisaProcess::firstOrCreate(
             ['candidate_id' => $candidateId],
             [
@@ -104,11 +110,7 @@ class VisaProcessingService
             ]);
         }
 
-        // Update candidate status with NULL CHECK
-        $candidate = Candidate::find($candidateId);
-        if (!$candidate) {
-            throw new \Exception("Candidate not found with ID: {$candidateId}");
-        }
+        // Update candidate status
         $candidate->update(['status' => 'interview_scheduled']);
 
         return $visaProcess->fresh();
@@ -261,7 +263,7 @@ class VisaProcessingService
             'biometric_status' => 'completed',
         ]);
 
-        $this->moveToNextStage($visaProcess, 'visa_issued');
+        $this->moveToNextStage($visaProcess, 'visa_applied');
 
         return $visaProcess->fresh();
     }
