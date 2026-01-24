@@ -14,9 +14,13 @@ class UndertakingFactory extends Factory
     {
         return [
             'candidate_id' => Candidate::factory(),
-            'undertaking_type' => $this->faker->randomElement(['training', 'visa', 'departure', 'general', 'code_of_conduct']),
-            'file_path' => 'undertakings/' . $this->faker->uuid() . '.pdf',
-            'terms_agreed' => true,
+            'undertaking_type' => $this->faker->randomElement(['employment', 'financial', 'behavior', 'other']),
+            'content' => $this->faker->paragraph(3),
+            'signature_path' => $this->faker->optional()->filePath(),
+            'signed_at' => $this->faker->optional()->dateTimeBetween('-1 year', 'now'),
+            'is_completed' => $this->faker->boolean(70),
+            'witness_name' => $this->faker->optional()->name(),
+            'witness_cnic' => $this->faker->optional()->numerify('#############'),
         ];
     }
 }
