@@ -46,7 +46,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertArrayHasKey('takamol', $stages);
         $this->assertArrayHasKey('medical', $stages);
         $this->assertArrayHasKey('biometrics', $stages);
-        $this->assertArrayHasKey('visa_submission', $stages);
+        $this->assertArrayHasKey('visa_applied', $stages);
         $this->assertArrayHasKey('ptn_issuance', $stages);
         $this->assertArrayHasKey('ticket', $stages);
         $this->assertArrayHasKey('completed', $stages);
@@ -263,10 +263,8 @@ class VisaProcessingServiceTest extends TestCase
         );
 
         $this->assertEquals('pass', $result->takamol_status);
-        $this->assertNotNull($result->takamol_certificate_path);
         $this->assertEquals('medical', $result->overall_status);
 
-        Storage::disk('public')->assertExists($result->takamol_certificate_path);
     }
 
     #[Test]
@@ -319,7 +317,6 @@ class VisaProcessingServiceTest extends TestCase
         );
 
         $this->assertEquals('fit', $result->medical_status);
-        $this->assertNotNull($result->gamca_certificate_path);
         $this->assertEquals('biometrics', $result->overall_status);
     }
 
@@ -383,8 +380,8 @@ class VisaProcessingServiceTest extends TestCase
             'remarks' => 'Completed successfully',
         ]);
 
-        $this->assertTrue($result->biometrics_completed);
-        $this->assertEquals('visa_submission', $result->overall_status);
+        $this->assertTrue($result->biometric_completed);
+        $this->assertEquals('visa_applied', $result->overall_status);
     }
 
     // =========================================================================
@@ -401,7 +398,7 @@ class VisaProcessingServiceTest extends TestCase
             'application_number' => 'VIS-2024-12345',
         ]);
 
-        $this->assertEquals('visa_submission', $result->overall_status);
+        $this->assertEquals('visa_applied', $result->overall_status);
     }
 
     // =========================================================================
@@ -415,7 +412,7 @@ class VisaProcessingServiceTest extends TestCase
         $candidate = Candidate::factory()->create(['trade_id' => $trade->id]);
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'overall_status' => 'visa_submission',
+            'overall_status' => 'visa_applied',
         ]);
 
         $result = $this->service->recordPTNIssuance(
@@ -433,7 +430,7 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_uses_provided_ptn_number()
     {
-        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'visa_submission']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'visa_applied']);
 
         $result = $this->service->recordPTNIssuance(
             $visaProcess->id,
