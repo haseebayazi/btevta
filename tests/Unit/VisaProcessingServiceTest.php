@@ -196,7 +196,7 @@ class VisaProcessingServiceTest extends TestCase
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'status' => 'interview',
+            'overall_status' => 'interview',
         ]);
 
         $result = $this->service->recordInterviewResult(
@@ -207,7 +207,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('pass', $result->interview_result);
         $this->assertEquals('Excellent communication skills', $result->interview_remarks);
-        $this->assertEquals('trade_test', $result->current_stage);
+        $this->assertEquals('trade_test', $result->overall_status);
 
         $candidate->refresh();
         $this->assertEquals('interview_passed', $candidate->status);
@@ -219,7 +219,7 @@ class VisaProcessingServiceTest extends TestCase
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'status' => 'interview',
+            'overall_status' => 'interview',
         ]);
 
         $result = $this->service->recordInterviewResult(
@@ -252,13 +252,13 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('2024-07-20', $result->takamol_booking_date);
         $this->assertEquals('2024-07-25', $result->takamol_test_date);
         $this->assertEquals('Islamabad Center', $result->takamol_center);
-        $this->assertEquals('takamol', $result->current_stage);
+        $this->assertEquals('takamol', $result->overall_status);
     }
 
     #[Test]
     public function it_uploads_takamol_result_and_moves_to_next_stage()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'takamol']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'takamol']);
         $file = UploadedFile::fake()->create('takamol_certificate.pdf', 500);
 
         $result = $this->service->uploadTakamolResult(
@@ -271,7 +271,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('pass', $result->takamol_result);
         $this->assertEquals(85, $result->takamol_score);
         $this->assertNotNull($result->takamol_certificate_path);
-        $this->assertEquals('medical', $result->current_stage);
+        $this->assertEquals('medical', $result->overall_status);
 
         Storage::disk('public')->assertExists($result->takamol_certificate_path);
     }
@@ -279,7 +279,7 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_does_not_advance_on_failed_takamol()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'takamol']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'takamol']);
         $file = UploadedFile::fake()->create('takamol_certificate.pdf', 500);
 
         $result = $this->service->uploadTakamolResult(
@@ -290,7 +290,7 @@ class VisaProcessingServiceTest extends TestCase
         );
 
         $this->assertEquals('fail', $result->takamol_result);
-        $this->assertEquals('takamol', $result->current_stage); // Stays at takamol
+        $this->assertEquals('takamol', $result->overall_status); // Stays at takamol
     }
 
     // =========================================================================
@@ -312,13 +312,13 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('2024-08-01', $result->gamca_booking_date);
         $this->assertEquals('Lahore GAMCA Center', $result->gamca_center);
         $this->assertEquals('GAMCA123456', $result->gamca_barcode);
-        $this->assertEquals('medical', $result->current_stage);
+        $this->assertEquals('medical', $result->overall_status);
     }
 
     #[Test]
     public function it_uploads_gamca_certificate_and_advances()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'medical']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'medical']);
         $file = UploadedFile::fake()->create('gamca_certificate.pdf', 500);
 
         $result = $this->service->uploadGAMCACertificate(
@@ -331,13 +331,13 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('fit', $result->gamca_result);
         $this->assertEquals('2025-08-05', $result->gamca_expiry_date);
         $this->assertNotNull($result->gamca_certificate_path);
-        $this->assertEquals('biometrics', $result->current_stage);
+        $this->assertEquals('biometrics', $result->overall_status);
     }
 
     #[Test]
     public function it_does_not_advance_on_unfit_medical()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'medical']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'medical']);
         $file = UploadedFile::fake()->create('gamca_certificate.pdf', 500);
 
         $result = $this->service->uploadGAMCACertificate(
@@ -348,7 +348,7 @@ class VisaProcessingServiceTest extends TestCase
         );
 
         $this->assertEquals('unfit', $result->gamca_result);
-        $this->assertEquals('medical', $result->current_stage);
+        $this->assertEquals('medical', $result->overall_status);
     }
 
     // =========================================================================
@@ -368,7 +368,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('ETM-20240810-ABC123', $result->etimad_appointment_id);
         $this->assertEquals('2024-08-10', $result->etimad_appointment_date);
-        $this->assertEquals('biometrics', $result->current_stage);
+        $this->assertEquals('biometrics', $result->overall_status);
     }
 
     #[Test]
@@ -387,7 +387,7 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_records_biometrics_completion()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'biometrics']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'biometrics']);
 
         $result = $this->service->recordBiometricsCompletion($visaProcess->id, [
             'completion_date' => '2024-08-10',
@@ -395,7 +395,7 @@ class VisaProcessingServiceTest extends TestCase
         ]);
 
         $this->assertTrue($result->biometrics_completed);
-        $this->assertEquals('visa_submission', $result->current_stage);
+        $this->assertEquals('visa_submission', $result->overall_status);
     }
 
     // =========================================================================
@@ -405,7 +405,7 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_records_visa_submission()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'biometrics']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'biometrics']);
 
         $result = $this->service->recordVisaSubmission($visaProcess->id, [
             'submission_date' => '2024-08-15',
@@ -416,7 +416,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('2024-08-15', $result->visa_submission_date);
         $this->assertEquals('VIS-2024-12345', $result->visa_application_number);
         $this->assertEquals('Saudi Embassy Islamabad', $result->embassy);
-        $this->assertEquals('visa_submission', $result->current_stage);
+        $this->assertEquals('visa_submission', $result->overall_status);
     }
 
     // =========================================================================
@@ -430,7 +430,7 @@ class VisaProcessingServiceTest extends TestCase
         $candidate = Candidate::factory()->create(['trade_id' => $trade->id]);
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'current_stage' => 'visa_submission',
+            'overall_status' => 'visa_submission',
         ]);
 
         $result = $this->service->recordPTNIssuance(
@@ -443,13 +443,13 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertStringStartsWith('PTN-', $result->ptn_number);
         $this->assertEquals('2024-08-20', $result->ptn_issue_date);
         $this->assertEquals('approved', $result->visa_status);
-        $this->assertEquals('ptn_issuance', $result->current_stage);
+        $this->assertEquals('ptn_issuance', $result->overall_status);
     }
 
     #[Test]
     public function it_uses_provided_ptn_number()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'visa_submission']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'visa_submission']);
 
         $result = $this->service->recordPTNIssuance(
             $visaProcess->id,
@@ -467,7 +467,7 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_uploads_travel_plan_and_completes_process()
     {
-        $visaProcess = VisaProcess::factory()->create(['current_stage' => 'ptn_issuance']);
+        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'ptn_issuance']);
         $file = UploadedFile::fake()->create('ticket.pdf', 500);
 
         $result = $this->service->uploadTravelPlan($visaProcess->id, $file, [
@@ -479,7 +479,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertNotNull($result->travel_plan_path);
         $this->assertEquals('PK-302', $result->flight_number);
         $this->assertEquals('2024-09-01', $result->departure_date);
-        $this->assertEquals('ticket', $result->current_stage);
+        $this->assertEquals('ticket', $result->overall_status);
 
         Storage::disk('public')->assertExists($result->travel_plan_path);
     }
@@ -517,9 +517,9 @@ class VisaProcessingServiceTest extends TestCase
     #[Test]
     public function it_returns_visa_processing_statistics()
     {
-        VisaProcess::factory()->count(5)->create(['status' => 'completed']);
-        VisaProcess::factory()->count(3)->create(['current_stage' => 'interview']);
-        VisaProcess::factory()->count(2)->create(['current_stage' => 'medical']);
+        VisaProcess::factory()->count(5)->create(['overall_status' => 'completed']);
+        VisaProcess::factory()->count(3)->create(['overall_status' => 'interview']);
+        VisaProcess::factory()->count(2)->create(['overall_status' => 'medical']);
 
         $stats = $this->service->getStatistics();
 
@@ -573,16 +573,16 @@ class VisaProcessingServiceTest extends TestCase
     public function it_returns_pending_medical_biometric_candidates()
     {
         VisaProcess::factory()->count(3)->create([
-            'current_stage' => 'medical',
-            'status' => 'in_progress',
+            'overall_status' => 'medical',
+            'overall_status' => 'in_progress',
         ]);
         VisaProcess::factory()->count(2)->create([
-            'current_stage' => 'biometrics',
-            'status' => 'in_progress',
+            'overall_status' => 'biometrics',
+            'overall_status' => 'in_progress',
         ]);
         VisaProcess::factory()->count(4)->create([
-            'current_stage' => 'interview',
-            'status' => 'in_progress',
+            'overall_status' => 'interview',
+            'overall_status' => 'in_progress',
         ]);
 
         $pending = $this->service->getPendingMedicalBiometric();

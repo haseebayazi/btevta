@@ -38,7 +38,7 @@ class VisaProcess extends Model
         'ticket_uploaded', 'ticket_date', 'ticket_path', 'ticket_number',
         'flight_number', 'departure_date', 'arrival_date', 'travel_plan_path',
         // General
-        'overall_status', 'current_stage', 'remarks', 'created_by', 'updated_by'
+        'overall_status', 'remarks', 'created_by', 'updated_by'
     ];
 
     protected $casts = [

@@ -89,7 +89,7 @@ class VisaProcessingService
         $visaProcess = VisaProcess::firstOrCreate(
             ['candidate_id' => $candidateId],
             [
-                'status' => 'interview',
+                'overall_status' => 'interview',
                 'interview_date' => $data['interview_date'],
                 'interview_location' => $data['interview_location'] ?? null,
                 'interview_notes' => $data['interview_notes'] ?? null,
@@ -344,8 +344,7 @@ class VisaProcessingService
     private function moveToNextStage($visaProcess, $stage)
     {
         $visaProcess->update([
-            'status' => $stage,
-            'current_stage' => $stage,
+            'overall_status' => $stage,
         ]);
 
         // Log stage transition
@@ -360,7 +359,7 @@ class VisaProcessingService
      */
     private function updateStage($visaProcess, $stage)
     {
-        $visaProcess->update(['current_stage' => $stage]);
+        $visaProcess->update(['overall_status' => $stage]);
     }
 
     /**
@@ -433,11 +432,11 @@ class VisaProcessingService
             'total_processes' => $total,
             'completed' => (clone $query)->where('status', 'completed')->count(),
             'in_progress' => (clone $query)->where('status', '!=', 'completed')->count(),
-            'interview_stage' => (clone $query)->where('current_stage', 'interview')->count(),
-            'takamol_stage' => (clone $query)->where('current_stage', 'takamol')->count(),
-            'medical_stage' => (clone $query)->where('current_stage', 'medical')->count(),
-            'biometrics_stage' => (clone $query)->where('current_stage', 'biometrics')->count(),
-            'visa_submission_stage' => (clone $query)->where('current_stage', 'visa_submission')->count(),
+            'interview_stage' => (clone $query)->where('overall_status', 'interview')->count(),
+            'takamol_stage' => (clone $query)->where('overall_status', 'takamol')->count(),
+            'medical_stage' => (clone $query)->where('overall_status', 'medical')->count(),
+            'biometrics_stage' => (clone $query)->where('overall_status', 'biometrics')->count(),
+            'visa_submission_stage' => (clone $query)->where('overall_status', 'visa_submission')->count(),
             'ptn_issued' => (clone $query)->whereNotNull('ptn_number')->count(),
             'average_processing_days' => $this->calculateAverageProcessingDays($query),
         ];
@@ -471,7 +470,7 @@ class VisaProcessingService
     public function getPendingMedicalBiometric()
     {
         return VisaProcess::with('candidate')
-            ->whereIn('current_stage', ['medical', 'biometrics'])
+            ->whereIn('overall_status', ['medical', 'biometrics'])
             ->where('status', '!=', 'completed')
             ->get();
     }
@@ -506,7 +505,7 @@ class VisaProcessingService
                 'interview_status' => $data['interview_status'] ?? 'pending',
                 'interview_remarks' => $data['interview_remarks'] ?? null,
                 'overall_status' => VisaStage::INITIATED->value,
-                'current_stage' => VisaStage::INITIATED->value,
+                'overall_status' => VisaStage::INITIATED->value,
             ]);
 
             // Update candidate status to VISA_PROCESS
