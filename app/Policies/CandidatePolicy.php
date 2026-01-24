@@ -30,6 +30,10 @@ class CandidatePolicy
      */
     public function viewAny(User $user): bool
     {
+        if (!$user->is_active) {
+            return false;
+        }
+
         return $user->isSuperAdmin() || $user->isProjectDirector() ||
                $user->isCampusAdmin() || $user->isOep() ||
                $user->isVisaPartner() || $user->isStaff() ||
@@ -41,6 +45,10 @@ class CandidatePolicy
      */
     public function view(User $user, Candidate $candidate): bool
     {
+        if (!$user->is_active) {
+            return false;
+        }
+
         // Admin and Project Director can view all
         if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
@@ -83,6 +91,10 @@ class CandidatePolicy
      */
     public function create(User $user): bool
     {
+        if (!$user->is_active) {
+            return false;
+        }
+
         // Admin, Project Director, and campus admin users can create candidates
         return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
@@ -92,6 +104,10 @@ class CandidatePolicy
      */
     public function update(User $user, Candidate $candidate): bool
     {
+        if (!$user->is_active) {
+            return false;
+        }
+
         // Admin and Project Director can update all
         if ($user->isSuperAdmin() || $user->isProjectDirector()) {
             return true;
@@ -110,6 +126,10 @@ class CandidatePolicy
      */
     public function delete(User $user, Candidate $candidate): bool
     {
+        if (!$user->is_active) {
+            return false;
+        }
+
         // Only admin can delete candidates
         return $user->isSuperAdmin();
     }
