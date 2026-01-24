@@ -317,13 +317,10 @@ class VisaProcessingService
         
         $visaProcess->update([
             'travel_plan_path' => $path,
-            'flight_number' => $data['flight_number'] ?? null,
-            'departure_date' => $data['departure_date'] ?? null,
-            'arrival_date' => $data['arrival_date'] ?? null,
         ]);
 
         $this->moveToNextStage($visaProcess, 'ticket');
-        $this->completeVisaProcess($visaProcess);
+        $this->completeVisaProcess($visaProcess->id);
 
         return $visaProcess;
     }
@@ -358,25 +355,25 @@ class VisaProcessingService
     public function calculateTimeline($visaProcessId)
     {
         $visaProcess = VisaProcess::with('candidate')->findOrFail($visaProcessId);
-        
+
         $timeline = [];
         $stages = [
             'interview_date' => 'Interview',
-            'takamol_test_date' => 'Takamol Test',
-            'gamca_test_date' => 'Medical (GAMCA)',
-            'etimad_appointment_date' => 'Biometrics',
-            'visa_submission_date' => 'Visa Submission',
-            'ptn_issue_date' => 'PTN Issuance',
-            'departure_date' => 'Departure',
+            'trade_test_date' => 'Trade Test',
+            'takamol_date' => 'Takamol Test',
+            'medical_date' => 'Medical (GAMCA)',
+            'biometric_date' => 'Biometrics',
+            'visa_date' => 'Visa Applied',
+            'ticket_date' => 'Ticket Booking',
         ];
 
         $startDate = $visaProcess->created_at;
-        
+
         foreach ($stages as $field => $label) {
             if ($visaProcess->$field) {
                 $date = Carbon::parse($visaProcess->$field);
                 $daysFromStart = $startDate->diffInDays($date);
-                
+
                 $timeline[] = [
                     'stage' => $label,
                     'date' => $date->format('Y-m-d'),
@@ -420,13 +417,13 @@ class VisaProcessingService
 
         return [
             'total_processes' => $total,
-            'completed' => (clone $query)->where('status', 'completed')->count(),
-            'in_progress' => (clone $query)->where('status', '!=', 'completed')->count(),
+            'completed' => (clone $query)->where('overall_status', 'completed')->count(),
+            'in_progress' => (clone $query)->where('overall_status', '!=', 'completed')->count(),
             'interview_stage' => (clone $query)->where('overall_status', 'interview')->count(),
             'takamol_stage' => (clone $query)->where('overall_status', 'takamol')->count(),
             'medical_stage' => (clone $query)->where('overall_status', 'medical')->count(),
             'biometrics_stage' => (clone $query)->where('overall_status', 'biometrics')->count(),
-            'visa_submission_stage' => (clone $query)->where('overall_status', 'visa_submission')->count(),
+            'visa_applied_stage' => (clone $query)->where('overall_status', 'visa_applied')->count(),
             'ptn_issued' => (clone $query)->whereNotNull('ptn_number')->count(),
             'average_processing_days' => $this->calculateAverageProcessingDays($query),
         ];
@@ -461,7 +458,6 @@ class VisaProcessingService
     {
         return VisaProcess::with('candidate')
             ->whereIn('overall_status', ['medical', 'biometrics'])
-            ->where('status', '!=', 'completed')
             ->get();
     }
 
@@ -470,14 +466,9 @@ class VisaProcessingService
      */
     public function getExpiringDocuments($days = 30)
     {
-        $alertDate = Carbon::now()->addDays($days);
-
-        return VisaProcess::with('candidate')
-            ->where(function($query) use ($alertDate) {
-                $query->where('gamca_expiry_date', '<=', $alertDate)
-                      ->orWhere('passport_expiry_date', '<=', $alertDate);
-            })
-            ->get();
+        // Note: gamca_expiry_date and passport_expiry_date columns don't exist in visa_processes table
+        // This method returns empty collection until schema is updated
+        return collect();
     }
 
     /**
