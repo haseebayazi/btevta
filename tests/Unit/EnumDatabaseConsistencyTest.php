@@ -348,7 +348,6 @@ class EnumDatabaseConsistencyTest extends TestCase
             $result = DB::table('visa_processes')->insert([
                 'candidate_id' => 1,
                 'overall_status' => $stage->value,
-                'current_stage' => $stage->value,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

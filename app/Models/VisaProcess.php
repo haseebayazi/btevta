@@ -19,24 +19,18 @@ class VisaProcess extends Model
         'interview_date', 'interview_status', 'interview_completed', 'interview_remarks',
         'trade_test_date', 'trade_test_status', 'trade_test_completed', 'trade_test_remarks',
         // Takamol Test
-        'takamol_date', 'takamol_status', 'takamol_remarks',
-        'takamol_result_path', 'takamol_score',
+        'takamol_date', 'takamol_status',
         // Medical/GAMCA
         'medical_date', 'medical_status', 'medical_completed',
-        'medical_remarks', 'gamca_result_path', 'gamca_barcode', 'gamca_expiry_date',
         // E-Number
-        'enumber', 'enumber_date', 'enumber_status',
+        'enumber',
         // Biometrics/Etimad
-        'biometric_date', 'etimad_appointment_id', 'etimad_center', 'biometric_status',
-        'biometric_completed', 'biometric_remarks',
-        // Visa Documents Submission
-        'visa_submission_date', 'visa_application_number', 'embassy',
+        'biometric_date', 'etimad_appointment_id', 'biometric_status', 'biometric_completed',
         // Visa & PTN
-        'visa_date', 'visa_number', 'visa_status', 'visa_issued', 'visa_remarks',
-        'ptn_number', 'ptn_issue_date', 'attestation_date',
+        'visa_date', 'visa_number', 'visa_status', 'visa_issued',
+        'ptn_number',
         // Ticket & Travel
-        'ticket_uploaded', 'ticket_date', 'ticket_path', 'ticket_number',
-        'flight_number', 'departure_date', 'arrival_date', 'travel_plan_path',
+        'ticket_uploaded', 'ticket_date', 'ticket_path', 'travel_plan_path',
         // General
         'overall_status', 'remarks', 'created_by', 'updated_by'
     ];
@@ -46,16 +40,9 @@ class VisaProcess extends Model
         'trade_test_date' => 'date',
         'takamol_date' => 'date',
         'medical_date' => 'date',
-        'gamca_expiry_date' => 'date',
-        'enumber_date' => 'date',
         'biometric_date' => 'date',
-        'visa_submission_date' => 'date',
         'visa_date' => 'date',
-        'ptn_issue_date' => 'date',
-        'attestation_date' => 'date',
         'ticket_date' => 'date',
-        'departure_date' => 'datetime',
-        'arrival_date' => 'datetime',
         'interview_completed' => 'boolean',
         'trade_test_completed' => 'boolean',
         'medical_completed' => 'boolean',
@@ -71,7 +58,6 @@ class VisaProcess extends Model
      */
     protected $hidden = [
         'visa_number',
-        'ticket_number',
         'ticket_path',
         'ptn_number',
     ];
