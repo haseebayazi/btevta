@@ -21,7 +21,7 @@ class RegistrationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new RegistrationService();
+        $this->service = app(RegistrationService::class);
         Storage::fake('public');
     }
 

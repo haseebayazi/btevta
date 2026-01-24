@@ -190,7 +190,7 @@ class RegistrationService
             Signature of Guardian/Parent
             Name: " . ($candidate->nextOfKin?->name ?? '') . "
             CNIC: " . ($candidate->nextOfKin?->formatted_cnic ?? '') . "
-            Contact: " . ($candidate->nextOfKin?->phone ?? '')
+            Contact: " . ($candidate->nextOfKin?->phone ?? '') . "
 
 
             FOR OFFICIAL USE ONLY:
