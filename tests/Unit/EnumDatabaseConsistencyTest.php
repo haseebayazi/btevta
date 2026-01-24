@@ -62,6 +62,9 @@ class EnumDatabaseConsistencyTest extends TestCase
             $this->markTestSkipped('Candidates table does not exist');
         }
 
+        // Create a trade for foreign key
+        $trade = \App\Models\Trade::factory()->create();
+
         foreach (CandidateStatus::cases() as $status) {
             $result = DB::table('candidates')->insert([
                 'btevta_id' => 'TEST-' . $status->value . '-' . time(),
@@ -70,10 +73,11 @@ class EnumDatabaseConsistencyTest extends TestCase
                 'father_name' => 'Test Father',
                 'date_of_birth' => '1990-01-01',
                 'gender' => 'male',
+                'email' => 'test.' . $status->value . '@example.com',
                 'phone' => '03001234567',
                 'address' => 'Test Address',
                 'district' => 'Lahore',
-                'trade_id' => 1,
+                'trade_id' => $trade->id,
                 'status' => $status->value,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -247,6 +251,9 @@ class EnumDatabaseConsistencyTest extends TestCase
             $this->markTestSkipped('Candidates table does not exist');
         }
 
+        // Create a trade for foreign key
+        $trade = \App\Models\Trade::factory()->create();
+
         // Test only candidate-specific statuses (not class statuses)
         $candidateStatuses = TrainingStatus::candidateStatuses();
 
@@ -261,10 +268,11 @@ class EnumDatabaseConsistencyTest extends TestCase
                 'father_name' => 'Test Father',
                 'date_of_birth' => '1990-01-01',
                 'gender' => 'male',
+                'email' => 'training.' . $status->value . '@example.com',
                 'phone' => '03009876543',
                 'address' => 'Test Address',
                 'district' => 'Lahore',
-                'trade_id' => 1,
+                'trade_id' => $trade->id,
                 'status' => 'training',
                 'training_status' => $status->value,
                 'created_at' => now(),
@@ -344,9 +352,12 @@ class EnumDatabaseConsistencyTest extends TestCase
             $this->markTestSkipped('visa_processes table does not exist');
         }
 
+        // Create a candidate first for foreign key
+        $candidate = \App\Models\Candidate::factory()->create();
+
         foreach (VisaStage::cases() as $stage) {
             $result = DB::table('visa_processes')->insert([
-                'candidate_id' => 1,
+                'candidate_id' => $candidate->id,
                 'overall_status' => $stage->value,
                 'created_at' => now(),
                 'updated_at' => now(),
