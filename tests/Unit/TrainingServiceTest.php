@@ -52,7 +52,7 @@ class TrainingServiceTest extends TestCase
         // All candidates should be updated
         foreach ($candidates as $candidate) {
             $candidate->refresh();
-            $this->assertEquals('in_training', $candidate->status);
+            $this->assertEquals('training', $candidate->status);
         }
     }
 
