@@ -135,6 +135,8 @@ class AutoBatchService
             'oep_id' => $oepId,
             'capacity' => $batchSize,
             'status' => Batch::STATUS_PLANNED,
+            'start_date' => now()->addWeek(),
+            'end_date' => now()->addMonths(3),
             'intake_period' => now()->format('Y-m'),
             'created_by' => auth()->id(),
         ]);
