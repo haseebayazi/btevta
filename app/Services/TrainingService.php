@@ -140,10 +140,8 @@ class TrainingService
             'batch_id' => $batchId,
             'date' => $data['date'],
             'status' => $data['status'], // present, absent, late, leave
-            'session_type' => $data['session_type'] ?? 'theory', // theory, practical, assessment
             'trainer_id' => $data['trainer_id'] ?? auth()->id(),
-            'detailed_remarks' => $data['remarks'] ?? null,
-            'leave_type' => $data['leave_type'] ?? null, // sick, casual, emergency
+            'remarks' => $data['remarks'] ?? null,
         ]);
 
         // Update candidate training status if too many absences

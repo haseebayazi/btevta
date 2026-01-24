@@ -17,9 +17,6 @@ class TrainingAttendance extends Model
         'trainer_id',
         'date',
         'status',
-        'session_type',
-        'detailed_remarks',
-        'leave_type',
         'remarks',
         'created_by',
         'updated_by'
