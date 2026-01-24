@@ -191,7 +191,7 @@ class VisaProcessingServiceTest extends TestCase
     // =========================================================================
 
     #[Test]
-    public function it_records_passed_interview_result()
+    public function it_records_passed_interview_status()
     {
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
@@ -205,7 +205,7 @@ class VisaProcessingServiceTest extends TestCase
             'Excellent communication skills'
         );
 
-        $this->assertEquals('pass', $result->interview_result);
+        $this->assertEquals('pass', $result->interview_status);
         $this->assertEquals('Excellent communication skills', $result->interview_remarks);
         $this->assertEquals('trade_test', $result->overall_status);
 
@@ -214,7 +214,7 @@ class VisaProcessingServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_records_failed_interview_result()
+    public function it_records_failed_interview_status()
     {
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
@@ -228,7 +228,7 @@ class VisaProcessingServiceTest extends TestCase
             'Did not meet requirements'
         );
 
-        $this->assertEquals('fail', $result->interview_result);
+        $this->assertEquals('fail', $result->interview_status);
 
         $candidate->refresh();
         $this->assertEquals('interview_failed', $candidate->status);
@@ -250,13 +250,13 @@ class VisaProcessingServiceTest extends TestCase
         ]);
 
         $this->assertEquals('2024-07-20', $result->takamol_booking_date);
-        $this->assertEquals('2024-07-25', $result->takamol_test_date);
+        $this->assertEquals('2024-07-25', $result->takamol_date);
         $this->assertEquals('Islamabad Center', $result->takamol_center);
         $this->assertEquals('takamol', $result->overall_status);
     }
 
     #[Test]
-    public function it_uploads_takamol_result_and_moves_to_next_stage()
+    public function it_uploads_takamol_status_and_moves_to_next_stage()
     {
         $visaProcess = VisaProcess::factory()->create(['overall_status' => 'takamol']);
         $file = UploadedFile::fake()->create('takamol_certificate.pdf', 500);
@@ -268,7 +268,7 @@ class VisaProcessingServiceTest extends TestCase
             85
         );
 
-        $this->assertEquals('pass', $result->takamol_result);
+        $this->assertEquals('pass', $result->takamol_status);
         $this->assertEquals(85, $result->takamol_score);
         $this->assertNotNull($result->takamol_certificate_path);
         $this->assertEquals('medical', $result->overall_status);
@@ -289,7 +289,7 @@ class VisaProcessingServiceTest extends TestCase
             40
         );
 
-        $this->assertEquals('fail', $result->takamol_result);
+        $this->assertEquals('fail', $result->takamol_status);
         $this->assertEquals('takamol', $result->overall_status); // Stays at takamol
     }
 
@@ -328,7 +328,7 @@ class VisaProcessingServiceTest extends TestCase
             '2025-08-05'
         );
 
-        $this->assertEquals('fit', $result->gamca_result);
+        $this->assertEquals('fit', $result->medical_status);
         $this->assertEquals('2025-08-05', $result->gamca_expiry_date);
         $this->assertNotNull($result->gamca_certificate_path);
         $this->assertEquals('biometrics', $result->overall_status);
@@ -347,7 +347,7 @@ class VisaProcessingServiceTest extends TestCase
             null
         );
 
-        $this->assertEquals('unfit', $result->gamca_result);
+        $this->assertEquals('unfit', $result->medical_status);
         $this->assertEquals('medical', $result->overall_status);
     }
 
@@ -367,7 +367,7 @@ class VisaProcessingServiceTest extends TestCase
         ]);
 
         $this->assertEquals('ETM-20240810-ABC123', $result->etimad_appointment_id);
-        $this->assertEquals('2024-08-10', $result->etimad_appointment_date);
+        $this->assertEquals('2024-08-10', $result->biometric_date);
         $this->assertEquals('biometrics', $result->overall_status);
     }
 
@@ -493,9 +493,9 @@ class VisaProcessingServiceTest extends TestCase
     {
         $visaProcess = VisaProcess::factory()->create([
             'interview_date' => '2024-07-01',
-            'takamol_test_date' => '2024-07-15',
-            'gamca_test_date' => '2024-07-25',
-            'etimad_appointment_date' => '2024-08-05',
+            'takamol_date' => '2024-07-15',
+            'medical_date' => '2024-07-25',
+            'biometric_date' => '2024-08-05',
             'visa_submission_date' => '2024-08-15',
             'ptn_issue_date' => '2024-08-25',
             'departure_date' => '2024-09-01',

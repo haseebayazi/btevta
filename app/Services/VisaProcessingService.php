@@ -123,7 +123,7 @@ class VisaProcessingService
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
         $visaProcess->update([
-            'interview_result' => $result,
+            'interview_status' => $result,
             'interview_remarks' => $remarks,
         ]);
 
@@ -139,7 +139,7 @@ class VisaProcessingService
             $visaProcess->candidate->update(['status' => 'interview_failed']);
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -148,16 +148,15 @@ class VisaProcessingService
     public function scheduleTakamol($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'takamol_booking_date' => $data['booking_date'],
-            'takamol_test_date' => $data['test_date'] ?? null,
-            'takamol_center' => $data['center'] ?? null,
+            'takamol_date' => $data['test_date'] ?? $data['booking_date'] ?? null,
+            'takamol_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'takamol');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -171,16 +170,14 @@ class VisaProcessingService
         $path = $file->store('visa/takamol', 'public');
         
         $visaProcess->update([
-            'takamol_result' => $result,
-            'takamol_score' => $score,
-            'takamol_certificate_path' => $path,
+            'takamol_status' => $result,
         ]);
 
         if ($result === 'pass') {
             $this->moveToNextStage($visaProcess, 'medical');
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -189,17 +186,15 @@ class VisaProcessingService
     public function scheduleGAMCA($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'gamca_booking_date' => $data['booking_date'],
-            'gamca_test_date' => $data['test_date'] ?? null,
-            'gamca_center' => $data['center'] ?? null,
-            'gamca_barcode' => $data['barcode'] ?? null,
+            'medical_date' => $data['test_date'] ?? $data['booking_date'] ?? null,
+            'medical_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'medical');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -213,16 +208,14 @@ class VisaProcessingService
         $path = $file->store('visa/gamca', 'public');
         
         $visaProcess->update([
-            'gamca_result' => $result,
-            'gamca_certificate_path' => $path,
-            'gamca_expiry_date' => $expiryDate,
+            'medical_status' => $result,
         ]);
 
         if ($result === 'fit') {
             $this->moveToNextStage($visaProcess, 'biometrics');
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -231,18 +224,18 @@ class VisaProcessingService
     public function scheduleEtimad($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $appointmentId = $data['appointment_id'] ?? $this->generateEtimadAppointmentId();
-        
+
         $visaProcess->update([
             'etimad_appointment_id' => $appointmentId,
-            'etimad_appointment_date' => $data['appointment_date'],
-            'etimad_center' => $data['center'] ?? null,
+            'biometric_date' => $data['appointment_date'] ?? null,
+            'biometric_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'biometrics');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**

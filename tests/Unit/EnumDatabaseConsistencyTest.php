@@ -87,13 +87,13 @@ class EnumDatabaseConsistencyTest extends TestCase
     public function candidate_status_transitions_are_valid(): void
     {
         // Test that valid transitions work
-        $this->assertTrue(CandidateStatus::NEW->canTransitionTo(CandidateStatus::SCREENING));
-        $this->assertTrue(CandidateStatus::SCREENING->canTransitionTo(CandidateStatus::REGISTERED));
-        $this->assertTrue(CandidateStatus::TRAINING->canTransitionTo(CandidateStatus::VISA_PROCESS));
+        $this->assertTrue(CandidateStatus::LISTED->canTransitionTo(CandidateStatus::PRE_DEPARTURE_DOCS));
+        $this->assertTrue(CandidateStatus::SCREENING->canTransitionTo(CandidateStatus::SCREENED));
+        $this->assertTrue(CandidateStatus::TRAINING->canTransitionTo(CandidateStatus::TRAINING_COMPLETED));
 
         // Test that invalid transitions are blocked
-        $this->assertFalse(CandidateStatus::NEW->canTransitionTo(CandidateStatus::DEPARTED));
-        $this->assertFalse(CandidateStatus::DEPARTED->canTransitionTo(CandidateStatus::NEW));
+        $this->assertFalse(CandidateStatus::LISTED->canTransitionTo(CandidateStatus::DEPARTED));
+        $this->assertFalse(CandidateStatus::DEPARTED->canTransitionTo(CandidateStatus::LISTED));
     }
 
     // =========================================================================
