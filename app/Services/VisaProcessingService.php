@@ -91,20 +91,19 @@ class VisaProcessingService
             [
                 'overall_status' => 'interview',
                 'interview_date' => $data['interview_date'],
-                'interview_location' => $data['interview_location'] ?? null,
-                'interview_notes' => $data['interview_notes'] ?? null,
+                'interview_status' => 'scheduled',
+                'interview_remarks' => $data['interview_notes'] ?? $data['interview_remarks'] ?? null,
             ]
         );
 
         if (!$visaProcess->wasRecentlyCreated) {
             $visaProcess->update([
                 'interview_date' => $data['interview_date'],
-                'interview_location' => $data['interview_location'] ?? null,
-                'interview_notes' => $data['interview_notes'] ?? null,
+                'interview_status' => 'scheduled',
+                'interview_remarks' => $data['interview_notes'] ?? $data['interview_remarks'] ?? null,
             ]);
         }
 
-        // Update candidate status
         // Update candidate status with NULL CHECK
         $candidate = Candidate::find($candidateId);
         if (!$candidate) {
@@ -112,7 +111,7 @@ class VisaProcessingService
         }
         $candidate->update(['status' => 'interview_scheduled']);
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -256,16 +255,15 @@ class VisaProcessingService
     public function recordBiometricsCompletion($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'biometrics_completed' => true,
-            'biometrics_completion_date' => $data['completion_date'] ?? now(),
-            'biometrics_remarks' => $data['remarks'] ?? null,
+            'biometric_completed' => true,
+            'biometric_status' => 'completed',
         ]);
 
-        $this->moveToNextStage($visaProcess, 'visa_submission');
+        $this->moveToNextStage($visaProcess, 'visa_issued');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -274,16 +272,13 @@ class VisaProcessingService
     public function recordVisaSubmission($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'visa_submission_date' => $data['submission_date'],
-            'visa_application_number' => $data['application_number'] ?? null,
-            'embassy' => $data['embassy'] ?? null,
+            'visa_status' => 'applied',
+            'overall_status' => 'visa_applied',
         ]);
 
-        $this->updateStage($visaProcess, 'visa_submission');
-
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
