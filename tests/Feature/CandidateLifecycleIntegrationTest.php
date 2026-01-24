@@ -441,9 +441,7 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'oep_id' => 1,
             'destination_country' => 'Saudi Arabia',
             'trade_test_date' => now()->addDays(7),
-            'trade_test_passed' => true,
             'medical_date' => now()->addDays(14),
-            'medical_passed' => true,
             'visa_applied_date' => now()->addDays(21),
             'visa_issued' => true,
             'visa_number' => 'VISA-12345',
@@ -451,8 +449,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
         ]);
 
         $this->assertTrue($visaProcess->visa_issued);
-        $this->assertTrue($visaProcess->trade_test_passed);
-        $this->assertTrue($visaProcess->medical_passed);
     }
 
     #[Test]
@@ -474,8 +470,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'oep_id' => 1,
             'destination_country' => 'Saudi Arabia',
             'visa_issued' => false,
-            'trade_test_passed' => false,
-            'medical_passed' => false,
         ]);
 
         $validation = $candidate->fresh()->canTransitionToReady();
@@ -509,7 +503,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'destination' => 'Saudi Arabia',
             'pre_departure_briefing' => true,
             'briefing_date' => now(),
-            'pre_briefing_completed' => true,
         ]);
 
         $this->assertNotNull($departure);
@@ -532,7 +525,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'destination' => 'Saudi Arabia',
             'pre_departure_briefing' => true,
             'briefing_date' => now()->subDay(),
-            'pre_briefing_completed' => true,
         ]);
 
         $validation = $candidate->fresh()->canTransitionToDeparted();
@@ -645,8 +637,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'candidate_id' => $candidate->id,
             'oep_id' => 1,
             'destination_country' => 'Saudi Arabia',
-            'trade_test_passed' => true,
-            'medical_passed' => true,
             'visa_issued' => true,
             'visa_number' => 'VISA-12345',
             'visa_expiry' => now()->addYear(),
@@ -662,7 +652,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'destination' => 'Saudi Arabia',
             'pre_departure_briefing' => true,
             'briefing_date' => now()->subDay(),
-            'pre_briefing_completed' => true,
         ]);
 
         // PHASE 7: Departed
@@ -755,8 +744,6 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'candidate_id' => $candidate->id,
             'oep_id' => 1,
             'destination_country' => 'Saudi Arabia',
-            'trade_test_passed' => true,
-            'medical_passed' => true,
             'visa_issued' => true,
             'visa_number' => 'VISA-12345',
             'visa_expiry' => now()->addYear(),

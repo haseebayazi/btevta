@@ -14,10 +14,15 @@ class CampusKpiFactory extends Factory
     {
         return [
             'campus_id' => Campus::factory(),
-            'target_value' => $this->faker->numberBetween(70, 100),
-            'actual_value' => $this->faker->numberBetween(50, 100),
-            'period' => $this->faker->date('Y-m'),
-            'status' => $this->faker->randomElement(['on_track', 'at_risk', 'behind']),
+            'year' => $this->faker->numberBetween(2023, 2026),
+            'month' => $this->faker->numberBetween(1, 12),
+            'candidates_registered' => $this->faker->numberBetween(10, 100),
+            'candidates_trained' => $this->faker->numberBetween(5, 80),
+            'candidates_departed' => $this->faker->numberBetween(0, 50),
+            'candidates_rejected' => $this->faker->numberBetween(0, 10),
+            'training_completion_rate' => $this->faker->randomFloat(2, 50, 100),
+            'assessment_pass_rate' => $this->faker->randomFloat(2, 60, 100),
+            'attendance_rate' => $this->faker->randomFloat(2, 70, 100),
         ];
     }
 }

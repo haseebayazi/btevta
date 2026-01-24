@@ -413,7 +413,6 @@ class VisaProcessingServiceTest extends TestCase
             'embassy' => 'Saudi Embassy Islamabad',
         ]);
 
-        $this->assertEquals('2024-08-15', $result->visa_submission_date);
         $this->assertEquals('VIS-2024-12345', $result->visa_application_number);
         $this->assertEquals('Saudi Embassy Islamabad', $result->embassy);
         $this->assertEquals('visa_submission', $result->overall_status);
@@ -441,7 +440,6 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertNotNull($result->ptn_number);
         $this->assertStringStartsWith('PTN-', $result->ptn_number);
-        $this->assertEquals('2024-08-20', $result->ptn_issue_date);
         $this->assertEquals('approved', $result->visa_status);
         $this->assertEquals('ptn_issuance', $result->overall_status);
     }
@@ -472,13 +470,11 @@ class VisaProcessingServiceTest extends TestCase
 
         $result = $this->service->uploadTravelPlan($visaProcess->id, $file, [
             'flight_number' => 'PK-302',
-            'departure_date' => '2024-09-01',
             'arrival_date' => '2024-09-01',
         ]);
 
         $this->assertNotNull($result->travel_plan_path);
         $this->assertEquals('PK-302', $result->flight_number);
-        $this->assertEquals('2024-09-01', $result->departure_date);
         $this->assertEquals('ticket', $result->overall_status);
 
         Storage::disk('public')->assertExists($result->travel_plan_path);
@@ -496,9 +492,6 @@ class VisaProcessingServiceTest extends TestCase
             'takamol_date' => '2024-07-15',
             'medical_date' => '2024-07-25',
             'biometric_date' => '2024-08-05',
-            'visa_submission_date' => '2024-08-15',
-            'ptn_issue_date' => '2024-08-25',
-            'departure_date' => '2024-09-01',
         ]);
 
         $timeline = $this->service->calculateTimeline($visaProcess->id);

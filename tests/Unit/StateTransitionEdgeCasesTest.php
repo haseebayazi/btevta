@@ -153,7 +153,6 @@ class StateTransitionEdgeCasesTest extends TestCase
 
         Departure::factory()->create([
             'candidate_id' => $candidate->id,
-            'pre_briefing_completed' => false,
         ]);
 
         $result = $candidate->canTransitionToDeparted();

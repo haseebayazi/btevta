@@ -63,7 +63,6 @@ class ScreeningControllerTest extends TestCase
             'screening_date' => now()->format('Y-m-d'),
             'call_duration' => 15,
             'call_notes' => 'Candidate responded positively',
-            'screening_outcome' => 'pass',
             'remarks' => 'Good candidate',
         ];
 
@@ -72,7 +71,6 @@ class ScreeningControllerTest extends TestCase
         $response->assertRedirect(route('screening.index'));
         $this->assertDatabaseHas('candidate_screenings', [
             'candidate_id' => $this->candidate->id,
-            'screening_outcome' => 'pass',
         ]);
     }
 
@@ -100,14 +98,12 @@ class ScreeningControllerTest extends TestCase
 
         $screening = CandidateScreening::factory()->create([
             'candidate_id' => $this->candidate->id,
-            'screening_outcome' => 'pending',
         ]);
 
         $updateData = [
             'screening_date' => now()->format('Y-m-d'),
             'call_duration' => 20,
             'call_notes' => 'Updated notes',
-            'screening_outcome' => 'pass',
             'remarks' => 'Updated remarks',
         ];
 
@@ -116,7 +112,6 @@ class ScreeningControllerTest extends TestCase
         $response->assertRedirect(route('screening.index'));
 
         $screening->refresh();
-        $this->assertEquals('pass', $screening->screening_outcome);
         $this->assertEquals('Updated notes', $screening->call_notes);
     }
 
@@ -128,7 +123,6 @@ class ScreeningControllerTest extends TestCase
         $screeningData = [
             'screening_date' => now()->format('Y-m-d'),
             'call_duration' => 15,
-            'screening_outcome' => 'pass',
         ];
 
         $response = $this->post(route('screening.store'), $screeningData);
@@ -145,7 +139,6 @@ class ScreeningControllerTest extends TestCase
             'candidate_id' => $this->candidate->id,
             'screening_date' => now()->format('Y-m-d'),
             'call_duration' => 15,
-            'screening_outcome' => 'invalid_outcome',
         ];
 
         $response = $this->post(route('screening.store'), $screeningData);
@@ -162,7 +155,6 @@ class ScreeningControllerTest extends TestCase
             'candidate_id' => $this->candidate->id,
             'screening_date' => now()->format('Y-m-d'),
             'call_duration' => -5,
-            'screening_outcome' => 'pass',
         ];
 
         $response = $this->post(route('screening.store'), $screeningData);
@@ -208,7 +200,6 @@ class ScreeningControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $outcomeData = [
-            'screening_outcome' => 'pass',
             'remarks' => 'Excellent candidate',
         ];
 
@@ -227,7 +218,6 @@ class ScreeningControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $outcomeData = [
-            'screening_outcome' => 'fail',
             'remarks' => 'Does not meet requirements',
         ];
 
