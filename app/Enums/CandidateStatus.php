@@ -10,6 +10,9 @@ namespace App\Enums;
  */
 enum CandidateStatus: string
 {
+    // Legacy/Backward compatibility
+    case NEW = 'new';
+
     // New sequential workflow
     case LISTED = 'listed';
     case PRE_DEPARTURE_DOCS = 'pre_departure_docs';
@@ -37,6 +40,7 @@ enum CandidateStatus: string
     public function label(): string
     {
         return match($this) {
+            self::NEW => 'New',
             self::LISTED => 'Listed',
             self::PRE_DEPARTURE_DOCS => 'Pre-Departure Documents',
             self::SCREENING => 'In Screening',
@@ -63,6 +67,7 @@ enum CandidateStatus: string
     public function color(): string
     {
         return match($this) {
+            self::NEW => 'secondary',
             self::LISTED => 'secondary',
             self::PRE_DEPARTURE_DOCS => 'info',
             self::SCREENING => 'warning',
@@ -89,6 +94,7 @@ enum CandidateStatus: string
     public function order(): int
     {
         return match($this) {
+            self::NEW => 0,
             self::LISTED => 1,
             self::PRE_DEPARTURE_DOCS => 2,
             self::SCREENING => 3,

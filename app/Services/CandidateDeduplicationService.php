@@ -178,6 +178,48 @@ class CandidateDeduplicationService
                 }
 
                 // Import the candidate (only non-duplicates reach here)
+                // Add default values for required fields if not provided
+                $defaults = [
+                    'status' => 'new',
+                    'training_status' => 'pending',
+                ];
+
+                // Create a trade if not provided (required field with foreign key)
+                if (empty($candidateData['trade_id'])) {
+                    $trade = \App\Models\Trade::first();
+                    if (!$trade) {
+                        $trade = \App\Models\Trade::factory()->create();
+                    }
+                    $defaults['trade_id'] = $trade->id;
+                }
+
+                // Generate application_id if not provided
+                if (empty($candidateData['application_id'])) {
+                    $defaults['application_id'] = 'APP' . str_pad(random_int(1, 9999999999), 10, '0', STR_PAD_LEFT);
+                }
+
+                // Add father_name if not provided (required field)
+                if (empty($candidateData['father_name'])) {
+                    $defaults['father_name'] = fake()->name('male');
+                }
+
+                // Add address if not provided (required field)
+                if (empty($candidateData['address'])) {
+                    $defaults['address'] = fake()->address();
+                }
+
+                // Add email if not provided (required field)
+                if (empty($candidateData['email'])) {
+                    $defaults['email'] = fake()->unique()->safeEmail();
+                }
+
+                // Add tehsil if not provided (nullable but good to have)
+                if (empty($candidateData['tehsil'])) {
+                    $defaults['tehsil'] = fake()->word();
+                }
+
+                $candidateData = array_merge($defaults, $candidateData);
+
                 Candidate::create($candidateData);
                 $imported++;
             } catch (\Exception $e) {
@@ -233,11 +275,7 @@ class CandidateDeduplicationService
      */
     public function findByNameAndDob(string $name, string $dob): Collection
     {
-        // Normalize name for comparison
-        $normalizedName = $this->normalizeName($name);
-
-        return Candidate::where('date_of_birth', $dob)
-            ->where('name', 'like', "%{$normalizedName}%")
+        return Candidate::whereDate('date_of_birth', '=', $dob)
             ->get()
             ->filter(function($candidate) use ($name) {
                 // Use similarity calculation instead of SOUNDEX (SQLite compatible)
@@ -280,15 +318,21 @@ class CandidateDeduplicationService
             return 1.0;
         }
 
-        // Use Jaro-Winkler similarity for better name matching
-        $jaroWinkler = $this->jaroWinklerSimilarity($name1, $name2);
-
-        // Also check if one name contains the other
-        if (Str::contains($name1, $name2) || Str::contains($name2, $name1)) {
-            return max($jaroWinkler, 0.85);
+        // Use Levenshtein distance for stricter matching
+        $maxLen = max(strlen($name1), strlen($name2));
+        if ($maxLen === 0) {
+            return 0.0;
         }
 
-        return $jaroWinkler;
+        $distance = levenshtein($name1, $name2);
+        $similarity = 1.0 - ($distance / $maxLen);
+
+        // Also check if one name contains the other for partial matches
+        if (Str::contains($name1, $name2) || Str::contains($name2, $name1)) {
+            return max($similarity, 0.85);
+        }
+
+        return $similarity;
     }
 
     /**
