@@ -26,6 +26,7 @@ class DocumentArchive extends Model
         'version',
         'uploaded_by',
         'uploaded_at',
+        'upload_date',            // ADDED - Database column name
         'is_current_version',
         'replaces_document_id',
         'issue_date',             // ADDED - Used in controller validation
@@ -37,6 +38,7 @@ class DocumentArchive extends Model
 
     protected $casts = [
         'uploaded_at' => 'datetime',
+        'upload_date' => 'date',        // ADDED - Database column
         'is_current_version' => 'boolean',
         'issue_date' => 'date',         // ADDED - Cast for date field
         'expiry_date' => 'date',        // ADDED - Cast for date field

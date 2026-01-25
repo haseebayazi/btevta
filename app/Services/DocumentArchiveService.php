@@ -98,6 +98,7 @@ class DocumentArchiveService
             'file_path' => $path,
             'version' => $version,
             'expiry_date' => $data['expiry_date'] ?? null,
+            'upload_date' => now(),
             'uploaded_by' => auth()->id(),
             'is_current_version' => true,
             'file_size' => $file->getSize(),
