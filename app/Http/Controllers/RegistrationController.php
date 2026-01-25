@@ -86,6 +86,14 @@ class RegistrationController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Document uploaded successfully',
+                    'document' => $document,
+                ]);
+            }
+
             return back()->with('success', 'Document uploaded successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -382,9 +390,25 @@ class RegistrationController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Document verified successfully',
+                    'document' => $document->fresh(),
+                ]);
+            }
+
             return back()->with('success', 'Document verified successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to verify document: ' . $e->getMessage(),
+                ], 500);
+            }
+
             return back()->with('error', 'Failed to verify document: ' . $e->getMessage());
         }
     }
@@ -408,15 +432,29 @@ class RegistrationController extends Controller
         }
 
         $validated = $request->validate([
-            'rejection_reason' => 'required|string|max:500',
+            'rejection_reason' => 'nullable|string|max:500',
+            'reason' => 'nullable|string|max:500',
         ]);
+
+        $rejectionReason = $validated['rejection_reason'] ?? $validated['reason'] ?? null;
+
+        if (!$rejectionReason) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rejection reason is required',
+                ], 422);
+            }
+            return back()->withErrors(['rejection_reason' => 'Rejection reason is required']);
+        }
 
         try {
             DB::beginTransaction();
 
             $document->status = 'rejected';
             $document->verification_status = 'rejected';
-            $document->verification_remarks = $validated['rejection_reason'];
+            $document->verification_remarks = $rejectionReason;
+            $document->rejection_reason = $rejectionReason;  // Also set rejection_reason column if it exists
             $document->updated_by = auth()->id();
             $document->save();
 
@@ -426,15 +464,31 @@ class RegistrationController extends Controller
                 ->withProperties([
                     'document_type' => $document->document_type,
                     'document_id' => $document->id,
-                    'reason' => $validated['rejection_reason'],
+                    'reason' => $rejectionReason,
                 ])
                 ->log('Document rejected: ' . $document->document_type);
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Document marked as rejected',
+                    'document' => $document->fresh(),
+                ]);
+            }
+
             return back()->with('success', 'Document marked as rejected.');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to reject document: ' . $e->getMessage(),
+                ], 500);
+            }
+
             return back()->with('error', 'Failed to reject document: ' . $e->getMessage());
         }
     }
@@ -518,7 +572,48 @@ class RegistrationController extends Controller
 
         // AUDIT FIX: Use CandidateStatus enum for status comparison
         if ($candidate->status !== CandidateStatus::REGISTERED->value) {
-            return back()->with('error', 'Only registered candidates can start training. Current status: ' . $candidate->status);
+            $message = 'Only registered candidates can start training. Current status: ' . $candidate->status;
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+            return back()->with('error', $message);
+        }
+
+        // Check registration requirements
+        $missingRequirements = [];
+
+        // Check documents
+        $requiredDocs = ['cnic', 'education', 'photo'];
+        $verifiedDocs = $candidate->documents()
+            ->whereIn('document_type', $requiredDocs)
+            ->where('status', 'verified')
+            ->pluck('document_type')
+            ->toArray();
+
+        if (count($verifiedDocs) < count($requiredDocs)) {
+            $missing = array_diff($requiredDocs, $verifiedDocs);
+            $missingRequirements[] = 'Missing verified documents: ' . implode(', ', $missing);
+        }
+
+        // Check next of kin
+        if (!$candidate->nextOfKin && !$candidate->next_of_kin_id) {
+            $missingRequirements[] = 'Next of Kin information is required';
+        }
+
+        // Check undertaking
+        if (!$candidate->undertakings()->where('is_completed', true)->exists()) {
+            $missingRequirements[] = 'Completed undertaking is required';
+        }
+
+        if (!empty($missingRequirements)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot start training. Missing requirements.',
+                    'missing_requirements' => $missingRequirements,
+                ], 422);
+            }
+            return back()->with('error', 'Cannot start training: ' . implode('; ', $missingRequirements));
         }
 
         $validated = $request->validate([
@@ -550,10 +645,26 @@ class RegistrationController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Training started successfully',
+                    'candidate' => $candidate->fresh(),
+                ]);
+            }
+
             return redirect()->route('training.index')
                 ->with('success', 'Candidate has started training!');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to start training: ' . $e->getMessage(),
+                ], 500);
+            }
+
             return back()->with('error', 'Failed to start training: ' . $e->getMessage());
         }
     }
