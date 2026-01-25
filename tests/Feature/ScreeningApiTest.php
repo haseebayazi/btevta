@@ -41,7 +41,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_creates_desk_screening()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/desk", [
             'status' => 'passed',
             'remarks' => 'All documents verified',
         ]);
@@ -58,7 +58,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_validates_desk_screening_status()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/desk", [
             'status' => 'invalid_status',
         ]);
 
@@ -70,7 +70,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_creates_call_screening()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/call", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/call", [
             'status' => 'in_progress',
             'call_duration' => 120,
             'remarks' => 'First call attempt',
@@ -97,7 +97,7 @@ class ScreeningApiTest extends TestCase
             'call_count' => 1,
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/call", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/call", [
             'status' => 'passed',
             'call_duration' => 180,
             'remarks' => 'Candidate confirmed',
@@ -119,7 +119,7 @@ class ScreeningApiTest extends TestCase
             'call_count' => 3, // Already at max
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/call", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/call", [
             'status' => 'in_progress',
             'remarks' => 'Another attempt',
         ]);
@@ -135,7 +135,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_creates_physical_screening()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/physical", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/physical", [
             'status' => 'passed',
             'remarks' => 'Physical verification completed',
         ]);
@@ -168,7 +168,7 @@ class ScreeningApiTest extends TestCase
             'call_count' => 1,
         ]);
 
-        $response = $this->actingAs($this->admin)->getJson("/screening/{$this->candidate->id}/progress");
+        $response = $this->actingAs($this->admin)->getJson("/api/v1/screening/{$this->candidate->id}/progress");
 
         $response->assertOk();
         $response->assertJsonStructure([
@@ -202,7 +202,7 @@ class ScreeningApiTest extends TestCase
         $file = UploadedFile::fake()->create('evidence.pdf', 100, 'application/pdf');
 
         $response = $this->actingAs($this->admin)->postJson(
-            "/screening/{$this->candidate->id}/upload-evidence",
+            "/api/v1/screening/{$this->candidate->id}/upload-evidence",
             [
                 'screening_id' => $screening->id,
                 'file' => $file,
@@ -227,7 +227,7 @@ class ScreeningApiTest extends TestCase
         $file = UploadedFile::fake()->create('malware.exe', 100, 'application/x-msdownload');
 
         $response = $this->actingAs($this->admin)->postJson(
-            "/screening/{$this->candidate->id}/upload-evidence",
+            "/api/v1/screening/{$this->candidate->id}/upload-evidence",
             [
                 'screening_id' => $screening->id,
                 'file' => $file,
@@ -250,7 +250,7 @@ class ScreeningApiTest extends TestCase
         $file = UploadedFile::fake()->create('large.pdf', 6000, 'application/pdf');
 
         $response = $this->actingAs($this->admin)->postJson(
-            "/screening/{$this->candidate->id}/upload-evidence",
+            "/api/v1/screening/{$this->candidate->id}/upload-evidence",
             [
                 'screening_id' => $screening->id,
                 'file' => $file,
@@ -282,7 +282,7 @@ class ScreeningApiTest extends TestCase
         ]);
 
         // Pass physical screening - this should trigger auto-progression
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/physical", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/physical", [
             'status' => 'passed',
             'remarks' => 'Physical verification completed',
         ]);
@@ -296,7 +296,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_rejects_candidate_on_screening_failure()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/{$this->candidate->id}/desk", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/{$this->candidate->id}/desk", [
             'status' => 'failed',
             'remarks' => 'Documents are forged',
         ]);
@@ -312,7 +312,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_requires_authentication()
     {
-        $response = $this->postJson("/screening/{$this->candidate->id}/desk", [
+        $response = $this->postJson("/api/v1/screening/{$this->candidate->id}/desk", [
             'status' => 'passed',
         ]);
 
@@ -322,7 +322,7 @@ class ScreeningApiTest extends TestCase
     #[Test]
     public function it_returns_404_for_invalid_candidate()
     {
-        $response = $this->actingAs($this->admin)->postJson("/screening/99999/desk", [
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/screening/99999/desk", [
             'status' => 'passed',
         ]);
 
