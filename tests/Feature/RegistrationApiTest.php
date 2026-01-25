@@ -55,15 +55,16 @@ class RegistrationApiTest extends TestCase
     {
         $file = UploadedFile::fake()->create('cnic.pdf', 100, 'application/pdf');
 
-        $response = $this->actingAs($this->admin)->post(
-            "/registration/{$this->candidate->id}/documents",
-            [
-                'document_type' => 'cnic',
-                'file' => $file,
-                'expiry_date' => now()->addYear()->format('Y-m-d'),
-            ],
-            ['Accept' => 'application/json']
-        );
+        $response = $this->actingAs($this->admin)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post(
+                "/registration/{$this->candidate->id}/documents",
+                [
+                    'document_type' => 'cnic',
+                    'file' => $file,
+                    'expiry_date' => now()->addYear()->format('Y-m-d'),
+                ]
+            );
 
         $response->assertStatus(200);
 
