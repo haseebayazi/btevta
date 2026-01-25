@@ -16,6 +16,7 @@ class DocumentArchive extends Model
         'candidate_id',
         'campus_id',
         'oep_id',
+        'trade_id',               // ADDED - Used in service
         'document_category',
         'document_type',
         'document_name',
@@ -23,6 +24,7 @@ class DocumentArchive extends Model
         'file_path',
         'file_type',
         'file_size',
+        'mime_type',              // ADDED - Used in service
         'version',
         'uploaded_by',
         'uploaded_at',
@@ -32,6 +34,8 @@ class DocumentArchive extends Model
         'issue_date',             // ADDED - Used in controller validation
         'expiry_date',            // ADDED - Used in controller validation
         'description',            // ADDED - Used in controller validation
+        'archived_at',            // ADDED - Used in service
+        'download_count',         // ADDED - Used in service
         'created_by',
         'updated_by'
     ];
@@ -42,6 +46,13 @@ class DocumentArchive extends Model
         'is_current_version' => 'boolean',
         'issue_date' => 'date',         // ADDED - Cast for date field
         'expiry_date' => 'date',        // ADDED - Cast for date field
+        'archived_at' => 'datetime',    // ADDED - Used in service
+        'download_count' => 'integer',  // ADDED - Default 0
+    ];
+
+    protected $attributes = [
+        'download_count' => 0,
+        'is_current_version' => true,
     ];
 
     /**
@@ -52,6 +63,14 @@ class DocumentArchive extends Model
     protected $hidden = [
         'file_path',
     ];
+
+    /**
+     * Accessor for backwards compatibility
+     */
+    public function getIsCurrentAttribute()
+    {
+        return $this->is_current_version;
+    }
 
     public function candidate()
     {
@@ -68,12 +87,22 @@ class DocumentArchive extends Model
         return $this->belongsTo(Oep::class);
     }
 
+    public function trade()
+    {
+        return $this->belongsTo(Trade::class);
+    }
+
     public function uploader()
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
     public function uploadedBy()
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function uploadedByUser()
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
