@@ -196,15 +196,27 @@ class ScreeningApiController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
+        // Validate with required_without for outcome/status
         $validated = $request->validate([
             'candidate_id' => 'required|exists:candidates,id',
             'screening_date' => 'required|date',
             'screener_name' => 'required|string|max:255',
             'contact_method' => 'required|in:phone,video_call,in_person',
-            'outcome' => 'required|in:eligible,not_eligible,pending',
+            'outcome' => 'required_without:status|nullable|in:eligible,not_eligible,pending',
+            'status' => 'required_without:outcome|nullable|in:passed,failed,pending',
             'remarks' => 'nullable|string',
             'next_steps' => 'nullable|string',
         ]);
+
+        // Map status to outcome if outcome not provided
+        if (empty($validated['outcome']) && !empty($validated['status'])) {
+            $statusToOutcomeMap = [
+                'passed' => 'eligible',
+                'failed' => 'not_eligible',
+                'pending' => 'pending',
+            ];
+            $validated['outcome'] = $statusToOutcomeMap[$validated['status']] ?? 'pending';
+        }
 
         $screening = CandidateScreening::create(array_merge($validated, [
             'status' => 'completed',
