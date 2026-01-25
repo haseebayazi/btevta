@@ -19,6 +19,8 @@ class RemittanceFactory extends Factory
         $exchangeRate = $this->faker->randomFloat(4, 0.5, 300);
 
         $transactionDate = $this->faker->dateTimeBetween('-6 months', 'now');
+        $year = (int) date('Y', $transactionDate->getTimestamp());
+        $month = (int) date('n', $transactionDate->getTimestamp());
 
         return [
             'candidate_id' => Candidate::factory(),
@@ -39,6 +41,8 @@ class RemittanceFactory extends Factory
             'receiver_name' => $this->faker->name(),
             'purpose' => $this->faker->randomElement(['Monthly salary', 'Overtime payment', 'End of service benefit', 'Bonus payment']),
             'description' => $this->faker->optional()->sentence(),
+            'month' => $month,
+            'year' => $year,
             'month_year' => $this->faker->date('Y-m'),
             'verification_status' => $this->faker->randomElement(['pending', 'verified', 'rejected', 'under_review']),
             'status' => $this->faker->randomElement(['initiated', 'processing', 'completed', 'failed']),
