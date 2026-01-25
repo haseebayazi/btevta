@@ -155,7 +155,11 @@ class TrainingServiceTest extends TestCase
     #[Test]
     public function low_attendance_marks_candidate_at_risk()
     {
-        $candidate = Candidate::factory()->create(['training_status' => 'ongoing']);
+        $batch = \App\Models\Batch::factory()->create();
+        $candidate = Candidate::factory()->create([
+            'training_status' => 'in_progress',
+            'batch_id' => $batch->id,
+        ]);
 
         // Record poor attendance (below 80%)
         for ($i = 1; $i <= 10; $i++) {
@@ -167,7 +171,8 @@ class TrainingServiceTest extends TestCase
         }
 
         $candidate->refresh();
-        $this->assertEquals('at_risk', $candidate->training_status);
+        $this->assertNotNull($candidate->at_risk_reason);
+        $this->assertStringContainsString('Attendance below threshold', $candidate->at_risk_reason);
     }
 
     // =========================================================================
@@ -211,19 +216,26 @@ class TrainingServiceTest extends TestCase
         ]);
 
         $candidate->refresh();
-        $this->assertEquals('at_risk', $candidate->training_status);
+        $this->assertNotNull($candidate->at_risk_reason);
+        $this->assertStringContainsString('Failed', $candidate->at_risk_reason);
     }
 
     #[Test]
     public function passed_final_assessment_updates_status_to_completed()
     {
-        $candidate = Candidate::factory()->create(['training_status' => 'ongoing']);
-        $batch = Batch::factory()->create();
+        $campus = \App\Models\Campus::factory()->create();
+        $batch = Batch::factory()->create(['campus_id' => $campus->id]);
+        $candidate = Candidate::factory()->create([
+            'training_status' => 'in_progress',
+            'batch_id' => $batch->id,
+            'campus_id' => $campus->id,
+        ]);
 
         // Need to record good attendance first
         for ($i = 1; $i <= 10; $i++) {
             TrainingAttendance::factory()->create([
                 'candidate_id' => $candidate->id,
+                'batch_id' => $batch->id,
                 'date' => "2024-06-{$i}",
                 'status' => 'present',
             ]);
@@ -250,12 +262,19 @@ class TrainingServiceTest extends TestCase
     #[Test]
     public function it_generates_certificate_for_eligible_candidate()
     {
-        $candidate = Candidate::factory()->create(['training_status' => 'completed']);
+        $campus = \App\Models\Campus::factory()->create();
+        $batch = Batch::factory()->create(['campus_id' => $campus->id]);
+        $candidate = Candidate::factory()->create([
+            'training_status' => 'completed',
+            'batch_id' => $batch->id,
+            'campus_id' => $campus->id,
+        ]);
 
         // Good attendance
         for ($i = 1; $i <= 10; $i++) {
             TrainingAttendance::factory()->create([
                 'candidate_id' => $candidate->id,
+                'batch_id' => $batch->id,
                 'date' => "2024-06-{$i}",
                 'status' => 'present',
             ]);
@@ -264,6 +283,7 @@ class TrainingServiceTest extends TestCase
         // Passed final assessment
         TrainingAssessment::factory()->create([
             'candidate_id' => $candidate->id,
+            'batch_id' => $batch->id,
             'assessment_type' => 'final',
             'result' => 'pass',
         ]);
@@ -357,12 +377,19 @@ class TrainingServiceTest extends TestCase
     #[Test]
     public function it_rejects_certificate_for_at_risk_candidate()
     {
-        $candidate = Candidate::factory()->create(['training_status' => 'at_risk']);
+        $batch = Batch::factory()->create();
+        $candidate = Candidate::factory()->create([
+            'training_status' => 'in_progress',
+            'at_risk_reason' => 'Low attendance',
+            'at_risk_since' => now(),
+            'batch_id' => $batch->id,
+        ]);
 
         // Good attendance
         for ($i = 1; $i <= 10; $i++) {
             TrainingAttendance::factory()->create([
                 'candidate_id' => $candidate->id,
+                'batch_id' => $batch->id,
                 'date' => "2024-06-{$i}",
                 'status' => 'present',
             ]);
@@ -370,6 +397,7 @@ class TrainingServiceTest extends TestCase
 
         TrainingAssessment::factory()->create([
             'candidate_id' => $candidate->id,
+            'batch_id' => $batch->id,
             'assessment_type' => 'final',
             'result' => 'pass',
         ]);
@@ -394,18 +422,20 @@ class TrainingServiceTest extends TestCase
         ]);
         Candidate::factory()->count(5)->create([
             'batch_id' => $batch->id,
-            'training_status' => 'ongoing',
+            'training_status' => 'in_progress',
         ]);
         Candidate::factory()->count(2)->create([
             'batch_id' => $batch->id,
-            'training_status' => 'at_risk',
+            'training_status' => 'in_progress',
+            'at_risk_reason' => 'Low attendance',
+            'at_risk_since' => now(),
         ]);
 
         $stats = $this->service->getBatchStatistics($batch->id);
 
         $this->assertEquals(10, $stats['total_candidates']);
         $this->assertEquals(3, $stats['completed']);
-        $this->assertEquals(5, $stats['ongoing']);
+        $this->assertEquals(7, $stats['ongoing']); // 5 normal + 2 at-risk (still in_progress)
         $this->assertEquals(2, $stats['at_risk']);
         $this->assertEquals(30.0, $stats['completion_rate']);
     }
@@ -420,11 +450,13 @@ class TrainingServiceTest extends TestCase
         $batch = Batch::factory()->create();
         Candidate::factory()->count(3)->create([
             'batch_id' => $batch->id,
-            'training_status' => 'at_risk',
+            'training_status' => 'in_progress',
+            'at_risk_reason' => 'Low attendance',
+            'at_risk_since' => now(),
         ]);
         Candidate::factory()->count(5)->create([
             'batch_id' => $batch->id,
-            'training_status' => 'ongoing',
+            'training_status' => 'in_progress',
         ]);
 
         $atRisk = $this->service->getAtRiskCandidates($batch->id);
@@ -435,10 +467,17 @@ class TrainingServiceTest extends TestCase
     #[Test]
     public function at_risk_candidates_include_attendance_data()
     {
-        $candidate = Candidate::factory()->create(['training_status' => 'at_risk']);
+        $batch = Batch::factory()->create();
+        $candidate = Candidate::factory()->create([
+            'training_status' => 'in_progress',
+            'at_risk_reason' => 'Low attendance',
+            'at_risk_since' => now(),
+            'batch_id' => $batch->id,
+        ]);
 
         TrainingAttendance::factory()->count(5)->create([
             'candidate_id' => $candidate->id,
+            'batch_id' => $batch->id,
             'status' => 'present',
         ]);
 
