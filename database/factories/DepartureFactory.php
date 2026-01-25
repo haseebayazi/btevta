@@ -26,6 +26,8 @@ class DepartureFactory extends Factory
             'salary_amount' => fake()->randomFloat(2, 1000, 5000),
             'first_salary_date' => fake()->dateTimeBetween('-1 year', 'now'),
             'ninety_day_report_submitted' => fake()->boolean(50),
+            'salary_confirmed' => fake()->boolean(60),
+            'accommodation_status' => fake()->randomElement(['pending', 'verified', 'issue']),
             'remarks' => fake()->optional()->sentence(),
         ];
     }
