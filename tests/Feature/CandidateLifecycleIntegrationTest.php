@@ -22,6 +22,7 @@ use App\Models\Departure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * Integration tests for the complete candidate lifecycle.
@@ -151,10 +152,13 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'trade_id' => $this->trade->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->post("/screening/{$candidate->id}/desk", [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson("/api/v1/screening/{$candidate->id}/desk", [
             'status' => 'passed',
             'remarks' => 'All documents verified',
         ]);
+
+        $response->assertSuccessful();
 
         $screening = $candidate->screenings()->where('screening_type', 'desk')->first();
         $this->assertNotNull($screening);
@@ -190,10 +194,13 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'trade_id' => $this->trade->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->post("/screening/{$candidate->id}/physical", [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson("/api/v1/screening/{$candidate->id}/physical", [
             'status' => 'passed',
             'remarks' => 'Physical verification completed',
         ]);
+
+        $response->assertSuccessful();
 
         $screening = $candidate->screenings()->where('screening_type', 'physical')->first();
         $this->assertNotNull($screening);
