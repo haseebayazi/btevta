@@ -94,13 +94,16 @@ class AutoBatchService
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Filter batches that have space (manual check to avoid SQL HAVING clause issues)
+        // Filter batches that have space
         foreach ($batches as $batch) {
-            $currentYearCount = $batch->candidates()
-                ->whereYear('created_at', now()->year)
-                ->count();
+            // Use capacity from batch if set, otherwise use configured batch size
+            $maxSize = $batch->capacity ?? $batchSize;
 
-            if ($currentYearCount < $batchSize) {
+            // Count actual candidates in the batch
+            $currentCount = $batch->candidates()->count();
+
+            // Check if batch has available space
+            if ($currentCount < $maxSize) {
                 return $batch;
             }
         }
@@ -135,6 +138,8 @@ class AutoBatchService
             'oep_id' => $oepId,
             'capacity' => $batchSize,
             'status' => Batch::STATUS_PLANNED,
+            'start_date' => now()->addWeek(),
+            'end_date' => now()->addMonths(3),
             'intake_period' => now()->format('Y-m'),
             'created_by' => auth()->id(),
         ]);

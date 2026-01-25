@@ -112,30 +112,11 @@ class AllocationService
         $candidate->load(['campus', 'program', 'implementingPartner', 'trade', 'oep']);
 
         return [
-            'campus' => $candidate->campus ? [
-                'id' => $candidate->campus->id,
-                'name' => $candidate->campus->name,
-                'code' => $candidate->campus->code,
-            ] : null,
-            'program' => $candidate->program ? [
-                'id' => $candidate->program->id,
-                'name' => $candidate->program->name,
-                'code' => $candidate->program->code,
-                'duration_weeks' => $candidate->program->duration_weeks,
-            ] : null,
-            'implementing_partner' => $candidate->implementingPartner ? [
-                'id' => $candidate->implementingPartner->id,
-                'name' => $candidate->implementingPartner->name,
-            ] : null,
-            'trade' => $candidate->trade ? [
-                'id' => $candidate->trade->id,
-                'name' => $candidate->trade->name,
-                'code' => $candidate->trade->code,
-            ] : null,
-            'oep' => $candidate->oep ? [
-                'id' => $candidate->oep->id,
-                'name' => $candidate->oep->name,
-            ] : null,
+            'campus' => $candidate->campus?->name,
+            'program' => $candidate->program?->name,
+            'implementing_partner' => $candidate->implementingPartner?->name,
+            'trade' => $candidate->trade?->name,
+            'oep' => $candidate->oep?->name,
         ];
     }
 
@@ -225,10 +206,7 @@ class AllocationService
                     $this->allocate($candidate, $allocationData);
                     $successful[] = $candidateId;
                 } catch (\Exception $e) {
-                    $failed[] = [
-                        'candidate_id' => $candidateId,
-                        'error' => $e->getMessage(),
-                    ];
+                    $failed[$candidateId] = $e->getMessage();
                 }
             }
 
@@ -245,8 +223,7 @@ class AllocationService
                 ->log('Bulk candidate allocation');
 
             return [
-                'success' => true,
-                'successful' => $successful,
+                'success' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
             ];

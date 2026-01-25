@@ -100,6 +100,9 @@ node_modules/
 # /storage/app/public/*
 # !/storage/app/public/.gitkeep
 
+# Generated test certificates
+/storage/app/public/certificates/*.pdf
+
 # Temporary migration scripts
 fix_*.php
 run_*.php

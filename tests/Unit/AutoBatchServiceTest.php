@@ -171,6 +171,7 @@ class AutoBatchServiceTest extends TestCase
         $existingBatch = Batch::factory()->create([
             'campus_id' => $campus->id,
             'trade_id' => $trade->id,
+            'status' => 'planned',
             'current_size' => 10,
             'max_size' => 25,
         ]);
@@ -184,7 +185,8 @@ class AutoBatchServiceTest extends TestCase
         $batch = $this->service->assignOrCreateBatch($candidate);
 
         $this->assertEquals($existingBatch->id, $batch->id);
-        $this->assertEquals(11, $batch->fresh()->current_size);
+        $this->assertEquals(1, $batch->fresh()->candidates()->count());
+        $this->assertEquals($batch->id, $candidate->fresh()->batch_id);
     }
 
     #[Test]
@@ -197,8 +199,16 @@ class AutoBatchServiceTest extends TestCase
         $fullBatch = Batch::factory()->create([
             'campus_id' => $campus->id,
             'trade_id' => $trade->id,
-            'current_size' => 25,
-            'max_size' => 25,
+            'status' => 'planned',
+            'capacity' => 25,
+        ]);
+
+        // Create 25 candidates to fill the batch
+        Candidate::factory()->count(25)->create([
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
+            'batch_id' => $fullBatch->id,
         ]);
 
         $candidate = Candidate::factory()->create([

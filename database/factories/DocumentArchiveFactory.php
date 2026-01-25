@@ -53,6 +53,7 @@ class DocumentArchiveFactory extends Factory
             'file_size' => fake()->numberBetween(10240, 5242880), // 10KB to 5MB
             'version' => 1,
             'uploaded_by' => User::factory(),
+            'upload_date' => fake()->dateTimeBetween('-6 months', 'now'),
             'uploaded_at' => fake()->dateTimeBetween('-6 months', 'now'),
             'is_current_version' => true,
             'replaces_document_id' => null,

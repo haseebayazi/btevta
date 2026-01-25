@@ -16,7 +16,6 @@ class VisaProcessFactory extends Factory
     {
         return [
             'candidate_id' => Candidate::factory(),
-            'visa_partner_id' => fake()->optional()->passthrough(Oep::factory()),
 
             // Interview & Trade Test
             'interview_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
@@ -32,62 +31,37 @@ class VisaProcessFactory extends Factory
             // Takamol Test
             'takamol_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'takamol_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'passed', 'failed']),
-            'takamol_remarks' => fake()->optional()->sentence(),
-            'takamol_result_path' => fake()->optional()->filePath(),
-            'takamol_score' => fake()->optional()->numberBetween(50, 100),
 
             // Medical/GAMCA
             'medical_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'medical_status' => fake()->optional()->randomElement(['pending', 'booked', 'completed', 'fit', 'unfit']),
             'medical_completed' => fake()->boolean(30),
-            'medical_remarks' => fake()->optional()->sentence(),
-            'gamca_result_path' => fake()->optional()->filePath(),
-            'gamca_barcode' => fake()->optional()->numerify('GAMCA########'),
-            'gamca_expiry_date' => fake()->optional()->dateTimeBetween('+1 year', '+2 years'),
 
             // E-Number
             'enumber' => fake()->optional()->numerify('E########'),
-            'enumber_date' => fake()->optional()->dateTimeBetween('-2 months', 'now'),
-            'enumber_status' => fake()->optional()->randomElement(['pending', 'applied', 'issued']),
 
             // Biometrics/Etimad
             'biometric_date' => fake()->optional()->dateTimeBetween('-2 months', '+1 month'),
             'etimad_appointment_id' => fake()->optional()->numerify('ETIMAD######'),
-            'etimad_center' => fake()->optional()->randomElement(['Islamabad', 'Karachi', 'Lahore', 'Peshawar']),
             'biometric_status' => fake()->optional()->randomElement(['pending', 'scheduled', 'completed']),
             'biometric_completed' => fake()->boolean(20),
-            'biometric_remarks' => fake()->optional()->sentence(),
-
-            // Visa Documents Submission
-            'visa_submission_date' => fake()->optional()->dateTimeBetween('-1 month', 'now'),
-            'visa_application_number' => fake()->optional()->numerify('VISA########'),
-            'embassy' => fake()->optional()->randomElement(['Saudi Embassy Islamabad', 'Saudi Consulate Karachi', 'Saudi Consulate Lahore']),
 
             // Visa & PTN
             'visa_date' => fake()->optional()->dateTimeBetween('-1 month', 'now'),
             'visa_number' => fake()->optional()->numerify('V########'),
             'visa_status' => fake()->optional()->randomElement(['pending', 'applied', 'issued', 'rejected']),
             'visa_issued' => fake()->boolean(20),
-            'visa_remarks' => fake()->optional()->sentence(),
             'ptn_number' => fake()->optional()->numerify('PTN########'),
-            'ptn_issue_date' => fake()->optional()->dateTimeBetween('-1 month', 'now'),
-            'attestation_date' => fake()->optional()->dateTimeBetween('-1 month', 'now'),
 
             // Ticket & Travel
             'ticket_uploaded' => fake()->boolean(15),
             'ticket_date' => fake()->optional()->dateTimeBetween('now', '+1 month'),
             'ticket_path' => fake()->optional()->filePath(),
-            'ticket_number' => fake()->optional()->numerify('TKT########'),
-            'flight_number' => fake()->optional()->bothify('??-####'),
-            'departure_date' => fake()->optional()->dateTimeBetween('now', '+2 months'),
-            'arrival_date' => fake()->optional()->dateTimeBetween('now', '+2 months'),
             'travel_plan_path' => fake()->optional()->filePath(),
 
             // General
             'overall_status' => fake()->randomElement(['initiated', 'in_progress', 'pending_documents', 'completed', 'rejected']),
             'remarks' => fake()->optional()->paragraph(),
-            'created_by' => User::factory(),
-            'updated_by' => fake()->optional()->passthrough(User::factory()),
         ];
     }
 
@@ -115,7 +89,6 @@ class VisaProcessFactory extends Factory
             'visa_number' => fake()->numerify('V########'),
             'visa_status' => 'issued',
             'ptn_number' => fake()->numerify('PTN########'),
-            'ptn_issue_date' => fake()->dateTimeBetween('-1 month', 'now'),
         ]);
     }
 
@@ -168,7 +141,7 @@ class VisaProcessFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'overall_status' => 'rejected',
             'visa_status' => 'rejected',
-            'visa_remarks' => 'Visa application rejected',
+            'remarks' => 'Visa application rejected',
         ]);
     }
 }

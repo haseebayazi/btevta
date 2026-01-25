@@ -48,8 +48,14 @@ class Complaint extends Model
         'category',  // Virtual field - mutator maps to complaint_category
         'closed_at',
         'closed_by',
+        'closure_remarks',
         'reopened_at',
         'reopened_by',
+        'assigned_at',
+        'assignment_remarks',
+        'status_remarks',
+        'status_updated_at',
+        'in_progress_at',
         // WASL v3 Enhanced Workflow Fields
         'current_issue',
         'support_steps_taken',

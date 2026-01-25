@@ -42,7 +42,8 @@ class UndertakingPolicy
 
     public function delete(User $user, Undertaking $undertaking): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete undertakings
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function download(User $user, Undertaking $undertaking): bool

@@ -16,7 +16,8 @@ class PasswordHistoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can view password history
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function view(User $user, PasswordHistory $history): bool

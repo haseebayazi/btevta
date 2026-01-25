@@ -21,7 +21,7 @@ class RegistrationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new RegistrationService();
+        $this->service = app(RegistrationService::class);
         Storage::fake('public');
     }
 
@@ -153,14 +153,16 @@ class RegistrationServiceTest extends TestCase
             'father_name' => 'Test Father',
         ]);
 
-        NextOfKin::factory()->create([
-            'candidate_id' => $candidate->id,
+        $nextOfKin = NextOfKin::factory()->create([
             'name' => 'Guardian Name',
             'relationship' => 'father',
             'phone' => '03001234567',
         ]);
 
-        $candidate->refresh();
+        // Associate the next of kin with the candidate
+        $candidate->next_of_kin_id = $nextOfKin->id;
+        $candidate->save();
+        $candidate->load('nextOfKin');
 
         $content = $this->service->generateUndertakingContent($candidate);
 
@@ -188,14 +190,14 @@ class RegistrationServiceTest extends TestCase
         $result = $this->service->validateDocument('documents/small.pdf', 'cnic');
 
         $this->assertFalse($result['valid']);
-        $this->assertEquals('File too small', $result['reason']);
+        $this->assertEquals('File too small - may be corrupted', $result['reason']);
     }
 
     #[Test]
     public function it_validates_document_success()
     {
         // Create a file larger than 1KB
-        Storage::disk('public')->put('documents/valid.pdf', str_repeat('x', 2048));
+        Storage::disk('public')->put('documents/valid.pdf', str_repeat('x', 51200)); // 50KB minimum for CNIC
 
         $result = $this->service->validateDocument('documents/valid.pdf', 'cnic');
 
@@ -211,10 +213,14 @@ class RegistrationServiceTest extends TestCase
     {
         $candidate = Candidate::factory()->create();
 
-        $oep = $this->service->allocateOEP($candidate);
+        // Create an active OEP for allocation
+        $activeOep = \App\Models\Oep::factory()->create(['is_active' => true]);
 
-        $this->assertNotEmpty($oep);
-        $this->assertIsString($oep);
+        $oepId = $this->service->allocateOEP($candidate);
+
+        $this->assertNotEmpty($oepId);
+        $this->assertIsInt($oepId);
+        $this->assertEquals($activeOep->id, $oepId);
     }
 
     // =========================================================================

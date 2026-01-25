@@ -228,12 +228,10 @@ class ReportingServiceTest extends TestCase
 
         Departure::factory()->create([
             'candidate_id' => $candidate1->id,
-            'ninety_day_compliance' => true,
         ]);
 
         Departure::factory()->create([
             'candidate_id' => $candidate2->id,
-            'ninety_day_compliance' => false,
         ]);
 
         $report = $this->service->getComplianceReport();

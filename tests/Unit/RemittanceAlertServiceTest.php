@@ -206,21 +206,30 @@ class RemittanceAlertServiceTest extends TestCase
         $departure = Departure::factory()->create(['candidate_id' => $candidate->id]);
         $user = User::factory()->create();
 
-        // Create normal remittances (around 50,000)
-        Remittance::factory()->count(5)->create([
+        // Create 10 consistent normal remittances to establish stable baseline
+        // Mix of older and recent to build history
+        Remittance::factory()->count(7)->create([
             'candidate_id' => $candidate->id,
             'departure_id' => $departure->id,
             'recorded_by' => $user->id,
             'amount' => 50000,
-            'transfer_date' => now()->subMonths(2),
+            'transfer_date' => now()->subDays(rand(35, 80)),
         ]);
 
-        // Create an unusual amount (very high)
+        Remittance::factory()->count(3)->create([
+            'candidate_id' => $candidate->id,
+            'departure_id' => $departure->id,
+            'recorded_by' => $user->id,
+            'amount' => 50000,
+            'transfer_date' => now()->subDays(rand(10, 28)),
+        ]);
+
+        // Create massive outlier (20x higher)
         Remittance::factory()->create([
             'candidate_id' => $candidate->id,
             'departure_id' => $departure->id,
             'recorded_by' => $user->id,
-            'amount' => 500000, // 10x higher
+            'amount' => 1000000, // 20x higher with stable baseline
             'transfer_date' => now()->subDays(5),
         ]);
 

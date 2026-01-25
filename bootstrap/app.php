@@ -10,6 +10,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         // AUDIT FIX (P3): View Composers for common dropdown data
         \App\Providers\ViewServiceProvider::class,
+        // PHASE 1 FIX: Rate limiters for API routes
+        \App\Providers\AppServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

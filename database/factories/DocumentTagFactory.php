@@ -40,8 +40,8 @@ class DocumentTagFactory extends Factory
             'Cancelled',
         ];
 
-        $name = $this->faker->unique()->randomElement($tagNames);
-        $slug = \Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1000, 9999);
+        $name = $this->faker->words(2, true) . ' ' . $this->faker->unique()->numberBetween(1, 999999);
+        $slug = \Str::slug($name);
 
         return [
             'name' => $name,
@@ -69,9 +69,10 @@ class DocumentTagFactory extends Factory
      */
     public function urgent(): static
     {
+        $unique = fake()->unique()->numberBetween(1, 999999);
         return $this->state(fn (array $attributes) => [
-            'name' => 'Urgent',
-            'slug' => 'urgent',
+            'name' => 'Urgent ' . $unique,
+            'slug' => 'urgent-' . $unique,
             'color' => '#ef4444',
         ]);
     }
@@ -81,9 +82,10 @@ class DocumentTagFactory extends Factory
      */
     public function verified(): static
     {
+        $unique = fake()->unique()->numberBetween(1, 999999);
         return $this->state(fn (array $attributes) => [
-            'name' => 'Verified',
-            'slug' => 'verified',
+            'name' => 'Verified ' . $unique,
+            'slug' => 'verified-' . $unique,
             'color' => '#22c55e',
         ]);
     }
@@ -93,9 +95,10 @@ class DocumentTagFactory extends Factory
      */
     public function confidential(): static
     {
+        $unique = fake()->unique()->numberBetween(1, 999999);
         return $this->state(fn (array $attributes) => [
-            'name' => 'Confidential',
-            'slug' => 'confidential',
+            'name' => 'Confidential ' . $unique,
+            'slug' => 'confidential-' . $unique,
             'color' => '#ef4444',
         ]);
     }

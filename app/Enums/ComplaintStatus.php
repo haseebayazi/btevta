@@ -109,10 +109,10 @@ enum ComplaintStatus: string
     public function validNextStatuses(): array
     {
         return match($this) {
-            self::OPEN => [self::ASSIGNED, self::IN_PROGRESS, self::CLOSED],
-            self::ASSIGNED => [self::IN_PROGRESS, self::RESOLVED, self::CLOSED],
-            self::IN_PROGRESS => [self::RESOLVED, self::CLOSED],
-            self::RESOLVED => [self::CLOSED, self::IN_PROGRESS], // Can reopen
+            self::OPEN => [self::ASSIGNED, self::IN_PROGRESS, self::RESOLVED],
+            self::ASSIGNED => [self::IN_PROGRESS, self::RESOLVED],
+            self::IN_PROGRESS => [self::RESOLVED],
+            self::RESOLVED => [self::CLOSED, self::IN_PROGRESS, self::OPEN], // Can reopen
             self::CLOSED => [self::OPEN], // Can reopen
         };
     }

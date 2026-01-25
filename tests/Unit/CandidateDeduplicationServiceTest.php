@@ -307,18 +307,21 @@ class CandidateDeduplicationServiceTest extends TestCase
     #[Test]
     public function it_returns_duplicate_statistics()
     {
-        // Create candidates with duplicate CNICs
-        Candidate::factory()->create(['cnic' => '3520112345671']);
-        Candidate::factory()->create(['cnic' => '3520112345671']);
-
+        // Note: CNIC has a UNIQUE constraint, so we can only test with duplicate phones
         // Create candidates with duplicate phones
         Candidate::factory()->create(['phone' => '03001234567', 'cnic' => '3520199999991']);
         Candidate::factory()->create(['phone' => '03001234567', 'cnic' => '3520199999992']);
 
+        // Create another set of duplicate phones
+        Candidate::factory()->create(['phone' => '03009876543', 'cnic' => '3520199999993']);
+        Candidate::factory()->create(['phone' => '03009876543', 'cnic' => '3520199999994']);
+
         $stats = $this->service->getDuplicateStatistics();
 
-        $this->assertEquals(1, $stats['duplicate_cnics']);
-        $this->assertEquals(1, $stats['duplicate_phones']);
+        // Should find 2 groups of duplicate phones
+        $this->assertEquals(2, $stats['duplicate_phones']);
+        // No duplicate CNICs due to UNIQUE constraint
+        $this->assertEquals(0, $stats['duplicate_cnics']);
     }
 
     // =========================================================================

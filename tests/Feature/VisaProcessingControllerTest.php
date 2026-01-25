@@ -380,7 +380,6 @@ class VisaProcessingControllerTest extends TestCase
 
         $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/travel-plan", [
             'travel_plan_file' => $file,
-            'departure_date' => now()->addDays(30)->toDateString(),
         ]);
 
         $response->assertRedirect();
@@ -398,7 +397,6 @@ class VisaProcessingControllerTest extends TestCase
 
         $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/travel-plan", [
             'travel_plan_file' => $file,
-            'departure_date' => now()->addDays(30)->toDateString(),
         ]);
 
         $response->assertSessionHasErrors(['travel_plan_file']);

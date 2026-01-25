@@ -57,6 +57,12 @@ class DepartureService
     public function recordPreDepartureBriefing($candidateId, $data)
     {
         return DB::transaction(function () use ($candidateId, $data) {
+            // Validate candidate exists first (before creating departure record)
+            $candidate = Candidate::find($candidateId);
+            if (!$candidate) {
+                throw new \Exception("Candidate not found");
+            }
+
             $departure = Departure::firstOrCreate(
                 ['candidate_id' => $candidateId],
                 [
@@ -79,10 +85,6 @@ class DepartureService
 
             // Update candidate status with NULL CHECK
             // Pre-departure briefing is a sub-step while candidate is in 'ready_to_depart' status
-            $candidate = Candidate::find($candidateId);
-            if (!$candidate) {
-                throw new \Exception("Candidate not found with ID: {$candidateId}");
-            }
             // Only update to 'ready_to_depart' if not already departed
             if ($candidate->status !== CandidateStatus::DEPARTED->value) {
                 $candidate->update(['status' => CandidateStatus::READY_TO_DEPART->value]);
@@ -360,12 +362,12 @@ class DepartureService
             ];
         }
 
-        $departureDate = Carbon::parse($departure->departure_date);
-        $daysSinceDeparture = $departureDate->diffInDays(now());
+        $departureDate = Carbon::parse($departure->departure_date)->startOfDay();
+        $daysSinceDeparture = (int) $departureDate->diffInDays(now()->startOfDay());
         // AUDIT FIX: Use copy() to prevent mutating the original $departureDate
         // Without copy(), addDays() modifies $departureDate in place causing bugs
         $complianceDeadline = $departureDate->copy()->addDays(90);
-        $daysRemaining = Carbon::now()->diffInDays($complianceDeadline, false);
+        $daysRemaining = (int) now()->startOfDay()->diffInDays($complianceDeadline, false);
 
         // Check compliance items
         $complianceItems = [

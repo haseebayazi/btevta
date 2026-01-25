@@ -54,6 +54,7 @@ class Candidate extends Model
         'training_end_date',
         'training_status',
         'status',
+        'status_remarks',
         'photo_path',
         'remarks',
         'at_risk_reason',
@@ -650,8 +651,8 @@ class Candidate extends Model
         }
 
         $this->status = $newStatus;
-        if ($remarks) {
-            $this->remarks = $remarks;
+        if ($remarks !== null) {
+            $this->status_remarks = $remarks;
         }
         
         // Handle special status transitions
@@ -950,11 +951,12 @@ class Candidate extends Model
      * Check if candidate can transition to a specific status.
      *
      * @param string $targetStatus
-     * @return array
+     * @return bool
      */
     public function canTransitionTo($targetStatus)
     {
-        return $this->validateTransition($targetStatus);
+        $result = $this->validateTransition($targetStatus);
+        return is_array($result) && $result['can_transition'];
     }
 
     /**
@@ -977,8 +979,7 @@ class Candidate extends Model
 
         $allowed = [];
         foreach ($allStatuses as $status) {
-            $result = $this->canTransitionTo($status);
-            if (is_array($result) && $result['can_transition']) {
+            if ($this->canTransitionTo($status)) {
                 $allowed[] = $status;
             }
         }
@@ -1226,19 +1227,21 @@ class Candidate extends Model
      */
     public static function calculateLuhnCheckDigit($number)
     {
-        $digits = str_split(strrev($number));
         $sum = 0;
+        $length = strlen($number);
 
-        foreach ($digits as $index => $digit) {
-            $d = (int) $digit;
-            // Double every second digit (odd index in reversed array = even position from right)
-            if ($index % 2 === 1) {
-                $d *= 2;
-                if ($d > 9) {
-                    $d -= 9;
+        for ($i = $length - 1; $i >= 0; $i--) {
+            $digit = (int) $number[$i];
+
+            // Double every other digit starting from rightmost (position 0 from right)
+            if (($length - 1 - $i) % 2 === 0) {
+                $digit *= 2;
+                if ($digit > 9) {
+                    $digit -= 9;
                 }
             }
-            $sum += $d;
+
+            $sum += $digit;
         }
 
         return (10 - ($sum % 10)) % 10;

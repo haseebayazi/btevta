@@ -82,6 +82,14 @@ class NextOfKin extends Model
     // ==================== RELATIONSHIPS ====================
 
     /**
+     * Get the candidate that this next of kin belongs to.
+     */
+    public function candidate()
+    {
+        return $this->belongsTo(Candidate::class, 'candidate_id');
+    }
+
+    /**
      * Get all candidates associated with this next of kin.
      */
     public function candidates()

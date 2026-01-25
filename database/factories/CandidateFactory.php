@@ -4,14 +4,20 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Trade;
+use App\Models\Candidate;
 
 class CandidateFactory extends Factory
 {
     public function definition(): array
     {
+        $year = date('Y');
+        $sequence = str_pad(fake()->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT);
+        $baseId = $year . $sequence;
+        $checkDigit = Candidate::calculateLuhnCheckDigit($baseId);
+
         return [
-            'btevta_id' => 'TLP-' . date('Y') . '-' . str_pad(fake()->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT) . '-' . fake()->randomDigit(),
-            'application_id' => fake()->unique()->numberBetween(100000, 999999),
+            'btevta_id' => 'TLP-' . $year . '-' . $sequence . '-' . $checkDigit,
+            'application_id' => 'APP' . str_pad(fake()->unique()->numberBetween(1, 9999999999), 10, '0', STR_PAD_LEFT),
             'trade_id' => Trade::factory(),
 'cnic' => fake()->unique()->numerify('#############'), // 13 digits
             'name' => fake()->name(),

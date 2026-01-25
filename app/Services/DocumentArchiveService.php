@@ -61,10 +61,12 @@ class DocumentArchiveService
      */
     public function uploadDocument($data, $file): DocumentArchive
     {
-        // Check if document already exists for this candidate/type
+        // Check if document already exists for this candidate/type (get current version)
         $existingDoc = DocumentArchive::where('candidate_id', $data['candidate_id'])
             ->where('document_type', $data['document_type'])
+            ->where('is_current_version', true)
             ->whereNull('deleted_at')
+            ->orderBy('version', 'desc')
             ->first();
 
         $version = 1;
@@ -98,6 +100,7 @@ class DocumentArchiveService
             'file_path' => $path,
             'version' => $version,
             'expiry_date' => $data['expiry_date'] ?? null,
+            'upload_date' => now(),
             'uploaded_by' => auth()->id(),
             'is_current_version' => true,
             'file_size' => $file->getSize(),

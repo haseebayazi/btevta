@@ -29,6 +29,8 @@ class CandidateManagementTest extends TestCase
 
     public function test_can_create_candidate()
     {
+        $this->withoutExceptionHandling();
+
         $trade = Trade::factory()->create();
         $campus = Campus::factory()->create();
 
@@ -40,6 +42,7 @@ class CandidateManagementTest extends TestCase
             'date_of_birth' => '1990-01-01',
             'gender' => 'male',
             'phone' => '03001234567',
+            'email' => 'test@example.com',
             'address' => 'Test Address',
             'district' => 'Rawalpindi',
             'trade_id' => $trade->id,

@@ -41,26 +41,26 @@ class VisaProcessApiControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    '*' => ['id', 'candidate_id', 'current_stage', 'candidate']
+                    '*' => ['id', 'candidate_id', 'overall_status', 'candidate']
                 ],
                 'meta' => ['current_page', 'per_page', 'total']
             ]);
     }
 
     #[Test]
-    public function it_filters_by_current_stage()
+    public function it_filters_by_overall_status()
     {
         $candidates = Candidate::factory()->count(10)->create();
         foreach ($candidates->take(3) as $candidate) {
             VisaProcess::factory()->create([
                 'candidate_id' => $candidate->id,
-                'current_stage' => 'interview',
+                'overall_status' => 'interview',
             ]);
         }
         foreach ($candidates->skip(3)->take(5) as $candidate) {
             VisaProcess::factory()->create([
                 'candidate_id' => $candidate->id,
-                'current_stage' => 'medical',
+                'overall_status' => 'medical',
             ]);
         }
 
@@ -108,7 +108,7 @@ class VisaProcessApiControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'id', 'candidate_id', 'current_stage',
+                    'id', 'candidate_id', 'overall_status',
                     'interview_status', 'interview_date',
                     'medical_status', 'medical_date',
                     'candidate'
@@ -161,7 +161,7 @@ class VisaProcessApiControllerTest extends TestCase
 
         $data = [
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
             'interview_date' => '2024-06-01',
         ];
 
@@ -170,7 +170,7 @@ class VisaProcessApiControllerTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('visa_processes', [
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
         ]);
     }
 
@@ -191,7 +191,7 @@ class VisaProcessApiControllerTest extends TestCase
 
         $response = $this->postJson('/api/v1/visa-processes', [
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
         ]);
 
         $response->assertStatus(422);
@@ -207,7 +207,7 @@ class VisaProcessApiControllerTest extends TestCase
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
             'interview_status' => 'pending',
         ]);
 
@@ -226,13 +226,13 @@ class VisaProcessApiControllerTest extends TestCase
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
             'interview_status' => 'pending',
         ]);
 
         // Try to advance to medical without passing interview
         $response = $this->putJson("/api/v1/visa-processes/{$visaProcess->id}", [
-            'current_stage' => 'medical',
+            'overall_status' => 'medical',
         ]);
 
         $response->assertStatus(422);
@@ -244,16 +244,16 @@ class VisaProcessApiControllerTest extends TestCase
         $candidate = Candidate::factory()->create();
         $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
-            'current_stage' => 'interview',
+            'overall_status' => 'interview',
             'interview_status' => 'passed',
         ]);
 
         $response = $this->putJson("/api/v1/visa-processes/{$visaProcess->id}", [
-            'current_stage' => 'takamol',
+            'overall_status' => 'takamol',
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.current_stage', 'takamol');
+            ->assertJsonPath('data.overall_status', 'takamol');
     }
 
     // =========================================================================
@@ -267,7 +267,7 @@ class VisaProcessApiControllerTest extends TestCase
         foreach ($candidates as $index => $candidate) {
             VisaProcess::factory()->create([
                 'candidate_id' => $candidate->id,
-                'current_stage' => ['interview', 'medical', 'takamol', 'visa_stamping'][$index % 4],
+                'overall_status' => ['interview', 'medical', 'takamol', 'visa_stamping'][$index % 4],
                 'interview_status' => $index % 2 == 0 ? 'passed' : 'pending',
             ]);
         }

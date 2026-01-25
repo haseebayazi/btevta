@@ -76,7 +76,7 @@ class DepartureServiceTest extends TestCase
         $this->assertNotNull($departure);
         $this->assertEquals($candidate->id, $departure->candidate_id);
         $this->assertEquals('pre_briefing', $departure->current_stage);
-        $this->assertEquals($data['briefing_date'], $departure->pre_briefing_date);
+        $this->assertEquals($data['briefing_date'], $departure->pre_briefing_date->toDateString());
     }
 
     #[Test]
@@ -265,6 +265,7 @@ class DepartureServiceTest extends TestCase
             'candidate_id' => $candidate2->id,
             'departure_date' => now()->subDays(15),
             'iqama_number' => '456',
+            'salary_confirmed' => false,
         ]);
 
         $stats = $this->service->getStatistics();
@@ -326,7 +327,7 @@ class DepartureServiceTest extends TestCase
             'absher_registered' => true,
             'qiwa_id' => null,
             'salary_confirmed' => false,
-            'accommodation_status' => null,
+            'accommodation_status' => 'pending',
         ]);
 
         $checklist = $this->service->getComplianceChecklist($candidate->id);
@@ -349,6 +350,9 @@ class DepartureServiceTest extends TestCase
             'pre_briefing_date' => now()->subDays(10)->toDateString(),
             'departure_date' => now()->subDays(5)->toDateString(),
             'iqama_issue_date' => now()->subDays(3)->toDateString(),
+            'absher_registration_date' => null,
+            'qiwa_activation_date' => null,
+            'first_salary_date' => null,
         ]);
 
         $timeline = $this->service->getDepartureTimeline($candidate->id);

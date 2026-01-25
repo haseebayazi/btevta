@@ -28,7 +28,7 @@ class Employer extends Model
     ];
 
     protected $casts = [
-        'basic_salary' => 'decimal:2',
+        'basic_salary' => 'float',
         'food_by_company' => 'boolean',
         'transport_by_company' => 'boolean',
         'accommodation_by_company' => 'boolean',

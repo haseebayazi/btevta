@@ -43,7 +43,7 @@ class RemittanceAlertFactory extends Factory
             ],
             'is_read' => fake()->boolean(40),
             'is_resolved' => fake()->boolean(30),
-            'resolved_by' => fake()->optional(0.3)->randomElement([1, 2, 3]),
+            'resolved_by' => fake()->optional(0.3)->randomElement([null, User::factory()]),
             'resolved_at' => fake()->optional(0.3)->dateTimeBetween('-30 days', 'now'),
             'resolution_notes' => fake()->optional(0.3)->sentence(),
         ];

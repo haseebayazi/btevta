@@ -21,7 +21,7 @@ class VisaProcessingService
         'takamol' => 'Takamol Test',
         'medical' => 'Medical (GAMCA)',
         'biometrics' => 'Biometrics (Etimad)',
-        'visa_submission' => 'Visa Document Submission',
+        'visa_applied' => 'Visa Applied',
         'ptn_issuance' => 'PTN Issuance',
         'ticket' => 'Ticket Booking',
         'completed' => 'Completed'
@@ -86,33 +86,34 @@ class VisaProcessingService
      */
     public function scheduleInterview($candidateId, $data)
     {
+        // Validate candidate exists first
+        $candidate = Candidate::find($candidateId);
+        if (!$candidate) {
+            throw new \Exception("Candidate not found");
+        }
+
         $visaProcess = VisaProcess::firstOrCreate(
             ['candidate_id' => $candidateId],
             [
-                'status' => 'interview',
+                'overall_status' => 'interview',
                 'interview_date' => $data['interview_date'],
-                'interview_location' => $data['interview_location'] ?? null,
-                'interview_notes' => $data['interview_notes'] ?? null,
+                'interview_status' => 'scheduled',
+                'interview_remarks' => $data['interview_notes'] ?? $data['interview_remarks'] ?? null,
             ]
         );
 
         if (!$visaProcess->wasRecentlyCreated) {
             $visaProcess->update([
                 'interview_date' => $data['interview_date'],
-                'interview_location' => $data['interview_location'] ?? null,
-                'interview_notes' => $data['interview_notes'] ?? null,
+                'interview_status' => 'scheduled',
+                'interview_remarks' => $data['interview_notes'] ?? $data['interview_remarks'] ?? null,
             ]);
         }
 
         // Update candidate status
-        // Update candidate status with NULL CHECK
-        $candidate = Candidate::find($candidateId);
-        if (!$candidate) {
-            throw new \Exception("Candidate not found with ID: {$candidateId}");
-        }
         $candidate->update(['status' => 'interview_scheduled']);
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -123,7 +124,7 @@ class VisaProcessingService
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
         $visaProcess->update([
-            'interview_result' => $result,
+            'interview_status' => $result,
             'interview_remarks' => $remarks,
         ]);
 
@@ -139,7 +140,7 @@ class VisaProcessingService
             $visaProcess->candidate->update(['status' => 'interview_failed']);
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -148,16 +149,15 @@ class VisaProcessingService
     public function scheduleTakamol($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'takamol_booking_date' => $data['booking_date'],
-            'takamol_test_date' => $data['test_date'] ?? null,
-            'takamol_center' => $data['center'] ?? null,
+            'takamol_date' => $data['test_date'] ?? $data['booking_date'] ?? null,
+            'takamol_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'takamol');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -171,16 +171,14 @@ class VisaProcessingService
         $path = $file->store('visa/takamol', 'public');
         
         $visaProcess->update([
-            'takamol_result' => $result,
-            'takamol_score' => $score,
-            'takamol_certificate_path' => $path,
+            'takamol_status' => $result,
         ]);
 
         if ($result === 'pass') {
             $this->moveToNextStage($visaProcess, 'medical');
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -189,17 +187,15 @@ class VisaProcessingService
     public function scheduleGAMCA($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'gamca_booking_date' => $data['booking_date'],
-            'gamca_test_date' => $data['test_date'] ?? null,
-            'gamca_center' => $data['center'] ?? null,
-            'gamca_barcode' => $data['barcode'] ?? null,
+            'medical_date' => $data['test_date'] ?? $data['booking_date'] ?? null,
+            'medical_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'medical');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -213,16 +209,14 @@ class VisaProcessingService
         $path = $file->store('visa/gamca', 'public');
         
         $visaProcess->update([
-            'gamca_result' => $result,
-            'gamca_certificate_path' => $path,
-            'gamca_expiry_date' => $expiryDate,
+            'medical_status' => $result,
         ]);
 
         if ($result === 'fit') {
             $this->moveToNextStage($visaProcess, 'biometrics');
         }
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -231,18 +225,18 @@ class VisaProcessingService
     public function scheduleEtimad($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $appointmentId = $data['appointment_id'] ?? $this->generateEtimadAppointmentId();
-        
+
         $visaProcess->update([
             'etimad_appointment_id' => $appointmentId,
-            'etimad_appointment_date' => $data['appointment_date'],
-            'etimad_center' => $data['center'] ?? null,
+            'biometric_date' => $data['appointment_date'] ?? null,
+            'biometric_status' => 'scheduled',
         ]);
 
         $this->updateStage($visaProcess, 'biometrics');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -263,16 +257,15 @@ class VisaProcessingService
     public function recordBiometricsCompletion($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'biometrics_completed' => true,
-            'biometrics_completion_date' => $data['completion_date'] ?? now(),
-            'biometrics_remarks' => $data['remarks'] ?? null,
+            'biometric_completed' => true,
+            'biometric_status' => 'completed',
         ]);
 
-        $this->moveToNextStage($visaProcess, 'visa_submission');
+        $this->moveToNextStage($visaProcess, 'visa_applied');
 
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -281,16 +274,13 @@ class VisaProcessingService
     public function recordVisaSubmission($visaProcessId, $data)
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
+
         $visaProcess->update([
-            'visa_submission_date' => $data['submission_date'],
-            'visa_application_number' => $data['application_number'] ?? null,
-            'embassy' => $data['embassy'] ?? null,
+            'visa_status' => 'applied',
+            'overall_status' => 'visa_applied',
         ]);
 
-        $this->updateStage($visaProcess, 'visa_submission');
-
-        return $visaProcess;
+        return $visaProcess->fresh();
     }
 
     /**
@@ -327,13 +317,10 @@ class VisaProcessingService
         
         $visaProcess->update([
             'travel_plan_path' => $path,
-            'flight_number' => $data['flight_number'] ?? null,
-            'departure_date' => $data['departure_date'] ?? null,
-            'arrival_date' => $data['arrival_date'] ?? null,
         ]);
 
         $this->moveToNextStage($visaProcess, 'ticket');
-        $this->completeVisaProcess($visaProcess);
+        $this->completeVisaProcess($visaProcess->id);
 
         return $visaProcess;
     }
@@ -344,8 +331,7 @@ class VisaProcessingService
     private function moveToNextStage($visaProcess, $stage)
     {
         $visaProcess->update([
-            'status' => $stage,
-            'current_stage' => $stage,
+            'overall_status' => $stage,
         ]);
 
         // Log stage transition
@@ -360,7 +346,7 @@ class VisaProcessingService
      */
     private function updateStage($visaProcess, $stage)
     {
-        $visaProcess->update(['current_stage' => $stage]);
+        $visaProcess->update(['overall_status' => $stage]);
     }
 
     /**
@@ -369,25 +355,25 @@ class VisaProcessingService
     public function calculateTimeline($visaProcessId)
     {
         $visaProcess = VisaProcess::with('candidate')->findOrFail($visaProcessId);
-        
+
         $timeline = [];
         $stages = [
             'interview_date' => 'Interview',
-            'takamol_test_date' => 'Takamol Test',
-            'gamca_test_date' => 'Medical (GAMCA)',
-            'etimad_appointment_date' => 'Biometrics',
-            'visa_submission_date' => 'Visa Submission',
-            'ptn_issue_date' => 'PTN Issuance',
-            'departure_date' => 'Departure',
+            'trade_test_date' => 'Trade Test',
+            'takamol_date' => 'Takamol Test',
+            'medical_date' => 'Medical (GAMCA)',
+            'biometric_date' => 'Biometrics',
+            'visa_date' => 'Visa Applied',
+            'ticket_date' => 'Ticket Booking',
         ];
 
         $startDate = $visaProcess->created_at;
-        
+
         foreach ($stages as $field => $label) {
             if ($visaProcess->$field) {
                 $date = Carbon::parse($visaProcess->$field);
                 $daysFromStart = $startDate->diffInDays($date);
-                
+
                 $timeline[] = [
                     'stage' => $label,
                     'date' => $date->format('Y-m-d'),
@@ -431,13 +417,13 @@ class VisaProcessingService
 
         return [
             'total_processes' => $total,
-            'completed' => (clone $query)->where('status', 'completed')->count(),
-            'in_progress' => (clone $query)->where('status', '!=', 'completed')->count(),
-            'interview_stage' => (clone $query)->where('current_stage', 'interview')->count(),
-            'takamol_stage' => (clone $query)->where('current_stage', 'takamol')->count(),
-            'medical_stage' => (clone $query)->where('current_stage', 'medical')->count(),
-            'biometrics_stage' => (clone $query)->where('current_stage', 'biometrics')->count(),
-            'visa_submission_stage' => (clone $query)->where('current_stage', 'visa_submission')->count(),
+            'completed' => (clone $query)->where('overall_status', 'completed')->count(),
+            'in_progress' => (clone $query)->where('overall_status', '!=', 'completed')->count(),
+            'interview_stage' => (clone $query)->where('overall_status', 'interview')->count(),
+            'takamol_stage' => (clone $query)->where('overall_status', 'takamol')->count(),
+            'medical_stage' => (clone $query)->where('overall_status', 'medical')->count(),
+            'biometrics_stage' => (clone $query)->where('overall_status', 'biometrics')->count(),
+            'visa_applied_stage' => (clone $query)->where('overall_status', 'visa_applied')->count(),
             'ptn_issued' => (clone $query)->whereNotNull('ptn_number')->count(),
             'average_processing_days' => $this->calculateAverageProcessingDays($query),
         ];
@@ -471,8 +457,7 @@ class VisaProcessingService
     public function getPendingMedicalBiometric()
     {
         return VisaProcess::with('candidate')
-            ->whereIn('current_stage', ['medical', 'biometrics'])
-            ->where('status', '!=', 'completed')
+            ->whereIn('overall_status', ['medical', 'biometrics'])
             ->get();
     }
 
@@ -481,14 +466,9 @@ class VisaProcessingService
      */
     public function getExpiringDocuments($days = 30)
     {
-        $alertDate = Carbon::now()->addDays($days);
-
-        return VisaProcess::with('candidate')
-            ->where(function($query) use ($alertDate) {
-                $query->where('gamca_expiry_date', '<=', $alertDate)
-                      ->orWhere('passport_expiry_date', '<=', $alertDate);
-            })
-            ->get();
+        // Note: gamca_expiry_date and passport_expiry_date columns don't exist in visa_processes table
+        // This method returns empty collection until schema is updated
+        return collect();
     }
 
     /**
@@ -506,7 +486,7 @@ class VisaProcessingService
                 'interview_status' => $data['interview_status'] ?? 'pending',
                 'interview_remarks' => $data['interview_remarks'] ?? null,
                 'overall_status' => VisaStage::INITIATED->value,
-                'current_stage' => VisaStage::INITIATED->value,
+                'overall_status' => VisaStage::INITIATED->value,
             ]);
 
             // Update candidate status to VISA_PROCESS

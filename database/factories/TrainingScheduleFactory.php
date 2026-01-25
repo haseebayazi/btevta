@@ -14,11 +14,18 @@ class TrainingScheduleFactory extends Factory
     {
         return [
             'batch_id' => Batch::factory(),
-            'date' => $this->faker->dateTimeBetween('now', '+30 days'),
+            'campus_id' => null,
+            'instructor_id' => null,
+            'trade_id' => null,
+            'module_name' => $this->faker->words(3, true),
+            'module_description' => $this->faker->optional()->sentence(),
+            'module_number' => $this->faker->numberBetween(1, 20),
+            'duration_hours' => $this->faker->numberBetween(1, 8),
+            'scheduled_date' => $this->faker->dateTimeBetween('now', '+30 days'),
             'start_time' => $this->faker->time('H:i'),
             'end_time' => $this->faker->time('H:i'),
-            'session_type' => $this->faker->randomElement(['theory', 'practical', 'assessment']),
-            'status' => $this->faker->randomElement(['scheduled', 'completed', 'cancelled']),
+            'room' => $this->faker->optional()->bothify('Room-##'),
+            'building' => $this->faker->optional()->randomElement(['A', 'B', 'C']),
         ];
     }
 }

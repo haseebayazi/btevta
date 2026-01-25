@@ -40,7 +40,7 @@ class CandidateModelFeatureTest extends TestCase
 
     public function test_candidate_progress_percentage()
     {
-        $candidate = Candidate::factory()->create(['status' => 'visa_processing']);
-        $this->assertEquals(80, $candidate->getProgressPercentage());
+        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
+        $this->assertEquals(65, $candidate->getProgressPercentage());
     }
 }

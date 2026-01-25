@@ -15,7 +15,7 @@ class ProgramFactory extends Factory
             'description' => fake()->sentence(),
             'duration_weeks' => fake()->numberBetween(4, 52),
             'country_id' => Country::factory(),
-            'is_active' => fake()->boolean(80), // 80% chance of being active
+            'is_active' => true, // Default to active for tests
         ];
     }
 

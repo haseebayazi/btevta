@@ -16,10 +16,10 @@ class ComplaintUpdateFactory extends Factory
         return [
             'complaint_id' => Complaint::factory(),
             'user_id' => User::factory(),
-            'update_type' => $this->faker->randomElement(['status_change', 'comment', 'assignment', 'resolution']),
-            'content' => $this->faker->paragraph(),
-            'old_status' => 'open',
-            'new_status' => 'in_progress',
+            'message' => $this->faker->paragraph(),
+            'status_changed_from' => $this->faker->optional()->randomElement(['open', 'assigned', 'in_progress']),
+            'status_changed_to' => $this->faker->optional()->randomElement(['assigned', 'in_progress', 'resolved']),
+            'is_internal' => $this->faker->boolean(30),
         ];
     }
 }

@@ -18,7 +18,6 @@ class VisaPartnerFactory extends Factory
             'email' => $this->faker->companyEmail(),
             'phone' => $this->faker->phoneNumber(),
             'address' => $this->faker->address(),
-            'status' => $this->faker->randomElement(['active', 'inactive']),
         ];
     }
 }

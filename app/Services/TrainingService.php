@@ -128,15 +128,20 @@ class TrainingService
      */
     public function recordAttendance($data)
     {
+        // Get batch_id from candidate if not provided
+        $batchId = $data['batch_id'] ?? null;
+        if (!$batchId) {
+            $candidate = Candidate::find($data['candidate_id']);
+            $batchId = $candidate?->batch_id;
+        }
+
         $attendance = TrainingAttendance::create([
             'candidate_id' => $data['candidate_id'],
-            'batch_id' => $data['batch_id'] ?? null,
+            'batch_id' => $batchId,
             'date' => $data['date'],
             'status' => $data['status'], // present, absent, late, leave
-            'session_type' => $data['session_type'] ?? 'theory', // theory, practical, assessment
             'trainer_id' => $data['trainer_id'] ?? auth()->id(),
-            'detailed_remarks' => $data['remarks'] ?? null,
-            'leave_type' => $data['leave_type'] ?? null, // sick, casual, emergency
+            'remarks' => $data['remarks'] ?? null,
         ]);
 
         // Update candidate training status if too many absences
@@ -274,6 +279,7 @@ class TrainingService
             'batch_id' => $data['batch_id'] ?? null,
             'assessment_type' => $data['assessment_type'], // initial, midterm, practical, final
             'assessment_date' => $data['assessment_date'],
+            'score' => $data['score'] ?? $data['total_score'],
             'theoretical_score' => $data['theoretical_score'] ?? null,
             'practical_score' => $data['practical_score'] ?? null,
             'total_score' => $data['total_score'],
@@ -365,6 +371,7 @@ class TrainingService
         // Create certificate record
         $certificate = TrainingCertificate::create([
             'candidate_id' => $candidateId,
+            'batch_id' => $candidate->batch_id,
             'certificate_number' => $certificateNumber,
             'issue_date' => $issueDate ?? now(),
             'issued_by' => auth()->id(),
