@@ -200,8 +200,15 @@ class AutoBatchServiceTest extends TestCase
             'campus_id' => $campus->id,
             'trade_id' => $trade->id,
             'status' => 'planned',
-            'current_size' => 25,
-            'max_size' => 25,
+            'capacity' => 25,
+        ]);
+
+        // Create 25 candidates to fill the batch
+        Candidate::factory()->count(25)->create([
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
+            'batch_id' => $fullBatch->id,
         ]);
 
         $candidate = Candidate::factory()->create([
