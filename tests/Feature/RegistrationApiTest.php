@@ -118,8 +118,10 @@ class RegistrationApiTest extends TestCase
             'status' => 'pending',
         ]);
 
+        $this->assertNotNull($document->id, 'Document was not created');
+
         $response = $this->actingAs($this->admin)->postJson(
-            "/registration/documents/{$document->id}/verify"
+            route('registration.verify-document', ['document' => $document->id])
         );
 
         $response->assertOk();

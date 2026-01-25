@@ -21,8 +21,11 @@ class RegistrationDocument extends Model
         'expiry_date',
         'status',
         'verification_status',
+        'verification_remarks',
+        'rejection_reason',
         'remarks',
         'uploaded_by',
+        'verified_by',
         'created_by',
         'updated_by'
     ];
