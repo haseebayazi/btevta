@@ -22,8 +22,11 @@ class ComplaintEvidencePolicy
         }
 
         // Campus admin can view evidence for complaints from their campus
-        if ($user->isCampusAdmin() && $evidence->complaint && $evidence->complaint->candidate) {
-            return $user->campus_id === $evidence->complaint->candidate->campus_id;
+        if ($user->isCampusAdmin() && $evidence->complaint) {
+            // Check direct campus_id on complaint first, then fall back to candidate's campus
+            $complaintCampusId = $evidence->complaint->campus_id
+                ?? $evidence->complaint->candidate?->campus_id;
+            return $user->campus_id === $complaintCampusId;
         }
 
         return false;
@@ -41,7 +44,8 @@ class ComplaintEvidencePolicy
 
     public function delete(User $user, ComplaintEvidence $evidence): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete evidence
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function download(User $user, ComplaintEvidence $evidence): bool

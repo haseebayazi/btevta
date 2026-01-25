@@ -22,8 +22,13 @@ class ComplaintUpdatePolicy
         }
 
         // Campus admin can view updates for complaints from their campus
-        if ($user->isCampusAdmin() && $update->complaint && $update->complaint->candidate) {
-            return $user->campus_id === $update->complaint->candidate->campus_id;
+        if ($user->isCampusAdmin() && $update->complaint) {
+            // Check direct campus_id on complaint first, then fall back to candidate's campus
+            $complaintCampusId = $update->complaint->campus_id
+                ?? $update->complaint->candidate?->campus_id;
+            if ($user->campus_id === $complaintCampusId) {
+                return true;
+            }
         }
 
         // User can view their own updates
@@ -41,13 +46,13 @@ class ComplaintUpdatePolicy
 
     public function update(User $user, ComplaintUpdate $update): bool
     {
-        // Updates are immutable audit records
-        return false;
+        // Only super_admin can update complaint updates (for corrections)
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function delete(User $user, ComplaintUpdate $update): bool
     {
-        // Updates should not be deleted - they are audit records
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete updates
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 }
