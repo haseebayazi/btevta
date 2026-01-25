@@ -22,16 +22,19 @@ class SystemSettingPolicy
 
     public function create(User $user): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can create settings
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function update(User $user, SystemSetting $setting): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can update settings
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function delete(User $user, SystemSetting $setting): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete settings
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 }

@@ -60,6 +60,7 @@ class EquipmentUsageLogPolicy
 
     public function delete(User $user, EquipmentUsageLog $log): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete usage logs
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 }

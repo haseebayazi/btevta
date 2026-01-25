@@ -31,17 +31,20 @@ class VisaPartnerPolicy
 
     public function create(User $user): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can create visa partners
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function update(User $user, VisaPartner $partner): bool
     {
-        return $user->isSuperAdmin();
+        // Super admin and project director can update visa partners
+        return $user->isSuperAdmin() || $user->isProjectDirector();
     }
 
     public function delete(User $user, VisaPartner $partner): bool
     {
-        return $user->isSuperAdmin();
+        // Only super_admin (not regular admin) can delete visa partners
+        return $user->role === User::ROLE_SUPER_ADMIN;
     }
 
     public function toggleStatus(User $user, VisaPartner $partner): bool
