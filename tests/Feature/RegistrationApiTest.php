@@ -55,14 +55,16 @@ class RegistrationApiTest extends TestCase
     {
         $file = UploadedFile::fake()->create('cnic.pdf', 100, 'application/pdf');
 
-        $response = $this->actingAs($this->admin)->postJson(
-            "/registration/{$this->candidate->id}/documents",
-            [
-                'document_type' => 'cnic',
-                'file' => $file,
-                'expiry_date' => now()->addYear()->format('Y-m-d'),
-            ]
-        );
+        $response = $this->actingAs($this->admin)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post(
+                "/registration/{$this->candidate->id}/documents",
+                [
+                    'document_type' => 'cnic',
+                    'file' => $file,
+                    'expiry_date' => now()->addYear()->format('Y-m-d'),
+                ]
+            );
 
         $response->assertStatus(200);
 
@@ -116,8 +118,10 @@ class RegistrationApiTest extends TestCase
             'status' => 'pending',
         ]);
 
+        $this->assertNotNull($document->id, 'Document was not created');
+
         $response = $this->actingAs($this->admin)->postJson(
-            "/registration/documents/{$document->id}/verify"
+            route('registration.verify-document', ['document' => $document->id])
         );
 
         $response->assertOk();

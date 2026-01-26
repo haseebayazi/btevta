@@ -241,6 +241,15 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::put('/{id}', [ScreeningApiController::class, 'update'])->name('update');
     });
 
+    // Type-specific screening endpoints
+    Route::prefix('screening')->group(function () {
+        Route::post('/{candidate}/desk', [ScreeningApiController::class, 'recordDeskScreening'])->name('screening.desk');
+        Route::post('/{candidate}/call', [ScreeningApiController::class, 'recordCallScreening'])->name('screening.call');
+        Route::post('/{candidate}/physical', [ScreeningApiController::class, 'recordPhysicalScreening'])->name('screening.physical');
+        Route::post('/{candidate}/upload-evidence', [ScreeningApiController::class, 'uploadEvidence'])->name('screening.upload-evidence');
+        Route::get('/{candidate}/progress', [ScreeningApiController::class, 'getProgress'])->name('screening.progress');
+    });
+
     // ========================================================================
     // CORRESPONDENCE API ROUTES (PHASE 3)
     // ========================================================================

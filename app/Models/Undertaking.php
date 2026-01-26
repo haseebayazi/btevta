@@ -48,6 +48,11 @@ class Undertaking extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            // Set default content if not provided
+            if (empty($model->content)) {
+                $model->content = 'Undertaking for candidate registration and training program.';
+            }
+
             if (auth()->check()) {
                 $model->created_by = auth()->id();
                 $model->updated_by = auth()->id();
