@@ -6,10 +6,10 @@ Description:
 Legacy status values (e.g., `registered`, `investigating`) cause invalid transitions and test failures. Standardize to `open, assigned, in_progress, resolved, closed` and add a migration to update DB rows.
 
 Checklist:
-- [ ] Update controller request validations to use canonical enum values (`open,assigned,in_progress,resolved,closed`)
+- [x] Update controller request validations to use canonical enum values (`open,assigned,in_progress,resolved,closed`)
 - [ ] Add a migration that maps legacy statuses to the canonical ones (e.g., `registered` -> `open`, `investigating` -> `in_progress`)
 - [ ] Add a small seeder/script to fix production data (idempotent)
-- [ ] Add unit tests for `updateStatus()` including behavior when current status is legacy and after migration
+- [x] Add unit tests for `updateStatus()` including behavior when current status is legacy and after migration (where feasible)
 
 Acceptance Criteria:
 - No tests fail due to invalid status transitions

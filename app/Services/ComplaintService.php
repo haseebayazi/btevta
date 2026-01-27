@@ -163,11 +163,18 @@ class ComplaintService
     {
         $complaint = Complaint::findOrFail($complaintId);
 
-        // ERROR HANDLING: Store file with error handling
-        try {
-            $path = $file->store('complaints/evidence', 'public');
-        } catch (\Exception $e) {
-            throw new \Exception("Failed to store evidence file: " . $e->getMessage());
+        // Support either an UploadedFile instance or a stored file path string
+        if (is_string($file)) {
+            $path = $file;
+            $originalName = basename($file);
+        } else {
+            // Attempt to store UploadedFile
+            try {
+                $path = $file->store('complaints/evidence', 'public');
+                $originalName = $file->getClientOriginalName();
+            } catch (\Exception $e) {
+                throw new \Exception("Failed to store evidence file: " . $e->getMessage());
+            }
         }
 
         // JSON ERROR HANDLING: Get existing evidence files with error checking
@@ -180,12 +187,12 @@ class ComplaintService
             }
         }
         
-        // Add new file
+        // Add new file record
         $evidenceFiles[] = [
             'path' => $path,
-            'original_name' => $file->getClientOriginalName(),
+            'original_name' => $originalName,
             'uploaded_at' => now()->toDateTimeString(),
-            'uploaded_by' => auth()->user()->name ?? 'System',
+            'uploaded_by' => auth()->user()?->name ?? 'System',
         ];
         
         $complaint->update([
@@ -303,7 +310,7 @@ class ComplaintService
         // Add new note
         $notes[] = [
             'note' => $note,
-            'added_by' => auth()->user()->name ?? 'System',
+            'added_by' => auth()->user()?->name ?? 'System',
             'added_at' => now()->toDateTimeString(),
         ];
         
@@ -320,14 +327,17 @@ class ComplaintService
     public function resolveComplaint($complaintId, $data): Complaint
     {
         $complaint = Complaint::findOrFail($complaintId);
-        
+
+        $resolvedAt = !empty($data['resolution_date']) ? Carbon::parse($data['resolution_date']) : now();
+
         $complaint->update([
             'status' => ComplaintStatus::RESOLVED->value,
-            'resolved_at' => now(),
+            'resolved_at' => $resolvedAt,
             'resolved_by' => auth()->id(),
             'resolution_details' => $data['resolution_details'],
             'action_taken' => $data['action_taken'] ?? null,
             'resolution_category' => $data['resolution_category'] ?? null, // accepted, rejected, partial
+            'resolution_satisfactory' => $data['resolution_satisfactory'] ?? null,
         ]);
 
         // Calculate resolution time

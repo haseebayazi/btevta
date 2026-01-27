@@ -6,9 +6,9 @@ Description:
 Fix the `array_search()` false -> 0 bug in `ComplaintService::increasePriority()` and add stricter checks.
 
 Checklist:
-- [ ] Use strict search: `array_search(..., true)`
-- [ ] If `=== false`, default to a safe priority (`high`) or throw `InvalidArgumentException`
-- [ ] Add unit tests for invalid priority values and escalation correctness
+- [x] Use strict search: `array_search(..., true)`
+- [x] If `=== false`, default to a safe priority (`high`) or throw `InvalidArgumentException`
+- [x] Add unit tests for invalid priority values and escalation correctness
 
 Acceptance Criteria:
 - Unit tests cover the edge case and pass

@@ -145,7 +145,7 @@ class ComplaintController extends Controller
             $this->notificationService->sendComplaintRegistered($complaint);
 
             return redirect()->route('complaints.show', $complaint)
-                ->with('success', 'Complaint registered successfully! Complaint Number: ' . $complaint->complaint_number);
+                ->with('success', 'Complaint registered successfully! Complaint Number: ' . $complaint->complaint_reference);
         } catch (Exception $e) {
             // SECURITY: Log exception details, show generic message to user
             \Log::error('Complaint registration failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -203,7 +203,7 @@ class ComplaintController extends Controller
 
         $validated = $request->validate([
             'priority' => 'nullable|in:low,normal,high,urgent',
-            'status' => 'nullable|in:registered,investigating,resolved,closed',
+            'status' => 'nullable|in:open,assigned,in_progress,resolved,closed',
         ]);
 
         try {
@@ -353,9 +353,11 @@ class ComplaintController extends Controller
         try {
             $complaint = $this->complaintService->resolveComplaint(
                 $complaint->id,
-                $validated['resolution_details'],
-                $validated['resolution_date'],
-                $validated['resolution_satisfactory'] ?? null
+                [
+                    'resolution_details' => $validated['resolution_details'],
+                    'resolution_date' => $validated['resolution_date'],
+                    'resolution_satisfactory' => $validated['resolution_satisfactory'] ?? null,
+                ]
             );
 
             $this->notificationService->sendComplaintResolved($complaint);
@@ -594,7 +596,7 @@ class ComplaintController extends Controller
 
             // Get overall statistics
             $totalComplaints = (clone $baseQuery)->count();
-            $openComplaints = (clone $baseQuery)->whereIn('status', ['registered', 'investigating'])->count();
+            $openComplaints = (clone $baseQuery)->whereIn('status', ['open', 'assigned', 'in_progress'])->count();
             $resolvedComplaints = (clone $baseQuery)->where('status', 'resolved')->count();
             $closedComplaints = (clone $baseQuery)->where('status', 'closed')->count();
 

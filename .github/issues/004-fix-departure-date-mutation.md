@@ -6,8 +6,8 @@ Description:
 Avoid mutating original Carbon objects when calculating compliance deadlines; use `copy()` to compute derived dates and add null checks for missing departure_date.
 
 Checklist:
-- [ ] Replace usages of `$departureDate->addDays(...)` with `$departureDate->copy()->addDays(...)`
-- [ ] Add null checks before parsing dates and handle missing dates gracefully
+- [x] Replace usages of `$departureDate->addDays(...)` with `$departureDate->copy()->addDays(...)`
+- [x] Add null checks before parsing dates and handle missing dates gracefully
 - [ ] Add unit tests ensuring original date is not mutated and calculations are correct
 
 Acceptance Criteria:

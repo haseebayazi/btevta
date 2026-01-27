@@ -24,7 +24,26 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            try {
+                $req = request();
+                $user = $req->user();
+
+                // Exclude sensitive inputs
+                $input = $req->except($this->dontFlash);
+
+                \Log::error('Unhandled exception', [
+                    'message' => $e->getMessage(),
+                    'exception' => get_class($e),
+                    'user_id' => $user?->id,
+                    'url' => $req->fullUrl(),
+                    'method' => $req->method(),
+                    'input' => $input,
+                    'trace' => \substr($e->getTraceAsString(), 0, 2000),
+                ]);
+            } catch (\Throwable $logException) {
+                // Avoid throwing from the exception handler
+                \Log::error('Failed to record structured exception log: ' . $logException->getMessage());
+            }
         });
     }
 }
