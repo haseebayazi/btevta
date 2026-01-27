@@ -23,10 +23,16 @@ class CandidateScreening extends Model
         'candidate_id',
         'screening_type',
         'screening_stage',
+        'screening_date',
+        'screener_name',
+        'contact_method',
         'status',
+        'outcome',
         'remarks',
+        'next_steps',
         'screened_by',
         'screened_at',
+        'completed_at',
         'evidence_path',
         'call_count',
         'call_duration',
@@ -41,7 +47,9 @@ class CandidateScreening extends Model
      * The attributes that should be cast.
      */
     protected $casts = [
+        'screening_date' => 'date',
         'screened_at' => 'datetime',
+        'completed_at' => 'datetime',
         'next_call_date' => 'datetime',
         'call_duration' => 'integer',
         'call_count' => 'integer',

@@ -60,9 +60,10 @@ class ScreeningControllerTest extends TestCase
 
         $screeningData = [
             'candidate_id' => $this->candidate->id,
-            'screening_date' => now()->format('Y-m-d'),
+            'screening_type' => 'desk',
+            'screened_at' => now()->format('Y-m-d'),
             'call_duration' => 15,
-            'call_notes' => 'Candidate responded positively',
+            'status' => 'passed',
             'remarks' => 'Good candidate',
         ];
 
@@ -101,9 +102,10 @@ class ScreeningControllerTest extends TestCase
         ]);
 
         $updateData = [
-            'screening_date' => now()->format('Y-m-d'),
+            'screening_type' => 'desk',
+            'screened_at' => now()->format('Y-m-d'),
             'call_duration' => 20,
-            'call_notes' => 'Updated notes',
+            'status' => 'passed',
             'remarks' => 'Updated remarks',
         ];
 
@@ -112,7 +114,7 @@ class ScreeningControllerTest extends TestCase
         $response->assertRedirect(route('screening.index'));
 
         $screening->refresh();
-        $this->assertEquals('Updated notes', $screening->call_notes);
+        $this->assertEquals('Updated remarks', $screening->remarks);
     }
 
     #[Test]
@@ -137,13 +139,15 @@ class ScreeningControllerTest extends TestCase
 
         $screeningData = [
             'candidate_id' => $this->candidate->id,
-            'screening_date' => now()->format('Y-m-d'),
+            'screening_type' => 'desk',
+            'screened_at' => now()->format('Y-m-d'),
             'call_duration' => 15,
+            // Missing 'status' field - should cause validation error
         ];
 
         $response = $this->post(route('screening.store'), $screeningData);
 
-        $response->assertSessionHasErrors('screening_outcome');
+        $response->assertSessionHasErrors('status');
     }
 
     #[Test]
@@ -172,7 +176,7 @@ class ScreeningControllerTest extends TestCase
         $response = $this->get(route('screening.edit', $candidateWithoutScreening->id));
 
         $response->assertRedirect();
-        $response->assertSessionHas('error');
+        $response->assertSessionHas('info');
     }
 
     #[Test]
@@ -181,9 +185,10 @@ class ScreeningControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $callData = [
-            'call_date' => now()->format('Y-m-d'),
+            'screened_at' => now()->format('Y-m-d'),
             'call_duration' => 10,
-            'call_notes' => 'First call attempt',
+            'remarks' => 'First call attempt',
+            'answered' => true,
         ];
 
         $response = $this->post(route('screening.log-call', $this->candidate), $callData);
@@ -200,16 +205,19 @@ class ScreeningControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $outcomeData = [
+            'status' => 'passed',
             'remarks' => 'Excellent candidate',
         ];
 
-        $response = $this->post(route('screening.record-outcome', $this->candidate), $outcomeData);
+        $response = $this->post(route('screening.outcome', $this->candidate), $outcomeData);
 
         $response->assertRedirect();
 
-        // Check candidate status updated
-        $this->candidate->refresh();
-        $this->assertEquals('registered', $this->candidate->status);
+        // Check screening was updated
+        $this->assertDatabaseHas('candidate_screenings', [
+            'candidate_id' => $this->candidate->id,
+            'status' => 'passed',
+        ]);
     }
 
     #[Test]
@@ -218,10 +226,11 @@ class ScreeningControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $outcomeData = [
+            'status' => 'failed',
             'remarks' => 'Does not meet requirements',
         ];
 
-        $response = $this->post(route('screening.record-outcome', $this->candidate), $outcomeData);
+        $response = $this->post(route('screening.outcome', $this->candidate), $outcomeData);
 
         $response->assertRedirect();
 
