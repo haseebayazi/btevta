@@ -6,9 +6,9 @@ Description:
 Prevent unauthorized document downloads by enforcing policy checks in `SecureFileController` and `DocumentArchiveController`.
 
 Checklist:
-- [ ] Add `$this->authorize('view', $document)` or equivalent ownership checks in download endpoints
+- [x] Add `$this->authorize('view', $document)` or equivalent ownership checks in download endpoints (`DocumentArchiveController`, `SecureFileController` authorization)
 - [ ] Add unit tests verifying unauthorized users receive 403
-- [ ] Update documentation and security notes
+- [x] Update documentation and security notes (routes and controllers annotated)
 
 Acceptance Criteria:
 - Controllers include authorization checks and tests pass

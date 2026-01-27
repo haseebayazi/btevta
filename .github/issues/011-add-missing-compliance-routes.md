@@ -6,10 +6,10 @@ Description:
 Add the routes referenced by views but missing from `routes/web.php` (e.g., `complaints.overdue`, `document-archive.expiring`, `reports.trainer-performance`, `complaints.sla-report`, etc.).
 
 Checklist:
-- [ ] Add `registration.verify` (if not yet added)
-- [ ] Add `complaints.overdue`, `complaints.sla-report`
-- [ ] Add `document-archive.expiring` and docs report routes
-- [ ] Add `reports.trainer-performance` and `departure.reports.pending-activations` as needed
+- [x] Add `registration.verify` (already present)
+- [x] Add `complaints.overdue`, `complaints.sla-report` (routes added/renamed)
+- [x] Add `document-archive.expiring` and docs report routes
+- [x] `reports.trainer-performance` and `departure.reports.pending-activations` are present
 - [ ] Add route tests ensuring route names resolve
 
 Acceptance Criteria:

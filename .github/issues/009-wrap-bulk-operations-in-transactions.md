@@ -6,8 +6,8 @@ Description:
 Wrap multi-record modifications (imports, bulk updates, etc.) in `DB::transaction()` to ensure atomicity and prevent partial data writes.
 
 Checklist:
-- [ ] Identify bulk operations (`ImportController`, `BulkOperationsController`, etc.)
-- [ ] Wrap operations in `DB::transaction()` and add explicit try/catch for error logging
+- [x] Identify bulk operations (`ImportController`, `BulkOperationsController`, etc.)
+- [x] Wrap operations in `DB::transaction()` and add explicit try/catch for error logging (applied where appropriate)
 - [ ] Add unit tests that simulate failure to ensure rollback occurs
 
 Acceptance Criteria:
