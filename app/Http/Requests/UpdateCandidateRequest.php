@@ -31,43 +31,50 @@ class UpdateCandidateRequest extends FormRequest
                 'max:50',
                 Rule::unique('candidates', 'btevta_id')->ignore($candidateId),
             ],
-            'name' => 'sometimes|required|string|max:255',
-            'father_name' => 'sometimes|required|string|max:255',
+            'name' => [
+                'sometimes', 'required', 'string', 'max:255', function($attribute, $value, $fail) {
+                    if (trim($value) === '') $fail('Name cannot be empty or whitespace.');
+                }
+            ],
+            'father_name' => [
+                'sometimes', 'required', 'string', 'max:255', function($attribute, $value, $fail) {
+                    if (trim($value) === '') $fail('Father name cannot be empty or whitespace.');
+                }
+            ],
             'cnic' => [
-                'sometimes',
-                'required',
-                'string',
-                'size:13',
-                'regex:/^[0-9]{13}$/',
-                Rule::unique('candidates', 'cnic')->ignore($candidateId),
+                'sometimes', 'required', 'string', 'size:13', 'regex:/^[0-9]{13}$/', Rule::unique('candidates', 'cnic')->ignore($candidateId),
+                function($attribute, $value, $fail) {
+                    if ($value === str_repeat('0', 13)) $fail('CNIC cannot be all zeros.');
+                }
             ],
-            'phone' => 'sometimes|required|string|regex:/^03[0-9]{9}$/',
-            'email' => 'nullable|email|max:255',
-            'date_of_birth' => 'sometimes|required|date|before:-18 years',
-            'gender' => 'sometimes|required|in:male,female',
-            'district' => 'sometimes|required|string|max:100',
-            'tehsil' => 'nullable|string|max:100',
-            'province' => 'sometimes|required|string|max:100',
-            'address' => 'sometimes|required|string|max:500',
-            'emergency_contact' => 'nullable|string|regex:/^03[0-9]{9}$/',
-            'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-            'marital_status' => 'nullable|in:single,married,divorced,widowed',
-            'qualification' => 'nullable|string|max:100',
-            'experience_years' => 'nullable|integer|min:0|max:50',
+            'phone' => ['sometimes', 'required', 'string', 'regex:/^03[0-9]{9}$/'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'date_of_birth' => ['sometimes', 'required', 'date', 'before:-18 years', 'after:1901-01-01'],
+            'gender' => ['sometimes', 'required', 'in:male,female'],
+            'district' => ['sometimes', 'required', 'string', 'max:100'],
+            'tehsil' => ['nullable', 'string', 'max:100'],
+            'province' => ['sometimes', 'required', 'string', 'max:100'],
+            'address' => [
+                'sometimes', 'required', 'string', 'max:1000', function($attribute, $value, $fail) {
+                    if (trim($value) === '') $fail('Address cannot be empty or whitespace.');
+                }
+            ],
+            'emergency_contact' => ['nullable', 'string', 'regex:/^03[0-9]{9}$/'],
+            'blood_group' => ['nullable', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
+            'marital_status' => ['nullable', 'in:single,married,divorced,widowed'],
+            'qualification' => ['nullable', 'string', 'max:100'],
+            'experience_years' => ['nullable', 'integer', 'min:0', 'max:50'],
             'passport_number' => [
-                'nullable',
-                'string',
-                'max:20',
-                Rule::unique('candidates', 'passport_number')->ignore($candidateId),
+                'nullable', 'string', 'max:20', Rule::unique('candidates', 'passport_number')->ignore($candidateId),
             ],
-            'passport_expiry' => 'nullable|date|after:today',
-            'campus_id' => 'nullable|exists:campuses,id',
-            'trade_id' => 'sometimes|required|exists:trades,id',
-            'oep_id' => 'nullable|exists:oeps,id',
-            'batch_id' => 'nullable|exists:batches,id',
+            'passport_expiry' => ['nullable', 'date', 'after:today'],
+            'campus_id' => ['nullable', 'exists:campuses,id'],
+            'trade_id' => ['sometimes', 'required', 'exists:trades,id'],
+            'oep_id' => ['nullable', 'exists:oeps,id'],
+            'batch_id' => ['nullable', 'exists:batches,id'],
             'status' => ['nullable', Rule::in(array_column(CandidateStatus::cases(), 'value'))],
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'remarks' => 'nullable|string|max:1000',
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -97,7 +104,10 @@ class UpdateCandidateRequest extends FormRequest
             'cnic.regex' => 'CNIC must contain only numbers.',
             'phone.regex' => 'Phone number must be a valid Pakistani mobile number (03XXXXXXXXX).',
             'date_of_birth.before' => 'Candidate must be at least 18 years old.',
+            'date_of_birth.after' => 'Date of birth must not be before 1901-01-01.',
             'passport_expiry.after' => 'Passport must not be expired.',
+            'address.max' => 'Address cannot exceed 1000 characters.',
+            'email.max' => 'Email cannot exceed 255 characters.',
         ];
     }
 }

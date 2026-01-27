@@ -124,7 +124,7 @@ class RemittanceApiController extends Controller
     {
         $remittance = Remittance::with(['candidate', 'campus', 'departure', 'verifiedBy', 'recordedBy'])
             ->findOrFail($id);
-
+        $this->authorize('view', $remittance);
         return response()->json([
             'success' => true,
             'data' => new RemittanceResource($remittance),

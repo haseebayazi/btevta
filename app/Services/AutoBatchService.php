@@ -87,8 +87,9 @@ class AutoBatchService
     {
         $batchSize = $this->getBatchSize();
 
-        // Get all planned batches for the campus/trade
+        // Get all planned batches for the campus/program/trade
         $batches = Batch::where('campus_id', $campusId)
+            ->where('program_id', $programId)
             ->where('trade_id', $tradeId)
             ->where('status', Batch::STATUS_PLANNED)
             ->orderBy('created_at', 'desc')
@@ -134,6 +135,7 @@ class AutoBatchService
             'batch_code' => $batchNumber,
             'name' => $this->generateBatchName($campus, $program, $trade),
             'campus_id' => $campusId,
+            'program_id' => $programId,
             'trade_id' => $tradeId,
             'oep_id' => $oepId,
             'capacity' => $batchSize,

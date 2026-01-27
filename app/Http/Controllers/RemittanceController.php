@@ -111,7 +111,7 @@ class RemittanceController extends Controller
     public function show(Remittance $remittance)
     {
         $remittance->load(['candidate', 'campus', 'departure', 'verifiedBy', 'recordedBy']);
-
+        $this->authorize('view', $remittance);
         return view('remittances.show', compact('remittance'));
     }
 

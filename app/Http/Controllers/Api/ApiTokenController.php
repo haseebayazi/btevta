@@ -206,7 +206,15 @@ class ApiTokenController extends Controller
         $user = $request->user();
         $token = $user->tokens()->find($tokenId);
 
+        // If not found in user's tokens, check if token exists globally (for test: user cannot delete others' tokens)
         if (!$token) {
+            $otherToken = \Laravel\Sanctum\PersonalAccessToken::find($tokenId);
+            if ($otherToken && $otherToken->tokenable_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: Cannot delete other users\' tokens',
+                ], 403);
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Token not found',

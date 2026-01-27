@@ -21,31 +21,42 @@ class StoreCandidateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'btevta_id' => 'required|string|max:50|unique:candidates,btevta_id',
-            'name' => 'required|string|max:255',
-            'father_name' => 'required|string|max:255',
-            'cnic' => 'required|string|size:13|unique:candidates,cnic|regex:/^[0-9]{13}$/',
-            'phone' => 'required|string|regex:/^03[0-9]{9}$/',
-            'email' => 'nullable|email|max:255',
-            'date_of_birth' => 'required|date|before:-18 years',
-            'gender' => 'required|in:male,female',
-            'district' => 'required|string|max:100',
-            'tehsil' => 'nullable|string|max:100',
-            'province' => 'required|string|max:100',
-            'address' => 'required|string|max:500',
-            'emergency_contact' => 'nullable|string|regex:/^03[0-9]{9}$/',
-            'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-            'marital_status' => 'nullable|in:single,married,divorced,widowed',
-            'qualification' => 'nullable|string|max:100',
-            'experience_years' => 'nullable|integer|min:0|max:50',
-            'passport_number' => 'nullable|string|max:20|unique:candidates,passport_number',
-            'passport_expiry' => 'nullable|date|after:today',
-            'campus_id' => 'nullable|exists:campuses,id',
-            'trade_id' => 'required|exists:trades,id',
-            'oep_id' => 'nullable|exists:oeps,id',
-            'batch_id' => 'nullable|exists:batches,id',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'remarks' => 'nullable|string|max:1000',
+            'btevta_id' => ['required', 'string', 'max:50', 'unique:candidates,btevta_id'],
+            'name' => ['required', 'string', 'max:255', function($attribute, $value, $fail) {
+                if (trim($value) === '') $fail('Name cannot be empty or whitespace.');
+            }],
+            'father_name' => ['required', 'string', 'max:255', function($attribute, $value, $fail) {
+                if (trim($value) === '') $fail('Father name cannot be empty or whitespace.');
+            }],
+            'cnic' => [
+                'required', 'string', 'size:13', 'unique:candidates,cnic', 'regex:/^[0-9]{13}$/',
+                function($attribute, $value, $fail) {
+                    if ($value === str_repeat('0', 13)) $fail('CNIC cannot be all zeros.');
+                }
+            ],
+            'phone' => ['required', 'string', 'regex:/^03[0-9]{9}$/'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'date_of_birth' => ['required', 'date', 'before:-18 years', 'after:1901-01-01'],
+            'gender' => ['required', 'in:male,female'],
+            'district' => ['required', 'string', 'max:100'],
+            'tehsil' => ['nullable', 'string', 'max:100'],
+            'province' => ['required', 'string', 'max:100'],
+            'address' => ['required', 'string', 'max:1000', function($attribute, $value, $fail) {
+                if (trim($value) === '') $fail('Address cannot be empty or whitespace.');
+            }],
+            'emergency_contact' => ['nullable', 'string', 'regex:/^03[0-9]{9}$/'],
+            'blood_group' => ['nullable', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
+            'marital_status' => ['nullable', 'in:single,married,divorced,widowed'],
+            'qualification' => ['nullable', 'string', 'max:100'],
+            'experience_years' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'passport_number' => ['nullable', 'string', 'max:20', 'unique:candidates,passport_number'],
+            'passport_expiry' => ['nullable', 'date', 'after:today'],
+            'campus_id' => ['nullable', 'exists:campuses,id'],
+            'trade_id' => ['required', 'exists:trades,id'],
+            'oep_id' => ['nullable', 'exists:oeps,id'],
+            'batch_id' => ['nullable', 'exists:batches,id'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -76,7 +87,10 @@ class StoreCandidateRequest extends FormRequest
             'phone.regex' => 'Phone number must be a valid Pakistani mobile number (03XXXXXXXXX).',
             'emergency_contact.regex' => 'Emergency contact must be a valid Pakistani mobile number.',
             'date_of_birth.before' => 'Candidate must be at least 18 years old.',
+            'date_of_birth.after' => 'Date of birth must not be before 1901-01-01.',
             'passport_expiry.after' => 'Passport must not be expired.',
+            'address.max' => 'Address cannot exceed 1000 characters.',
+            'email.max' => 'Email cannot exceed 255 characters.',
         ];
     }
 }

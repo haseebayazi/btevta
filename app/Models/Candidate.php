@@ -1229,21 +1229,17 @@ class Candidate extends Model
     {
         $sum = 0;
         $length = strlen($number);
-
-        for ($i = $length - 1; $i >= 0; $i--) {
+        // Luhn: double every other digit from the right (rightmost is position 1)
+        for ($i = $length - 1, $pos = 1; $i >= 0; $i--, $pos++) {
             $digit = (int) $number[$i];
-
-            // Double every other digit starting from rightmost (position 0 from right)
-            if (($length - 1 - $i) % 2 === 0) {
+            if ($pos % 2 === 0) { // double every 2nd digit from the right
                 $digit *= 2;
                 if ($digit > 9) {
                     $digit -= 9;
                 }
             }
-
             $sum += $digit;
         }
-
         return (10 - ($sum % 10)) % 10;
     }
 
@@ -1259,57 +1255,36 @@ class Candidate extends Model
         if (!preg_match('/^TLP-(\d{4})-(\d{5})-(\d)$/', $btevtaId, $matches)) {
             return false;
         }
-
         $year = $matches[1];
-        $sequence = $matches[2];
-        $providedCheckDigit = (int) $matches[3];
-
-        $baseId = $year . $sequence;
-        $expectedCheckDigit = self::calculateLuhnCheckDigit($baseId);
-
-        return $providedCheckDigit === $expectedCheckDigit;
-    }
-
-    /**
-     * Validate Pakistani CNIC checksum.
-     * Pakistani CNIC format: XXXXX-XXXXXXX-X (13 digits)
-     * The 13th digit is a check digit calculated using a weighted sum algorithm.
-     *
-     * @param string $cnic 13-digit CNIC number (without dashes)
-     * @return bool True if checksum is valid
-     */
-    public static function validateCnicChecksum($cnic)
-    {
-        // Remove any dashes and validate length
-        $cnic = preg_replace('/[^0-9]/', '', $cnic);
-
-        if (strlen($cnic) !== 13) {
-            return false;
+        $seq = $matches[2];
+        $check = (int)$matches[3];
+        $baseId = $year . $seq;
+        $expectedCheck = self::calculateLuhnCheckDigit($baseId);
+        return $check === $expectedCheck;
+        /**
+         * Validate a Pakistani CNIC checksum (13 digits, custom algorithm)
+         *
+         * @param string $cnic
+         * @return bool
+         */
+        public static function validateCnicChecksum($cnic)
+        {
+            if (!preg_match('/^\d{13}$/', $cnic)) {
+                return false;
+            }
+            // Pakistani CNIC validation algorithm
+            $weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3];
+            $sum = 0;
+            for ($i = 0; $i < 12; $i++) {
+                $sum += (int) $cnic[$i] * $weights[$i];
+            }
+            $expectedCheckDigit = $sum % 11;
+            if ($expectedCheckDigit === 10) {
+                $expectedCheckDigit = 0;
+            }
+            $actualCheckDigit = (int) $cnic[12];
+            return $expectedCheckDigit === $actualCheckDigit;
         }
-
-        // Validate that all characters are digits
-        if (!ctype_digit($cnic)) {
-            return false;
-        }
-
-        // Pakistani CNIC validation algorithm
-        // The check digit (13th digit) validates the first 12 digits
-        $weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3];
-        $sum = 0;
-
-        for ($i = 0; $i < 12; $i++) {
-            $sum += (int) $cnic[$i] * $weights[$i];
-        }
-
-        $expectedCheckDigit = $sum % 11;
-        // If remainder is 10, check digit should be 0
-        if ($expectedCheckDigit === 10) {
-            $expectedCheckDigit = 0;
-        }
-
-        $actualCheckDigit = (int) $cnic[12];
-
-        return $expectedCheckDigit === $actualCheckDigit;
     }
 
     /**

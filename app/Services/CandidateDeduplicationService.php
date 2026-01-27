@@ -279,7 +279,7 @@ class CandidateDeduplicationService
             ->get()
             ->filter(function($candidate) use ($name) {
                 // Use similarity calculation instead of SOUNDEX (SQLite compatible)
-                return $this->calculateNameSimilarity($name, $candidate->name) >= 0.8;
+                return $this->calculateNameSimilarity($name, $candidate->name) >= 0.7;
             });
     }
 
@@ -318,14 +318,20 @@ class CandidateDeduplicationService
             return 1.0;
         }
 
-        // Use Levenshtein distance for stricter matching
         $maxLen = max(strlen($name1), strlen($name2));
         if ($maxLen === 0) {
             return 0.0;
         }
 
-        $distance = levenshtein($name1, $name2);
-        $similarity = 1.0 - ($distance / $maxLen);
+        // Levenshtein similarity
+        $levDistance = levenshtein($name1, $name2);
+        $levSimilarity = 1.0 - ($levDistance / $maxLen);
+
+        // Jaro-Winkler similarity
+        $jwSimilarity = $this->jaroWinklerSimilarity($name1, $name2);
+
+        // Average the two for robustness
+        $similarity = ($levSimilarity + $jwSimilarity) / 2;
 
         // Also check if one name contains the other for partial matches
         if (Str::contains($name1, $name2) || Str::contains($name2, $name1)) {

@@ -35,6 +35,18 @@ class RemittancePolicy
             return $remittance->campus_id === $user->campus_id;
         }
 
+        // OEP can only view remittances for their assigned candidates
+        if ($user->isOep()) {
+            // Defensive: check candidate relation
+            if ($remittance->candidate && $remittance->candidate->oep_id) {
+                return $remittance->candidate->oep_id === $user->oep_id;
+            }
+            // If candidate relation not loaded, fallback to DB check
+            return \App\Models\Candidate::where('id', $remittance->candidate_id)
+                ->where('oep_id', $user->oep_id)
+                ->exists();
+        }
+
         return false;
     }
 
