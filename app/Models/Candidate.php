@@ -1261,30 +1261,31 @@ class Candidate extends Model
         $baseId = $year . $seq;
         $expectedCheck = self::calculateLuhnCheckDigit($baseId);
         return $check === $expectedCheck;
-        /**
-         * Validate a Pakistani CNIC checksum (13 digits, custom algorithm)
-         *
-         * @param string $cnic
-         * @return bool
-         */
-        public static function validateCnicChecksum($cnic)
-        {
-            if (!preg_match('/^\d{13}$/', $cnic)) {
-                return false;
-            }
-            // Pakistani CNIC validation algorithm
-            $weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3];
-            $sum = 0;
-            for ($i = 0; $i < 12; $i++) {
-                $sum += (int) $cnic[$i] * $weights[$i];
-            }
-            $expectedCheckDigit = $sum % 11;
-            if ($expectedCheckDigit === 10) {
-                $expectedCheckDigit = 0;
-            }
-            $actualCheckDigit = (int) $cnic[12];
-            return $expectedCheckDigit === $actualCheckDigit;
+    }
+
+    /**
+     * Validate a Pakistani CNIC checksum (13 digits, custom algorithm)
+     *
+     * @param string $cnic
+     * @return bool
+     */
+    public static function validateCnicChecksum($cnic)
+    {
+        if (!preg_match('/^\d{13}$/', $cnic)) {
+            return false;
         }
+        // Pakistani CNIC validation algorithm
+        $weights = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3];
+        $sum = 0;
+        for ($i = 0; $i < 12; $i++) {
+            $sum += (int) $cnic[$i] * $weights[$i];
+        }
+        $expectedCheckDigit = $sum % 11;
+        if ($expectedCheckDigit === 10) {
+            $expectedCheckDigit = 0;
+        }
+        $actualCheckDigit = (int) $cnic[12];
+        return $expectedCheckDigit === $actualCheckDigit;
     }
 
     /**
