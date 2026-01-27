@@ -37,11 +37,12 @@ class PreDepartureDocumentApiController extends Controller
         return response()->json([
             'documents' => PreDepartureDocumentResource::collection($documents),
             'status' => $status,
+            'checklists' => DocumentChecklist::active()->orderBy('display_order')->get(),
         ]);
     }
 
     /**
-     * Upload a pre-departure document
+     * Upload a document
      */
     public function store(Candidate $candidate, StorePreDepartureDocumentRequest $request)
     {
@@ -56,11 +57,14 @@ class PreDepartureDocumentApiController extends Controller
             ['notes' => $request->notes]
         );
 
-        return new PreDepartureDocumentResource($document);
+        return response()->json([
+            'message' => 'Document uploaded successfully',
+            'document' => new PreDepartureDocumentResource($document),
+        ], 201);
     }
 
     /**
-     * Get a specific pre-departure document
+     * Get a specific document
      */
     public function show(Candidate $candidate, PreDepartureDocument $document)
     {
@@ -70,14 +74,16 @@ class PreDepartureDocumentApiController extends Controller
     }
 
     /**
-     * Delete a pre-departure document
+     * Delete a document
      */
     public function destroy(Candidate $candidate, PreDepartureDocument $document)
     {
         $this->authorize('delete', $document);
 
+        // Delete file
         Storage::disk('private')->delete($document->file_path);
 
+        // Log activity
         activity()
             ->performedOn($document)
             ->causedBy(auth()->user())
@@ -85,15 +91,17 @@ class PreDepartureDocumentApiController extends Controller
                 'candidate_id' => $candidate->id,
                 'document_type' => $document->documentChecklist->name,
             ])
-            ->log('Pre-departure document deleted');
+            ->log('Pre-departure document deleted via API');
 
         $document->delete();
 
-        return response()->json(['message' => 'Document deleted successfully.']);
+        return response()->json([
+            'message' => 'Document deleted successfully',
+        ]);
     }
 
     /**
-     * Download a pre-departure document
+     * Download a document
      */
     public function download(Candidate $candidate, PreDepartureDocument $document)
     {
@@ -106,19 +114,22 @@ class PreDepartureDocumentApiController extends Controller
     }
 
     /**
-     * Verify a pre-departure document
+     * Verify a document
      */
     public function verify(Candidate $candidate, PreDepartureDocument $document, Request $request)
     {
         $this->authorize('verify', $document);
 
-        $document = $this->service->verifyDocument($document, auth()->user(), $request->notes);
+        $this->service->verifyDocument($document, auth()->user(), $request->notes);
 
-        return new PreDepartureDocumentResource($document);
+        return response()->json([
+            'message' => 'Document verified successfully',
+            'document' => new PreDepartureDocumentResource($document->fresh(['verifier'])),
+        ]);
     }
 
     /**
-     * Reject a pre-departure document
+     * Reject a document
      */
     public function reject(Candidate $candidate, PreDepartureDocument $document, Request $request)
     {
@@ -128,8 +139,11 @@ class PreDepartureDocumentApiController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $document = $this->service->rejectDocument($document, auth()->user(), $request->reason);
+        $this->service->rejectDocument($document, auth()->user(), $request->reason);
 
-        return new PreDepartureDocumentResource($document);
+        return response()->json([
+            'message' => 'Document rejected successfully',
+            'document' => new PreDepartureDocumentResource($document->fresh()),
+        ]);
     }
 }

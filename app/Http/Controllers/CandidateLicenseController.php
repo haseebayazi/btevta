@@ -10,16 +10,15 @@ use Illuminate\Support\Facades\Storage;
 class CandidateLicenseController extends Controller
 {
     /**
-     * Store a new license for a candidate
+     * Store a new license
      */
     public function store(Candidate $candidate, StoreCandidateLicenseRequest $request)
     {
         $this->authorize('create', [CandidateLicense::class, $candidate]);
 
         $data = $request->validated();
-        $data['candidate_id'] = $candidate->id;
 
-        // Handle file upload if provided
+        // Handle file upload if present
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = sprintf(
@@ -31,12 +30,13 @@ class CandidateLicenseController extends Controller
             );
 
             $data['file_path'] = $file->storeAs(
-                "licenses/{$candidate->id}",
+                "candidate-licenses/{$candidate->id}",
                 $filename,
                 'private'
             );
         }
 
+        $data['candidate_id'] = $candidate->id;
         $license = CandidateLicense::create($data);
 
         // Log activity
@@ -45,8 +45,8 @@ class CandidateLicenseController extends Controller
             ->causedBy(auth()->user())
             ->withProperties([
                 'candidate_id' => $candidate->id,
-                'license_type' => $license->license_type,
-                'license_name' => $license->license_name,
+                'license_type' => $data['license_type'],
+                'license_name' => $data['license_name'],
             ])
             ->log('Candidate license added');
 
@@ -56,7 +56,7 @@ class CandidateLicenseController extends Controller
     }
 
     /**
-     * Update an existing license
+     * Update a license
      */
     public function update(Candidate $candidate, CandidateLicense $license, StoreCandidateLicenseRequest $request)
     {
@@ -64,7 +64,7 @@ class CandidateLicenseController extends Controller
 
         $data = $request->validated();
 
-        // Handle file upload if provided
+        // Handle file upload if present
         if ($request->hasFile('file')) {
             // Delete old file if exists
             if ($license->file_path) {
@@ -81,7 +81,7 @@ class CandidateLicenseController extends Controller
             );
 
             $data['file_path'] = $file->storeAs(
-                "licenses/{$candidate->id}",
+                "candidate-licenses/{$candidate->id}",
                 $filename,
                 'private'
             );
@@ -95,8 +95,7 @@ class CandidateLicenseController extends Controller
             ->causedBy(auth()->user())
             ->withProperties([
                 'candidate_id' => $candidate->id,
-                'license_type' => $license->license_type,
-                'license_name' => $license->license_name,
+                'license_type' => $data['license_type'],
             ])
             ->log('Candidate license updated');
 

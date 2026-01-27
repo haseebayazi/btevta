@@ -29,24 +29,20 @@ class PreDepartureDocumentResource extends JsonResource
             'original_filename' => $this->original_filename,
             'mime_type' => $this->mime_type,
             'file_size' => $this->file_size,
-            'file_size_formatted' => $this->formatFileSize($this->file_size),
+            'file_size_formatted' => $this->getFileSizeFormatted(),
             'notes' => $this->notes,
             'uploaded_at' => $this->uploaded_at?->toDateTimeString(),
             'uploaded_by' => $this->uploaded_by,
-            'uploader' => $this->whenLoaded('uploader', function () {
-                return [
-                    'id' => $this->uploader->id,
-                    'name' => $this->uploader->name,
-                ];
-            }),
+            'uploader' => $this->uploader ? [
+                'id' => $this->uploader->id,
+                'name' => $this->uploader->name,
+            ] : null,
             'verified_at' => $this->verified_at?->toDateTimeString(),
             'verified_by' => $this->verified_by,
-            'verifier' => $this->whenLoaded('verifier', function () {
-                return $this->verifier ? [
-                    'id' => $this->verifier->id,
-                    'name' => $this->verifier->name,
-                ] : null;
-            }),
+            'verifier' => $this->verifier ? [
+                'id' => $this->verifier->id,
+                'name' => $this->verifier->name,
+            ] : null,
             'verification_notes' => $this->verification_notes,
             'is_verified' => $this->isVerified(),
             'created_at' => $this->created_at?->toDateTimeString(),
@@ -55,22 +51,18 @@ class PreDepartureDocumentResource extends JsonResource
     }
 
     /**
-     * Format file size in human-readable format
+     * Get formatted file size
      */
-    private function formatFileSize(?int $bytes): string
+    private function getFileSizeFormatted(): string
     {
-        if (!$bytes) {
-            return '0 B';
-        }
-
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
+        $size = $this->file_size;
         
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
+        if ($size < 1024) {
+            return $size . ' B';
+        } elseif ($size < 1048576) {
+            return round($size / 1024, 2) . ' KB';
+        } else {
+            return round($size / 1048576, 2) . ' MB';
         }
-
-        return round($bytes, 2) . ' ' . $units[$i];
     }
 }

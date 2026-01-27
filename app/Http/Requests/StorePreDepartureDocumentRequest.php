@@ -23,7 +23,7 @@ class StorePreDepartureDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'document_checklist_id' => 'required|integer|exists:document_checklists,id',
+            'document_checklist_id' => 'required|exists:document_checklists,id',
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
             'notes' => 'nullable|string|max:500',
         ];
@@ -42,7 +42,7 @@ class StorePreDepartureDocumentRequest extends FormRequest
             'file.required' => 'Please select a file to upload.',
             'file.mimes' => 'File must be a PDF, JPG, JPEG, or PNG.',
             'file.max' => 'File size must not exceed 5MB.',
-            'notes.max' => 'Notes must not exceed 500 characters.',
+            'notes.max' => 'Notes cannot exceed 500 characters.',
         ];
     }
 
