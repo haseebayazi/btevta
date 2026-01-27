@@ -426,6 +426,22 @@ class Candidate extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /**
+     * Get all pre-departure documents for this candidate
+     */
+    public function preDepartureDocuments()
+    {
+        return $this->hasMany(PreDepartureDocument::class);
+    }
+
+    /**
+     * Get all licenses for this candidate
+     */
+    public function licenses()
+    {
+        return $this->hasMany(CandidateLicense::class);
+    }
+
     // ==================== SCOPES ====================
 
     /**
@@ -724,6 +740,13 @@ class Candidate extends Model
             $issues[] = 'Phone number is required for call screening';
         }
 
+        // NEW: Check pre-departure documents completion (Module 1 requirement)
+        if (!$this->hasCompletedPreDepartureDocuments()) {
+            $missingDocs = $this->getMissingMandatoryDocuments();
+            $missingNames = $missingDocs->pluck('name')->toArray();
+            $issues[] = 'All mandatory pre-departure documents must be uploaded before screening. Missing: ' . implode(', ', $missingNames);
+        }
+
         return [
             'can_transition' => empty($issues),
             'issues' => $issues,
@@ -985,6 +1008,73 @@ class Candidate extends Model
         }
 
         return $allowed;
+    }
+
+    // ==================== PRE-DEPARTURE DOCUMENT METHODS ====================
+
+    /**
+     * Check if candidate has completed all mandatory pre-departure documents
+     */
+    public function hasCompletedPreDepartureDocuments(): bool
+    {
+        $mandatoryDocuments = DocumentChecklist::mandatory()->active()->get();
+
+        if ($mandatoryDocuments->isEmpty()) {
+            return true; // No mandatory documents required
+        }
+
+        $uploadedDocumentIds = $this->preDepartureDocuments()
+            ->pluck('document_checklist_id')
+            ->toArray();
+
+        foreach ($mandatoryDocuments as $doc) {
+            if (!in_array($doc->id, $uploadedDocumentIds)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get pre-departure document completion status
+     */
+    public function getPreDepartureDocumentStatus(): array
+    {
+        $mandatory = DocumentChecklist::mandatory()->active()->get();
+        $optional = DocumentChecklist::optional()->active()->get();
+
+        $uploadedIds = $this->preDepartureDocuments()
+            ->pluck('document_checklist_id')
+            ->toArray();
+
+        $mandatoryUploaded = $mandatory->filter(fn($doc) => in_array($doc->id, $uploadedIds))->count();
+        $optionalUploaded = $optional->filter(fn($doc) => in_array($doc->id, $uploadedIds))->count();
+
+        return [
+            'mandatory_total' => $mandatory->count(),
+            'mandatory_uploaded' => $mandatoryUploaded,
+            'mandatory_complete' => $mandatoryUploaded >= $mandatory->count(),
+            'optional_total' => $optional->count(),
+            'optional_uploaded' => $optionalUploaded,
+            'is_complete' => $this->hasCompletedPreDepartureDocuments(),
+            'completion_percentage' => $mandatory->count() > 0
+                ? round(($mandatoryUploaded / $mandatory->count()) * 100)
+                : 100,
+        ];
+    }
+
+    /**
+     * Get missing mandatory documents
+     */
+    public function getMissingMandatoryDocuments()
+    {
+        $mandatory = DocumentChecklist::mandatory()->active()->get();
+        $uploadedIds = $this->preDepartureDocuments()
+            ->pluck('document_checklist_id')
+            ->toArray();
+
+        return $mandatory->filter(fn($doc) => !in_array($doc->id, $uploadedIds));
     }
 
     /**
