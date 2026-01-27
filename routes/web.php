@@ -158,18 +158,34 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
-    // PRE-DEPARTURE DOCUMENTS - WASL v3
-    // Purpose: Document collection before screening
+    // PRE-DEPARTURE DOCUMENTS - WASL v3 Module 1
+    // Purpose: Document collection before screening (CL-001 through CL-006)
     // ========================================================================
-    Route::prefix('candidates/{candidate}/pre-departure-documents')->name('pre-departure-documents.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'index'])->name('index');
-        Route::post('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'store'])
-            ->middleware('throttle:30,1')->name('store');
-        Route::post('/bulk-upload', [\App\Http\Controllers\PreDepartureDocumentController::class, 'bulkUpload'])
-            ->middleware('throttle:10,1')->name('bulk-upload');
-        Route::post('/{preDepartureDocument}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
-        Route::get('/{preDepartureDocument}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
-        Route::delete('/{preDepartureDocument}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
+    Route::prefix('candidates/{candidate}')->name('candidates.')->group(function () {
+        // Pre-Departure Documents
+        Route::prefix('pre-departure-documents')->name('pre-departure-documents.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'store'])
+                ->middleware('throttle:30,1')->name('store');
+            Route::delete('/{document}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
+            Route::get('/{document}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
+            Route::post('/{document}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
+            Route::post('/{document}/reject', [\App\Http\Controllers\PreDepartureDocumentController::class, 'reject'])->name('reject');
+        });
+
+        // Candidate Licenses (driving and professional)
+        Route::prefix('licenses')->name('licenses.')->group(function () {
+            Route::post('/', [\App\Http\Controllers\CandidateLicenseController::class, 'store'])->name('store');
+            Route::put('/{license}', [\App\Http\Controllers\CandidateLicenseController::class, 'update'])->name('update');
+            Route::delete('/{license}', [\App\Http\Controllers\CandidateLicenseController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    // Pre-Departure Reports
+    Route::prefix('reports/pre-departure')->name('reports.pre-departure.')->middleware('throttle:10,1')->group(function () {
+        Route::get('/individual/{candidate}', [\App\Http\Controllers\PreDepartureReportController::class, 'individualReport'])->name('individual');
+        Route::get('/bulk', [\App\Http\Controllers\PreDepartureReportController::class, 'bulkReport'])->name('bulk');
+        Route::get('/missing', [\App\Http\Controllers\PreDepartureReportController::class, 'missingDocumentsReport'])->name('missing');
     });
 
     // ========================================================================

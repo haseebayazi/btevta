@@ -11,42 +11,51 @@ class StorePreDepartureDocumentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\PreDepartureDocument::class);
+        // Authorization is handled by policy in controller
+        return true;
     }
 
     /**
      * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             'document_checklist_id' => 'required|exists:document_checklists,id',
-            'document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
             'notes' => 'nullable|string|max:500',
         ];
     }
 
     /**
+     * Get custom error messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'document_checklist_id.required' => 'Please select a document type.',
+            'document_checklist_id.exists' => 'Invalid document type selected.',
+            'file.required' => 'Please select a file to upload.',
+            'file.mimes' => 'File must be a PDF, JPG, JPEG, or PNG.',
+            'file.max' => 'File size must not exceed 5MB.',
+            'notes.max' => 'Notes cannot exceed 500 characters.',
+        ];
+    }
+
+    /**
      * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
      */
     public function attributes(): array
     {
         return [
             'document_checklist_id' => 'document type',
-        ];
-    }
-
-    /**
-     * Get custom messages for validator errors.
-     */
-    public function messages(): array
-    {
-        return [
-            'document_checklist_id.required' => 'Please select the document type.',
-            'document_checklist_id.exists' => 'The selected document type is invalid.',
-            'document.required' => 'Please select a file to upload.',
-            'document.mimes' => 'Document must be a PDF or image file (JPG, JPEG, PNG).',
-            'document.max' => 'Document file size cannot exceed 10MB.',
+            'file' => 'document file',
         ];
     }
 }
