@@ -447,7 +447,8 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Reports and exports limited to 5/min (resource intensive)
         Route::post('/reports/analytics', [ComplaintController::class, 'analytics'])
             ->middleware('throttle:5,1')->name('analytics');
-        Route::get('/reports/sla', [ComplaintController::class, 'slaReport'])->name('sla-report.dashboard');
+        // SLA report view (named for templates as `complaints.sla-report`)
+        Route::get('/reports/sla', [ComplaintController::class, 'slaReport'])->name('sla-report');
         Route::post('/reports/sla', [ComplaintController::class, 'slaReport'])
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])
@@ -458,6 +459,10 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================================
     // DOCUMENT ARCHIVE
     // Throttle: Standard 60/min, Download 60/min, Bulk upload 10/min, Reports 5/min
+    // Add expiring documents view for compliance monitoring
+    Route::get('/document-archive/expiring', [DocumentArchiveController::class, 'expiring'])
+        ->middleware('role:admin,campus_admin,project_director,viewer')
+        ->name('document-archive.expiring');
     // Purpose: Centralized document storage with version control and expiry tracking
     // SECURITY: Role middleware added for defense in depth
     // ========================================================================

@@ -431,4 +431,47 @@ class ComplaintServiceTest extends TestCase
         $this->assertEquals('assigned', $result->status);
         $this->assertNotNull($result->assigned_at);
     }
+
+    #[Test]
+    public function it_can_add_evidence_using_uploaded_file()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $complaint = Complaint::factory()->create();
+        $file = \Illuminate\Http\UploadedFile::fake()->create('evidence.pdf', 100);
+
+        // Pass UploadedFile directly
+        $result = $this->service->addEvidence($complaint->id, $file, 'Uploaded file test');
+
+        $this->assertArrayHasKey('path', $result);
+        $this->assertEquals('Uploaded file test', $result['description']);
+
+        $complaintFresh = Complaint::find($complaint->id);
+        $this->assertNotNull($complaintFresh->evidence_files);
+        $files = json_decode($complaintFresh->evidence_files, true);
+        $this->assertCount(1, $files);
+        $this->assertEquals('evidence.pdf', $files[0]['original_name']);
+    }
+
+    #[Test]
+    public function it_can_add_evidence_using_existing_file_path()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $complaint = Complaint::factory()->create();
+        $file = \Illuminate\Http\UploadedFile::fake()->create('evidence2.pdf', 100);
+        $path = $file->store('complaints/evidence', 'public');
+
+        // Pass stored path string
+        $result = $this->service->addEvidence($complaint->id, $path, 'Path file test');
+
+        $this->assertArrayHasKey('path', $result);
+        $this->assertEquals('Path file test', $result['description']);
+
+        $complaintFresh = Complaint::find($complaint->id);
+        $this->assertNotNull($complaintFresh->evidence_files);
+        $files = json_decode($complaintFresh->evidence_files, true);
+        $this->assertCount(1, $files);
+        $this->assertEquals('evidence2.pdf', $files[0]['original_name']);
+    }
 }

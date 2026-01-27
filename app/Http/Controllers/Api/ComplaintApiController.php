@@ -150,7 +150,7 @@ class ComplaintApiController extends Controller
 
         $validated = $request->validate([
             'priority' => 'sometimes|in:low,normal,high,urgent,critical',
-            'status' => 'sometimes|in:registered,assigned,in_progress,resolved,closed',
+            'status' => 'sometimes|in:open,assigned,in_progress,resolved,closed',
             'assigned_to' => 'sometimes|exists:users,id',
         ]);
 

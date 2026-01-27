@@ -690,14 +690,24 @@ class RegistrationController extends Controller
             ], 404);
         }
 
-        // Verify the token matches the expected hash
-        $expectedToken = hash('sha256', $candidate->id . $candidate->cnic . config('app.key'));
+        // If a persisted token exists, prefer it for verification (more secure & random)
+        if (!empty($candidate->registration_verification_token)) {
+            if (!hash_equals($candidate->registration_verification_token, $token)) {
+                return response()->view('registration.verify-result', [
+                    'success' => false,
+                    'message' => 'Invalid verification token.',
+                ], 403);
+            }
+        } else {
+            // Fallback for legacy tokens: deterministic SHA-256 based token
+            $expectedToken = hash('sha256', $candidate->id . $candidate->cnic . config('app.key'));
 
-        if (!hash_equals($expectedToken, $token)) {
-            return response()->view('registration.verify-result', [
-                'success' => false,
-                'message' => 'Invalid verification token.',
-            ], 403);
+            if (!hash_equals($expectedToken, $token)) {
+                return response()->view('registration.verify-result', [
+                    'success' => false,
+                    'message' => 'Invalid verification token.',
+                ], 403);
+            }
         }
 
         // Verification successful - return candidate registration status

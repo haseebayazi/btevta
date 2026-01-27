@@ -111,8 +111,11 @@ class DepartureService
                 ['candidate_id' => $candidateId]
             );
 
+            // Parse and validate departure date without mutating provided date
+            $departureDate = !empty($data['departure_date']) ? Carbon::parse($data['departure_date']) : null;
+
             $departure->update([
-                'departure_date' => $data['departure_date'],
+                'departure_date' => $departureDate ? $departureDate->toDateString() : null,
                 'flight_number' => $data['flight_number'] ?? null,
                 'airport' => $data['airport'] ?? null,
                 'destination' => $data['destination'] ?? 'Saudi Arabia',

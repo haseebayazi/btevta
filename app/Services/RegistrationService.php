@@ -232,18 +232,31 @@ class RegistrationService
      */
     protected function generateQRCode($candidate): string
     {
-        // SECURITY: Use Laravel's signed URL feature for tamper-proof verification
-        // This generates a URL with a cryptographic signature that expires
+        // Generate a cryptographically secure random token and persist it for verification
+        $token = bin2hex(random_bytes(16));
+
+        // Persist token and timestamp on the candidate (idempotent)
+        try {
+            $candidate->update([
+                'registration_verification_token' => $token,
+                'registration_verification_sent_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // If persistence fails, fall back to an in-memory signed url using deterministic token
+            \Log::warning('Failed to persist registration verification token: ' . $e->getMessage());
+            $token = hash('sha256', $candidate->id . $candidate->cnic . config('app.key'));
+        }
+
+        // Use Laravel's signed URL feature to generate tamper-proof verification link
         $verificationUrl = \Illuminate\Support\Facades\URL::signedRoute(
             'registration.verify',
             [
                 'id' => $candidate->id,
-                'token' => hash('sha256', $candidate->id . $candidate->cnic . config('app.key'))
+                'token' => $token,
             ],
             now()->addDays(365) // Signature valid for 1 year
         );
 
-        // Return signed URL for QR code generation
         return $verificationUrl;
     }
 
