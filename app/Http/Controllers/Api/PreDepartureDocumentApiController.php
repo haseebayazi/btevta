@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePreDepartureDocumentRequest;
+use App\Http\Resources\PreDepartureDocumentResource;
 use App\Models\Candidate;
 use App\Models\DocumentChecklist;
 use App\Models\PreDepartureDocument;
@@ -10,7 +12,7 @@ use App\Services\PreDepartureDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class PreDepartureDocumentController extends Controller
+class PreDepartureDocumentApiController extends Controller
 {
     protected PreDepartureDocumentService $service;
 
@@ -20,7 +22,7 @@ class PreDepartureDocumentController extends Controller
     }
 
     /**
-     * Display pre-departure documents page for a candidate
+     * Get all pre-departure documents for a candidate
      */
     public function index(Candidate $candidate)
     {
@@ -30,17 +32,12 @@ class PreDepartureDocumentController extends Controller
             ->with(['documentChecklist', 'uploader', 'verifier'])
             ->get();
 
-        $checklists = DocumentChecklist::active()->orderBy('display_order')->get();
         $status = $candidate->getPreDepartureDocumentStatus();
-        $licenses = $candidate->licenses;
 
-        return view('candidates.pre-departure-documents.index', compact(
-            'candidate',
-            'documents',
-            'checklists',
-            'status',
-            'licenses'
-        ));
+        return response()->json([
+            'documents' => PreDepartureDocumentResource::collection($documents),
+            'status' => $status,
+        ]);
     }
 
     /**
@@ -59,9 +56,17 @@ class PreDepartureDocumentController extends Controller
             ['notes' => $request->notes]
         );
 
-        return redirect()
-            ->route('candidates.pre-departure-documents.index', $candidate)
-            ->with('success', "Document '{$checklist->name}' uploaded successfully.");
+        return new PreDepartureDocumentResource($document);
+    }
+
+    /**
+     * Get a specific pre-departure document
+     */
+    public function show(Candidate $candidate, PreDepartureDocument $document)
+    {
+        $this->authorize('view', $document);
+
+        return new PreDepartureDocumentResource($document->load(['documentChecklist', 'uploader', 'verifier']));
     }
 
     /**
@@ -71,10 +76,8 @@ class PreDepartureDocumentController extends Controller
     {
         $this->authorize('delete', $document);
 
-        // Delete file from storage
         Storage::disk('private')->delete($document->file_path);
 
-        // Log deletion
         activity()
             ->performedOn($document)
             ->causedBy(auth()->user())
@@ -86,9 +89,7 @@ class PreDepartureDocumentController extends Controller
 
         $document->delete();
 
-        return redirect()
-            ->route('candidates.pre-departure-documents.index', $candidate)
-            ->with('success', 'Document deleted successfully.');
+        return response()->json(['message' => 'Document deleted successfully.']);
     }
 
     /**
@@ -111,11 +112,9 @@ class PreDepartureDocumentController extends Controller
     {
         $this->authorize('verify', $document);
 
-        $this->service->verifyDocument($document, auth()->user(), $request->notes);
+        $document = $this->service->verifyDocument($document, auth()->user(), $request->notes);
 
-        return redirect()
-            ->route('candidates.pre-departure-documents.index', $candidate)
-            ->with('success', 'Document verified successfully.');
+        return new PreDepartureDocumentResource($document);
     }
 
     /**
@@ -129,10 +128,8 @@ class PreDepartureDocumentController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $this->service->rejectDocument($document, auth()->user(), $request->reason);
+        $document = $this->service->rejectDocument($document, auth()->user(), $request->reason);
 
-        return redirect()
-            ->route('candidates.pre-departure-documents.index', $candidate)
-            ->with('success', 'Document rejected. Candidate has been notified.');
+        return new PreDepartureDocumentResource($document);
     }
 }

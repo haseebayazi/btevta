@@ -136,6 +136,18 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->name('v1.')->group(function (
         Route::post('/', [CandidateApiController::class, 'store'])->name('store');
         Route::put('/{id}', [CandidateApiController::class, 'update'])->name('update');
         Route::delete('/{id}', [CandidateApiController::class, 'destroy'])->name('destroy');
+
+        // Module 1: Pre-Departure Documents API (CL-001 through CL-006)
+        Route::prefix('{candidate}/pre-departure-documents')->name('pre-departure-documents.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'store'])
+                ->middleware('throttle:30,1')->name('store');
+            Route::get('/{document}', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'show'])->name('show');
+            Route::delete('/{document}', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'destroy'])->name('destroy');
+            Route::get('/{document}/download', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'download'])->name('download');
+            Route::post('/{document}/verify', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'verify'])->name('verify');
+            Route::post('/{document}/reject', [\App\Http\Controllers\Api\PreDepartureDocumentApiController::class, 'reject'])->name('reject');
+        });
     });
 
     // ========================================================================
