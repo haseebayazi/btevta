@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
+use App\Models\PreDepartureDocument;
 use App\Services\PreDepartureDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
