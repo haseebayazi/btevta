@@ -38,8 +38,8 @@
                             <strong>BTEVTA ID:</strong> {{ $candidate->btevta_id }}
                         </div>
                         <div class="col-md-3">
-                            <strong>Status:</strong> 
-                            <span class="badge badge-{{ $candidate->status === 'new' ? 'primary' : 'secondary' }}">
+                            <strong>Status:</strong>
+                            <span class="badge badge-{{ in_array($candidate->status, ['new', 'listed', 'pre_departure_docs']) ? 'primary' : 'secondary' }}">
                                 {{ ucfirst($candidate->status) }}
                             </span>
                         </div>
@@ -72,10 +72,10 @@
     @endif
 
     {{-- Alert if read-only mode --}}
-    @if($candidate->status !== 'new')
+    @if(!in_array($candidate->status, ['new', 'listed', 'pre_departure_docs']))
     <div class="alert alert-info">
         <i class="fas fa-lock"></i>
-        <strong>Read-Only Mode:</strong> Documents cannot be edited because the candidate has progressed past the 'new' status.
+        <strong>Read-Only Mode:</strong> Documents cannot be edited because the candidate has progressed past the document collection phase.
     </div>
     @endif
 

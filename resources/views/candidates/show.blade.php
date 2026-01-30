@@ -183,6 +183,35 @@
                 </div>
             </div>
 
+            {{-- Pre-Departure Documents Card --}}
+            @if(in_array($candidate->status, ['listed', 'pre_departure_docs', 'new']))
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Pre-Departure Documents</h3>
+                @php
+                    $docStatus = $candidate->getPreDepartureDocumentStatus();
+                @endphp
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Mandatory Documents</span>
+                        <span class="{{ $docStatus['is_complete'] ? 'text-green-600' : 'text-yellow-600' }}">
+                            {{ $docStatus['mandatory_uploaded'] }}/{{ $docStatus['mandatory_total'] }}
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full {{ $docStatus['is_complete'] ? 'bg-green-500' : 'bg-yellow-500' }}"
+                             style="width: {{ $docStatus['completion_percentage'] }}%"></div>
+                    </div>
+                </div>
+                @can('viewAny', [App\Models\PreDepartureDocument::class, $candidate])
+                <a href="{{ route('candidates.pre-departure-documents.index', $candidate) }}"
+                   class="block w-full {{ $docStatus['is_complete'] ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600' }} text-white text-center px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-file-alt mr-2"></i>
+                    {{ $docStatus['is_complete'] ? 'View Documents' : 'Upload Documents' }}
+                </a>
+                @endcan
+            </div>
+            @endif
+
             <!-- Action Card -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>

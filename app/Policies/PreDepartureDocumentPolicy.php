@@ -49,8 +49,9 @@ class PreDepartureDocumentPolicy
             return true;
         }
 
-        // Others can only create if candidate is in 'new' status
-        if ($candidate->status !== 'new') {
+        // Others can only create if candidate is in editable status
+        $editableStatuses = ['new', 'listed', 'pre_departure_docs'];
+        if (!in_array($candidate->status, $editableStatuses)) {
             return false;
         }
 
@@ -79,8 +80,9 @@ class PreDepartureDocumentPolicy
 
         $candidate = $document->candidate;
 
-        // Cannot update if candidate progressed past 'new' status
-        if ($candidate->status !== 'new') {
+        // Cannot update if candidate progressed past editable statuses
+        $editableStatuses = ['new', 'listed', 'pre_departure_docs'];
+        if (!in_array($candidate->status, $editableStatuses)) {
             return false;
         }
 
@@ -114,8 +116,9 @@ class PreDepartureDocumentPolicy
 
         $candidate = $document->candidate;
 
-        // Cannot delete if candidate progressed past 'new' status
-        if ($candidate->status !== 'new') {
+        // Cannot delete if candidate progressed past editable statuses
+        $editableStatuses = ['new', 'listed', 'pre_departure_docs'];
+        if (!in_array($candidate->status, $editableStatuses)) {
             return false;
         }
 
