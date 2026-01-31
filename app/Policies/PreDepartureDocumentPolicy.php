@@ -9,12 +9,24 @@ use App\Models\User;
 class PreDepartureDocumentPolicy
 {
     /**
+     * Get the candidate for a document, handling null relationship case
+     */
+    protected function getCandidate(PreDepartureDocument $document): ?Candidate
+    {
+        $candidate = $document->candidate;
+        if (!$candidate && $document->candidate_id) {
+            $candidate = Candidate::find($document->candidate_id);
+        }
+        return $candidate;
+    }
+
+    /**
      * Determine if user can view any pre-departure documents for a candidate
      */
     public function viewAny(User $user, Candidate $candidate): bool
     {
         // Super Admin and Project Director can view all
-        if ($user->hasRole(['super_admin', 'project_director'])) {
+        if ($user->hasAnyRole(['super_admin', 'project_director'])) {
             return true;
         }
 
@@ -36,7 +48,12 @@ class PreDepartureDocumentPolicy
      */
     public function view(User $user, PreDepartureDocument $document): bool
     {
-        return $this->viewAny($user, $document->candidate);
+        $candidate = $this->getCandidate($document);
+        if (!$candidate) {
+            return false;
+        }
+
+        return $this->viewAny($user, $candidate);
     }
 
     /**
@@ -78,7 +95,10 @@ class PreDepartureDocumentPolicy
             return true;
         }
 
-        $candidate = $document->candidate;
+        $candidate = $this->getCandidate($document);
+        if (!$candidate) {
+            return false;
+        }
 
         // Cannot update if candidate progressed past editable statuses
         $editableStatuses = ['new', 'listed', 'pre_departure_docs'];
@@ -114,7 +134,10 @@ class PreDepartureDocumentPolicy
             return true;
         }
 
-        $candidate = $document->candidate;
+        $candidate = $this->getCandidate($document);
+        if (!$candidate) {
+            return false;
+        }
 
         // Cannot delete if candidate progressed past editable statuses
         $editableStatuses = ['new', 'listed', 'pre_departure_docs'];
@@ -141,13 +164,14 @@ class PreDepartureDocumentPolicy
     public function verify(User $user, PreDepartureDocument $document): bool
     {
         // Super Admin and Project Director can verify
-        if ($user->hasRole(['super_admin', 'project_director'])) {
+        if ($user->hasAnyRole(['super_admin', 'project_director'])) {
             return true;
         }
 
         // Campus Admin can verify their campus documents
         if ($user->hasRole('campus_admin')) {
-            return $document->candidate->campus_id === $user->campus_id;
+            $candidate = $this->getCandidate($document);
+            return $candidate && $candidate->campus_id === $user->campus_id;
         }
 
         return false;
