@@ -117,9 +117,10 @@ class PreDepartureDocumentControllerTest extends TestCase
     #[Test]
     public function cannot_upload_document_for_screening_candidate()
     {
-        $this->actingAs($this->admin);
+        // Use campus admin (not super_admin) because super_admin bypasses status checks
+        $this->actingAs($this->campusAdmin);
 
-        // Change candidate status to 'screening' (not editable)
+        // Change candidate status to 'screening' (not editable for non-super-admins)
         $this->candidate->update(['status' => 'screening']);
 
         $file = UploadedFile::fake()->create('cnic.pdf', 1024, 'application/pdf');
@@ -154,7 +155,7 @@ class PreDepartureDocumentControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        // Create a document record
+        // Create a document record and load relationships
         $document = PreDepartureDocument::create([
             'candidate_id' => $this->candidate->id,
             'document_checklist_id' => $this->checklist->id,
@@ -165,6 +166,7 @@ class PreDepartureDocumentControllerTest extends TestCase
             'uploaded_by' => $this->admin->id,
             'uploaded_at' => now(),
         ]);
+        $document->load(['candidate', 'documentChecklist']);
 
         $response = $this->post(route('candidates.pre-departure-documents.verify', [$this->candidate, $document]), [
             'notes' => 'Document verified successfully',

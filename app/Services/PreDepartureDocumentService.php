@@ -105,7 +105,9 @@ class PreDepartureDocumentService
 
             DB::commit();
 
-            return $document->fresh(['candidate', 'documentChecklist', 'uploader']);
+            // Load relationships and return
+            $document->load(['candidate', 'documentChecklist', 'uploader']);
+            return $document;
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -144,12 +146,14 @@ class PreDepartureDocumentService
             ->causedBy($verifier)
             ->withProperties([
                 'candidate_id' => $document->candidate_id,
-                'document_type' => $document->documentChecklist->name,
+                'document_type' => $document->documentChecklist?->name ?? 'Unknown',
                 'notes' => $notes,
             ])
             ->log('Pre-departure document verified');
 
-        return $document->fresh(['verifier']);
+        // Refresh the document with verifier relationship
+        $document->load('verifier');
+        return $document;
     }
 
     /**
@@ -177,12 +181,14 @@ class PreDepartureDocumentService
             ->causedBy($verifier)
             ->withProperties([
                 'candidate_id' => $document->candidate_id,
-                'document_type' => $document->documentChecklist->name,
+                'document_type' => $document->documentChecklist?->name ?? 'Unknown',
                 'reason' => $reason,
             ])
             ->log('Pre-departure document rejected');
 
-        return $document->fresh();
+        // Refresh the document attributes
+        $document->refresh();
+        return $document;
     }
 
     /**
