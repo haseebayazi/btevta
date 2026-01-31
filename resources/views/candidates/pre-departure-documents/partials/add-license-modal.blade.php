@@ -1,142 +1,168 @@
-<div class="modal fade" id="addLicenseModal" tabindex="-1" role="dialog" aria-labelledby="addLicenseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <form action="{{ route('candidates.licenses.store', $candidate) }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addLicenseModalLabel">
-                        <i class="fas fa-id-card"></i> Add License
-                    </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="license_type">License Type <span class="text-danger">*</span></label>
-                                <select class="form-control" id="license_type" name="license_type" required>
-                                    <option value="">Select Type</option>
-                                    <option value="driving">Driving License</option>
-                                    <option value="professional">Professional License</option>
-                                </select>
-                            </div>
-                        </div>
+<!-- Add License Modal -->
+<div id="addLicenseModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeLicenseModal()"></div>
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="license_name">License Name <span class="text-danger">*</span></label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="license_name" 
-                                       name="license_name" 
-                                       placeholder="e.g., Car License, RN License"
-                                       required>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Modal Content -->
+        <div class="relative bg-white rounded-2xl shadow-2xl transform transition-all sm:max-w-2xl sm:w-full mx-4">
+            <form action="{{ route('candidates.licenses.store', $candidate) }}" method="POST" enctype="multipart/form-data">
+                @csrf
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="license_number">License Number <span class="text-danger">*</span></label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="license_number" 
-                                       name="license_number" 
-                                       placeholder="e.g., ABC123456"
-                                       required>
+                <!-- Modal Header -->
+                <div class="px-6 py-5 bg-gradient-to-r from-purple-600 to-purple-700 rounded-t-2xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-id-card text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-white">Add License</h3>
+                                <p class="text-purple-200 text-sm">Driving or Professional License</p>
                             </div>
                         </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="license_category">Category</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="license_category" 
-                                       name="license_category" 
-                                       placeholder="e.g., B, C, D">
-                                <small class="form-text text-muted">For driving licenses (B, C, D, etc.)</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="issuing_authority">Issuing Authority</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="issuing_authority" 
-                                       name="issuing_authority" 
-                                       placeholder="e.g., Pakistan Driving License Authority">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="issue_date">Issue Date</label>
-                                <input type="date" 
-                                       class="form-control" 
-                                       id="issue_date" 
-                                       name="issue_date"
-                                       max="{{ date('Y-m-d') }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="expiry_date">Expiry Date</label>
-                                <input type="date" 
-                                       class="form-control" 
-                                       id="expiry_date" 
-                                       name="expiry_date"
-                                       min="{{ date('Y-m-d') }}">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="file">License Copy (optional)</label>
-                                <input type="file" 
-                                       class="form-control-file" 
-                                       id="file" 
-                                       name="file"
-                                       accept=".pdf,.jpg,.jpeg,.png">
-                                <small class="form-text text-muted">PDF, JPG, PNG (Max: 5MB)</small>
-                            </div>
-                        </div>
+                        <button type="button" onclick="closeLicenseModal()" class="text-white/80 hover:text-white transition">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancel
+
+                <!-- Modal Body -->
+                <div class="px-6 py-6 max-h-[60vh] overflow-y-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- License Type -->
+                        <div>
+                            <label for="license_type" class="block text-sm font-medium text-gray-700 mb-2">
+                                License Type <span class="text-red-500">*</span>
+                            </label>
+                            <select id="license_type" name="license_type" required
+                                    class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                                <option value="">Select Type</option>
+                                <option value="driving">Driving License</option>
+                                <option value="professional">Professional License</option>
+                            </select>
+                        </div>
+
+                        <!-- License Name -->
+                        <div>
+                            <label for="license_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                License Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                   id="license_name"
+                                   name="license_name"
+                                   placeholder="e.g., Car License, RN License"
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+
+                        <!-- License Number -->
+                        <div>
+                            <label for="license_number" class="block text-sm font-medium text-gray-700 mb-2">
+                                License Number <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                   id="license_number"
+                                   name="license_number"
+                                   placeholder="e.g., ABC123456"
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition font-mono">
+                        </div>
+
+                        <!-- License Category -->
+                        <div id="categoryField">
+                            <label for="license_category" class="block text-sm font-medium text-gray-700 mb-2">
+                                Category
+                            </label>
+                            <input type="text"
+                                   id="license_category"
+                                   name="license_category"
+                                   placeholder="e.g., B, C, D"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                            <p class="text-xs text-gray-500 mt-1">For driving licenses (B, C, D, etc.)</p>
+                        </div>
+
+                        <!-- Issuing Authority -->
+                        <div>
+                            <label for="issuing_authority" class="block text-sm font-medium text-gray-700 mb-2">
+                                Issuing Authority
+                            </label>
+                            <input type="text"
+                                   id="issuing_authority"
+                                   name="issuing_authority"
+                                   placeholder="e.g., Traffic Police, Medical Council"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+
+                        <!-- Issue Date -->
+                        <div>
+                            <label for="issue_date" class="block text-sm font-medium text-gray-700 mb-2">
+                                Issue Date
+                            </label>
+                            <input type="date"
+                                   id="issue_date"
+                                   name="issue_date"
+                                   max="{{ date('Y-m-d') }}"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+
+                        <!-- Expiry Date -->
+                        <div>
+                            <label for="expiry_date" class="block text-sm font-medium text-gray-700 mb-2">
+                                Expiry Date
+                            </label>
+                            <input type="date"
+                                   id="expiry_date"
+                                   name="expiry_date"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+
+                        <!-- File Upload -->
+                        <div>
+                            <label for="license_file" class="block text-sm font-medium text-gray-700 mb-2">
+                                License Copy (optional)
+                            </label>
+                            <input type="file"
+                                   id="license_file"
+                                   name="file"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer">
+                            <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max: 5MB)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex justify-end gap-3 border-t border-gray-100">
+                    <button type="button"
+                            onclick="closeLicenseModal()"
+                            class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition">
+                        <i class="fas fa-times mr-2"></i>Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save License
+                    <button type="submit"
+                            class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition">
+                        <i class="fas fa-save mr-2"></i>Save License
                     </button>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
-@push('scripts')
 <script>
-$(document).ready(function() {
-    // Show/hide category field based on license type
-    $('#license_type').on('change', function() {
-        if ($(this).val() === 'driving') {
-            $('#license_category').closest('.form-group').show();
-        } else {
-            $('#license_category').closest('.form-group').hide();
-            $('#license_category').val('');
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const licenseType = document.getElementById('license_type');
+    const categoryField = document.getElementById('categoryField');
+
+    if (licenseType && categoryField) {
+        licenseType.addEventListener('change', function() {
+            if (this.value === 'driving') {
+                categoryField.style.display = 'block';
+            } else {
+                categoryField.style.display = 'none';
+                document.getElementById('license_category').value = '';
+            }
+        });
+    }
 });
 </script>
-@endpush
