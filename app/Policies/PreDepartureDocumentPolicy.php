@@ -14,7 +14,7 @@ class PreDepartureDocumentPolicy
     public function viewAny(User $user, Candidate $candidate): bool
     {
         // Super Admin and Project Director can view all
-        if ($user->hasRole(['super_admin', 'project_director'])) {
+        if ($user->hasAnyRole(['super_admin', 'project_director'])) {
             return true;
         }
 
@@ -141,7 +141,7 @@ class PreDepartureDocumentPolicy
     public function verify(User $user, PreDepartureDocument $document): bool
     {
         // Super Admin and Project Director can verify
-        if ($user->hasRole(['super_admin', 'project_director'])) {
+        if ($user->hasAnyRole(['super_admin', 'project_director'])) {
             return true;
         }
 
