@@ -342,6 +342,13 @@
                         <span x-show="sidebarOpen" class="font-medium">Candidates Listing</span>
                     </a>
 
+                    <!-- Module 2: Initial Screening -->
+                    <a href="{{ route('screening.initial-dashboard') }}"
+                       class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('screening.initial-dashboard') || request()->routeIs('candidates.initial-screening') ? 'sidebar-item-active' : '' }}">
+                        <i class="fas fa-clipboard-check text-lg w-6"></i>
+                        <span x-show="sidebarOpen" class="font-medium">Initial Screening</span>
+                    </a>
+
                     <!-- Tab 2: Screening -->
                     <a href="{{ route('dashboard.screening') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.screening') ? 'sidebar-item-active' : '' }}">
