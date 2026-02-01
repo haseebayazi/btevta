@@ -4,7 +4,7 @@
 
 A comprehensive digital platform for managing the complete candidate lifecycle from TheLeap listing through overseas deployment, post-departure tracking, and remittance management.
 
-**Version:** 1.4.0 | **Status:** Production Ready | **Last Updated:** December 2025
+**Version:** 1.5.0 | **Status:** Production Ready | **Last Updated:** February 2026
 
 ---
 
@@ -428,6 +428,57 @@ Super Admin
 **Bulk Operations:**
 - Select multiple candidates using checkboxes
 - Available actions: Change Status, Assign Batch, Assign Campus, Export, Delete
+
+**Search & Filter:**
+- Search by Name, CNIC, or TheLeap ID
+- Filter by Status, Trade, or Batch
+- Results automatically paginate
+
+### 1a. Pre-Departure Documents
+
+Pre-departure document collection is required before candidates can proceed to screening.
+
+**Document Types:**
+
+| Document | Required | Description |
+|----------|----------|-------------|
+| CNIC Front & Back | Yes | National ID card copy |
+| Passport (1st & 2nd Page) | Yes | Valid passport pages |
+| Domicile | Yes | Proof of residence |
+| Family Registration Certificate (FRC) | Yes | NADRA family certificate |
+| Police Character Certificate (PCC) | Yes | Police clearance |
+| Driving License | No | If applicable |
+| Professional License | No | Trade-specific licenses |
+| Pre-Medical Reports | No | Optional health records |
+
+**Accessing Pre-Departure Documents:**
+1. Navigate to Candidates > Select a Candidate
+2. On the candidate profile, click the "Pre-Departure Documents" card or "Upload Documents" button
+3. Upload required documents for each checklist item
+
+**Document Management Features:**
+- **Upload:** PDF, JPG, PNG files up to 5MB
+- **Download:** Retrieve uploaded documents
+- **Verify:** Admin/Project Director can verify documents
+- **Reject:** Return documents with reason for re-upload
+- **Delete:** Remove documents (only in editable statuses)
+
+**Progress Tracking:**
+- Dashboard shows document completion status (e.g., "3/5 Mandatory Documents")
+- Candidates cannot proceed to screening until all mandatory documents are uploaded
+- Visual indicators show verified vs pending documents
+
+**Reports:**
+- Generate individual candidate document reports (PDF/Excel)
+- Bulk document status reports by campus/status
+
+**Access Control:**
+| Role | View | Upload | Verify | Delete |
+|------|------|--------|--------|--------|
+| Super Admin | All | All | Yes | Yes |
+| Project Director | All | All | Yes | No |
+| Campus Admin | Own Campus | Own Campus | Yes | Own Campus |
+| OEP | Own Candidates | Own Candidates | No | Own Candidates |
 
 ### 2. Screening Workflow
 
@@ -1151,6 +1202,40 @@ The project includes comprehensive tests for:
 ---
 
 ## Changelog
+
+### Version 1.5.0 (February 2026) - Pre-Departure Documents Module
+
+**Pre-Departure Documents (Module 1):**
+- Complete document collection workflow for candidates
+- 5 mandatory documents (CNIC, Passport, Domicile, FRC, PCC)
+- Optional documents (Driving License, Professional License, Pre-Medical)
+- Document upload with file validation (PDF, JPG, PNG, max 5MB)
+- Document verification workflow (verify/reject with notes)
+- Progress tracking on candidate profile
+- Individual and bulk PDF/Excel reports
+- Role-based access control with campus scoping
+
+**Candidates Listing Enhancements:**
+- Fixed truncated index view (restored full functionality)
+- Search by Name, CNIC, TheLeap ID
+- Filter by Status, Trade, Batch
+- Bulk operations (status change, batch assign, export, delete)
+- Consistent UI between /candidates/ and /dashboard/candidates-listing
+
+**UI/UX Improvements:**
+- Redesigned Pre-Departure Documents page with Tailwind CSS
+- Modern card-based document upload interface
+- Gradient section headers (red for mandatory, blue for optional)
+- Responsive design for mobile and desktop
+- Verify/Reject modals with proper styling
+- Auto-dismiss success notifications
+
+**Technical Improvements:**
+- Added `PreDepartureDocumentService` for business logic
+- Added `PreDepartureDocumentPolicy` with defensive null handling
+- Added `DocumentChecklistsSeeder` for initial document types
+- Fixed route model binding for nested resources
+- Role alias handling (admin ↔ super_admin equivalence)
 
 ### Version 1.4.0 (December 2025) - Architecture & Code Quality
 

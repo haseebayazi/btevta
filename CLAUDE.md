@@ -4,7 +4,7 @@
 
 **WASL (Workforce Abroad Skills & Linkages)** is a Laravel 11.x enterprise application for TheLeap/BTEVTA (Board of Technical Education & Vocational Training Authority, Punjab) that manages the complete overseas employment lifecycle from candidate listing through deployment, post-departure tracking, and remittance management.
 
-**Version:** 1.4.0 | **Status:** Production Ready | **PHP:** 8.2+
+**Version:** 1.5.0 | **Status:** Production Ready | **PHP:** 8.2+
 
 ---
 
@@ -521,4 +521,4 @@ php artisan serve
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: February 2026*
