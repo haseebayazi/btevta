@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Candidate;
 use App\Models\CandidateScreening;
+use App\Models\Country;
+use App\Http\Requests\InitialScreeningRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -608,5 +610,130 @@ class ScreeningController extends Controller
         $stats['overdue_screenings'] = $overdueCount;
 
         return view('screening.dashboard', compact('stats'));
+    }
+
+    /**
+     * MODULE 2: Display Initial Screening form for a candidate
+     */
+    public function initialScreening(Candidate $candidate)
+    {
+        $this->authorize('create', CandidateScreening::class);
+
+        // Check if candidate is in correct status
+        if (!in_array($candidate->status, ['pre_departure_docs', 'screening'])) {
+            return back()->with('error', 'Candidate must complete Pre-Departure Documents before screening.');
+        }
+
+        $countries = Country::destinations()->active()->orderBy('name')->get();
+        $existingScreening = $candidate->screenings()
+            ->where('screening_type', 'initial')
+            ->latest()
+            ->first();
+
+        return view('screening.initial-screening', compact('candidate', 'countries', 'existingScreening'));
+    }
+
+    /**
+     * MODULE 2: Store Initial Screening result
+     */
+    public function storeInitialScreening(InitialScreeningRequest $request, Candidate $candidate)
+    {
+        $this->authorize('create', CandidateScreening::class);
+
+        $validated = $request->validated();
+
+        try {
+            DB::beginTransaction();
+
+            // Create or update screening record
+            $screening = $candidate->screenings()->updateOrCreate(
+                [
+                    'candidate_id' => $candidate->id,
+                    'screening_type' => 'initial'
+                ],
+                [
+                    'consent_for_work' => $validated['consent_for_work'],
+                    'placement_interest' => $validated['placement_interest'],
+                    'target_country_id' => $validated['target_country_id'] ?? null,
+                    'screening_status' => $validated['screening_status'],
+                    'remarks' => $validated['notes'] ?? null,
+                    'screened_by' => auth()->id(),
+                    'screened_at' => now(),
+                    'reviewer_id' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]
+            );
+
+            // Handle evidence upload
+            if ($request->hasFile('evidence')) {
+                $screening->uploadEvidence($request->file('evidence'));
+            }
+
+            // Process outcome
+            if ($validated['screening_status'] === 'screened') {
+                $screening->markAsScreened($validated['notes'] ?? null);
+                $message = 'Candidate screened successfully. Ready for Registration.';
+            } elseif ($validated['screening_status'] === 'deferred') {
+                $screening->markAsDeferred($validated['notes'] ?? 'Deferred');
+                $message = 'Candidate screening deferred.';
+            } else {
+                $message = 'Screening saved as pending.';
+            }
+
+            DB::commit();
+
+            return redirect()->route('candidates.show', $candidate)
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Failed to save screening: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * MODULE 2: Initial Screening Dashboard
+     */
+    public function initialScreeningDashboard()
+    {
+        $this->authorize('viewAny', CandidateScreening::class);
+
+        $user = auth()->user();
+
+        // Base query with campus filtering
+        $baseQuery = Candidate::query();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $baseQuery->where('campus_id', $user->campus_id);
+        }
+
+        // Statistics
+        $stats = [
+            'pending' => (clone $baseQuery)->where('status', 'screening')->count(),
+            'screened' => (clone $baseQuery)->where('status', 'screened')->count(),
+            'deferred' => (clone $baseQuery)->where('status', 'deferred')->count(),
+            'total_this_month' => CandidateScreening::whereMonth('reviewed_at', now()->month)
+                ->whereNotNull('reviewed_at')
+                ->when($user->isCampusAdmin() && $user->campus_id, function($q) use ($user) {
+                    $q->whereHas('candidate', fn($cq) => $cq->where('campus_id', $user->campus_id));
+                })
+                ->count(),
+        ];
+
+        // Pending candidates for screening
+        $pendingCandidates = (clone $baseQuery)
+            ->whereIn('status', ['pre_departure_docs', 'screening'])
+            ->with(['campus', 'trade', 'oep'])
+            ->latest()
+            ->paginate(20);
+
+        // Recently screened
+        $recentlyScreened = (clone $baseQuery)
+            ->where('status', 'screened')
+            ->with(['campus', 'trade'])
+            ->latest('updated_at')
+            ->limit(10)
+            ->get();
+
+        return view('screening.initial-screening-dashboard', compact('stats', 'pendingCandidates', 'recentlyScreened'));
     }
 }

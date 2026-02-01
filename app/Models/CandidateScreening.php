@@ -40,7 +40,14 @@ class CandidateScreening extends Model
         'verification_status',
         'verification_remarks',
         'created_by',
-        'updated_by'
+        'updated_by',
+        // Module 2: Initial Screening fields
+        'consent_for_work',
+        'placement_interest',
+        'target_country_id',
+        'screening_status',
+        'reviewer_id',
+        'reviewed_at',
     ];
 
     /**
@@ -57,6 +64,9 @@ class CandidateScreening extends Model
         'created_by' => 'integer',
         'updated_by' => 'integer',
         'deleted_at' => 'datetime',
+        // Module 2: Initial Screening casts
+        'consent_for_work' => 'boolean',
+        'reviewed_at' => 'datetime',
     ];
 
     /**
@@ -94,6 +104,13 @@ class CandidateScreening extends Model
     const STATUS_FAILED = 'failed';
     const STATUS_DEFERRED = 'deferred';
     const STATUS_CANCELLED = 'cancelled';
+
+    /**
+     * Module 2: Initial Screening outcome constants
+     */
+    const OUTCOME_PENDING = 'pending';
+    const OUTCOME_SCREENED = 'screened';
+    const OUTCOME_DEFERRED = 'deferred';
 
     /**
      * Maximum call attempts
@@ -177,6 +194,24 @@ class CandidateScreening extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Get the target country for international placement.
+     * Module 2: Initial Screening
+     */
+    public function targetCountry()
+    {
+        return $this->belongsTo(Country::class, 'target_country_id');
+    }
+
+    /**
+     * Get the reviewer who conducted the initial screening.
+     * Module 2: Initial Screening
+     */
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
     }
 
     // ==================== SCOPES ====================
@@ -320,6 +355,7 @@ class CandidateScreening extends Model
 
     /**
      * Increment call count and update next call date.
+     * @deprecated Use markAsScreened() for Module 2 initial screening workflow
      */
     public function incrementCallCount()
     {
@@ -343,6 +379,68 @@ class CandidateScreening extends Model
         $this->save();
         
         return $this->call_count;
+    }
+
+    /**
+     * Module 2: Mark screening as screened (approved).
+     * This method is for the new single-review workflow.
+     */
+    public function markAsScreened($notes = null)
+    {
+        $this->screening_status = self::OUTCOME_SCREENED;
+        $this->reviewer_id = auth()->id();
+        $this->reviewed_at = now();
+
+        if ($notes) {
+            $this->remarks = $notes;
+        }
+
+        $this->save();
+
+        // Update candidate status to 'screened'
+        $this->candidate->update(['status' => \App\Enums\CandidateStatus::SCREENED->value]);
+
+        // Log activity
+        activity()
+            ->performedOn($this->candidate)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'screening_status' => self::OUTCOME_SCREENED,
+                'placement_interest' => $this->placement_interest,
+                'target_country' => $this->targetCountry?->name,
+            ])
+            ->log('Candidate marked as screened');
+
+        return true;
+    }
+
+    /**
+     * Module 2: Mark screening as deferred.
+     * This method is for the new single-review workflow.
+     */
+    public function markAsDeferred($reason)
+    {
+        $this->screening_status = self::OUTCOME_DEFERRED;
+        $this->reviewer_id = auth()->id();
+        $this->reviewed_at = now();
+        $this->remarks = $reason;
+
+        $this->save();
+
+        // Update candidate status to 'deferred'
+        $this->candidate->update(['status' => \App\Enums\CandidateStatus::DEFERRED->value]);
+
+        // Log activity
+        activity()
+            ->performedOn($this->candidate)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'screening_status' => self::OUTCOME_DEFERRED,
+                'reason' => $reason,
+            ])
+            ->log('Candidate screening deferred');
+
+        return true;
     }
 
     /**
