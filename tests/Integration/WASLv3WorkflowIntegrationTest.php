@@ -77,16 +77,10 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $registrationService = app(RegistrationService::class);
 
         $registrationData = [
-            'allocation' => [
-                'campus_id' => $campus->id,
-                'program_id' => $program->id,
-                'trade_id' => $trade->id,
-                'implementing_partner_id' => $partner->id,
-            ],
-            'personal_details' => [
-                'next_of_kin_name' => 'John Doe',
-                'next_of_kin_phone' => '03001234567',
-            ],
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
+            'implementing_partner_id' => $partner->id,
         ];
 
         $result = $registrationService->registerCandidateWithAllocation(
@@ -250,15 +244,13 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $trade = Trade::factory()->create();
 
         $registrationData = [
-            'allocation' => [
-                'campus_id' => $campus->id,
-                'program_id' => $program->id,
-                'trade_id' => $trade->id,
-            ],
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
         ];
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('screening');
+        $this->expectExceptionMessage('screened');
 
         $registrationService->registerCandidateWithAllocation($candidate, $registrationData);
     }
@@ -271,6 +263,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $campus = Campus::factory()->create();
         $program = Program::factory()->create();
         $trade = Trade::factory()->create();
+        $country = Country::factory()->create();
 
         $autoBatchService = app(AutoBatchService::class);
         $registrationService = app(RegistrationService::class);
@@ -286,10 +279,11 @@ class WASLv3WorkflowIntegrationTest extends TestCase
                 'trade_id' => $trade->id,
             ]);
 
-            // Screen the candidate
+            // Screen the candidate with target country for international placement
             $screeningService->conductInitialScreening($candidate, [
                 'consent_for_work' => true,
                 'placement_interest' => PlacementInterest::INTERNATIONAL->value,
+                'target_country_id' => $country->id,
                 'screening_status' => ScreeningStatus::SCREENED->value,
             ]);
 
