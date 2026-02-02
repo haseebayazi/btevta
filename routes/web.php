@@ -28,6 +28,7 @@ use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\CandidateJourneyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -155,6 +156,11 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:60,1')->name('api.validate-cnic');
         Route::post('/api/validate-phone', [CandidateController::class, 'validatePhone'])
             ->middleware('throttle:60,1')->name('api.validate-phone');
+
+        // WASL v3 Module 10: Candidate Journey
+        Route::get('/{candidate}/journey', [CandidateJourneyController::class, 'show'])->name('journey');
+        Route::get('/{candidate}/journey/data', [CandidateJourneyController::class, 'journeyData'])->name('journey.data');
+        Route::get('/{candidate}/journey/export-pdf', [CandidateJourneyController::class, 'exportPdf'])->name('journey.export-pdf');
     });
 
     // ========================================================================
