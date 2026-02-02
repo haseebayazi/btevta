@@ -235,6 +235,15 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export', [ScreeningController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // MODULE 2: Initial Screening routes
+        Route::get('/initial-dashboard', [ScreeningController::class, 'initialScreeningDashboard'])->name('initial-dashboard');
+    });
+
+    // MODULE 2: Initial Screening routes for specific candidate
+    Route::prefix('candidates/{candidate}')->name('candidates.')->group(function () {
+        Route::get('/initial-screening', [ScreeningController::class, 'initialScreening'])->name('initial-screening');
+        Route::post('/initial-screening', [ScreeningController::class, 'storeInitialScreening'])->name('initial-screening.store');
     });
 
     // ========================================================================

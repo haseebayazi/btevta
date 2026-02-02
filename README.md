@@ -1203,7 +1203,20 @@ The project includes comprehensive tests for:
 
 ## Changelog
 
-### Version 1.5.0 (February 2026) - Pre-Departure Documents Module
+### Version 1.5.0 (February 2026) - Pre-Departure Documents & Initial Screening
+
+**Initial Screening (Module 2):**
+- Single-review screening workflow replacing legacy 3-call system
+- Consent for work verification with legal disclaimer
+- Placement interest capture (Local/International)
+- Target country specification for international placements
+- Screening outcomes: Screened, Pending, or Deferred
+- Evidence file upload support (PDF, JPG, PNG, max 10MB)
+- Screening notes and reviewer tracking
+- Initial Screening Dashboard with statistics
+- Gate enforcement: Only screened candidates proceed to registration
+- 25 comprehensive tests (13 unit + 12 feature)
+- Full backward compatibility with legacy screening data
 
 **Pre-Departure Documents (Module 1):**
 - Complete document collection workflow for candidates
