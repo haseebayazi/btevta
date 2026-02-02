@@ -12,6 +12,9 @@
                 <p class="text-gray-600 mt-2">TheLeap ID: <span class="font-semibold">{{ $candidate->btevta_id }}</span></p>
             </div>
             <div class="flex gap-2">
+                <a href="{{ route('candidates.journey', $candidate) }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-route mr-2"></i>Journey
+                </a>
                 @can('update', $candidate)
                 <a href="{{ route('candidates.edit', $candidate) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-edit mr-2"></i>Edit
