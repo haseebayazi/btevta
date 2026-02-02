@@ -34,15 +34,14 @@ class PreDepartureDocumentService
         UploadedFile $file,
         array $metadata = []
     ): PreDepartureDocument {
-        DB::beginTransaction();
+        // Validate file
+        $this->validateFile($file);
 
-        try {
-            // Validate file
-            $this->validateFile($file);
+        // Generate secure file path
+        $filePath = $this->storeFile($file, $candidate, $checklist);
 
-            // Generate secure file path
-            $filePath = $this->storeFile($file, $candidate, $checklist);
-
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $document = DB::transaction(function () use ($candidate, $checklist, $file, $filePath, $metadata) {
             // Check if document already exists (for replacement)
             $existingDoc = PreDepartureDocument::where('candidate_id', $candidate->id)
                 ->where('document_checklist_id', $checklist->id)
@@ -103,22 +102,12 @@ class PreDepartureDocumentService
                     ->log('Pre-departure document uploaded');
             }
 
-            DB::commit();
-
-            // Load relationships and return
-            $document->load(['candidate', 'documentChecklist', 'uploader']);
             return $document;
-        } catch (\Exception $e) {
-            DB::rollBack();
+        });
 
-            Log::error('Failed to upload pre-departure document', [
-                'candidate_id' => $candidate->id,
-                'checklist_id' => $checklist->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new \Exception('Failed to upload document: ' . $e->getMessage());
-        }
+        // Load relationships and return
+        $document->load(['candidate', 'documentChecklist', 'uploader']);
+        return $document;
     }
 
     /**

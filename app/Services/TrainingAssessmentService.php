@@ -24,8 +24,8 @@ class TrainingAssessmentService
         // Validate required fields
         $this->validateAssessmentData($data);
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $assessment = DB::transaction(function () use ($data) {
             // Handle evidence file upload if present
             if (isset($data['evidence_file'])) {
                 $evidencePath = $data['evidence_file']->store(
@@ -47,28 +47,21 @@ class TrainingAssessmentService
             // Check if training should be marked as completed
             $this->checkTrainingCompletion($assessment->candidate_id);
 
-            DB::commit();
+            return $assessment;
+        });
 
-            // Log the assessment creation
-            activity()
-                ->performedOn($assessment)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'assessment_type' => $data['assessment_type'],
-                    'score' => $data['score'],
-                    'max_score' => $data['max_score'],
-                ])
-                ->log('Training assessment created');
+        // Log the assessment creation (outside transaction as it's not critical)
+        activity()
+            ->performedOn($assessment)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'assessment_type' => $data['assessment_type'],
+                'score' => $data['score'],
+                'max_score' => $data['max_score'],
+            ])
+            ->log('Training assessment created');
 
-            return $assessment->fresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to create assessment', [
-                'data' => $data,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        return $assessment->fresh();
     }
 
     /**
@@ -81,8 +74,8 @@ class TrainingAssessmentService
      */
     public function updateAssessment(TrainingAssessment $assessment, array $data): TrainingAssessment
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($assessment, $data) {
             // Handle evidence file upload if present
             if (isset($data['evidence_file'])) {
                 // Delete old evidence file
@@ -104,24 +97,15 @@ class TrainingAssessmentService
 
             // Recheck training completion status
             $this->checkTrainingCompletion($assessment->candidate_id);
+        });
 
-            DB::commit();
+        // Log the update (outside transaction as it's not critical)
+        activity()
+            ->performedOn($assessment)
+            ->causedBy(auth()->user())
+            ->log('Training assessment updated');
 
-            // Log the update
-            activity()
-                ->performedOn($assessment)
-                ->causedBy(auth()->user())
-                ->log('Training assessment updated');
-
-            return $assessment->fresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to update assessment', [
-                'assessment_id' => $assessment->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        return $assessment->fresh();
     }
 
     /**
@@ -133,10 +117,10 @@ class TrainingAssessmentService
      */
     public function deleteAssessment(TrainingAssessment $assessment): bool
     {
-        DB::beginTransaction();
-        try {
-            $candidateId = $assessment->candidate_id;
+        $candidateId = $assessment->candidate_id;
 
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($assessment, $candidateId) {
             // Delete evidence file if exists
             if ($assessment->evidence_path) {
                 Storage::disk('private')->delete($assessment->evidence_path);
@@ -152,18 +136,9 @@ class TrainingAssessmentService
 
             // Recheck training completion status
             $this->checkTrainingCompletion($candidateId);
+        });
 
-            DB::commit();
-
-            return true;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to delete assessment', [
-                'assessment_id' => $assessment->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        return true;
     }
 
     /**
@@ -362,11 +337,11 @@ class TrainingAssessmentService
      */
     public function bulkCreateAssessments(array $candidateIds, array $assessmentData): array
     {
-        $successful = [];
-        $failed = [];
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $result = DB::transaction(function () use ($candidateIds, $assessmentData) {
+            $successful = [];
+            $failed = [];
 
-        DB::beginTransaction();
-        try {
             foreach ($candidateIds as $candidateId) {
                 try {
                     $data = array_merge($assessmentData, ['candidate_id' => $candidateId]);
@@ -383,29 +358,28 @@ class TrainingAssessmentService
                 }
             }
 
-            DB::commit();
-
-            // Log bulk creation
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'assessment_type' => $assessmentData['assessment_type'],
-                    'successful_count' => count($successful),
-                    'failed_count' => count($failed),
-                ])
-                ->log('Bulk training assessments created');
-
             return [
                 'successful' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
+                'assessment_type' => $assessmentData['assessment_type'],
             ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk assessment creation failed', [
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        });
+
+        // Log bulk creation (outside transaction as it's not critical)
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'assessment_type' => $result['assessment_type'],
+                'successful_count' => count($result['successful']),
+                'failed_count' => count($result['failed']),
+            ])
+            ->log('Bulk training assessments created');
+
+        return [
+            'successful' => $result['successful'],
+            'failed' => $result['failed'],
+            'total_processed' => $result['total_processed'],
+        ];
     }
 }

@@ -26,8 +26,8 @@ class AutoBatchService
             throw new \Exception('Candidate must have campus, program, and trade assigned.');
         }
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $batch = DB::transaction(function () use ($candidate) {
             // Find an existing batch that matches the criteria and has available slots
             $batch = $this->findAvailableBatch(
                 $candidate->campus_id,
@@ -52,27 +52,20 @@ class AutoBatchService
             $candidate->allocated_number = $this->generateAllocatedNumber($candidate, $batch);
             $candidate->save();
 
-            DB::commit();
-
-            // Log the assignment
-            activity()
-                ->performedOn($batch)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'candidate_id' => $candidate->id,
-                    'allocated_number' => $candidate->allocated_number,
-                ])
-                ->log('Candidate assigned to batch');
-
             return $batch;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to assign candidate to batch', [
+        });
+
+        // Log the assignment (outside transaction as it's not critical)
+        activity()
+            ->performedOn($batch)
+            ->causedBy(auth()->user())
+            ->withProperties([
                 'candidate_id' => $candidate->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+                'allocated_number' => $candidate->allocated_number,
+            ])
+            ->log('Candidate assigned to batch');
+
+        return $batch;
     }
 
     /**
@@ -275,8 +268,8 @@ class AutoBatchService
      */
     public function reassignAllocatedNumbers(Batch $batch): void
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($batch) {
             $candidates = $batch->candidates()->orderBy('created_at')->get();
 
             foreach ($candidates as $index => $candidate) {
@@ -289,22 +282,13 @@ class AutoBatchService
                 $candidate->save();
             }
 
-            DB::commit();
-
-            // Log the reassignment
+            // Log the reassignment (inside transaction to ensure data consistency)
             activity()
                 ->performedOn($batch)
                 ->causedBy(auth()->user())
                 ->withProperties(['candidate_count' => $candidates->count()])
                 ->log('Batch allocated numbers reassigned');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to reassign allocated numbers', [
-                'batch_id' => $batch->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        });
     }
 
     /**
