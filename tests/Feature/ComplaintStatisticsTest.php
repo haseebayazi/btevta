@@ -32,8 +32,8 @@ class ComplaintStatisticsTest extends TestCase
         $this->actingAs($this->admin);
 
         // Create some test complaints
-        Complaint::factory()->count(5)->create(['status' => 'registered']);
-        Complaint::factory()->count(3)->create(['status' => 'investigating']);
+        Complaint::factory()->count(5)->create(['status' => 'open']);
+        Complaint::factory()->count(3)->create(['status' => 'in_progress']);
         Complaint::factory()->count(2)->create(['status' => 'resolved']);
 
         $response = $this->get(route('complaints.statistics'));
@@ -62,15 +62,15 @@ class ComplaintStatisticsTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Complaint::factory()->count(5)->create(['status' => 'registered']);
-        Complaint::factory()->count(3)->create(['status' => 'investigating']);
+        Complaint::factory()->count(5)->create(['status' => 'open']);
+        Complaint::factory()->count(3)->create(['status' => 'in_progress']);
         Complaint::factory()->count(2)->create(['status' => 'resolved']);
 
         $response = $this->get(route('complaints.statistics'));
 
         $statistics = $response->viewData('statistics');
 
-        $this->assertEquals(8, $statistics['openComplaints']); // registered + investigating
+        $this->assertEquals(8, $statistics['openComplaints']); // open + in_progress
         $this->assertEquals(2, $statistics['resolvedComplaints']);
     }
 
