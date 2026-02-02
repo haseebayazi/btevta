@@ -28,6 +28,8 @@ use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\CandidateJourneyController;
+use App\Http\Controllers\PipelineController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,15 +43,17 @@ use App\Http\Controllers\EquipmentController;
 */
 
 // ========================================================================
-// HEALTH CHECK ROUTE (Public - No Authentication)
+// HEALTH CHECK ROUTES (Public - No Authentication)
 // Used by load balancers and monitoring systems
 // ========================================================================
-Route::get('/up', function () {
-    return response()->json([
-        'status' => 'healthy',
-        'timestamp' => now()->toISOString(),
-    ]);
-})->name('health.up');
+Route::prefix('health')->name('health.')->group(function () {
+    Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('up');
+    Route::get('/detailed', [\App\Http\Controllers\HealthCheckController::class, 'detailed'])->name('detailed');
+    Route::get('/stats', [\App\Http\Controllers\HealthCheckController::class, 'statistics'])->name('stats');
+});
+
+// Legacy route for backward compatibility
+Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('legacy-health');
 
 // Authentication Routes
 // SECURITY FIX: Added guest middleware to prevent authenticated users from accessing auth pages
@@ -119,6 +123,16 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
+    // PIPELINE DASHBOARD - WASL v3 Module 10
+    // Purpose: Master view of all candidates by lifecycle stage
+    // ========================================================================
+    Route::prefix('pipeline')->name('pipeline.')->group(function () {
+        Route::get('/', [PipelineController::class, 'index'])->name('index');
+        Route::get('/status/{status}', [PipelineController::class, 'byStatus'])->name('by-status');
+        Route::get('/export', [PipelineController::class, 'export'])->name('export');
+    });
+
+    // ========================================================================
     // USER PROFILE & NOTIFICATIONS
     // ========================================================================
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
@@ -155,6 +169,11 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:60,1')->name('api.validate-cnic');
         Route::post('/api/validate-phone', [CandidateController::class, 'validatePhone'])
             ->middleware('throttle:60,1')->name('api.validate-phone');
+
+        // WASL v3 Module 10: Candidate Journey
+        Route::get('/{candidate}/journey', [CandidateJourneyController::class, 'show'])->name('journey');
+        Route::get('/{candidate}/journey/data', [CandidateJourneyController::class, 'journeyData'])->name('journey.data');
+        Route::get('/{candidate}/journey/export-pdf', [CandidateJourneyController::class, 'exportPdf'])->name('journey.export-pdf');
     });
 
     // ========================================================================

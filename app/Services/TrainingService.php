@@ -93,8 +93,8 @@ class TrainingService
         $batch = Batch::findOrFail($batchId);
 
         // AUDIT FIX: Wrap multi-step operation in database transaction
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($batch, $startDate, $endDate) {
             $batch->update([
                 'start_date' => $startDate,
                 'end_date' => $endDate,
@@ -115,12 +115,8 @@ class TrainingService
                 ->causedBy(auth()->user())
                 ->log("Training started for batch {$batch->batch_code}");
 
-            DB::commit();
             return $batch;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**
@@ -156,10 +152,10 @@ class TrainingService
     public function recordBatchAttendance($batchId, $date, $attendanceData)
     {
         $batch = Batch::with('candidates')->findOrFail($batchId);
-        $records = [];
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($batch, $batchId, $date, $attendanceData) {
+            $records = [];
             foreach ($batch->candidates as $candidate) {
                 $status = $attendanceData[$candidate->id] ?? 'absent';
                 
@@ -171,13 +167,8 @@ class TrainingService
                     'trainer_id' => auth()->id(),
                 ]);
             }
-
-            DB::commit();
             return $records;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**
@@ -685,14 +676,15 @@ class TrainingService
     public function assignCandidatesToBatch($batchId, array $candidateIds)
     {
         $batch = Batch::lockForUpdate()->findOrFail($batchId);
-        $results = [
-            'success' => [],
-            'failed' => [],
-            'already_assigned' => [],
-        ];
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($batch, $batchId, $candidateIds) {
+            $results = [
+                'success' => [],
+                'failed' => [],
+                'already_assigned' => [],
+            ];
+
             foreach ($candidateIds as $candidateId) {
                 $candidate = Candidate::find($candidateId);
 
@@ -737,12 +729,8 @@ class TrainingService
                     ->log('Assigned to training batch');
             }
 
-            DB::commit();
             return $results;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**
@@ -786,8 +774,8 @@ class TrainingService
         // Check or generate certificate
         $certificate = $candidate->certificate ?? $this->generateCertificate($candidateId);
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($candidate, $candidateId, $remarks, $attendanceStats, $finalAssessment, $certificate) {
             // Update candidate status
             $candidate->update([
                 'status' => CandidateStatus::VISA_PROCESS->value,
@@ -826,12 +814,8 @@ class TrainingService
                 ])
                 ->log('Training completed - visa process initiated');
 
-            DB::commit();
             return $candidate->fresh(['visaProcess']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**

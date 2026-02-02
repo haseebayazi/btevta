@@ -328,6 +328,13 @@
                     <i class="fas fa-home text-lg w-6"></i>
                     <span x-show="sidebarOpen" class="font-medium">Dashboard</span>
                 </a>
+
+                <!-- Pipeline Dashboard (Module 10) -->
+                <a href="{{ route('pipeline.index') }}" 
+                   class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('pipeline.*') ? 'sidebar-item-active' : '' }}">
+                    <i class="fas fa-chart-line text-lg w-6"></i>
+                    <span x-show="sidebarOpen" class="font-medium">Pipeline</span>
+                </a>
                 
                 <!-- 10 Main Tabs -->
                 <div class="pt-4">

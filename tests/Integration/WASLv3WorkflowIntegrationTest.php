@@ -77,16 +77,10 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $registrationService = app(RegistrationService::class);
 
         $registrationData = [
-            'allocation' => [
-                'campus_id' => $campus->id,
-                'program_id' => $program->id,
-                'trade_id' => $trade->id,
-                'implementing_partner_id' => $partner->id,
-            ],
-            'personal_details' => [
-                'next_of_kin_name' => 'John Doe',
-                'next_of_kin_phone' => '03001234567',
-            ],
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
+            'implementing_partner_id' => $partner->id,
         ];
 
         $result = $registrationService->registerCandidateWithAllocation(
@@ -111,12 +105,11 @@ class WASLv3WorkflowIntegrationTest extends TestCase
             'assessment_date' => now(),
             'score' => 75,
             'max_score' => 100,
-            'percentage' => 75.0,
-            'pass' => true,
+            'result' => 'pass',
             'remarks' => 'Good progress',
         ]);
 
-        $this->assertTrue($interimAssessment->pass);
+        $this->assertEquals('pass', $interimAssessment->result);
 
         // Final Assessment
         $finalAssessment = TrainingAssessment::create([
@@ -126,22 +119,21 @@ class WASLv3WorkflowIntegrationTest extends TestCase
             'assessment_date' => now()->addMonths(2),
             'score' => 85,
             'max_score' => 100,
-            'percentage' => 85.0,
-            'pass' => true,
+            'result' => 'pass',
             'remarks' => 'Excellent performance',
         ]);
 
-        $this->assertTrue($finalAssessment->pass);
+        $this->assertEquals('pass', $finalAssessment->result);
         $candidate->update(['status' => CandidateStatus::TRAINING_COMPLETED->value]);
 
         // ===== PHASE 4: Visa Processing =====
-        $candidate->update(['status' => CandidateStatus::VISA_PROCESSING->value]);
+        $candidate->update(['status' => CandidateStatus::VISA_PROCESS->value]);
 
-        // Simulate visa received
-        $candidate->update(['status' => CandidateStatus::VISA_RECEIVED->value]);
+        // Simulate visa approved
+        $candidate->update(['status' => CandidateStatus::VISA_APPROVED->value]);
 
-        // ===== PHASE 5: Pre-Departure =====
-        $candidate->update(['status' => CandidateStatus::PRE_DEPARTURE->value]);
+        // ===== PHASE 5: Departure Processing =====
+        $candidate->update(['status' => CandidateStatus::DEPARTURE_PROCESSING->value]);
 
         // Create departure record with WASL v3 fields
         $departure = Departure::create([
@@ -165,12 +157,15 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->assertEquals(ProtectorStatus::DONE->value, $departure->protector_status);
         $this->assertEquals(DepartureStatus::READY_TO_DEPART->value, $departure->final_departure_status);
 
-        // ===== PHASE 6: Departed =====
+        // ===== PHASE 6: Ready to Depart =====
+        $candidate->update(['status' => CandidateStatus::READY_TO_DEPART->value]);
+
+        // ===== PHASE 7: Departed =====
         $candidate->update(['status' => CandidateStatus::DEPARTED->value]);
         $departure->update(['final_departure_status' => DepartureStatus::DEPARTED->value]);
 
-        // ===== PHASE 7: Post-Departure with Full Details =====
-        $candidate->update(['status' => CandidateStatus::POST_ARRIVAL->value]);
+        // ===== PHASE 8: Post-Departure with Full Details =====
+        $candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
 
         $postDeparture = PostDepartureDetail::create([
             'departure_id' => $departure->id,
@@ -196,11 +191,8 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->assertEquals('Saudi Aramco', $postDeparture->company_name);
         $this->assertEquals(2500.00, $postDeparture->final_salary);
 
-        // ===== PHASE 8: Employment =====
-        $candidate->update(['status' => CandidateStatus::EMPLOYED->value]);
-
-        // ===== PHASE 9: Success Story =====
-        $candidate->update(['status' => CandidateStatus::SUCCESS_STORY->value]);
+        // ===== PHASE 9: Complete the Journey =====
+        $candidate->update(['status' => CandidateStatus::COMPLETED->value]);
 
         $successStory = SuccessStory::create([
             'candidate_id' => $candidate->id,
@@ -220,7 +212,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $finalCandidate = $candidate->fresh();
 
         // Verify complete journey
-        $this->assertEquals(CandidateStatus::SUCCESS_STORY->value, $finalCandidate->status);
+        $this->assertEquals(CandidateStatus::COMPLETED->value, $finalCandidate->status);
         $this->assertNotNull($finalCandidate->batch_id);
         $this->assertNotNull($finalCandidate->allocated_number);
         $this->assertEquals($campus->id, $finalCandidate->campus_id);
@@ -228,7 +220,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $this->assertEquals($trade->id, $finalCandidate->trade_id);
 
         // Verify all phases completed
-        $this->assertNotNull($finalCandidate->screening);
+        $this->assertNotNull($finalCandidate->screenings()->first());
         $this->assertNotNull($finalCandidate->departure);
         $this->assertCount(2, TrainingAssessment::where('candidate_id', $candidate->id)->get());
         $this->assertNotNull(PostDepartureDetail::where('departure_id', $departure->id)->first());
@@ -250,15 +242,13 @@ class WASLv3WorkflowIntegrationTest extends TestCase
         $trade = Trade::factory()->create();
 
         $registrationData = [
-            'allocation' => [
-                'campus_id' => $campus->id,
-                'program_id' => $program->id,
-                'trade_id' => $trade->id,
-            ],
+            'campus_id' => $campus->id,
+            'program_id' => $program->id,
+            'trade_id' => $trade->id,
         ];
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('screening');
+        $this->expectExceptionMessage('screened');
 
         $registrationService->registerCandidateWithAllocation($candidate, $registrationData);
     }
@@ -266,19 +256,21 @@ class WASLv3WorkflowIntegrationTest extends TestCase
     #[Test]
     public function auto_batch_creates_new_batch_when_full()
     {
-        config(['wasl.batch_size' => 3]);
+        // Use an allowed batch size (20 is minimum allowed)
+        config(['wasl.batch_size' => 20]);
 
         $campus = Campus::factory()->create();
         $program = Program::factory()->create();
         $trade = Trade::factory()->create();
+        $country = Country::factory()->create();
 
         $autoBatchService = app(AutoBatchService::class);
         $registrationService = app(RegistrationService::class);
         $screeningService = app(ScreeningService::class);
 
-        // Create and register 5 candidates
+        // Create and register 25 candidates (more than batch size of 20)
         $candidates = [];
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 25; $i++) {
             $candidate = Candidate::factory()->create([
                 'status' => CandidateStatus::SCREENING->value,
                 'campus_id' => $campus->id,
@@ -286,10 +278,11 @@ class WASLv3WorkflowIntegrationTest extends TestCase
                 'trade_id' => $trade->id,
             ]);
 
-            // Screen the candidate
+            // Screen the candidate with target country for international placement
             $screeningService->conductInitialScreening($candidate, [
                 'consent_for_work' => true,
                 'placement_interest' => PlacementInterest::INTERNATIONAL->value,
+                'target_country_id' => $country->id,
                 'screening_status' => ScreeningStatus::SCREENED->value,
             ]);
 
@@ -298,17 +291,26 @@ class WASLv3WorkflowIntegrationTest extends TestCase
             $candidates[] = ['candidate' => $candidate, 'batch' => $batch];
         }
 
-        // First 3 should be in batch 1
-        $this->assertEquals($candidates[0]['batch']->id, $candidates[1]['batch']->id);
-        $this->assertEquals($candidates[1]['batch']->id, $candidates[2]['batch']->id);
+        // First 20 should be in batch 1 (same batch)
+        $firstBatchId = $candidates[0]['batch']->id;
+        for ($i = 0; $i < 20; $i++) {
+            $this->assertEquals($firstBatchId, $candidates[$i]['batch']->id,
+                "Candidate $i should be in first batch");
+        }
 
-        // Last 2 should be in batch 2 (new batch created when first was full)
-        $this->assertEquals($candidates[3]['batch']->id, $candidates[4]['batch']->id);
-        $this->assertNotEquals($candidates[2]['batch']->id, $candidates[3]['batch']->id);
+        // Last 5 should be in batch 2 (new batch created when first was full)
+        $secondBatchId = $candidates[20]['batch']->id;
+        $this->assertNotEquals($firstBatchId, $secondBatchId, 
+            "Candidates 21-25 should be in a new batch");
+        
+        for ($i = 20; $i < 25; $i++) {
+            $this->assertEquals($secondBatchId, $candidates[$i]['batch']->id,
+                "Candidate $i should be in second batch");
+        }
 
         // Verify batch sizes
-        $this->assertEquals(3, $candidates[0]['batch']->fresh()->current_size);
-        $this->assertEquals(2, $candidates[3]['batch']->fresh()->current_size);
+        $this->assertEquals(20, $candidates[0]['batch']->fresh()->current_size);
+        $this->assertEquals(5, $candidates[20]['batch']->fresh()->current_size);
     }
 
     #[Test]
@@ -328,8 +330,7 @@ class WASLv3WorkflowIntegrationTest extends TestCase
             'assessment_date' => now(),
             'score' => 70,
             'max_score' => 100,
-            'percentage' => 70.0,
-            'pass' => true,
+            'result' => 'pass',
         ]);
 
         $interimCount = TrainingAssessment::where('candidate_id', $candidate->id)

@@ -758,8 +758,8 @@ class DepartureService
      */
     public function reportIssue($candidateId, $issueType, $issueDate, $description, $severity, $evidencePath = null)
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $issue = DB::transaction(function () use ($candidateId, $issueType, $issueDate, $description, $severity, $evidencePath) {
             // This would typically be a separate DepartureIssue model
             // For now, log it in the departure record
             $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
@@ -793,12 +793,10 @@ class DepartureService
                 ])
                 ->log("Issue reported: {$issueType} - {$severity}");
 
-            DB::commit();
             return $issue;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        return $issue;
     }
 
     /**
@@ -1007,8 +1005,8 @@ class DepartureService
      */
     public function markAsReturned($candidateId, $returnDate, $returnReason, $remarks = null)
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $departure = DB::transaction(function () use ($candidateId, $returnDate, $returnReason, $remarks) {
             $departure = Departure::where('candidate_id', $candidateId)->firstOrFail();
 
             $departure->update([
@@ -1023,12 +1021,10 @@ class DepartureService
                 ->causedBy(auth()->user())
                 ->log("Candidate marked as returned: {$returnReason}");
 
-            DB::commit();
             return $departure;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        return $departure;
     }
 
     /**
