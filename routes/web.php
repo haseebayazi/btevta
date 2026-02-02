@@ -29,6 +29,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\CandidateJourneyController;
+use App\Http\Controllers\PipelineController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,6 +118,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
         // Phase 3: Compliance Monitoring Dashboard
         Route::get('/compliance-monitoring', [DashboardController::class, 'complianceMonitoring'])->name('compliance-monitoring');
+    });
+
+    // ========================================================================
+    // PIPELINE DASHBOARD - WASL v3 Module 10
+    // Purpose: Master view of all candidates by lifecycle stage
+    // ========================================================================
+    Route::prefix('pipeline')->name('pipeline.')->group(function () {
+        Route::get('/', [PipelineController::class, 'index'])->name('index');
+        Route::get('/status/{status}', [PipelineController::class, 'byStatus'])->name('by-status');
+        Route::get('/export', [PipelineController::class, 'export'])->name('export');
     });
 
     // ========================================================================
