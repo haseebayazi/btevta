@@ -72,7 +72,6 @@ class HealthCheckController extends Controller
                     'php_version' => PHP_VERSION,
                     'laravel_version' => app()->version(),
                     'environment' => app()->environment(),
-                    'debug_mode' => config('app.debug'),
                 ],
             ],
         ]);
