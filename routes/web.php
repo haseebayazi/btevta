@@ -43,15 +43,17 @@ use App\Http\Controllers\PipelineController;
 */
 
 // ========================================================================
-// HEALTH CHECK ROUTE (Public - No Authentication)
+// HEALTH CHECK ROUTES (Public - No Authentication)
 // Used by load balancers and monitoring systems
 // ========================================================================
-Route::get('/up', function () {
-    return response()->json([
-        'status' => 'healthy',
-        'timestamp' => now()->toISOString(),
-    ]);
-})->name('health.up');
+Route::prefix('health')->name('health.')->group(function () {
+    Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('up');
+    Route::get('/detailed', [\App\Http\Controllers\HealthCheckController::class, 'detailed'])->name('detailed');
+    Route::get('/stats', [\App\Http\Controllers\HealthCheckController::class, 'statistics'])->name('stats');
+});
+
+// Legacy route for backward compatibility
+Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('legacy-health');
 
 // Authentication Routes
 // SECURITY FIX: Added guest middleware to prevent authenticated users from accessing auth pages

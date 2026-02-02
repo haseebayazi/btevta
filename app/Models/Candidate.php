@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Carbon\Carbon;
 use App\Enums\CandidateStatus;
+use App\Observers\CandidateStatusObserver;
 
+#[ObservedBy([CandidateStatusObserver::class])]
 class Candidate extends Model
 {
     use HasFactory, SoftDeletes;
