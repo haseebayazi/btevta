@@ -11,6 +11,7 @@ use App\Models\Trade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 
 /**
  * Edge case tests for data validation.
@@ -40,7 +41,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_accepts_cnic_with_leading_zeros()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '0123456789012', // Leading zero
             'father_name' => 'Father Name',
@@ -60,7 +62,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_cnic_with_all_zeros()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '0000000000000', // All zeros
             'father_name' => 'Father Name',
@@ -79,7 +82,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_cnic_with_special_characters()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '35201-1234567-1', // With dashes
             'father_name' => 'Father Name',
@@ -99,7 +103,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_cnic_shorter_than_13_digits()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '35201123456', // 11 digits
             'father_name' => 'Father Name',
@@ -119,7 +124,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_cnic_longer_than_13_digits()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '352011234567890', // 15 digits
             'father_name' => 'Father Name',
@@ -143,7 +149,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_future_date_of_birth()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -163,7 +170,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_date_of_birth_too_old()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -183,7 +191,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_underage_candidates()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -203,7 +212,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_accepts_boundary_age_candidates()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -223,7 +233,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_handles_leap_year_date_correctly()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -246,7 +257,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_name_exceeding_max_length()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => Str::random(256), // Exceeds 255
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -266,7 +278,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_accepts_name_at_max_length()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => Str::random(255), // Exactly 255
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -285,7 +298,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_address_exceeding_max_length()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -304,7 +318,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_email_exceeding_max_length()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'Test Candidate',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -331,7 +346,8 @@ class DataValidationEdgeCasesTest extends TestCase
         $validNumbers = ['03001234567', '03451234567', '03321234567'];
 
         foreach ($validNumbers as $phone) {
-            $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+            Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
                 'name' => 'Test Candidate',
                 'cnic' => '3520112345' . rand(100, 999),
                 'father_name' => 'Father Name',
@@ -357,7 +373,8 @@ class DataValidationEdgeCasesTest extends TestCase
         $invalidNumbers = ['123', '12345678901234', 'abcdefghijk', '0000000000'];
 
         foreach ($invalidNumbers as $phone) {
-            $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+            Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
                 'name' => 'Test Candidate',
                 'cnic' => '3520112345671',
                 'father_name' => 'Father Name',
@@ -384,7 +401,8 @@ class DataValidationEdgeCasesTest extends TestCase
         $invalidEmails = ['notanemail', '@example.com', 'test@', 'test@.com'];
 
         foreach ($invalidEmails as $email) {
-            $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+            Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
                 'name' => 'Test Candidate',
                 'cnic' => '3520112345671',
                 'father_name' => 'Father Name',
@@ -409,7 +427,8 @@ class DataValidationEdgeCasesTest extends TestCase
 
         foreach ($validEmails as $email) {
             $cnic = '35201123456' . rand(10, 99);
-            $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+            Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
                 'name' => 'Test Candidate',
                 'cnic' => $cnic,
                 'father_name' => 'Father Name',
@@ -437,7 +456,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_handles_names_with_special_characters()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => "Muhammad Ali O'Brien-Khan", // Apostrophe and hyphen
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -456,7 +476,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_sanitizes_xss_in_text_fields()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => '<script>alert("xss")</script>Test',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
@@ -478,7 +499,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_handles_unicode_characters_in_names()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => 'محمد علی', // Urdu name
             'cnic' => '3520112345671',
             'father_name' => 'والد کا نام',
@@ -501,7 +523,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_empty_required_fields()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => '',
             'cnic' => '',
             'father_name' => '',
@@ -521,7 +544,8 @@ class DataValidationEdgeCasesTest extends TestCase
     #[Test]
     public function it_rejects_whitespace_only_fields()
     {
-        $response = $this->actingAs($this->admin)->postJson('/api/v1/candidates', [
+        Sanctum::actingAs($this->admin);
+        $response = $this->postJson('/api/v1/candidates', [
             'name' => '   ',
             'cnic' => '3520112345671',
             'father_name' => 'Father Name',
