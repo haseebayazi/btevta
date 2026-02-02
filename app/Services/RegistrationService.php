@@ -495,8 +495,8 @@ class RegistrationService
             throw new \Exception($eligibility['reason']);
         }
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $result = DB::transaction(function () use ($candidate, $registrationData) {
             // Step 1: Allocate campus, program, implementing partner, and trade
             $allocationData = [
                 'campus_id' => $registrationData['campus_id'],
@@ -517,29 +517,29 @@ class RegistrationService
                 'registration_date' => now(),
             ]);
 
-            DB::commit();
-
-            // Log registration
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'batch_id' => $batch->id,
-                    'batch_number' => $batch->batch_code,
-                    'allocated_number' => $candidate->allocated_number,
-                ])
-                ->log('Candidate registered with allocation and batch assignment');
-
             return [
-                'success' => true,
-                'candidate' => $candidate->fresh(),
+                'candidate' => $candidate,
                 'batch' => $batch,
-                'allocation' => $this->allocationService->getAllocationSummary($candidate),
             ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        // Log registration (outside transaction as it's not critical)
+        activity()
+            ->performedOn($result['candidate'])
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'batch_id' => $result['batch']->id,
+                'batch_number' => $result['batch']->batch_code,
+                'allocated_number' => $result['candidate']->allocated_number,
+            ])
+            ->log('Candidate registered with allocation and batch assignment');
+
+        return [
+            'success' => true,
+            'candidate' => $result['candidate']->fresh(),
+            'batch' => $result['batch'],
+            'allocation' => $this->allocationService->getAllocationSummary($result['candidate']),
+        ];
     }
 
     /**
@@ -630,11 +630,11 @@ class RegistrationService
      */
     public function bulkRegisterCandidates(array $candidateIds, array $registrationData): array
     {
-        $successful = [];
-        $failed = [];
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $result = DB::transaction(function () use ($candidateIds, $registrationData) {
+            $successful = [];
+            $failed = [];
 
-        DB::beginTransaction();
-        try {
             foreach ($candidateIds as $candidateId) {
                 try {
                     $candidate = Candidate::findOrFail($candidateId);
@@ -652,25 +652,22 @@ class RegistrationService
                 }
             }
 
-            DB::commit();
-
-            // Log bulk registration
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'successful_count' => count($successful),
-                    'failed_count' => count($failed),
-                ])
-                ->log('Bulk candidate registration');
-
             return [
                 'successful' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
             ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        // Log bulk registration (outside transaction as it's not critical)
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'successful_count' => count($result['successful']),
+                'failed_count' => count($result['failed']),
+            ])
+            ->log('Bulk candidate registration');
+
+        return $result;
     }
 }
