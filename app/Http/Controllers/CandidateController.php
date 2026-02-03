@@ -647,4 +647,29 @@ class CandidateController extends Controller
                 : 'Please enter a valid Pakistan phone number (e.g., 03XX-XXXXXXX or +92-3XX-XXXXXXX)',
         ]);
     }
+
+    /**
+     * Serve candidate photo (fallback for when storage link doesn't exist)
+     *
+     * @param Candidate $candidate
+     * @return \Illuminate\Http\Response
+     */
+    public function photo(Candidate $candidate)
+    {
+        $this->authorize('view', $candidate);
+
+        if (!$candidate->photo_path) {
+            abort(404, 'No photo available');
+        }
+
+        // Check if file exists on public disk
+        if (!Storage::disk('public')->exists($candidate->photo_path)) {
+            abort(404, 'Photo file not found');
+        }
+
+        $file = Storage::disk('public')->get($candidate->photo_path);
+        $mimeType = Storage::disk('public')->mimeType($candidate->photo_path);
+
+        return response($file, 200)->header('Content-Type', $mimeType);
+    }
 }
