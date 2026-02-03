@@ -248,12 +248,10 @@
                     <td>{{ $checklist->name }}</td>
                     <td>
                         @if($document)
-                            @if($document->verification_status === 'verified')
+                            @if($document->isVerified())
                                 <span class="status-badge status-verified">Verified</span>
-                            @elseif($document->verification_status === 'rejected')
-                                <span class="status-badge status-rejected">Rejected</span>
                             @else
-                                <span class="status-badge status-pending">Pending</span>
+                                <span class="status-badge status-pending">Pending Review</span>
                             @endif
                         @else
                             <span class="status-badge status-missing">Missing</span>
@@ -288,12 +286,10 @@
                     <td>{{ $checklist->name }}</td>
                     <td>
                         @if($document)
-                            @if($document->verification_status === 'verified')
+                            @if($document->isVerified())
                                 <span class="status-badge status-verified">Verified</span>
-                            @elseif($document->verification_status === 'rejected')
-                                <span class="status-badge status-rejected">Rejected</span>
                             @else
-                                <span class="status-badge status-pending">Pending</span>
+                                <span class="status-badge status-pending">Pending Review</span>
                             @endif
                         @else
                             <span class="status-badge status-missing">Not Uploaded</span>

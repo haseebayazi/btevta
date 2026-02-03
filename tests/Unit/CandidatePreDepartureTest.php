@@ -12,9 +12,14 @@ class CandidatePreDepartureTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected $user;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Create a user for uploaded_by foreign key
+        $this->user = \App\Models\User::factory()->create(['role' => 'admin']);
 
         // Seed document checklists
         $this->seedDocumentChecklists();
@@ -51,7 +56,7 @@ class CandidatePreDepartureTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->user->id,
             ]);
         }
 
@@ -74,7 +79,7 @@ class CandidatePreDepartureTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->user->id,
             ]);
         }
 
@@ -97,7 +102,7 @@ class CandidatePreDepartureTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->user->id,
             ]);
         }
 
@@ -125,7 +130,7 @@ class CandidatePreDepartureTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->user->id,
             ]);
         }
 
@@ -151,7 +156,7 @@ class CandidatePreDepartureTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->user->id,
             ]);
         }
 
@@ -177,7 +182,7 @@ class CandidatePreDepartureTest extends TestCase
             'mime_type' => 'application/pdf',
             'file_size' => 1024,
             'uploaded_at' => now(),
-            'uploaded_by' => 1,
+            'uploaded_by' => $this->user->id,
         ]);
 
         $this->assertCount(1, $candidate->preDepartureDocuments);

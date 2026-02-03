@@ -45,6 +45,13 @@ class CandidateScreeningFactory extends Factory
             'verification_remarks' => fake()->optional()->sentence(),
             'created_by' => User::factory(),
             'updated_by' => fake()->optional()->passthrough(User::factory()),
+            // Module 2: Initial Screening fields
+            'consent_for_work' => fake()->boolean(),
+            'placement_interest' => fake()->randomElement(['local', 'international']),
+            'target_country_id' => null,
+            'screening_status' => fake()->randomElement(['pending', 'screened', 'deferred']),
+            'reviewer_id' => fake()->optional()->passthrough(User::factory()),
+            'reviewed_at' => fake()->optional()->dateTimeBetween('-1 month', 'now'),
         ];
     }
 

@@ -584,23 +584,23 @@ class ScreeningService
      */
     public function conductInitialScreening(Candidate $candidate, array $screeningData): CandidateScreening
     {
-        DB::beginTransaction();
-        try {
-            // Validate screening data
-            $this->validateScreeningData($screeningData);
+        // Validate screening data
+        $this->validateScreeningData($screeningData);
 
-            // Handle evidence file upload if present
-            $evidencePath = null;
-            $evidenceFilename = null;
-            if (isset($screeningData['evidence_file'])) {
-                $evidencePath = $screeningData['evidence_file']->store(
-                    'screenings/' . $candidate->id,
-                    'private'
-                );
-                $evidenceFilename = $screeningData['evidence_file']->getClientOriginalName();
-                unset($screeningData['evidence_file']);
-            }
+        // Handle evidence file upload if present
+        $evidencePath = null;
+        $evidenceFilename = null;
+        if (isset($screeningData['evidence_file'])) {
+            $evidencePath = $screeningData['evidence_file']->store(
+                'screenings/' . $candidate->id,
+                'private'
+            );
+            $evidenceFilename = $screeningData['evidence_file']->getClientOriginalName();
+            unset($screeningData['evidence_file']);
+        }
 
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $screening = DB::transaction(function () use ($candidate, $screeningData, $evidencePath, $evidenceFilename) {
             // Create or update screening record
             $screening = CandidateScreening::updateOrCreate(
                 ['candidate_id' => $candidate->id],
@@ -624,23 +624,20 @@ class ScreeningService
                 $candidate->update(['status' => CandidateStatus::DEFERRED->value]);
             }
 
-            DB::commit();
+            return $screening;
+        });
 
-            // Log activity
-            activity()
-                ->performedOn($screening)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'screening_status' => $screening->screening_status,
-                    'placement_interest' => $screening->placement_interest,
-                ])
-                ->log('Initial screening conducted');
+        // Log activity (outside transaction as it's not critical)
+        activity()
+            ->performedOn($screening)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'screening_status' => $screening->screening_status,
+                'placement_interest' => $screening->placement_interest,
+            ])
+            ->log('Initial screening conducted');
 
-            return $screening->fresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        return $screening->fresh();
     }
 
     /**
@@ -774,11 +771,11 @@ class ScreeningService
      */
     public function updateScreeningStatus(CandidateScreening $screening, string $newStatus, ?string $notes = null): CandidateScreening
     {
-        DB::beginTransaction();
-        try {
-            // Validate new status
-            ScreeningStatus::from($newStatus);
+        // Validate new status
+        ScreeningStatus::from($newStatus);
 
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($screening, $newStatus, $notes) {
             $screening->update([
                 'screening_status' => $newStatus,
                 'notes' => $notes ?? $screening->notes,
@@ -793,21 +790,16 @@ class ScreeningService
             } elseif ($newStatus === ScreeningStatus::DEFERRED->value) {
                 $candidate->update(['status' => CandidateStatus::DEFERRED->value]);
             }
+        });
 
-            DB::commit();
+        // Log activity (outside transaction as it's not critical)
+        activity()
+            ->performedOn($screening)
+            ->causedBy(auth()->user())
+            ->withProperties(['new_status' => $newStatus])
+            ->log('Screening status updated');
 
-            // Log activity
-            activity()
-                ->performedOn($screening)
-                ->causedBy(auth()->user())
-                ->withProperties(['new_status' => $newStatus])
-                ->log('Screening status updated');
-
-            return $screening->fresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        return $screening->fresh();
     }
 
     /**
@@ -861,11 +853,11 @@ class ScreeningService
      */
     public function bulkUpdateScreeningStatus(array $candidateIds, string $newStatus, ?string $notes = null): array
     {
-        $successful = [];
-        $failed = [];
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $result = DB::transaction(function () use ($candidateIds, $newStatus, $notes) {
+            $successful = [];
+            $failed = [];
 
-        DB::beginTransaction();
-        try {
             foreach ($candidateIds as $candidateId) {
                 try {
                     $screening = CandidateScreening::where('candidate_id', $candidateId)->firstOrFail();
@@ -879,26 +871,23 @@ class ScreeningService
                 }
             }
 
-            DB::commit();
-
-            // Log bulk update
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'new_status' => $newStatus,
-                    'successful_count' => count($successful),
-                    'failed_count' => count($failed),
-                ])
-                ->log('Bulk screening status update');
-
             return [
                 'successful' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
             ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        // Log bulk update (outside transaction as it's not critical)
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'new_status' => $newStatus,
+                'successful_count' => count($result['successful']),
+                'failed_count' => count($result['failed']),
+            ])
+            ->log('Bulk screening status update');
+
+        return $result;
     }
 }

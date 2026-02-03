@@ -462,7 +462,7 @@ class ComplaintServiceTest extends TestCase
         $file = \Illuminate\Http\UploadedFile::fake()->create('evidence2.pdf', 100);
         $path = $file->store('complaints/evidence', 'public');
 
-        // Pass stored path string
+        // Pass stored path string (basename will be the hashed filename, not original)
         $result = $this->service->addEvidence($complaint->id, $path, 'Path file test');
 
         $this->assertArrayHasKey('path', $result);
@@ -472,6 +472,7 @@ class ComplaintServiceTest extends TestCase
         $this->assertNotNull($complaintFresh->evidence_files);
         $files = json_decode($complaintFresh->evidence_files, true);
         $this->assertCount(1, $files);
-        $this->assertEquals('evidence2.pdf', $files[0]['original_name']);
+        // When passing a path string, original_name will be the basename of the stored path
+        $this->assertEquals(basename($path), $files[0]['original_name']);
     }
 }

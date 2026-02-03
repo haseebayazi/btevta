@@ -167,7 +167,7 @@ class GlobalSearchService
                         'id' => $item->id,
                         'title' => $item->name,
                         'subtitle' => "Code: {$item->code} | Duration: {$item->duration_months} months",
-                        'url' => route('trades.show', $item->id),
+                        'url' => route('admin.trades.show', $item->id),
                         'badge' => null,
                         'badge_class' => null,
                     ];
@@ -192,7 +192,7 @@ class GlobalSearchService
                         'id' => $item->id,
                         'title' => $item->name,
                         'subtitle' => "City: {$item->city} | Code: {$item->code}",
-                        'url' => route('campuses.show', $item->id),
+                        'url' => route('admin.campuses.show', $item->id),
                         'badge' => null,
                         'badge_class' => null,
                     ];
@@ -210,7 +210,7 @@ class GlobalSearchService
                         'id' => $item->id,
                         'title' => $item->name,
                         'subtitle' => "{$item->company_name} | {$item->country}",
-                        'url' => route('oeps.show', $item->id),
+                        'url' => route('admin.oeps.show', $item->id),
                         'badge' => null,
                         'badge_class' => null,
                     ];

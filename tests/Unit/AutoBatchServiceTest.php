@@ -170,6 +170,7 @@ class AutoBatchServiceTest extends TestCase
 
         $existingBatch = Batch::factory()->create([
             'campus_id' => $campus->id,
+            'program_id' => $program->id,  // Add program_id to match findAvailableBatch criteria
             'trade_id' => $trade->id,
             'status' => 'planned',
             'current_size' => 10,

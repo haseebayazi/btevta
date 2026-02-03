@@ -501,8 +501,8 @@ class DocumentArchiveService
     {
         $documents = DocumentArchive::whereIn('id', $documentIds)->get();
         
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($documents) {
             foreach ($documents as $document) {
                 // Soft delete
                 $document->delete();
@@ -513,13 +513,9 @@ class DocumentArchiveService
                     ->causedBy(auth()->user())
                     ->log("Document deleted: {$document->document_name}");
             }
-            
-            DB::commit();
-            return ['success' => true, 'deleted' => count($documentIds)];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
+
+        return ['success' => true, 'deleted' => count($documentIds)];
     }
 
     /**

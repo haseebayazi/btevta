@@ -25,8 +25,8 @@ class AllocationService
         // Validate allocation data
         $this->validateAllocationData($allocationData);
 
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($candidate, $allocationData) {
             // Update candidate allocation fields
             $candidate->campus_id = $allocationData['campus_id'];
             $candidate->program_id = $allocationData['program_id'];
@@ -35,25 +35,16 @@ class AllocationService
             $candidate->oep_id = $allocationData['oep_id'] ?? null;
 
             $candidate->save();
+        });
 
-            DB::commit();
+        // Log the allocation (outside transaction as it's not critical)
+        activity()
+            ->performedOn($candidate)
+            ->causedBy(auth()->user())
+            ->withProperties($allocationData)
+            ->log('Candidate allocation updated');
 
-            // Log the allocation
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->withProperties($allocationData)
-                ->log('Candidate allocation updated');
-
-            return $candidate;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to allocate candidate', [
-                'candidate_id' => $candidate->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        return $candidate;
     }
 
     /**
@@ -195,11 +186,11 @@ class AllocationService
     {
         $this->validateAllocationData($allocationData);
 
-        $successful = [];
-        $failed = [];
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        $result = DB::transaction(function () use ($candidateIds, $allocationData) {
+            $successful = [];
+            $failed = [];
 
-        DB::beginTransaction();
-        try {
             foreach ($candidateIds as $candidateId) {
                 try {
                     $candidate = Candidate::findOrFail($candidateId);
@@ -210,30 +201,24 @@ class AllocationService
                 }
             }
 
-            DB::commit();
-
-            // Log bulk allocation
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'allocation_data' => $allocationData,
-                    'successful_count' => count($successful),
-                    'failed_count' => count($failed),
-                ])
-                ->log('Bulk candidate allocation');
-
             return [
                 'success' => $successful,
                 'failed' => $failed,
                 'total_processed' => count($candidateIds),
             ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk allocation failed', [
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        });
+
+        // Log bulk allocation (outside transaction as it's not critical)
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'allocation_data' => $allocationData,
+                'successful_count' => count($result['success']),
+                'failed_count' => count($result['failed']),
+            ])
+            ->log('Bulk candidate allocation');
+
+        return $result;
     }
 
     /**
@@ -278,8 +263,8 @@ class AllocationService
      */
     public function clearAllocation(Candidate $candidate): Candidate
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        DB::transaction(function () use ($candidate) {
             $candidate->campus_id = null;
             $candidate->program_id = null;
             $candidate->implementing_partner_id = null;
@@ -288,24 +273,15 @@ class AllocationService
             $candidate->allocated_number = null;
 
             $candidate->save();
+        });
 
-            DB::commit();
+        // Log the clearing (outside transaction as it's not critical)
+        activity()
+            ->performedOn($candidate)
+            ->causedBy(auth()->user())
+            ->log('Candidate allocation cleared');
 
-            // Log the clearing
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->log('Candidate allocation cleared');
-
-            return $candidate;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to clear candidate allocation', [
-                'candidate_id' => $candidate->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+        return $candidate;
     }
 
     /**

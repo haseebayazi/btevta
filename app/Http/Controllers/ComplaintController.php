@@ -601,11 +601,11 @@ class ComplaintController extends Controller
             $closedComplaints = (clone $baseQuery)->where('status', 'closed')->count();
 
             // Complaints by category
-            $categoryQuery = Complaint::select('category', \DB::raw('count(*) as count'));
+            $categoryQuery = Complaint::select('complaint_category', \DB::raw('count(*) as count'));
             $this->applyAccessFilter($categoryQuery);
-            $byCategory = $categoryQuery->groupBy('category')
+            $byCategory = $categoryQuery->groupBy('complaint_category')
                 ->get()
-                ->pluck('count', 'category');
+                ->pluck('count', 'complaint_category');
 
             // Complaints by priority
             $priorityQuery = Complaint::select('priority', \DB::raw('count(*) as count'));

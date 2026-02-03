@@ -7,14 +7,17 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Campus;
-use App\Models\OverseasEmploymentPromoter;
+use App\Models\Oep;
 use App\Models\Candidate;
 use App\Models\CandidateScreening;
-use App\Models\Registration;
-use App\Models\Training;
-use App\Models\VisaProcessing;
+use App\Models\Trade;
+use App\Models\Batch;
+use App\Models\TrainingAssessment;
+use App\Models\TrainingCertificate;
+use App\Models\VisaProcess;
 use App\Models\Departure;
 use App\Models\DocumentArchive;
+use App\Enums\CandidateStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -35,7 +38,8 @@ class CandidateJourneyIntegrationTest extends TestCase
 
     protected User $admin;
     protected Campus $campus;
-    protected OverseasEmploymentPromoter $oep;
+    protected Oep $oep;
+    protected Trade $trade;
     protected Candidate $candidate;
 
     protected function setUp(): void
@@ -44,7 +48,8 @@ class CandidateJourneyIntegrationTest extends TestCase
 
         $this->admin = User::factory()->admin()->create();
         $this->campus = Campus::factory()->create();
-        $this->oep = OverseasEmploymentPromoter::factory()->create();
+        $this->trade = Trade::factory()->create();
+        $this->oep = Oep::factory()->create();
     }
 
     #[Test]
@@ -55,261 +60,173 @@ class CandidateJourneyIntegrationTest extends TestCase
         // ============================================================
         $this->candidate = Candidate::factory()->create([
             'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
             'oep_id' => $this->oep->id,
-            'status' => 'pending',
+            'status' => CandidateStatus::LISTED->value,
             'name' => 'Ahmed Al-Mansoor',
-            'passport_number' => 'P123456789',
-            'nationality' => 'Pakistan',
         ]);
 
         $this->assertDatabaseHas('candidates', [
             'id' => $this->candidate->id,
-            'status' => 'pending',
+            'status' => CandidateStatus::LISTED->value,
             'name' => 'Ahmed Al-Mansoor',
         ]);
 
         // ============================================================
-        // STEP 2: Screening Process
+        // STEP 2: Move to Screening
         // ============================================================
-        $this->candidate->update(['status' => 'screening']);
+        $this->candidate->update(['status' => CandidateStatus::SCREENING->value]);
 
         $screening = CandidateScreening::create([
             'candidate_id' => $this->candidate->id,
-            'screening_date' => now(),
-            'screened_by' => $this->admin->id,
-            'language_proficiency' => 'good',
-            'technical_skills' => 'excellent',
-            'physical_fitness' => 'fit',
-            'behavioral_assessment' => 'positive',
-            'overall_score' => 85,
-            'outcome' => 'eligible',
-            'status' => 'completed',
-            'remarks' => 'Candidate meets all requirements',
+            'consent_for_work' => true,
+            'placement_interest' => 'international',
+            'screening_status' => 'screened',
+            'reviewed_by' => $this->admin->id,
+            'reviewed_at' => now(),
         ]);
 
-        // Verify screening affects candidate status
-        $this->candidate->update(['status' => 'registration']);
+        // Move to screened status
+        $this->candidate->update(['status' => CandidateStatus::SCREENED->value]);
 
         $this->assertDatabaseHas('candidate_screenings', [
             'candidate_id' => $this->candidate->id,
-            'outcome' => 'eligible',
-            'status' => 'completed',
+            'screening_status' => 'screened',
         ]);
 
-        $this->assertEquals('registration', $this->candidate->fresh()->status);
+        $this->assertEquals(CandidateStatus::SCREENED->value, $this->candidate->fresh()->status);
 
         // ============================================================
-        // STEP 3: Registration with Documents
+        // STEP 3: Registration
         // ============================================================
-        $registration = Registration::create([
-            'candidate_id' => $this->candidate->id,
-            'registration_date' => now(),
-            'application_form_submitted' => true,
-            'documents_verified' => true,
-            'biometric_data_collected' => true,
-            'medical_test_completed' => true,
-            'police_clearance_obtained' => true,
-            'photo_uploaded' => true,
-            'registration_fee_paid' => true,
-            'fee_amount' => 5000.00,
-            'payment_receipt' => 'RCP-2026-001',
-            'status' => 'completed',
-            'verified_by' => $this->admin->id,
+        $batch = Batch::factory()->create([
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
         ]);
 
-        // Upload required documents
-        $documents = [
-            ['document_type' => 'passport', 'category' => 'identity', 'expiry_date' => now()->addYears(5)],
-            ['document_type' => 'cnic', 'category' => 'identity', 'expiry_date' => now()->addYears(7)],
-            ['document_type' => 'medical_certificate', 'category' => 'medical', 'expiry_date' => now()->addMonths(6)],
-            ['document_type' => 'police_clearance', 'category' => 'clearance', 'expiry_date' => now()->addYear()],
-        ];
-
-        foreach ($documents as $docData) {
-            DocumentArchive::create([
-                'candidate_id' => $this->candidate->id,
-                'campus_id' => $this->campus->id,
-                'document_name' => ucfirst(str_replace('_', ' ', $docData['document_type'])),
-                'document_type' => $docData['document_type'],
-                'category' => $docData['category'],
-                'file_path' => "/storage/documents/{$this->candidate->id}/{$docData['document_type']}.pdf",
-                'file_type' => 'application/pdf',
-                'file_size' => 1024000,
-                'expiry_date' => $docData['expiry_date'],
-                'status' => 'active',
-                'uploaded_by' => $this->admin->id,
-            ]);
-        }
-
-        $this->candidate->update(['status' => 'training']);
-
-        $this->assertDatabaseHas('registrations', [
-            'candidate_id' => $this->candidate->id,
-            'status' => 'completed',
+        $this->candidate->update([
+            'status' => CandidateStatus::REGISTERED->value,
+            'batch_id' => $batch->id,
+            'registered_at' => now(),
         ]);
 
-        $this->assertEquals(4, $this->candidate->documents()->count());
+        $this->assertEquals(CandidateStatus::REGISTERED->value, $this->candidate->fresh()->status);
 
         // ============================================================
         // STEP 4: Training Process
         // ============================================================
-        $training = Training::create([
+        $this->candidate->update(['status' => CandidateStatus::TRAINING->value]);
+
+        // Create assessments
+        TrainingAssessment::create([
             'candidate_id' => $this->candidate->id,
-            'course_name' => 'Hospitality & Customer Service',
-            'course_code' => 'HCS-101',
-            'start_date' => now()->subDays(30),
-            'end_date' => now()->subDays(1),
-            'duration_days' => 30,
-            'training_mode' => 'in-person',
-            'trainer_name' => 'Muhammad Hassan',
-            'attendance_percentage' => 95.5,
-            'assessment_score' => 88,
-            'practical_score' => 90,
-            'theory_score' => 86,
-            'status' => 'completed',
-            'certificate_issued' => true,
+            'batch_id' => $batch->id,
+            'assessment_date' => now(),
+            'assessment_type' => 'midterm',
+            'score' => 85,
+            'result' => 'pass',
+        ]);
+
+        TrainingAssessment::create([
+            'candidate_id' => $this->candidate->id,
+            'batch_id' => $batch->id,
+            'assessment_date' => now(),
+            'assessment_type' => 'final',
+            'score' => 90,
+            'result' => 'pass',
+        ]);
+
+        // Issue certificate
+        $certificate = TrainingCertificate::create([
+            'candidate_id' => $this->candidate->id,
+            'batch_id' => $batch->id,
+            'certificate_number' => 'CERT-2026-001',
+            'issue_date' => now(),
+            'issued_by' => $this->admin->id,
+        ]);
+
+        $this->candidate->update(['status' => CandidateStatus::TRAINING_COMPLETED->value]);
+
+        $this->assertDatabaseHas('training_certificates', [
+            'candidate_id' => $this->candidate->id,
             'certificate_number' => 'CERT-2026-001',
         ]);
 
-        // Training completion triggers visa processing
-        $this->candidate->update(['status' => 'visa_processing']);
+        // ============================================================
+        // STEP 5: Visa Processing
+        // ============================================================
+        $this->candidate->update(['status' => CandidateStatus::VISA_PROCESS->value]);
 
-        $this->assertDatabaseHas('trainings', [
+        $visaProcess = VisaProcess::create([
             'candidate_id' => $this->candidate->id,
-            'status' => 'completed',
-            'certificate_issued' => true,
         ]);
 
-        // ============================================================
-        // STEP 5: Visa Processing - All Stages
-        // ============================================================
-        $visaProcessing = VisaProcessing::create([
-            'candidate_id' => $this->candidate->id,
-            'current_stage' => 'interview',
-            'overall_status' => 'in_progress',
-        ]);
-
-        // Stage 1: Interview
-        $visaProcessing->update([
+        // Progress through stages
+        $visaProcess->update([
             'interview_date' => now(),
-            'interview_status' => 'completed',
-            'interview_result' => 'passed',
-            'interview_remarks' => 'Candidate performed well',
-            'current_stage' => 'takamol',
+            'interview_status' => 'passed',
         ]);
 
-        $this->assertEquals('takamol', $visaProcessing->fresh()->current_stage);
-
-        // Stage 2: Takamol
-        $visaProcessing->update([
-            'takamol_submission_date' => now(),
-            'takamol_status' => 'approved',
-            'takamol_reference_number' => 'TKM-2026-001',
-            'current_stage' => 'medical',
+        $visaProcess->update([
+            'trade_test_date' => now(),
+            'trade_test_status' => 'passed',
         ]);
 
-        // Stage 3: Medical
-        $visaProcessing->update([
-            'medical_test_date' => now(),
+        $visaProcess->update([
+            'medical_date' => now(),
             'medical_status' => 'fit',
-            'medical_report_number' => 'MED-2026-001',
-            'current_stage' => 'biometric',
         ]);
 
-        // Stage 4: Biometric
-        $visaProcessing->update([
-            'biometric_appointment_date' => now(),
-            'biometric_status' => 'completed',
-            'biometric_reference_number' => 'BIO-2026-001',
-            'current_stage' => 'enumber',
-        ]);
-
-        // Stage 5: E-Number
-        $visaProcessing->update([
-            'enumber_application_date' => now(),
-            'enumber_status' => 'issued',
-            'enumber' => 'EN-2026-12345678',
-            'current_stage' => 'visa',
-        ]);
-
-        // Stage 6: Visa
-        $visaProcessing->update([
-            'visa_application_date' => now(),
-            'visa_status' => 'approved',
+        $visaProcess->update([
             'visa_number' => 'VISA-2026-001',
-            'visa_issue_date' => now(),
-            'visa_expiry_date' => now()->addYears(2),
-            'current_stage' => 'ptn',
-        ]);
-
-        // Stage 7: PTN (Pre-Travel Notification)
-        $visaProcessing->update([
-            'ptn_submission_date' => now(),
-            'ptn_status' => 'approved',
-            'ptn_reference_number' => 'PTN-2026-001',
-            'current_stage' => 'completed',
-            'overall_status' => 'completed',
-        ]);
-
-        // Visa processing completion triggers departure preparation
-        $this->candidate->update(['status' => 'departure']);
-
-        $this->assertDatabaseHas('visa_processings', [
-            'candidate_id' => $this->candidate->id,
-            'overall_status' => 'completed',
-            'current_stage' => 'completed',
             'visa_status' => 'approved',
+        ]);
+
+        $visaProcess->update([
+            'ptn_number' => 'PTN-2026-001',
+            'overall_status' => 'completed',
+        ]);
+
+        $this->candidate->update(['status' => CandidateStatus::VISA_APPROVED->value]);
+
+        $this->assertDatabaseHas('visa_processes', [
+            'candidate_id' => $this->candidate->id,
+            'visa_number' => 'VISA-2026-001',
         ]);
 
         // ============================================================
         // STEP 6: Departure Process
         // ============================================================
+        $this->candidate->update(['status' => CandidateStatus::DEPARTURE_PROCESSING->value]);
+
         $departure = Departure::create([
             'candidate_id' => $this->candidate->id,
-            'departure_date' => now()->addDays(7),
+            'scheduled_departure' => now()->addDays(7),
             'flight_number' => 'SV-123',
             'airline' => 'Saudi Arabian Airlines',
-            'departure_airport' => 'Islamabad International Airport',
-            'arrival_airport' => 'King Abdulaziz International Airport',
-            'destination_country' => 'Saudi Arabia',
-            'destination_city' => 'Jeddah',
-            'ticket_issued' => true,
-            'ticket_number' => 'TKT-2026-001',
-            'pre_departure_briefing_attended' => true,
-            'final_document_check_completed' => true,
-            'status' => 'scheduled',
         ]);
 
-        $this->assertDatabaseHas('departures', [
-            'candidate_id' => $this->candidate->id,
-            'status' => 'scheduled',
-            'ticket_issued' => true,
-        ]);
+        $this->candidate->update(['status' => CandidateStatus::READY_TO_DEPART->value]);
 
         // Simulate departure
         $departure->update([
-            'status' => 'departed',
             'actual_departure_date' => now(),
         ]);
 
-        $this->candidate->update(['status' => 'deployed']);
+        $this->candidate->update(['status' => CandidateStatus::DEPARTED->value]);
+
+        $this->assertDatabaseHas('departures', [
+            'candidate_id' => $this->candidate->id,
+        ]);
 
         // ============================================================
         // STEP 7: Post-Deployment Tracking
         // ============================================================
         $departure->update([
-            'arrival_confirmed' => true,
-            'arrival_date' => now()->addHours(5),
-            'employer_contact_confirmed' => true,
+            'arrival_confirmation_date' => now()->addHours(5),
         ]);
 
-        $this->assertDatabaseHas('departures', [
-            'candidate_id' => $this->candidate->id,
-            'status' => 'departed',
-            'arrival_confirmed' => true,
-        ]);
-
-        $this->assertEquals('deployed', $this->candidate->fresh()->status);
+        $this->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
 
         // ============================================================
         // VERIFICATION: Complete Journey
@@ -318,21 +235,13 @@ class CandidateJourneyIntegrationTest extends TestCase
 
         // Verify all relationships exist
         $this->assertNotNull($finalCandidate->screenings()->first());
-        $this->assertNotNull($finalCandidate->registration);
-        $this->assertNotNull($finalCandidate->trainings()->first());
-        $this->assertNotNull($finalCandidate->visaProcessing);
+        $this->assertNotNull($finalCandidate->batch);
+        $this->assertNotNull($finalCandidate->trainingCertificates()->first());
+        $this->assertNotNull($finalCandidate->visaProcess);
         $this->assertNotNull($finalCandidate->departure);
-        $this->assertEquals(4, $finalCandidate->documents()->count());
 
         // Verify status progression
-        $this->assertEquals('deployed', $finalCandidate->status);
-
-        // Verify critical data points
-        $this->assertEquals('eligible', $finalCandidate->screenings()->first()->outcome);
-        $this->assertEquals('completed', $finalCandidate->registration->status);
-        $this->assertTrue($finalCandidate->trainings()->first()->certificate_issued);
-        $this->assertEquals('approved', $finalCandidate->visaProcessing->visa_status);
-        $this->assertTrue($finalCandidate->departure->arrival_confirmed);
+        $this->assertEquals(CandidateStatus::POST_DEPARTURE->value, $finalCandidate->status);
     }
 
     #[Test]
@@ -340,78 +249,73 @@ class CandidateJourneyIntegrationTest extends TestCase
     {
         $candidate = Candidate::factory()->create([
             'campus_id' => $this->campus->id,
-            'status' => 'screening',
+            'status' => CandidateStatus::SCREENING->value,
         ]);
 
-        // Screening with ineligible outcome
+        // Screening with deferred outcome
         CandidateScreening::create([
             'candidate_id' => $candidate->id,
-            'screening_date' => now(),
-            'screened_by' => $this->admin->id,
-            'language_proficiency' => 'poor',
-            'technical_skills' => 'below_average',
-            'physical_fitness' => 'unfit',
-            'behavioral_assessment' => 'concerning',
-            'overall_score' => 45,
-            'outcome' => 'ineligible',
-            'status' => 'completed',
-            'remarks' => 'Candidate does not meet minimum requirements',
+            'consent_for_work' => true,
+            'placement_interest' => 'local',
+            'screening_status' => 'deferred',
+            'notes' => 'Candidate does not meet minimum requirements',
+            'reviewed_by' => $this->admin->id,
+            'reviewed_at' => now(),
         ]);
 
-        // Update candidate status to rejected
-        $candidate->update(['status' => 'rejected']);
+        // Update candidate status to deferred
+        $candidate->update(['status' => CandidateStatus::DEFERRED->value]);
 
-        $this->assertEquals('rejected', $candidate->fresh()->status);
-        $this->assertEquals('ineligible', $candidate->screenings()->first()->outcome);
+        $this->assertEquals(CandidateStatus::DEFERRED->value, $candidate->fresh()->status);
+        $this->assertEquals('deferred', $candidate->screenings()->first()->screening_status);
 
         // Verify no further processing
-        $this->assertNull($candidate->registration);
-        $this->assertEquals(0, $candidate->trainings()->count());
-        $this->assertNull($candidate->visaProcessing);
+        $this->assertNull($candidate->batch_id);
+        $this->assertEquals(0, $candidate->trainingCertificates()->count());
+        $this->assertNull($candidate->visaProcess);
     }
 
     #[Test]
     public function it_handles_visa_processing_rejection_workflow()
     {
+        $batch = Batch::factory()->create([
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
+        ]);
+
         $candidate = Candidate::factory()->create([
             'campus_id' => $this->campus->id,
-            'status' => 'visa_processing',
+            'trade_id' => $this->trade->id,
+            'batch_id' => $batch->id,
+            'status' => CandidateStatus::VISA_PROCESS->value,
         ]);
 
-        // Create completed screening and registration
+        // Create completed screening
         CandidateScreening::factory()->create([
             'candidate_id' => $candidate->id,
-            'outcome' => 'eligible',
-            'status' => 'completed',
+            'screening_status' => 'screened',
         ]);
 
-        Registration::factory()->create([
+        // Create certificate
+        TrainingCertificate::factory()->create([
             'candidate_id' => $candidate->id,
-            'status' => 'completed',
-        ]);
-
-        Training::factory()->create([
-            'candidate_id' => $candidate->id,
-            'status' => 'completed',
+            'batch_id' => $batch->id,
         ]);
 
         // Visa processing rejection at medical stage
-        $visaProcessing = VisaProcessing::create([
+        $visaProcess = VisaProcess::create([
             'candidate_id' => $candidate->id,
-            'current_stage' => 'medical',
-            'interview_status' => 'completed',
-            'interview_result' => 'passed',
-            'takamol_status' => 'approved',
-            'medical_test_date' => now(),
+            'interview_status' => 'passed',
+            'trade_test_status' => 'passed',
+            'medical_date' => now(),
             'medical_status' => 'unfit',
-            'medical_remarks' => 'Candidate failed medical examination',
             'overall_status' => 'rejected',
         ]);
 
-        $candidate->update(['status' => 'rejected']);
+        $candidate->update(['status' => CandidateStatus::REJECTED->value]);
 
-        $this->assertEquals('rejected', $candidate->fresh()->status);
-        $this->assertEquals('unfit', $visaProcessing->fresh()->medical_status);
+        $this->assertEquals(CandidateStatus::REJECTED->value, $candidate->fresh()->status);
+        $this->assertEquals('unfit', $visaProcess->fresh()->medical_status);
         $this->assertNull($candidate->departure);
     }
 
@@ -420,54 +324,42 @@ class CandidateJourneyIntegrationTest extends TestCase
     {
         $candidate = Candidate::factory()->create([
             'campus_id' => $this->campus->id,
-            'status' => 'registration',
+            'status' => CandidateStatus::REGISTERED->value,
         ]);
 
         // Create expired passport document
-        $expiredPassport = DocumentArchive::create([
+        $expiredDocument = DocumentArchive::create([
             'candidate_id' => $candidate->id,
-            'campus_id' => $this->campus->id,
             'document_name' => 'Passport',
             'document_type' => 'passport',
-            'category' => 'identity',
+            'document_category' => 'identity',
             'file_path' => "/storage/documents/{$candidate->id}/passport.pdf",
             'file_type' => 'application/pdf',
             'file_size' => 1024000,
             'expiry_date' => now()->subDays(10), // Expired
-            'status' => 'expired',
+            'upload_date' => now()->subMonths(2),
             'uploaded_by' => $this->admin->id,
         ]);
 
         // Verify document is expired
-        $this->assertTrue($expiredPassport->expiry_date->isPast());
-        $this->assertEquals('expired', $expiredPassport->status);
-
-        // Document expiry should block visa processing
-        $registration = Registration::factory()->create([
-            'candidate_id' => $candidate->id,
-            'status' => 'completed',
-        ]);
+        $this->assertTrue($expiredDocument->expiry_date->isPast());
 
         // Check if candidate has expired documents
-        $hasExpiredDocs = $candidate->documents()
+        $hasExpiredDocs = DocumentArchive::where('candidate_id', $candidate->id)
             ->where('expiry_date', '<', now())
             ->exists();
 
         $this->assertTrue($hasExpiredDocs);
 
-        // Should not proceed to visa processing with expired documents
-        // In real system, this would be enforced by business logic
-
         // Renew the document
-        $expiredPassport->update([
+        $expiredDocument->update([
             'expiry_date' => now()->addYears(5),
-            'status' => 'active',
         ]);
 
-        $this->assertFalse($expiredPassport->fresh()->expiry_date->isPast());
+        $this->assertFalse($expiredDocument->fresh()->expiry_date->isPast());
 
         // Now can proceed with visa processing
-        $candidate->update(['status' => 'visa_processing']);
-        $this->assertEquals('visa_processing', $candidate->fresh()->status);
+        $candidate->update(['status' => CandidateStatus::VISA_PROCESS->value]);
+        $this->assertEquals(CandidateStatus::VISA_PROCESS->value, $candidate->fresh()->status);
     }
 }

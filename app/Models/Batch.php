@@ -24,6 +24,7 @@ class Batch extends Model
         'batch_code',
         'name',
         'campus_id',
+        'program_id', // FIXED: Missing field needed by AutoBatchService
         'trade_id',
         'oep_id',  // FIXED: Missing field causing silent data loss
         'capacity',
