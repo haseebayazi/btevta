@@ -54,7 +54,7 @@ class CandidateLicense extends Model
         }
 
         return $this->expiry_date->isFuture()
-            && $this->expiry_date->diffInDays(now()) <= 90;
+            && now()->diffInDays($this->expiry_date, false) <= 90;
     }
 
     /**

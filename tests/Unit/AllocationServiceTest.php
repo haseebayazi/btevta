@@ -137,8 +137,10 @@ class AllocationServiceTest extends TestCase
         $program = Program::factory()->create();
         $trade = Trade::factory()->create();
 
-        DB::shouldReceive('beginTransaction')->once();
-        DB::shouldReceive('commit')->once();
+        // Store original values
+        $originalCampusId = $candidate->campus_id;
+        $originalProgramId = $candidate->program_id;
+        $originalTradeId = $candidate->trade_id;
 
         $allocationData = [
             'campus_id' => $campus->id,
@@ -146,12 +148,17 @@ class AllocationServiceTest extends TestCase
             'trade_id' => $trade->id,
         ];
 
-        // This will fail because we're mocking DB, but we can verify transaction was attempted
-        try {
-            $this->service->allocate($candidate, $allocationData);
-        } catch (\Exception $e) {
-            // Expected to fail with mocked DB
-        }
+        // Test that allocation works (transaction commits successfully)
+        $result = $this->service->allocate($candidate, $allocationData);
+        
+        // Verify the allocation was saved
+        $this->assertEquals($campus->id, $result->campus_id);
+        $this->assertEquals($program->id, $result->program_id);
+        $this->assertEquals($trade->id, $result->trade_id);
+        
+        // Verify it persisted to database
+        $candidate->refresh();
+        $this->assertEquals($campus->id, $candidate->campus_id);
     }
 
     #[Test]

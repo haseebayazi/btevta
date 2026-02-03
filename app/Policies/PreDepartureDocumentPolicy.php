@@ -37,7 +37,7 @@ class PreDepartureDocumentPolicy
 
         // OEP can view their assigned candidates
         if ($user->hasRole('oep')) {
-            return $candidate->oep_id === $user->id;
+            return $candidate->oep_id === $user->oep_id;
         }
 
         return false;
@@ -79,7 +79,7 @@ class PreDepartureDocumentPolicy
 
         // OEP can create for their candidates
         if ($user->hasRole('oep')) {
-            return $candidate->oep_id === $user->id;
+            return $candidate->oep_id === $user->oep_id;
         }
 
         return false;
@@ -118,7 +118,7 @@ class PreDepartureDocumentPolicy
 
         // OEP can update their candidates' documents
         if ($user->hasRole('oep')) {
-            return $candidate->oep_id === $user->id;
+            return $candidate->oep_id === $user->oep_id;
         }
 
         return false;
@@ -152,7 +152,7 @@ class PreDepartureDocumentPolicy
 
         // OEP can delete their candidates' documents
         if ($user->hasRole('oep')) {
-            return $candidate->oep_id === $user->id;
+            return $candidate->oep_id === $user->oep_id;
         }
 
         return false;

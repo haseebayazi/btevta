@@ -177,8 +177,8 @@ class WASLv3EnumsTest extends TestCase
     {
         $cases = CandidateStatus::cases();
 
-        // 14 active + 3 terminal = 17 total
-        $this->assertCount(17, $cases);
+        // 15 active + 3 terminal = 18 total (includes NEW and COMPLETED)
+        $this->assertCount(18, $cases);
     }
 
     #[Test]

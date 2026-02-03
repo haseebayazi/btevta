@@ -975,14 +975,14 @@ class Candidate extends Model
 
     /**
      * Check if candidate can transition to a specific status.
+     * Returns validation result with can_transition and issues.
      *
      * @param string $targetStatus
-     * @return bool
+     * @return array ['can_transition' => bool, 'issues' => array]
      */
     public function canTransitionTo($targetStatus)
     {
-        $result = $this->validateTransition($targetStatus);
-        return is_array($result) && $result['can_transition'];
+        return $this->validateTransition($targetStatus);
     }
 
     /**
