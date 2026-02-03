@@ -577,6 +577,7 @@ class Candidate extends Model
     /**
      * Get the photo URL.
      * Handles both external URLs and local storage paths.
+     * Falls back to controller route if storage link doesn't exist.
      */
     public function getPhotoUrlAttribute()
     {
@@ -589,8 +590,14 @@ class Candidate extends Model
             return $this->photo_path;
         }
 
-        // Otherwise, it's a local storage path
-        return asset('storage/' . $this->photo_path);
+        // Check if storage link exists (storage/app/public symlinked to public/storage)
+        $publicPath = public_path('storage/' . $this->photo_path);
+        if (file_exists($publicPath)) {
+            return asset('storage/' . $this->photo_path);
+        }
+
+        // Fallback: Serve through controller route (works even without storage link)
+        return route('candidates.photo', $this);
     }
 
     /**
@@ -1023,7 +1030,9 @@ class Candidate extends Model
         $mandatoryDocuments = DocumentChecklist::mandatory()->active()->get();
 
         if ($mandatoryDocuments->isEmpty()) {
-            return true; // No mandatory documents required
+            // CRITICAL: If seeder hasn't been run, return false (not complete)
+            // This prevents showing "100% complete" when no checklists exist
+            return false;
         }
 
         $uploadedDocumentIds = $this->preDepartureDocuments()
@@ -1057,13 +1066,14 @@ class Candidate extends Model
         return [
             'mandatory_total' => $mandatory->count(),
             'mandatory_uploaded' => $mandatoryUploaded,
-            'mandatory_complete' => $mandatoryUploaded >= $mandatory->count(),
+            'mandatory_complete' => $mandatoryUploaded >= $mandatory->count() && $mandatory->count() > 0,
             'optional_total' => $optional->count(),
             'optional_uploaded' => $optionalUploaded,
             'is_complete' => $this->hasCompletedPreDepartureDocuments(),
             'completion_percentage' => $mandatory->count() > 0
                 ? round(($mandatoryUploaded / $mandatory->count()) * 100)
-                : 100,
+                : 0, // Return 0% when seeder hasn't been run, not 100%
+            'seeder_required' => $mandatory->isEmpty() && $optional->isEmpty(),
         ];
     }
 

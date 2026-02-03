@@ -87,23 +87,23 @@
         </div>
     </div>
 
-    <!-- Alert Messages -->
-    @if(!$status['is_complete'])
-    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-triangle text-amber-400 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-amber-800">Action Required</h3>
-                <p class="mt-1 text-sm text-amber-700">
-                    This candidate cannot proceed to screening until all mandatory documents are uploaded.
-                    @if($candidate->getMissingMandatoryDocuments()->isNotEmpty())
-                        <br><strong>Missing:</strong> {{ $candidate->getMissingMandatoryDocuments()->pluck('name')->implode(', ') }}
-                    @endif
-                </p>
-            </div>
-        </div>
+    {{-- CRITICAL Alert if seeder hasn't been run --}}
+    @if(isset($status['seeder_required']) && $status['seeder_required'])
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Configuration Required:</strong> Document checklists have not been initialized.
+        <br>
+        <strong>To fix:</strong> Run <code>php artisan db:seed --class=DocumentChecklistsSeeder</code>
+        <br>
+        <small class="text-muted">This will create the mandatory document checklist items (CNIC, Passport, Domicile, FRC, PCC).</small>
+    </div>
+    @elseif(!$status['is_complete'])
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Action Required:</strong> This candidate cannot proceed to screening until all mandatory documents are uploaded.
+        @if($candidate->getMissingMandatoryDocuments()->isNotEmpty())
+            Missing: <strong>{{ $candidate->getMissingMandatoryDocuments()->pluck('name')->implode(', ') }}</strong>
+        @endif
     </div>
     @else
     <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">

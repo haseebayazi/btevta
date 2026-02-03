@@ -157,6 +157,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/upload-photo', [CandidateController::class, 'uploadPhoto'])
             ->middleware('throttle:30,1')->name('upload-photo');
 
+        // Serve candidate photo (fallback for when storage link doesn't exist)
+        Route::get('/{candidate}/photo', [CandidateController::class, 'photo'])->name('photo');
+
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('export', [CandidateController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
