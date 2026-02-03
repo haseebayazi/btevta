@@ -43,17 +43,31 @@ class PreDepartureDocumentService
 
         // Use DB::transaction() closure to properly support nested transactions/savepoints
         $document = DB::transaction(function () use ($candidate, $checklist, $file, $filePath, $metadata) {
-            // Check if document already exists (for replacement)
-            // Use lockForUpdate() to prevent race conditions when multiple requests
-            // try to upload the same document type simultaneously
-            $existingDoc = PreDepartureDocument::where('candidate_id', $candidate->id)
+            // Check if document already exists (including soft-deleted records)
+            // Use withTrashed() to find soft-deleted records that would conflict with unique constraint
+            // Use lockForUpdate() to prevent race conditions
+            $existingDoc = PreDepartureDocument::withTrashed()
+                ->where('candidate_id', $candidate->id)
                 ->where('document_checklist_id', $checklist->id)
                 ->lockForUpdate()
                 ->first();
 
             if ($existingDoc) {
-                // Delete old file
-                Storage::disk('private')->delete($existingDoc->file_path);
+                // Delete old file if it exists
+                if ($existingDoc->file_path) {
+                    Storage::disk('private')->delete($existingDoc->file_path);
+                }
+
+                // Delete old page files if any
+                foreach ($existingDoc->pages as $page) {
+                    Storage::disk('private')->delete($page->file_path);
+                }
+                $existingDoc->pages()->delete();
+
+                // Restore if soft-deleted, then update
+                if ($existingDoc->trashed()) {
+                    $existingDoc->restore();
+                }
 
                 // Update existing record
                 $existingDoc->update([
@@ -150,21 +164,30 @@ class PreDepartureDocumentService
         $mainFilePath = $this->storeFile($mainFile, $candidate, $checklist);
 
         $document = DB::transaction(function () use ($candidate, $checklist, $mainFile, $mainFilePath, $files, $metadata) {
-            // Check if document already exists (for replacement)
-            $existingDoc = PreDepartureDocument::where('candidate_id', $candidate->id)
+            // Check if document already exists (including soft-deleted records)
+            // Use withTrashed() to find soft-deleted records that would conflict with unique constraint
+            $existingDoc = PreDepartureDocument::withTrashed()
+                ->where('candidate_id', $candidate->id)
                 ->where('document_checklist_id', $checklist->id)
                 ->lockForUpdate()
                 ->first();
 
             if ($existingDoc) {
-                // Delete old main file
-                Storage::disk('private')->delete($existingDoc->file_path);
+                // Delete old main file if it exists
+                if ($existingDoc->file_path) {
+                    Storage::disk('private')->delete($existingDoc->file_path);
+                }
 
                 // Delete old page files
                 foreach ($existingDoc->pages as $page) {
                     Storage::disk('private')->delete($page->file_path);
                 }
                 $existingDoc->pages()->delete();
+
+                // Restore if soft-deleted, then update
+                if ($existingDoc->trashed()) {
+                    $existingDoc->restore();
+                }
 
                 // Update existing record
                 $existingDoc->update([
@@ -492,11 +515,29 @@ class PreDepartureDocumentService
      */
     protected function validateFile(UploadedFile $file): void
     {
-        $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        // Allow common MIME types for PDF, JPEG, and PNG
+        // Include variants that some browsers/systems might report
+        $allowedMimes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/jpg',      // Non-standard but sometimes reported
+            'image/pjpeg',    // Progressive JPEG
+            'image/png',
+            'image/x-png',    // Non-standard PNG variant
+        ];
+
+        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
         $maxSize = 5 * 1024 * 1024; // 5MB
 
-        if (!in_array($file->getMimeType(), $allowedMimes)) {
-            throw new \Exception('Invalid file type. Allowed: PDF, JPG, PNG');
+        $mimeType = $file->getMimeType();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        // Check both MIME type and extension for better compatibility
+        $validMime = in_array($mimeType, $allowedMimes);
+        $validExtension = in_array($extension, $allowedExtensions);
+
+        if (!$validMime && !$validExtension) {
+            throw new \Exception('Invalid file type. Allowed: PDF, JPG, PNG. Received: ' . $mimeType);
         }
 
         if ($file->getSize() > $maxSize) {
