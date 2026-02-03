@@ -29,19 +29,57 @@
             <!-- Document Uploaded State -->
             <div class="space-y-3">
                 <!-- File Info -->
-                <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0">
-                        @php
-                            $icon = 'file';
-                            if (str_contains($document->mime_type, 'pdf')) $icon = 'file-pdf';
-                            elseif (str_contains($document->mime_type, 'image')) $icon = 'file-image';
-                        @endphp
-                        <i class="fas fa-{{ $icon }} text-gray-400"></i>
+                <div class="space-y-2">
+                    <!-- Main File -->
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0">
+                            @php
+                                $icon = 'file';
+                                if (str_contains($document->mime_type, 'pdf')) $icon = 'file-pdf';
+                                elseif (str_contains($document->mime_type, 'image')) $icon = 'file-image';
+                            @endphp
+                            <i class="fas fa-{{ $icon }} text-gray-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $document->original_filename }}
+                                @if($document->pages && $document->pages->count() > 0)
+                                <span class="text-xs text-blue-600 ml-1">(Page 1)</span>
+                                @endif
+                            </p>
+                            <p class="text-xs text-gray-500">{{ number_format($document->file_size / 1024, 1) }} KB</p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate">{{ $document->original_filename }}</p>
-                        <p class="text-xs text-gray-500">{{ number_format($document->file_size / 1024, 1) }} KB</p>
+
+                    {{-- Additional Pages --}}
+                    @if($document->pages && $document->pages->count() > 0)
+                    @foreach($document->pages as $page)
+                    <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div class="w-10 h-10 bg-white rounded-lg border border-blue-200 flex items-center justify-center flex-shrink-0">
+                            @php
+                                $pageIcon = 'file';
+                                if (str_contains($page->mime_type, 'pdf')) $pageIcon = 'file-pdf';
+                                elseif (str_contains($page->mime_type, 'image')) $pageIcon = 'file-image';
+                            @endphp
+                            <i class="fas fa-{{ $pageIcon }} text-blue-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ $page->original_filename }}
+                                <span class="text-xs text-blue-600 ml-1">(Page {{ $page->page_number }})</span>
+                            </p>
+                            <p class="text-xs text-gray-500">{{ number_format($page->file_size / 1024, 1) }} KB</p>
+                        </div>
+                        @can('view', $document)
+                        <a href="{{ route('candidates.pre-departure-documents.download-page', [$candidate, $document, $page]) }}"
+                           class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition"
+                           title="Download Page {{ $page->page_number }}">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        @endcan
                     </div>
+                    @endforeach
+                    @endif
                 </div>
 
                 <!-- Upload Info -->
@@ -221,6 +259,21 @@
                     <input type="hidden" name="document_checklist_id" value="{{ $checklist->id }}">
 
                     <div class="mb-3">
+                        @if($checklist->supports_multiple_pages ?? false)
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Select Files <span class="text-xs text-blue-600">(Multiple pages supported)</span>
+                        </label>
+                        <div class="relative">
+                            <input type="file"
+                                   name="files[]"
+                                   id="files{{ $checklist->id }}"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   multiple
+                                   required
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max: 5MB each, up to {{ $checklist->max_pages ?? 5 }} files)</p>
+                        @else
                         <label class="block text-sm font-medium text-gray-700 mb-1">Select File</label>
                         <div class="relative">
                             <input type="file"
@@ -231,6 +284,7 @@
                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                         </div>
                         <p class="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max: 5MB)</p>
+                        @endif
                     </div>
 
                     <div class="mb-3">

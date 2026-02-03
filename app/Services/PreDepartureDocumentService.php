@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Candidate;
 use App\Models\DocumentChecklist;
 use App\Models\PreDepartureDocument;
+use App\Models\PreDepartureDocumentPage;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -109,7 +110,134 @@ class PreDepartureDocumentService
         });
 
         // Load relationships and return
-        $document->load(['candidate', 'documentChecklist', 'uploader']);
+        $document->load(['candidate', 'documentChecklist', 'uploader', 'pages']);
+        return $document;
+    }
+
+    /**
+     * Upload a pre-departure document with multiple files/pages
+     *
+     * @param Candidate $candidate
+     * @param DocumentChecklist $checklist
+     * @param array $files Array of UploadedFile objects
+     * @param array $metadata Additional metadata (notes, etc.)
+     * @return PreDepartureDocument
+     * @throws \Exception
+     */
+    public function uploadDocumentWithPages(
+        Candidate $candidate,
+        DocumentChecklist $checklist,
+        array $files,
+        array $metadata = []
+    ): PreDepartureDocument {
+        if (empty($files)) {
+            throw new \Exception('At least one file is required.');
+        }
+
+        // Validate max pages
+        $maxPages = $checklist->max_pages ?? 5;
+        if (count($files) > $maxPages) {
+            throw new \Exception("Maximum {$maxPages} pages allowed for this document type.");
+        }
+
+        // Validate all files first
+        foreach ($files as $file) {
+            $this->validateFile($file);
+        }
+
+        // Store the first file as the main document
+        $mainFile = array_shift($files);
+        $mainFilePath = $this->storeFile($mainFile, $candidate, $checklist);
+
+        $document = DB::transaction(function () use ($candidate, $checklist, $mainFile, $mainFilePath, $files, $metadata) {
+            // Check if document already exists (for replacement)
+            $existingDoc = PreDepartureDocument::where('candidate_id', $candidate->id)
+                ->where('document_checklist_id', $checklist->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingDoc) {
+                // Delete old main file
+                Storage::disk('private')->delete($existingDoc->file_path);
+
+                // Delete old page files
+                foreach ($existingDoc->pages as $page) {
+                    Storage::disk('private')->delete($page->file_path);
+                }
+                $existingDoc->pages()->delete();
+
+                // Update existing record
+                $existingDoc->update([
+                    'file_path' => $mainFilePath,
+                    'original_filename' => $mainFile->getClientOriginalName(),
+                    'mime_type' => $mainFile->getMimeType(),
+                    'file_size' => $mainFile->getSize(),
+                    'notes' => $metadata['notes'] ?? null,
+                    'uploaded_at' => now(),
+                    'uploaded_by' => auth()->id(),
+                    'verified_at' => null,
+                    'verified_by' => null,
+                    'verification_notes' => null,
+                ]);
+
+                $document = $existingDoc;
+
+                activity()
+                    ->performedOn($document)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'candidate_id' => $candidate->id,
+                        'document_type' => $checklist->name,
+                        'action' => 'replaced',
+                        'page_count' => count($files) + 1,
+                    ])
+                    ->log('Pre-departure document replaced with multiple pages');
+            } else {
+                // Create new document record
+                $document = PreDepartureDocument::create([
+                    'candidate_id' => $candidate->id,
+                    'document_checklist_id' => $checklist->id,
+                    'file_path' => $mainFilePath,
+                    'original_filename' => $mainFile->getClientOriginalName(),
+                    'mime_type' => $mainFile->getMimeType(),
+                    'file_size' => $mainFile->getSize(),
+                    'notes' => $metadata['notes'] ?? null,
+                    'uploaded_at' => now(),
+                    'uploaded_by' => auth()->id(),
+                ]);
+
+                activity()
+                    ->performedOn($document)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'candidate_id' => $candidate->id,
+                        'document_type' => $checklist->name,
+                        'page_count' => count($files) + 1,
+                    ])
+                    ->log('Pre-departure document uploaded with multiple pages');
+            }
+
+            // Store additional pages
+            $pageNumber = 2;
+            foreach ($files as $file) {
+                $pagePath = $this->storePageFile($file, $candidate, $checklist, $pageNumber);
+
+                PreDepartureDocumentPage::create([
+                    'pre_departure_document_id' => $document->id,
+                    'page_number' => $pageNumber,
+                    'file_path' => $pagePath,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+
+                $pageNumber++;
+            }
+
+            return $document;
+        });
+
+        $document->load(['candidate', 'documentChecklist', 'uploader', 'pages']);
         return $document;
     }
 
@@ -400,6 +528,40 @@ class PreDepartureDocumentService
         );
 
         // Store in private disk
+        $path = $file->storeAs(
+            "pre-departure-documents/{$candidate->id}",
+            $filename,
+            'private'
+        );
+
+        return $path;
+    }
+
+    /**
+     * Store a page file securely
+     *
+     * @param UploadedFile $file
+     * @param Candidate $candidate
+     * @param DocumentChecklist $checklist
+     * @param int $pageNumber
+     * @return string File path
+     */
+    protected function storePageFile(
+        UploadedFile $file,
+        Candidate $candidate,
+        DocumentChecklist $checklist,
+        int $pageNumber
+    ): string {
+        $extension = $file->getClientOriginalExtension();
+        $filename = sprintf(
+            '%s_%s_page%d_%s.%s',
+            $candidate->btevta_id,
+            $checklist->code,
+            $pageNumber,
+            now()->format('YmdHis'),
+            $extension
+        );
+
         $path = $file->storeAs(
             "pre-departure-documents/{$candidate->id}",
             $filename,
