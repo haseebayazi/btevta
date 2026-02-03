@@ -55,8 +55,17 @@
         </div>
     </div>
 
-    {{-- Alert if documents incomplete --}}
-    @if(!$status['is_complete'])
+    {{-- CRITICAL Alert if seeder hasn't been run --}}
+    @if(isset($status['seeder_required']) && $status['seeder_required'])
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Configuration Required:</strong> Document checklists have not been initialized.
+        <br>
+        <strong>To fix:</strong> Run <code>php artisan db:seed --class=DocumentChecklistsSeeder</code>
+        <br>
+        <small class="text-muted">This will create the mandatory document checklist items (CNIC, Passport, Domicile, FRC, PCC).</small>
+    </div>
+    @elseif(!$status['is_complete'])
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
         <strong>Action Required:</strong> This candidate cannot proceed to screening until all mandatory documents are uploaded.
