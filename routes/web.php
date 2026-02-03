@@ -149,6 +149,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('candidates')->name('candidates.')->group(function () {
         Route::get('/{candidate}/profile', [CandidateController::class, 'profile'])->name('profile');
         Route::get('/{candidate}/timeline', [CandidateController::class, 'timeline'])->name('timeline');
+        Route::get('/{candidate}/journey', [\App\Http\Controllers\CandidateJourneyController::class, 'show'])->name('journey');
         Route::post('/{candidate}/update-status', [CandidateController::class, 'updateStatus'])->name('update-status');
         Route::post('/{candidate}/assign-campus', [CandidateController::class, 'assignCampus'])->name('assign-campus');
         Route::post('/{candidate}/assign-oep', [CandidateController::class, 'assignOep'])->name('assign-oep');

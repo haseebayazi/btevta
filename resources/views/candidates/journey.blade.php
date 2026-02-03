@@ -6,306 +6,181 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center justify-between">
             <div>
-                <nav class="text-sm text-gray-500 mb-2">
-                    <a href="{{ route('dashboard') }}" class="hover:text-blue-600">Dashboard</a>
-                    <span class="mx-2">/</span>
-                    <a href="{{ route('candidates.index') }}" class="hover:text-blue-600">Candidates</a>
-                    <span class="mx-2">/</span>
-                    <a href="{{ route('candidates.show', $candidate) }}" class="hover:text-blue-600">{{ $candidate->name }}</a>
-                    <span class="mx-2">/</span>
-                    <span class="text-gray-900">Journey</span>
-                </nav>
                 <h1 class="text-3xl font-bold text-gray-900">Candidate Journey</h1>
-                <p class="text-gray-600 mt-1">Complete lifecycle tracking for {{ $candidate->name }}</p>
+                <p class="text-gray-600 mt-2">{{ $candidate->name }} - {{ $candidate->btevta_id }}</p>
             </div>
-            <div class="flex gap-3">
-                <a href="{{ route('candidates.journey.export-pdf', $candidate) }}" 
-                   class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
-                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
-                </a>
-                <a href="{{ route('candidates.show', $candidate) }}" 
-                   class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+            <div class="flex gap-2">
+                <a href="{{ route('candidates.show', $candidate) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Candidate
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Progress Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <!-- Current Stage -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 mb-1">Current Stage</p>
-                    <p class="text-xl font-bold text-{{ $currentStage['color'] }}-600">{{ $currentStage['name'] }}</p>
-                </div>
-                <div class="w-14 h-14 bg-{{ $currentStage['color'] }}-100 rounded-full flex items-center justify-center">
-                    <i class="{{ $currentStage['icon'] }} text-{{ $currentStage['color'] }}-600 text-2xl"></i>
-                </div>
+    <!-- Progress Overview Card -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900">Journey Progress</h3>
+                <p class="text-gray-600">Current Stage: <span class="font-semibold text-blue-600">{{ $currentStage }}</span></p>
             </div>
-            <p class="text-xs text-gray-500 mt-4">Module {{ $currentStage['module'] ?? 'N/A' }}</p>
-        </div>
-
-        <!-- Progress -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between mb-2">
-                <div>
-                    <p class="text-sm text-gray-500 mb-1">Progress</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ $progressPercentage }}%</p>
-                </div>
-                <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-chart-line text-blue-600 text-2xl"></i>
-                </div>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $progressPercentage }}%"></div>
+            <div class="text-right">
+                <div class="text-3xl font-bold text-blue-600">{{ $completionPercentage }}%</div>
+                <div class="text-sm text-gray-600">Complete</div>
             </div>
         </div>
-
-        <!-- Estimated Completion -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 mb-1">Est. Completion</p>
-                    <p class="text-xl font-bold text-green-600">
-                        @if($estimatedCompletion)
-                            {{ \Carbon\Carbon::parse($estimatedCompletion)->format('M d, Y') }}
-                        @else
-                            Completed
-                        @endif
-                    </p>
-                </div>
-                <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-calendar-check text-green-600 text-2xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Blockers -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 mb-1">Blockers</p>
-                    <p class="text-3xl font-bold {{ count($blockers) > 0 ? 'text-red-600' : 'text-green-600' }}">
-                        {{ count($blockers) }}
-                    </p>
-                </div>
-                <div class="w-14 h-14 {{ count($blockers) > 0 ? 'bg-red-100' : 'bg-green-100' }} rounded-full flex items-center justify-center">
-                    <i class="fas {{ count($blockers) > 0 ? 'fa-exclamation-triangle text-red-600' : 'fa-check-circle text-green-600' }} text-2xl"></i>
-                </div>
-            </div>
+        <div class="w-full bg-gray-200 rounded-full h-4">
+            <div class="bg-blue-600 h-4 rounded-full transition-all duration-500" style="width: {{ $completionPercentage }}%"></div>
         </div>
     </div>
-
-    <!-- Blockers Alert (if any) -->
-    @if(count($blockers) > 0)
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">Issues Blocking Progress</h3>
-                <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
-                    @foreach($blockers as $blocker)
-                        <li>{{ $blocker['message'] }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <!-- Next Actions -->
-    @if(count($nextActions) > 0)
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r-lg">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-tasks text-blue-500 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800">Next Required Actions</h3>
-                <div class="mt-2 space-y-2">
-                    @foreach($nextActions as $action)
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-blue-700">{{ $action['action'] }}</span>
-                            @if(isset($action['route']))
-                                <a href="{{ route($action['route'], $action['params'] ?? []) }}" 
-                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    Take Action →
-                                </a>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Journey Timeline -->
+        <!-- Milestones Timeline -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Journey Timeline</h2>
-                
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6">Journey Milestones</h3>
+
                 <div class="relative">
-                    @foreach($journey as $index => $stage)
-                        <div class="flex items-start mb-8 last:mb-0">
-                            <!-- Timeline Line -->
-                            <div class="flex flex-col items-center mr-4">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center
-                                    @if($stage['status'] === 'completed')
-                                        bg-green-500 text-white
-                                    @elseif($stage['status'] === 'in_progress')
-                                        bg-blue-500 text-white animate-pulse
-                                    @else
-                                        bg-gray-200 text-gray-500
-                                    @endif">
-                                    @if($stage['status'] === 'completed')
-                                        <i class="fas fa-check"></i>
-                                    @elseif($stage['status'] === 'in_progress')
-                                        <i class="{{ $stage['icon'] }}"></i>
-                                    @else
-                                        <span class="text-sm font-semibold">{{ $index + 1 }}</span>
-                                    @endif
-                                </div>
-                                @if($index < count($journey) - 1)
-                                    <div class="w-0.5 h-16 
-                                        @if($stage['status'] === 'completed')
-                                            bg-green-500
-                                        @else
-                                            bg-gray-200
-                                        @endif">
-                                    </div>
-                                @endif
-                            </div>
+                    <!-- Vertical Timeline Line -->
+                    <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300"></div>
 
-                            <!-- Stage Content -->
-                            <div class="flex-1 pt-1">
-                                <div class="flex items-center justify-between mb-1">
-                                    <h3 class="text-lg font-medium 
-                                        @if($stage['status'] === 'completed')
-                                            text-green-700
-                                        @elseif($stage['status'] === 'in_progress')
-                                            text-blue-700
+                    @foreach($milestones as $index => $milestone)
+                    <div class="relative flex items-start mb-8 last:mb-0">
+                        <!-- Icon Circle -->
+                        <div class="relative z-10 flex items-center justify-center w-16 h-16 rounded-full border-4 border-white shadow-lg
+                            {{ $milestone['completed'] ? 'bg-green-500' : 'bg-gray-300' }}">
+                            <i class="fas {{ $milestone['icon'] ?? 'fa-circle' }} text-white text-xl"></i>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="ml-6 flex-1">
+                            <div class="bg-gray-50 rounded-lg p-4 {{ $milestone['completed'] ? 'border-l-4 border-green-500' : 'border-l-4 border-gray-300' }}">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h4 class="text-lg font-semibold text-gray-900">{{ $milestone['name'] }}</h4>
+                                        @if($milestone['date'])
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            <i class="far fa-calendar mr-1"></i>
+                                            {{ \Carbon\Carbon::parse($milestone['date'])->format('M d, Y') }}
+                                        </p>
                                         @else
-                                            text-gray-500
-                                        @endif">
-                                        {{ $stage['name'] }}
-                                    </h3>
-                                    <span class="text-xs px-2 py-1 rounded-full 
-                                        @if($stage['status'] === 'completed')
-                                            bg-green-100 text-green-700
-                                        @elseif($stage['status'] === 'in_progress')
-                                            bg-blue-100 text-blue-700
-                                        @else
-                                            bg-gray-100 text-gray-500
-                                        @endif">
-                                        @if($stage['status'] === 'completed')
-                                            Completed
-                                        @elseif($stage['status'] === 'in_progress')
-                                            In Progress
-                                        @else
-                                            Pending
+                                        <p class="text-sm text-gray-500 mt-1 italic">Not yet completed</p>
                                         @endif
-                                    </span>
-                                </div>
-                                <p class="text-sm text-gray-500 mb-2">Module {{ $stage['module'] }}</p>
-                                
-                                @if($stage['completed_at'])
-                                    <p class="text-xs text-gray-400">
-                                        <i class="fas fa-clock mr-1"></i>
-                                        {{ \Carbon\Carbon::parse($stage['completed_at'])->format('M d, Y h:i A') }}
-                                    </p>
-                                @endif
-
-                                @if(count($stage['details']) > 0)
-                                    <div class="mt-2 p-3 bg-gray-50 rounded-lg">
-                                        <dl class="grid grid-cols-2 gap-2 text-sm">
-                                            @foreach($stage['details'] as $key => $value)
-                                                @if(!is_array($value) && $value)
-                                                    <dt class="text-gray-500">{{ ucfirst(str_replace('_', ' ', $key)) }}:</dt>
-                                                    <dd class="text-gray-900">{{ $value }}</dd>
-                                                @endif
-                                            @endforeach
-                                        </dl>
                                     </div>
-                                @endif
+                                    <div>
+                                        @if($milestone['completed'])
+                                        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>Completed
+                                        </span>
+                                        @else
+                                        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                                            <i class="far fa-clock mr-1"></i>Pending
+                                        </span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
                     @endforeach
                 </div>
             </div>
         </div>
 
-        <!-- Milestones Panel -->
-        <div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Key Milestones</h2>
-                
-                <div class="space-y-4">
-                    @foreach($milestones as $milestone)
-                        <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                            <div class="flex items-center">
-                                @if($milestone['completed'])
-                                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
-                                @else
-                                    <i class="far fa-circle text-gray-300 mr-3"></i>
-                                @endif
-                                <span class="{{ $milestone['completed'] ? 'text-gray-900' : 'text-gray-400' }}">
-                                    {{ $milestone['name'] }}
-                                </span>
-                            </div>
-                            @if($milestone['date'])
-                                <span class="text-xs text-gray-500">
-                                    {{ \Carbon\Carbon::parse($milestone['date'])->format('M d') }}
-                                </span>
-                            @endif
-                        </div>
-                    @endforeach
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Candidate Info Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Candidate Info</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-sm text-gray-600">BTEVTA ID:</span>
+                        <p class="font-semibold">{{ $candidate->btevta_id }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-600">Campus:</span>
+                        <p class="font-semibold">{{ $candidate->campus?->name ?? 'Not Assigned' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-600">Trade:</span>
+                        <p class="font-semibold">{{ $candidate->trade?->name ?? 'Not Assigned' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-600">Current Status:</span>
+                        <p>
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
+                            </span>
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Candidate Info Card -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Candidate Info</h2>
-                
+            <!-- Quick Stats Card -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
                 <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">TheLeap ID</span>
-                        <span class="font-medium">{{ $candidate->btevta_id ?? 'Not Assigned' }}</span>
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <span class="text-gray-600">Milestones Completed:</span>
+                        <span class="font-semibold">{{ collect($milestones)->where('completed', true)->count() }}/{{ count($milestones) }}</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">CNIC</span>
-                        <span class="font-medium">{{ $candidate->cnic }}</span>
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <span class="text-gray-600">Days Since Listing:</span>
+                        <span class="font-semibold">{{ $candidate->created_at->diffInDays(now()) }} days</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Campus</span>
-                        <span class="font-medium">{{ $candidate->campus?->name ?? 'N/A' }}</span>
+                    @if($candidate->registered_at)
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <span class="text-gray-600">Days Since Registration:</span>
+                        <span class="font-semibold">{{ $candidate->registered_at->diffInDays(now()) }} days</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Trade</span>
-                        <span class="font-medium">{{ $candidate->trade?->name ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Batch</span>
-                        <span class="font-medium">{{ $candidate->batch?->name ?? 'Not Assigned' }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">OEP</span>
-                        <span class="font-medium">{{ $candidate->oep?->name ?? 'Not Assigned' }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Listed On</span>
-                        <span class="font-medium">{{ $candidate->created_at->format('M d, Y') }}</span>
-                    </div>
+                    @endif
                 </div>
             </div>
+
+            <!-- Recent Activities Card -->
+            @if($activities->isNotEmpty())
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
+                <div class="space-y-3">
+                    @foreach($activities->take(5) as $activity)
+                    <div class="flex items-start space-x-3 pb-3 border-b last:border-b-0 last:pb-0">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 rounded-full bg-{{ $activity['color'] ?? 'gray' }}-100 flex items-center justify-center">
+                                <i class="fas {{ $activity['icon'] ?? 'fa-circle' }} text-{{ $activity['color'] ?? 'gray' }}-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900">{{ $activity['title'] }}</p>
+                            <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($activity['date'])->format('M d, Y') }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* Custom animations for timeline */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .relative.flex {
+        animation: fadeInUp 0.5s ease-out;
+    }
+</style>
+@endpush
 @endsection
