@@ -43,8 +43,11 @@ class PreDepartureDocumentService
         // Use DB::transaction() closure to properly support nested transactions/savepoints
         $document = DB::transaction(function () use ($candidate, $checklist, $file, $filePath, $metadata) {
             // Check if document already exists (for replacement)
+            // Use lockForUpdate() to prevent race conditions when multiple requests
+            // try to upload the same document type simultaneously
             $existingDoc = PreDepartureDocument::where('candidate_id', $candidate->id)
                 ->where('document_checklist_id', $checklist->id)
+                ->lockForUpdate()
                 ->first();
 
             if ($existingDoc) {
