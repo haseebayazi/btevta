@@ -192,6 +192,7 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:30,1')->name('store');
             Route::delete('/{preDepartureDocument}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
             Route::get('/{preDepartureDocument}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
+            Route::get('/{preDepartureDocument}/pages/{page}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'downloadPage'])->name('download-page');
             Route::post('/{preDepartureDocument}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
             Route::post('/{preDepartureDocument}/reject', [\App\Http\Controllers\PreDepartureDocumentController::class, 'reject'])->name('reject');
         });

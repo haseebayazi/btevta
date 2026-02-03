@@ -15,12 +15,16 @@ class DocumentChecklist extends Model
         'description',
         'category',
         'is_mandatory',
+        'supports_multiple_pages',
+        'max_pages',
         'display_order',
         'is_active',
     ];
 
     protected $casts = [
         'is_mandatory' => 'boolean',
+        'supports_multiple_pages' => 'boolean',
+        'max_pages' => 'integer',
         'is_active' => 'boolean',
         'display_order' => 'integer',
     ];

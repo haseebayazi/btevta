@@ -48,6 +48,14 @@ class PreDepartureDocument extends Model
     }
 
     /**
+     * Get the additional pages for this document
+     */
+    public function pages()
+    {
+        return $this->hasMany(PreDepartureDocumentPage::class)->orderBy('page_number');
+    }
+
+    /**
      * Get the user who uploaded the document
      */
     public function uploader()

@@ -25,8 +25,8 @@ class PreDepartureDocumentPolicy
      */
     public function viewAny(User $user, Candidate $candidate): bool
     {
-        // Super Admin and Project Director can view all
-        if ($user->hasAnyRole(['super_admin', 'project_director'])) {
+        // Super Admin, Admin, and Project Director can view all
+        if ($user->hasAnyRole(['super_admin', 'admin', 'project_director'])) {
             return true;
         }
 
@@ -61,8 +61,8 @@ class PreDepartureDocumentPolicy
      */
     public function create(User $user, Candidate $candidate): bool
     {
-        // Super Admin can always create
-        if ($user->hasRole('super_admin')) {
+        // Super Admin, Admin, and Project Director can always create
+        if ($user->hasAnyRole(['super_admin', 'admin', 'project_director'])) {
             return true;
         }
 
@@ -90,8 +90,8 @@ class PreDepartureDocumentPolicy
      */
     public function update(User $user, PreDepartureDocument $document): bool
     {
-        // Super Admin can always update (with audit log)
-        if ($user->hasRole('super_admin')) {
+        // Super Admin, Admin, and Project Director can always update (with audit log)
+        if ($user->hasAnyRole(['super_admin', 'admin', 'project_director'])) {
             return true;
         }
 
@@ -106,7 +106,7 @@ class PreDepartureDocumentPolicy
             return false;
         }
 
-        // Cannot update verified documents (unless Super Admin)
+        // Cannot update verified documents (unless Super Admin/Admin/Project Director)
         if ($document->isVerified()) {
             return false;
         }
@@ -129,8 +129,8 @@ class PreDepartureDocumentPolicy
      */
     public function delete(User $user, PreDepartureDocument $document): bool
     {
-        // Super Admin can always delete
-        if ($user->hasRole('super_admin')) {
+        // Super Admin, Admin, and Project Director can always delete
+        if ($user->hasAnyRole(['super_admin', 'admin', 'project_director'])) {
             return true;
         }
 
