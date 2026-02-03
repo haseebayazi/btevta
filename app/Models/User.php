@@ -215,8 +215,11 @@ class User extends Authenticatable
      */
     public function hasRole(string $role): bool
     {
-        // Handle aliases
+        // Handle aliases - admin and super_admin are equivalent
         if ($role === self::ROLE_ADMIN && $this->role === self::ROLE_SUPER_ADMIN) {
+            return true;
+        }
+        if ($role === self::ROLE_SUPER_ADMIN && $this->role === self::ROLE_ADMIN) {
             return true;
         }
         if ($role === self::ROLE_INSTRUCTOR && $this->role === self::ROLE_TRAINER) {

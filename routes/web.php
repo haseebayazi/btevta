@@ -28,6 +28,8 @@ use App\Http\Controllers\RemittanceAlertController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SecureFileController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\CandidateJourneyController;
+use App\Http\Controllers\PipelineController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,15 +43,17 @@ use App\Http\Controllers\EquipmentController;
 */
 
 // ========================================================================
-// HEALTH CHECK ROUTE (Public - No Authentication)
+// HEALTH CHECK ROUTES (Public - No Authentication)
 // Used by load balancers and monitoring systems
 // ========================================================================
-Route::get('/up', function () {
-    return response()->json([
-        'status' => 'healthy',
-        'timestamp' => now()->toISOString(),
-    ]);
-})->name('health.up');
+Route::prefix('health')->name('health.')->group(function () {
+    Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('up');
+    Route::get('/detailed', [\App\Http\Controllers\HealthCheckController::class, 'detailed'])->name('detailed');
+    Route::get('/stats', [\App\Http\Controllers\HealthCheckController::class, 'statistics'])->name('stats');
+});
+
+// Legacy route for backward compatibility
+Route::get('/up', [\App\Http\Controllers\HealthCheckController::class, 'basic'])->name('legacy-health');
 
 // Authentication Routes
 // SECURITY FIX: Added guest middleware to prevent authenticated users from accessing auth pages
@@ -119,6 +123,16 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ========================================================================
+    // PIPELINE DASHBOARD - WASL v3 Module 10
+    // Purpose: Master view of all candidates by lifecycle stage
+    // ========================================================================
+    Route::prefix('pipeline')->name('pipeline.')->group(function () {
+        Route::get('/', [PipelineController::class, 'index'])->name('index');
+        Route::get('/status/{status}', [PipelineController::class, 'byStatus'])->name('by-status');
+        Route::get('/export', [PipelineController::class, 'export'])->name('export');
+    });
+
+    // ========================================================================
     // USER PROFILE & NOTIFICATIONS
     // ========================================================================
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
@@ -158,6 +172,11 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:60,1')->name('api.validate-cnic');
         Route::post('/api/validate-phone', [CandidateController::class, 'validatePhone'])
             ->middleware('throttle:60,1')->name('api.validate-phone');
+
+        // WASL v3 Module 10: Candidate Journey
+        Route::get('/{candidate}/journey', [CandidateJourneyController::class, 'show'])->name('journey');
+        Route::get('/{candidate}/journey/data', [CandidateJourneyController::class, 'journeyData'])->name('journey.data');
+        Route::get('/{candidate}/journey/export-pdf', [CandidateJourneyController::class, 'exportPdf'])->name('journey.export-pdf');
     });
 
     // ========================================================================
@@ -170,10 +189,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'index'])->name('index');
             Route::post('/', [\App\Http\Controllers\PreDepartureDocumentController::class, 'store'])
                 ->middleware('throttle:30,1')->name('store');
-            Route::delete('/{document}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
-            Route::get('/{document}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
-            Route::post('/{document}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
-            Route::post('/{document}/reject', [\App\Http\Controllers\PreDepartureDocumentController::class, 'reject'])->name('reject');
+            Route::delete('/{preDepartureDocument}', [\App\Http\Controllers\PreDepartureDocumentController::class, 'destroy'])->name('destroy');
+            Route::get('/{preDepartureDocument}/download', [\App\Http\Controllers\PreDepartureDocumentController::class, 'download'])->name('download');
+            Route::post('/{preDepartureDocument}/verify', [\App\Http\Controllers\PreDepartureDocumentController::class, 'verify'])->name('verify');
+            Route::post('/{preDepartureDocument}/reject', [\App\Http\Controllers\PreDepartureDocumentController::class, 'reject'])->name('reject');
         });
 
         // Candidate Licenses (driving and professional)
@@ -238,6 +257,15 @@ Route::middleware(['auth'])->group(function () {
         // THROTTLE FIX: Export limited to 5/min (resource intensive)
         Route::get('/export', [ScreeningController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // MODULE 2: Initial Screening routes
+        Route::get('/initial-dashboard', [ScreeningController::class, 'initialScreeningDashboard'])->name('initial-dashboard');
+    });
+
+    // MODULE 2: Initial Screening routes for specific candidate
+    Route::prefix('candidates/{candidate}')->name('candidates.')->group(function () {
+        Route::get('/initial-screening', [ScreeningController::class, 'initialScreening'])->name('initial-screening');
+        Route::post('/initial-screening', [ScreeningController::class, 'storeInitialScreening'])->name('initial-screening.store');
     });
 
     // ========================================================================

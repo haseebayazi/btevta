@@ -41,7 +41,7 @@ class PreDepartureDocumentControllerTest extends TestCase
 
         // Create users
         $this->admin = User::factory()->create([
-            'role' => 'admin',
+            'role' => 'super_admin',
             'is_active' => true,
         ]);
 
@@ -96,7 +96,7 @@ class PreDepartureDocumentControllerTest extends TestCase
 
         $response = $this->post(route('candidates.pre-departure-documents.store', $this->candidate), [
             'document_checklist_id' => $this->checklist->id,
-            'document' => $file,
+            'file' => $file,
             'notes' => 'Test upload',
         ]);
 
@@ -117,16 +117,17 @@ class PreDepartureDocumentControllerTest extends TestCase
     #[Test]
     public function cannot_upload_document_for_screening_candidate()
     {
-        $this->actingAs($this->admin);
+        // Use campus admin (not super_admin) because super_admin bypasses status checks
+        $this->actingAs($this->campusAdmin);
 
-        // Change candidate status to 'screening' (not editable)
+        // Change candidate status to 'screening' (not editable for non-super-admins)
         $this->candidate->update(['status' => 'screening']);
 
         $file = UploadedFile::fake()->create('cnic.pdf', 1024, 'application/pdf');
 
         $response = $this->post(route('candidates.pre-departure-documents.store', $this->candidate), [
             'document_checklist_id' => $this->checklist->id,
-            'document' => $file,
+            'file' => $file,
             'notes' => 'Test upload',
         ]);
 
@@ -154,32 +155,30 @@ class PreDepartureDocumentControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        // First upload a document
+        // Create a document record and load relationships
         $document = PreDepartureDocument::create([
             'candidate_id' => $this->candidate->id,
             'document_checklist_id' => $this->checklist->id,
             'file_path' => 'test/path/cnic.pdf',
-            'file_name' => 'cnic.pdf',
+            'original_filename' => 'cnic.pdf',
             'file_size' => 1024,
             'mime_type' => 'application/pdf',
             'uploaded_by' => $this->admin->id,
             'uploaded_at' => now(),
-            'verification_status' => 'pending',
         ]);
+        $document->load(['candidate', 'documentChecklist']);
 
         $response = $this->post(route('candidates.pre-departure-documents.verify', [$this->candidate, $document]), [
-            'verification_status' => 'verified',
-            'verification_notes' => 'Document verified successfully',
+            'notes' => 'Document verified successfully',
         ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('pre_departure_documents', [
-            'id' => $document->id,
-            'verification_status' => 'verified',
-            'verified_by' => $this->admin->id,
-        ]);
+        $document->refresh();
+        $this->assertNotNull($document->verified_at);
+        $this->assertEquals($this->admin->id, $document->verified_by);
+        $this->assertEquals('Document verified successfully', $document->verification_notes);
     }
 
     #[Test]
@@ -187,34 +186,27 @@ class PreDepartureDocumentControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        // First upload a document
+        // Create a document record
         $document = PreDepartureDocument::create([
             'candidate_id' => $this->candidate->id,
             'document_checklist_id' => $this->checklist->id,
             'file_path' => 'test/path/cnic.pdf',
-            'file_name' => 'cnic.pdf',
+            'original_filename' => 'cnic.pdf',
             'file_size' => 1024,
             'mime_type' => 'application/pdf',
             'uploaded_by' => $this->admin->id,
             'uploaded_at' => now(),
-            'verification_status' => 'pending',
         ]);
 
-        $response = $this->post(route('candidates.pre-departure-documents.verify', [$this->candidate, $document]), [
-            'verification_status' => 'rejected',
-            'verification_notes' => 'Document is blurry and unreadable',
+        $response = $this->post(route('candidates.pre-departure-documents.reject', [$this->candidate, $document]), [
+            'reason' => 'Document is blurry and unreadable',
         ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('pre_departure_documents', [
-            'id' => $document->id,
-            'verification_status' => 'rejected',
-            'verified_by' => $this->admin->id,
-        ]);
-
         $document->refresh();
+        $this->assertNull($document->verified_at);
         $this->assertEquals('Document is blurry and unreadable', $document->verification_notes);
     }
 
@@ -232,12 +224,11 @@ class PreDepartureDocumentControllerTest extends TestCase
             'candidate_id' => $this->candidate->id,
             'document_checklist_id' => $this->checklist->id,
             'file_path' => $filePath,
-            'file_name' => 'cnic.pdf',
+            'original_filename' => 'cnic.pdf',
             'file_size' => 1024,
             'mime_type' => 'application/pdf',
             'uploaded_by' => $this->admin->id,
             'uploaded_at' => now(),
-            'verification_status' => 'pending',
         ]);
 
         $response = $this->get(route('candidates.pre-departure-documents.download', [$this->candidate, $document]));
@@ -256,15 +247,15 @@ class PreDepartureDocumentControllerTest extends TestCase
 
         $response = $this->post(route('candidates.pre-departure-documents.store', $this->candidate), [
             'document_checklist_id' => $this->checklist->id,
-            'document' => $file,
+            'file' => $file,
             'notes' => 'Test upload',
         ]);
 
-        $response->assertSessionHasErrors('document');
+        $response->assertSessionHasErrors('file');
 
         $this->assertDatabaseMissing('pre_departure_documents', [
             'candidate_id' => $this->candidate->id,
-            'file_name' => 'malicious.exe',
+            'original_filename' => 'malicious.exe',
         ]);
     }
 }

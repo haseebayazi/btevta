@@ -110,3 +110,5 @@ run_*.php
 # Environment-specific
 .htaccess.local
 test-results.txt
+# Test artifacts
+/storage/framework/testing/

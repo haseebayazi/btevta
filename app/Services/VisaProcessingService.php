@@ -477,15 +477,14 @@ class VisaProcessingService
      */
     public function createVisaProcess($candidateId, $data)
     {
-        DB::beginTransaction();
-        try {
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($candidateId, $data) {
             // Create visa process record
             $visaProcess = VisaProcess::create([
                 'candidate_id' => $candidateId,
                 'interview_date' => $data['interview_date'] ?? null,
                 'interview_status' => $data['interview_status'] ?? 'pending',
                 'interview_remarks' => $data['interview_remarks'] ?? null,
-                'overall_status' => VisaStage::INITIATED->value,
                 'overall_status' => VisaStage::INITIATED->value,
             ]);
 
@@ -499,12 +498,8 @@ class VisaProcessingService
                 ->causedBy(auth()->user())
                 ->log('Visa process initiated');
 
-            DB::commit();
             return $visaProcess;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        });
     }
 
     /**

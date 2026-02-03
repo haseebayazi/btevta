@@ -15,35 +15,28 @@ class RemittanceService
      */
     public function createRemittance(array $data, ?UploadedFile $proofFile = null): Remittance
     {
-        DB::beginTransaction();
-        try {
-            // Generate unique transaction reference if not provided
-            if (empty($data['transaction_reference'])) {
-                $data['transaction_reference'] = $this->generateTransactionReference();
-            }
-
-            // Calculate PKR amount if exchange rate provided
-            if (!empty($data['exchange_rate']) && !empty($data['amount'])) {
-                $data['amount_in_pkr'] = $data['amount'] * $data['exchange_rate'];
-            }
-
-            // Handle proof document upload
-            if ($proofFile) {
-                $proofPath = $proofFile->store('remittances/proofs', 'public');
-                $data['proof_document_path'] = $proofPath;
-                $data['proof_document_type'] = $proofFile->getClientOriginalExtension();
-                $data['proof_document_size'] = $proofFile->getSize();
-            }
-
-            // Create remittance
-            $remittance = Remittance::create($data);
-
-            DB::commit();
-            return $remittance;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
+        // Generate unique transaction reference if not provided
+        if (empty($data['transaction_reference'])) {
+            $data['transaction_reference'] = $this->generateTransactionReference();
         }
+
+        // Calculate PKR amount if exchange rate provided
+        if (!empty($data['exchange_rate']) && !empty($data['amount'])) {
+            $data['amount_in_pkr'] = $data['amount'] * $data['exchange_rate'];
+        }
+
+        // Handle proof document upload
+        if ($proofFile) {
+            $proofPath = $proofFile->store('remittances/proofs', 'public');
+            $data['proof_document_path'] = $proofPath;
+            $data['proof_document_type'] = $proofFile->getClientOriginalExtension();
+            $data['proof_document_size'] = $proofFile->getSize();
+        }
+
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($data) {
+            return Remittance::create($data);
+        });
     }
 
     /**
@@ -51,39 +44,34 @@ class RemittanceService
      */
     public function updateRemittance(Remittance $remittance, array $data, ?UploadedFile $proofFile = null): Remittance
     {
-        DB::beginTransaction();
-        try {
-            // Recalculate PKR amount if exchange rate or amount changed
-            if (isset($data['exchange_rate']) || isset($data['amount'])) {
-                $amount = $data['amount'] ?? $remittance->amount;
-                $exchangeRate = $data['exchange_rate'] ?? $remittance->exchange_rate;
-                
-                if ($amount && $exchangeRate) {
-                    $data['amount_in_pkr'] = $amount * $exchangeRate;
-                }
+        // Recalculate PKR amount if exchange rate or amount changed
+        if (isset($data['exchange_rate']) || isset($data['amount'])) {
+            $amount = $data['amount'] ?? $remittance->amount;
+            $exchangeRate = $data['exchange_rate'] ?? $remittance->exchange_rate;
+            
+            if ($amount && $exchangeRate) {
+                $data['amount_in_pkr'] = $amount * $exchangeRate;
             }
-
-            // Handle new proof document upload
-            if ($proofFile) {
-                // Delete old proof if exists
-                if ($remittance->proof_document_path) {
-                    Storage::disk('public')->delete($remittance->proof_document_path);
-                }
-
-                $proofPath = $proofFile->store('remittances/proofs', 'public');
-                $data['proof_document_path'] = $proofPath;
-                $data['proof_document_type'] = $proofFile->getClientOriginalExtension();
-                $data['proof_document_size'] = $proofFile->getSize();
-            }
-
-            $remittance->update($data);
-
-            DB::commit();
-            return $remittance->fresh();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
         }
+
+        // Handle new proof document upload
+        if ($proofFile) {
+            // Delete old proof if exists
+            if ($remittance->proof_document_path) {
+                Storage::disk('public')->delete($remittance->proof_document_path);
+            }
+
+            $proofPath = $proofFile->store('remittances/proofs', 'public');
+            $data['proof_document_path'] = $proofPath;
+            $data['proof_document_type'] = $proofFile->getClientOriginalExtension();
+            $data['proof_document_size'] = $proofFile->getSize();
+        }
+
+        // Use DB::transaction() closure to properly support nested transactions/savepoints
+        return DB::transaction(function () use ($remittance, $data) {
+            $remittance->update($data);
+            return $remittance->fresh();
+        });
     }
 
     /**

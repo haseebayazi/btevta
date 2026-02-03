@@ -14,6 +14,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Status Transition Validation
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the system will validate that status transitions follow
+    | the defined state machine rules. Invalid transitions will be rejected.
+    | Set to false to allow any status transition (useful for data migration).
+    |
+    */
+    'enforce_status_transitions' => env('WASL_ENFORCE_STATUS_TRANSITIONS', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Batch Configuration
     |--------------------------------------------------------------------------
     |

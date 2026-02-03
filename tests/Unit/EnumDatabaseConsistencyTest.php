@@ -35,7 +35,7 @@ class EnumDatabaseConsistencyTest extends TestCase
     {
         // WASL v3 Enhanced Workflow
         $expectedValues = [
-            'listed', 'pre_departure_docs', 'screening', 'screened', 'registered',
+            'new', 'listed', 'pre_departure_docs', 'screening', 'screened', 'registered',
             'training', 'training_completed', 'visa_process', 'visa_approved',
             'departure_processing', 'ready_to_depart', 'departed', 'post_departure',
             'completed', 'deferred', 'rejected', 'withdrawn'

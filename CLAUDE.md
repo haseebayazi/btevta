@@ -4,7 +4,7 @@
 
 **WASL (Workforce Abroad Skills & Linkages)** is a Laravel 11.x enterprise application for TheLeap/BTEVTA (Board of Technical Education & Vocational Training Authority, Punjab) that manages the complete overseas employment lifecycle from candidate listing through deployment, post-departure tracking, and remittance management.
 
-**Version:** 1.4.0 | **Status:** Production Ready | **PHP:** 8.2+
+**Version:** 1.5.0 | **Status:** Production Ready | **PHP:** 8.2+
 
 ---
 
@@ -152,7 +152,7 @@ Business logic is separated from controllers into dedicated services:
 | Service | Purpose |
 |---------|---------|
 | `CandidateDeduplicationService` | Multi-strategy duplicate detection |
-| `ScreeningService` | 3-call screening workflow |
+| `ScreeningService` | Module 2 initial screening workflow |
 | `TrainingService` | Attendance, assessments, certificates |
 | `VisaProcessingService` | 12-stage visa pipeline |
 | `DepartureService` | Flight tracking, post-arrival |
@@ -318,13 +318,14 @@ public function test_candidate_can_transition_to_training(): void
 
 | Model | Description |
 |-------|-------------|
-| `CandidateScreening` | 3-call screening with outcomes |
+| `CandidateScreening` | Module 2 initial screening with consent & placement |
 | `TrainingAttendance` | Daily attendance records |
 | `TrainingAssessment` | Midterm, final, practical scores |
 | `VisaProcess` | 12-stage visa pipeline |
 | `Departure` | Flight info, post-arrival tracking |
 | `Complaint` | SLA-based with escalation |
 | `PreDepartureDocument` | Module 1 document collection |
+| `Country` | Destination countries for placement |
 
 ### Common Relationships
 
@@ -521,4 +522,4 @@ php artisan serve
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: February 2026*

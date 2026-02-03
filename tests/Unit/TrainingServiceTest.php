@@ -64,8 +64,8 @@ class TrainingServiceTest extends TestCase
         // This should fail but roll back all changes
         try {
             $this->service->startBatchTraining($batch->id, 'invalid-date', '2024-08-31');
-        } catch (\Exception $e) {
-            // Expected
+        } catch (\Throwable $e) {
+            // Expected - any error should trigger rollback
         }
 
         $batch->refresh();

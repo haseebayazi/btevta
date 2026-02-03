@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Support\Facades\Route::model('instructor', \App\Models\Instructor::class);
             \Illuminate\Support\Facades\Route::model('class', \App\Models\TrainingClass::class);
             \Illuminate\Support\Facades\Route::model('correspondence', \App\Models\Correspondence::class);
+            \Illuminate\Support\Facades\Route::model('preDepartureDocument', \App\Models\PreDepartureDocument::class);
 
             // ADVANCED: Custom binding example for specialized lookups
             // Uncomment and customize if you need to bind by fields other than ID:
