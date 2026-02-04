@@ -409,6 +409,26 @@ class Candidate extends Model
     }
 
     /**
+     * Get all courses assigned to the candidate.
+     */
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'candidate_courses')
+            ->withPivot(['start_date', 'end_date', 'status', 'assigned_by', 'assigned_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the active course for the candidate.
+     */
+    public function activeCourse()
+    {
+        return $this->courses()
+            ->wherePivotIn('status', ['assigned', 'in_progress'])
+            ->first();
+    }
+
+    /**
      * Get all beneficiaries for the candidate.
      */
     public function beneficiaries()
