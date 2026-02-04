@@ -126,6 +126,8 @@ class Candidate extends Model
 
     /**
      * Status constants - Overall workflow stage
+     * 
+     * @deprecated WASL v3 uses CandidateStatus enum. Legacy constants kept for backward compatibility.
      */
     const STATUS_NEW = 'new';
     const STATUS_SCREENING = 'screening';
@@ -137,6 +139,15 @@ class Candidate extends Model
     const STATUS_REJECTED = 'rejected';
     const STATUS_DROPPED = 'dropped';
     const STATUS_RETURNED = 'returned';
+
+    /**
+     * WASL v3 Status constants - New sequential workflow (Module 1 & 2)
+     * These align with the CandidateStatus enum values
+     */
+    const STATUS_LISTED = 'listed';
+    const STATUS_PRE_DEPARTURE_DOCS = 'pre_departure_docs';
+    const STATUS_SCREENED = 'screened';
+    const STATUS_DEFERRED = 'deferred';
 
     /**
      * Training status constants - Sub-detail during training phase
@@ -151,12 +162,17 @@ class Candidate extends Model
 
     /**
      * Get all possible status values
+     * 
+     * @deprecated Use CandidateStatus::toArray() for WASL v3 statuses
      */
     public static function getStatuses()
     {
         return [
             self::STATUS_NEW => 'New',
+            self::STATUS_LISTED => 'Listed',
+            self::STATUS_PRE_DEPARTURE_DOCS => 'Pre-Departure Documents',
             self::STATUS_SCREENING => 'Screening',
+            self::STATUS_SCREENED => 'Screened',
             self::STATUS_REGISTERED => 'Registered',
             self::STATUS_TRAINING => 'Training',
             self::STATUS_VISA_PROCESS => 'Visa Process',
@@ -165,6 +181,7 @@ class Candidate extends Model
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_DROPPED => 'Dropped',
             self::STATUS_RETURNED => 'Returned',
+            self::STATUS_DEFERRED => 'Deferred',
         ];
     }
 
@@ -738,8 +755,12 @@ class Candidate extends Model
     {
         $issues = [];
 
-        if ($this->status !== self::STATUS_NEW) {
-            $issues[] = "Current status must be 'new'. Current: {$this->status}";
+        // WASL v3: Module 1 to Module 2 transition
+        // Candidate must be in 'listed' or 'pre_departure_docs' status (Module 1 workflow)
+        // Legacy 'new' status is also accepted for backward compatibility
+        $validStatuses = [self::STATUS_NEW, self::STATUS_LISTED, self::STATUS_PRE_DEPARTURE_DOCS];
+        if (!in_array($this->status, $validStatuses)) {
+            $issues[] = "Current status must be 'listed' or 'pre_departure_docs' (Module 1). Current: {$this->status}";
         }
 
         if (empty($this->name) || empty($this->cnic)) {
@@ -747,14 +768,19 @@ class Candidate extends Model
         }
 
         if (empty($this->phone)) {
-            $issues[] = 'Phone number is required for call screening';
+            $issues[] = 'Phone number is required for screening';
         }
 
-        // NEW: Check pre-departure documents completion (Module 1 requirement)
-        if (!$this->hasCompletedPreDepartureDocuments()) {
-            $missingDocs = $this->getMissingMandatoryDocuments();
-            $missingNames = $missingDocs->pluck('name')->toArray();
-            $issues[] = 'All mandatory pre-departure documents must be uploaded before screening. Missing: ' . implode(', ', $missingNames);
+        // Module 1 → Module 2 Gate: All mandatory pre-departure documents must be uploaded AND verified
+        if (!$this->hasCompletedAndVerifiedPreDepartureDocuments()) {
+            // Check if documents are uploaded but not verified
+            if ($this->hasCompletedPreDepartureDocuments()) {
+                $issues[] = 'All mandatory pre-departure documents must be verified before screening. Documents are uploaded but pending verification.';
+            } else {
+                $missingDocs = $this->getMissingMandatoryDocuments();
+                $missingNames = $missingDocs->pluck('name')->toArray();
+                $issues[] = 'All mandatory pre-departure documents must be uploaded and verified before screening. Missing: ' . implode(', ', $missingNames);
+            }
         }
 
         return [
@@ -764,8 +790,10 @@ class Candidate extends Model
     }
 
     /**
-     * Check if candidate can transition from SCREENING to REGISTERED.
-     * Validates that all required screenings are passed.
+     * Check if candidate can transition from SCREENING/SCREENED to REGISTERED.
+     * 
+     * WASL v3 Module 2: Uses Initial Screening single-review workflow.
+     * Legacy 3-call screening types (desk, call, physical) are deprecated but still supported.
      *
      * @return array ['can_transition' => bool, 'issues' => array]
      */
@@ -773,11 +801,29 @@ class Candidate extends Model
     {
         $issues = [];
 
-        if ($this->status !== self::STATUS_SCREENING) {
-            $issues[] = "Current status must be 'screening'. Current: {$this->status}";
+        // WASL v3: Accept both 'screening' and 'screened' statuses
+        // 'screened' is the new Module 2 status after Initial Screening is completed
+        $validStatuses = [self::STATUS_SCREENING, self::STATUS_SCREENED];
+        if (!in_array($this->status, $validStatuses)) {
+            $issues[] = "Current status must be 'screening' or 'screened'. Current: {$this->status}";
         }
 
-        // Check required screenings
+        // WASL v3: Check for Module 2 Initial Screening completion
+        $initialScreening = $this->screenings()
+            ->where('screening_type', 'initial')
+            ->where('screening_status', 'screened')
+            ->first();
+
+        if ($initialScreening) {
+            // Module 2 Initial Screening is complete - candidate can proceed to registration
+            return [
+                'can_transition' => empty($issues),
+                'issues' => $issues,
+            ];
+        }
+
+        // Legacy fallback: Check for legacy 3-call screening system
+        // @deprecated This will be removed in future versions
         $requiredTypes = ['desk', 'call', 'physical'];
         $passedScreenings = $this->screenings()
             ->whereIn('screening_type', $requiredTypes)
@@ -786,8 +832,8 @@ class Candidate extends Model
             ->toArray();
 
         $missingScreenings = array_diff($requiredTypes, $passedScreenings);
-        if (!empty($missingScreenings)) {
-            $issues[] = 'Missing passed screenings: ' . implode(', ', $missingScreenings);
+        if (!empty($missingScreenings) && !$initialScreening) {
+            $issues[] = 'Initial Screening must be completed with "Screened" outcome, OR legacy screenings (desk, call, physical) must be passed. Missing: ' . implode(', ', $missingScreenings);
         }
 
         return [
