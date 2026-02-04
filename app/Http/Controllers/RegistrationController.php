@@ -21,7 +21,7 @@ class RegistrationController extends Controller
         $this->authorize('viewAny', Candidate::class);
 
         $query = Candidate::with(['trade', 'campus', 'documents', 'nextOfKin'])
-            ->whereIn('status', ['screening_passed', 'registered', 'pending_registration']);
+            ->whereIn('status', ['screened', 'screening_passed', 'registered', 'pending_registration']);
 
         // Filter by campus for campus_admin users
         if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
@@ -261,10 +261,16 @@ class RegistrationController extends Controller
     /**
      * Complete the registration process for a candidate.
      * Validates all required documents, expiry dates, next of kin, and undertaking.
+     * Gate: Only screened candidates can proceed to registration.
      */
     public function completeRegistration(Request $request, Candidate $candidate)
     {
         $this->authorize('update', $candidate);
+
+        // Gate: Only screened candidates can complete registration
+        if (!in_array($candidate->status, ['screened', 'screening_passed', 'pending_registration'])) {
+            return back()->with('error', 'Only screened candidates can be registered. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
+        }
 
         try {
             // Check if all required documents are uploaded

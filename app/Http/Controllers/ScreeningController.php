@@ -624,6 +624,13 @@ class ScreeningController extends Controller
             return back()->with('error', 'Candidate must complete Pre-Departure Documents before screening.');
         }
 
+        // Verify all mandatory pre-departure documents are completed
+        if (!$candidate->hasCompletedPreDepartureDocuments()) {
+            $missingDocs = $candidate->getMissingMandatoryDocuments();
+            $missingNames = $missingDocs->pluck('name')->implode(', ');
+            return back()->with('error', 'Candidate must have all mandatory documents verified before screening. Missing: ' . $missingNames);
+        }
+
         $countries = Country::destinations()->active()->orderBy('name')->get();
         $existingScreening = $candidate->screenings()
             ->where('screening_type', 'initial')
@@ -719,12 +726,33 @@ class ScreeningController extends Controller
                 ->count(),
         ];
 
-        // Pending candidates for screening
+        // Pending candidates for screening - only those with completed documents
         $pendingCandidates = (clone $baseQuery)
             ->whereIn('status', ['pre_departure_docs', 'screening'])
-            ->with(['campus', 'trade', 'oep'])
+            ->with(['campus', 'trade', 'oep', 'preDepartureDocuments'])
             ->latest()
-            ->paginate(20);
+            ->get()
+            ->filter(function ($candidate) {
+                // Only include candidates with all mandatory documents completed
+                return $candidate->hasCompletedPreDepartureDocuments();
+            });
+
+        // Add document completion status to each candidate
+        $pendingCandidates = $pendingCandidates->map(function ($candidate) {
+            $candidate->document_status = $candidate->getPreDepartureDocumentStatus();
+            return $candidate;
+        });
+
+        // Paginate the filtered collection
+        $page = request()->get('page', 1);
+        $perPage = 20;
+        $pendingCandidates = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pendingCandidates->forPage($page, $perPage),
+            $pendingCandidates->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
 
         // Recently screened
         $recentlyScreened = (clone $baseQuery)

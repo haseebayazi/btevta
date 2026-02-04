@@ -81,10 +81,10 @@
     <!-- Pending Candidates Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
         <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-xl font-semibold text-gray-900">Pending Candidates</h2>
-            <p class="text-sm text-gray-500 mt-1">Candidates ready for initial screening</p>
+            <h2 class="text-xl font-semibold text-gray-900">Ready for Screening</h2>
+            <p class="text-sm text-gray-500 mt-1">Candidates with completed and verified documents ready for initial screening</p>
         </div>
-        
+
         <div class="overflow-x-auto">
             @if($pendingCandidates->count() > 0)
                 <table class="w-full">
@@ -94,7 +94,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campus</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trade</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OEP</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -115,17 +115,23 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $candidate->trade->name ?? 'N/A' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $candidate->oep->name ?? 'N/A' }}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @php
+                                    $docStatus = $candidate->document_status ?? $candidate->getPreDepartureDocumentStatus();
+                                @endphp
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    {{ $docStatus['mandatory_uploaded'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Complete
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                     {{ $candidate->status === 'screening' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800' }}">
                                     {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ route('candidates.initial-screening', $candidate) }}" 
+                                <a href="{{ route('candidates.initial-screening', $candidate) }}"
                                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition">
                                     <i class="fas fa-clipboard-check mr-1.5"></i>Screen
                                 </a>
@@ -134,7 +140,7 @@
                         @endforeach
                     </tbody>
                 </table>
-                
+
                 <!-- Pagination -->
                 <div class="px-6 py-4 border-t border-gray-100">
                     {{ $pendingCandidates->links() }}
@@ -142,7 +148,8 @@
             @else
                 <div class="px-6 py-12 text-center">
                     <i class="fas fa-clipboard-check text-gray-300 text-5xl mb-4"></i>
-                    <p class="text-gray-500">No candidates pending screening</p>
+                    <p class="text-gray-500">No candidates with completed documents ready for screening</p>
+                    <p class="text-xs text-gray-400 mt-2">Candidates must complete all mandatory pre-departure documents before screening</p>
                 </div>
             @endif
         </div>
