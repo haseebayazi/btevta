@@ -69,14 +69,14 @@ class InitialScreeningControllerTest extends TestCase
     }
 
     /**
-     * Helper method to setup completed documents for a candidate
+     * Helper method to setup completed and verified documents for a candidate
      */
     protected function setupCompletedDocuments(Candidate $candidate): void
     {
         // Get all mandatory document checklists
         $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
 
-        // Create pre-departure documents for each mandatory checklist
+        // Create pre-departure documents for each mandatory checklist (uploaded AND verified)
         foreach ($mandatoryChecklists as $checklist) {
             PreDepartureDocument::create([
                 'candidate_id' => $candidate->id,
@@ -87,6 +87,8 @@ class InitialScreeningControllerTest extends TestCase
                 'file_size' => 1024,
                 'uploaded_at' => now(),
                 'uploaded_by' => $this->user->id,
+                'verified_at' => now(),
+                'verified_by' => $this->user->id,
             ]);
         }
     }

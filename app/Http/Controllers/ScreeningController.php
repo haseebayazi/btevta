@@ -624,11 +624,16 @@ class ScreeningController extends Controller
             return back()->with('error', 'Candidate must complete Pre-Departure Documents before screening.');
         }
 
-        // Verify all mandatory pre-departure documents are completed
-        if (!$candidate->hasCompletedPreDepartureDocuments()) {
+        // Verify all mandatory pre-departure documents are completed AND verified
+        if (!$candidate->hasCompletedAndVerifiedPreDepartureDocuments()) {
+            // Check if documents are uploaded but not verified
+            if ($candidate->hasCompletedPreDepartureDocuments()) {
+                return back()->with('error', 'All mandatory documents have been uploaded but are pending verification. Please verify documents before screening.');
+            }
+            // Documents are missing
             $missingDocs = $candidate->getMissingMandatoryDocuments();
             $missingNames = $missingDocs->pluck('name')->implode(', ');
-            return back()->with('error', 'Candidate must have all mandatory documents verified before screening. Missing: ' . $missingNames);
+            return back()->with('error', 'Candidate must have all mandatory documents uploaded and verified before screening. Missing: ' . $missingNames);
         }
 
         $countries = Country::destinations()->active()->orderBy('name')->get();
@@ -726,24 +731,22 @@ class ScreeningController extends Controller
                 ->count(),
         ];
 
-        // Pending candidates for screening - only those with completed documents
+        // Pending candidates for screening - show all in correct status with document status
         $pendingCandidates = (clone $baseQuery)
             ->whereIn('status', ['pre_departure_docs', 'screening'])
             ->with(['campus', 'trade', 'oep', 'preDepartureDocuments'])
             ->latest()
-            ->get()
-            ->filter(function ($candidate) {
-                // Only include candidates with all mandatory documents completed
-                return $candidate->hasCompletedPreDepartureDocuments();
-            });
+            ->get();
 
         // Add document completion status to each candidate
         $pendingCandidates = $pendingCandidates->map(function ($candidate) {
             $candidate->document_status = $candidate->getPreDepartureDocumentStatus();
+            // Check if all mandatory documents are verified (ready for screening)
+            $candidate->ready_for_screening = $candidate->hasCompletedAndVerifiedPreDepartureDocuments();
             return $candidate;
         });
 
-        // Paginate the filtered collection
+        // Paginate the collection
         $page = request()->get('page', 1);
         $perPage = 20;
         $pendingCandidates = new \Illuminate\Pagination\LengthAwarePaginator(

@@ -1049,6 +1049,33 @@ class Candidate extends Model
     }
 
     /**
+     * Check if candidate has completed AND verified all mandatory pre-departure documents
+     * This is required for Initial Screening eligibility
+     */
+    public function hasCompletedAndVerifiedPreDepartureDocuments(): bool
+    {
+        $mandatoryDocuments = DocumentChecklist::mandatory()->active()->get();
+
+        if ($mandatoryDocuments->isEmpty()) {
+            return false;
+        }
+
+        // Get uploaded documents that are verified
+        $verifiedDocumentIds = $this->preDepartureDocuments()
+            ->whereNotNull('verified_at')
+            ->pluck('document_checklist_id')
+            ->toArray();
+
+        foreach ($mandatoryDocuments as $doc) {
+            if (!in_array($doc->id, $verifiedDocumentIds)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Get pre-departure document completion status
      */
     public function getPreDepartureDocumentStatus(): array

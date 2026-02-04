@@ -81,8 +81,8 @@
     <!-- Pending Candidates Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
         <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-xl font-semibold text-gray-900">Ready for Screening</h2>
-            <p class="text-sm text-gray-500 mt-1">Candidates with completed and verified documents ready for initial screening</p>
+            <h2 class="text-xl font-semibold text-gray-900">Candidates for Initial Screening</h2>
+            <p class="text-sm text-gray-500 mt-1">Candidates in pre-departure docs or screening status. Documents must be verified before screening.</p>
         </div>
 
         <div class="overflow-x-auto">
@@ -101,7 +101,7 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach($pendingCandidates as $candidate)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 {{ !$candidate->ready_for_screening ? 'bg-gray-50' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                 {{ $candidate->btevta_id ?? 'N/A' }}
                             </td>
@@ -118,11 +118,24 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @php
                                     $docStatus = $candidate->document_status ?? $candidate->getPreDepartureDocumentStatus();
+                                    $readyForScreening = $candidate->ready_for_screening ?? false;
                                 @endphp
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    <i class="fas fa-check-circle mr-1"></i>
-                                    {{ $docStatus['mandatory_uploaded'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Complete
-                                </span>
+                                @if($readyForScreening)
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        {{ $docStatus['mandatory_uploaded'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Verified
+                                    </span>
+                                @elseif(($docStatus['mandatory_uploaded'] ?? 0) >= ($docStatus['mandatory_total'] ?? 1))
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Pending Verification
+                                    </span>
+                                @else
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ $docStatus['mandatory_uploaded'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Uploaded
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -131,10 +144,18 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ route('candidates.initial-screening', $candidate) }}"
-                                   class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition">
-                                    <i class="fas fa-clipboard-check mr-1.5"></i>Screen
-                                </a>
+                                @if($readyForScreening)
+                                    <a href="{{ route('candidates.initial-screening', $candidate) }}"
+                                       class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition">
+                                        <i class="fas fa-clipboard-check mr-1.5"></i>Screen
+                                    </a>
+                                @else
+                                    <a href="{{ route('candidates.pre-departure-documents.index', $candidate) }}"
+                                       class="inline-flex items-center px-3 py-1.5 bg-gray-400 hover:bg-gray-500 text-white text-sm rounded-lg transition"
+                                       title="Documents must be verified before screening">
+                                        <i class="fas fa-file-alt mr-1.5"></i>View Docs
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -148,8 +169,8 @@
             @else
                 <div class="px-6 py-12 text-center">
                     <i class="fas fa-clipboard-check text-gray-300 text-5xl mb-4"></i>
-                    <p class="text-gray-500">No candidates with completed documents ready for screening</p>
-                    <p class="text-xs text-gray-400 mt-2">Candidates must complete all mandatory pre-departure documents before screening</p>
+                    <p class="text-gray-500">No candidates in screening stage</p>
+                    <p class="text-xs text-gray-400 mt-2">Candidates must be in 'pre_departure_docs' or 'screening' status to appear here</p>
                 </div>
             @endif
         </div>
