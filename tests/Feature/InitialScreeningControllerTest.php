@@ -354,4 +354,183 @@ class InitialScreeningControllerTest extends TestCase
         $this->assertTrue($pendingCandidates->contains('id', $ownCandidate->id));
         $this->assertFalse($pendingCandidates->contains('id', $otherCandidate->id));
     }
+
+    #[Test]
+    public function dashboard_shows_ready_for_screening_flag_for_verified_documents()
+    {
+        $this->actingAs($this->user);
+
+        // Setup completed AND verified documents
+        $this->setupCompletedDocuments($this->candidate);
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Find our candidate in the collection
+        $candidate = $pendingCandidates->firstWhere('id', $this->candidate->id);
+
+        $this->assertNotNull($candidate, 'Candidate should be in pending list');
+        
+        // Verify ready_for_screening is set and true
+        $this->assertTrue(
+            isset($candidate->ready_for_screening),
+            'ready_for_screening property should be set'
+        );
+        $this->assertTrue(
+            $candidate->ready_for_screening,
+            'ready_for_screening should be true for candidate with verified documents'
+        );
+    }
+
+    #[Test]
+    public function dashboard_shows_not_ready_for_screening_when_documents_uploaded_but_not_verified()
+    {
+        $this->actingAs($this->user);
+
+        // Get all mandatory document checklists
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+
+        // Create pre-departure documents for each mandatory checklist (uploaded but NOT verified)
+        foreach ($mandatoryChecklists as $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $this->candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'documents/test_' . $checklist->code . '.pdf',
+                'original_filename' => $checklist->code . '.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->user->id,
+                'verified_at' => null, // NOT verified
+                'verified_by' => null,
+            ]);
+        }
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Find our candidate in the collection
+        $candidate = $pendingCandidates->firstWhere('id', $this->candidate->id);
+
+        $this->assertNotNull($candidate, 'Candidate should be in pending list');
+        
+        // Verify ready_for_screening is set but false
+        $this->assertTrue(
+            isset($candidate->ready_for_screening),
+            'ready_for_screening property should be set'
+        );
+        $this->assertFalse(
+            $candidate->ready_for_screening,
+            'ready_for_screening should be false when documents are uploaded but not verified'
+        );
+    }
+
+    #[Test]
+    public function dashboard_shows_not_ready_for_screening_when_documents_missing()
+    {
+        $this->actingAs($this->user);
+
+        // Don't upload any documents
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Find our candidate in the collection
+        $candidate = $pendingCandidates->firstWhere('id', $this->candidate->id);
+
+        $this->assertNotNull($candidate, 'Candidate should be in pending list even without documents');
+        
+        // Verify ready_for_screening is set but false
+        $this->assertTrue(
+            isset($candidate->ready_for_screening),
+            'ready_for_screening property should be set'
+        );
+        $this->assertFalse(
+            $candidate->ready_for_screening,
+            'ready_for_screening should be false when documents are missing'
+        );
+    }
+
+    #[Test]
+    public function dashboard_includes_candidates_in_listed_status()
+    {
+        $this->actingAs($this->user);
+
+        // Create a candidate in 'listed' status
+        $listedCandidate = Candidate::factory()->create([
+            'status' => 'listed',
+            'campus_id' => $this->candidate->campus_id,
+            'trade_id' => $this->candidate->trade_id,
+        ]);
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Should include the listed candidate
+        $this->assertTrue(
+            $pendingCandidates->contains('id', $listedCandidate->id),
+            'Dashboard should include candidates in listed status'
+        );
+    }
+
+    #[Test]
+    public function dashboard_includes_candidates_in_screening_status()
+    {
+        $this->actingAs($this->user);
+
+        // Create a candidate in 'screening' status
+        $screeningCandidate = Candidate::factory()->create([
+            'status' => 'screening',
+            'campus_id' => $this->candidate->campus_id,
+            'trade_id' => $this->candidate->trade_id,
+        ]);
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Should include the screening candidate
+        $this->assertTrue(
+            $pendingCandidates->contains('id', $screeningCandidate->id),
+            'Dashboard should include candidates in screening status'
+        );
+    }
+
+    #[Test]
+    public function dashboard_document_status_is_set_for_all_candidates()
+    {
+        $this->actingAs($this->user);
+
+        $response = $this->get(route('screening.initial-dashboard'));
+
+        $response->assertStatus(200);
+
+        $pendingCandidates = $response->viewData('pendingCandidates');
+
+        // Check that all candidates have document_status set
+        foreach ($pendingCandidates as $candidate) {
+            $this->assertTrue(
+                isset($candidate->document_status),
+                "document_status should be set for candidate {$candidate->id}"
+            );
+            $this->assertIsArray(
+                $candidate->document_status,
+                "document_status should be an array for candidate {$candidate->id}"
+            );
+        }
+    }
 }
