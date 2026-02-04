@@ -619,43 +619,15 @@ class DashboardController extends Controller
 
     // ============================================
     // TAB 2: SCREENING
+    // @deprecated WASL v3: This tab is part of the legacy 3-call screening system.
+    //             Redirects to Module 2 Initial Screening dashboard.
     // ============================================
     public function screening(Request $request)
     {
-        $user = auth()->user();
-        $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
-        
-        $pendingCall1 = Candidate::where('status', 'listed')
-            ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-            ->count();
-        
-        $pendingCall2 = CandidateScreening::whereIn('screening_stage', [1, 2])
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) =>
-                $sq->where('campus_id', $campusFilter)))
-            ->select('candidate_id')
-            ->distinct()
-            ->count();
-
-        $pendingCall3 = CandidateScreening::where('screening_stage', 2)
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) =>
-                $sq->where('campus_id', $campusFilter)))
-            ->select('candidate_id')
-            ->distinct()
-            ->count();
-        
-        $screeningQueue = Candidate::where('status', 'screening')
-            ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-            ->with(['screenings', 'campus'])
-            ->withCount('screenings')
-            ->latest()
-            ->paginate(15);
-        
-        return view('dashboard.tabs.screening', compact(
-            'pendingCall1',
-            'pendingCall2',
-            'pendingCall3',
-            'screeningQueue'
-        ));
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        // The legacy screening tab has been replaced with the Initial Screening dashboard
+        return redirect()->route('screening.initial-dashboard')
+            ->with('info', 'The legacy screening dashboard has been replaced with Initial Screening.');
     }
 
     // ============================================

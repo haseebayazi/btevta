@@ -107,14 +107,29 @@
     </div>
     @else
     <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-check-circle text-green-400 text-xl"></i>
+        <div class="flex items-start justify-between">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-green-800">All Documents Complete</h3>
+                    @if($status['all_verified'])
+                        <p class="mt-1 text-sm text-green-700">All mandatory pre-departure documents have been uploaded and verified. The candidate is ready for Initial Screening.</p>
+                    @else
+                        <p class="mt-1 text-sm text-green-700">All mandatory documents uploaded. Awaiting verification ({{ $status['mandatory_verified'] }}/{{ $status['mandatory_total'] }} verified).</p>
+                    @endif
+                </div>
             </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-green-800">All Documents Complete</h3>
-                <p class="mt-1 text-sm text-green-700">All mandatory pre-departure documents have been uploaded. The candidate is ready to proceed.</p>
-            </div>
+            @if($status['all_verified'] && in_array($candidate->status, ['listed', 'pre_departure_docs', 'new']))
+                @can('create', App\Models\CandidateScreening::class)
+                <a href="{{ route('candidates.initial-screening', $candidate) }}"
+                   class="ml-4 inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition shadow-sm">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    Proceed to Initial Screening
+                </a>
+                @endcan
+            @endif
         </div>
     </div>
     @endif

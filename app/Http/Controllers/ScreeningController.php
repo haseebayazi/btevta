@@ -14,126 +14,60 @@ class ScreeningController extends Controller
 {
     /**
      * Display a listing of screenings.
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Use initialScreeningDashboard() for the new Module 2 Initial Screening workflow.
+     * @see \App\Http\Controllers\ScreeningController::initialScreeningDashboard()
      */
     public function index(Request $request)
     {
-        $this->authorize('viewAny', CandidateScreening::class);
-
-        // FIXED: Optimized N+1 query by using join instead of nested whereHas
-        $query = CandidateScreening::with('candidate');
-
-        // AUDIT FIX: Apply campus filtering for campus admin users
-        $user = Auth::user();
-        if ($user->isCampusAdmin() && $user->campus_id) {
-            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
-        }
-
-        $screenings = $query->when($request->search, function($q) use ($request) {
-                // Escape special LIKE characters to prevent SQL LIKE injection
-                $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
-                $q->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
-                  ->where(function($sq) use ($escapedSearch) {
-                      $sq->where('candidates.name', 'like', '%'.$escapedSearch.'%')
-                         ->orWhere('candidates.btevta_id', 'like', '%'.$escapedSearch.'%');
-                  })
-                  ->select('candidate_screenings.*');
-            })
-            ->latest('candidate_screenings.created_at')
-            ->paginate(15);
-
-        return view('screening.index', compact('screenings'));
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        return redirect()->route('screening.initial-dashboard')
+            ->with('info', 'The legacy screening list has been replaced with Initial Screening. Please use the Initial Screening dashboard.');
     }
 
     /**
      * Display pending screenings.
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Use initialScreeningDashboard() for the new Module 2 Initial Screening workflow.
+     * @see \App\Http\Controllers\ScreeningController::initialScreeningDashboard()
      */
     public function pending()
     {
-        $this->authorize('viewAny', CandidateScreening::class);
-
-        // AUDIT FIX: Apply campus filtering for campus admin users
-        $query = Candidate::where('status', 'screening');
-
-        $user = Auth::user();
-        if ($user->isCampusAdmin() && $user->campus_id) {
-            $query->where('campus_id', $user->campus_id);
-        }
-
-        // AUDIT FIX: Added pagination to prevent memory issues with large datasets
-        $candidates = $query->withCount('screenings')
-            ->having('screenings_count', '<', 3)
-            ->latest()
-            ->paginate(20);
-
-        return view('screening.pending', compact('candidates'));
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        return redirect()->route('screening.initial-dashboard')
+            ->with('info', 'Pending screenings are now managed in Initial Screening. Please use the Initial Screening dashboard.');
     }
 
     /**
      * Show the form for creating a new screening.
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Use initialScreening() for the new Module 2 Initial Screening workflow.
+     * @see \App\Http\Controllers\ScreeningController::initialScreening()
      */
     public function create()
     {
-        $this->authorize('create', CandidateScreening::class);
-
-        // AUDIT FIX: Apply campus filtering and limit dropdown results for performance
-        $query = Candidate::whereIn('status', ['new', 'screening'])
-            ->select('id', 'name', 'btevta_id');
-
-        $user = Auth::user();
-        if ($user->isCampusAdmin() && $user->campus_id) {
-            $query->where('campus_id', $user->campus_id);
-        }
-
-        $candidates = $query->orderBy('name')
-            ->limit(200)
-            ->get();
-
-        return view('screening.create', compact('candidates'));
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        // Users should select a candidate from the dashboard to start Initial Screening
+        return redirect()->route('screening.initial-dashboard')
+            ->with('info', 'To screen a candidate, please select them from the Initial Screening dashboard and click "Screen".');
     }
 
     /**
      * Store a newly created screening in storage.
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Use storeInitialScreening() for the new Module 2 Initial Screening workflow.
+     * @see \App\Http\Controllers\ScreeningController::storeInitialScreening()
      */
     public function store(Request $request)
     {
-        $this->authorize('create', CandidateScreening::class);
-
-        $validated = $request->validate([
-            'candidate_id' => 'required|exists:candidates,id',
-            'screening_type' => 'required|string',
-            'screened_at' => 'required|date',
-            'call_duration' => 'nullable|integer|min:1',
-            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
-            'remarks' => 'nullable|string',
-            'evidence_path' => 'nullable|string',
-        ]);
-
-        try {
-            $validated['screened_by'] = auth()->id();
-            $validated['created_by'] = auth()->id();
-
-            CandidateScreening::create($validated);
-
-            activity()
-                ->causedBy(auth()->user())
-                ->log('Screening record created');
-
-            return redirect()->route('screening.index')->with('success', 'Screening record created successfully!');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to create screening record: ' . $e->getMessage());
-        }
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        // Legacy screening creation is no longer supported
+        return redirect()->route('screening.initial-dashboard')
+            ->with('warning', 'The legacy screening system has been deprecated. Please use Initial Screening instead.');
     }
 
     public function edit($candidateId)
@@ -189,210 +123,33 @@ class ScreeningController extends Controller
 
     /**
      * Log a call attempt for a candidate's call screening.
-     * Updates existing call screening record instead of creating new ones.
-     * Respects the max 3 attempts limit.
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Module 2 Initial Screening uses a single-review approach with storeInitialScreening().
+     * @see \App\Http\Controllers\ScreeningController::storeInitialScreening()
      */
     public function logCall(Request $request, Candidate $candidate)
     {
-        $this->authorize('create', CandidateScreening::class);
-
-        $validated = $request->validate([
-            'screened_at' => 'required|date',
-            'call_duration' => 'required|integer|min:1',
-            'remarks' => 'nullable|string|max:1000',
-            'answered' => 'nullable|boolean',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Get or create call screening for this candidate
-            $screening = $candidate->screenings()
-                ->where('screening_type', CandidateScreening::TYPE_CALL)
-                ->whereIn('status', [
-                    CandidateScreening::STATUS_PENDING,
-                    CandidateScreening::STATUS_IN_PROGRESS
-                ])
-                ->first();
-
-            if (!$screening) {
-                // Create new call screening if none exists
-                $screening = CandidateScreening::create([
-                    'candidate_id' => $candidate->id,
-                    'screening_type' => CandidateScreening::TYPE_CALL,
-                    'status' => CandidateScreening::STATUS_IN_PROGRESS,
-                    'screened_by' => auth()->id(),
-                    'screened_at' => $validated['screened_at'],
-                    'call_count' => 0,
-                ]);
-            }
-
-            // Check if max attempts reached
-            if ($screening->max_calls_reached) {
-                DB::rollBack();
-                return back()->with('error', 'Maximum call attempts (3) already reached for this candidate.');
-            }
-
-            // Record the call attempt
-            $answered = $validated['answered'] ?? false;
-            $screening->recordCallAttempt(
-                $validated['call_duration'],
-                $answered,
-                $validated['remarks'] ?? null
-            );
-
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'call_number' => $screening->call_count,
-                    'answered' => $answered,
-                    'duration' => $validated['call_duration'],
-                ])
-                ->log('Call attempt logged for screening');
-
-            DB::commit();
-
-            $message = "Call #{$screening->call_count} logged successfully!";
-            if ($screening->max_calls_reached && !$answered) {
-                $message .= " Maximum attempts reached.";
-            }
-
-            return back()->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to log call: ' . $e->getMessage());
-        }
+        // WASL v3: Redirect to Module 2 Initial Screening
+        // The legacy 3-call system has been replaced with single-review Initial Screening
+        return redirect()->route('candidates.initial-screening', $candidate)
+            ->with('warning', 'The legacy call logging system has been deprecated. Please use Initial Screening instead.');
     }
 
     /**
      * Record screening outcome for a candidate.
-     * Uses the model's markAsPassed/markAsFailed methods to ensure proper
-     * auto-progression logic (all 3 screenings must pass for REGISTERED status).
-     * 
+     *
      * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
      *             Module 2 Initial Screening uses storeInitialScreening() with outcomes:
      *             'screened', 'pending', or 'deferred'.
+     * @see \App\Http\Controllers\ScreeningController::storeInitialScreening()
      */
     public function recordOutcome(Request $request, Candidate $candidate)
     {
-        $validated = $request->validate([
-            'screening_type' => 'nullable|in:desk,call,physical,document,medical',
-            'status' => 'required|in:pending,in_progress,passed,failed,deferred,cancelled',
-            'remarks' => 'nullable|string|max:1000',
-            'evidence' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Get the screening record for this type, or latest if not specified
-            $screeningType = $validated['screening_type'] ?? null;
-
-            if ($screeningType) {
-                $screening = $candidate->screenings()
-                    ->where('screening_type', $screeningType)
-                    ->latest()
-                    ->first();
-            } else {
-                $screening = $candidate->screenings()->latest()->first();
-            }
-
-            if ($screening) {
-                $this->authorize('update', $screening);
-            } else {
-                $this->authorize('create', CandidateScreening::class);
-
-                // Create new screening record if none exists
-                $screeningType = $screeningType ?? CandidateScreening::TYPE_DESK;
-                $screening = CandidateScreening::create([
-                    'candidate_id' => $candidate->id,
-                    'screening_type' => $screeningType,
-                    'status' => CandidateScreening::STATUS_PENDING,
-                    'screened_by' => auth()->id(),
-                    'screened_at' => now(),
-                ]);
-            }
-
-            // Handle evidence file upload with validation
-            if ($request->hasFile('evidence')) {
-                $screening->uploadEvidence($request->file('evidence'));
-            }
-
-            // Use the model's methods for proper auto-progression
-            // These methods handle the status transitions correctly:
-            // - markAsPassed() calls checkAndUpdateCandidateStatus() which checks if ALL 3 screenings passed
-            // - markAsFailed() immediately rejects the candidate
-            $remarks = $validated['remarks'] ?? null;
-            $status = $validated['status'];
-
-            if ($status === CandidateScreening::STATUS_PASSED) {
-                $screening->markAsPassed($remarks);
-
-                // Check if this was the final screening that triggered auto-progression
-                $candidate->refresh();
-                $message = 'Screening marked as passed.';
-                if ($candidate->status === 'registered') {
-                    $message .= ' All screenings complete - candidate moved to REGISTERED status.';
-                } else {
-                    // Show which screenings are still pending
-                    $requiredTypes = [
-                        CandidateScreening::TYPE_DESK,
-                        CandidateScreening::TYPE_CALL,
-                        CandidateScreening::TYPE_PHYSICAL
-                    ];
-                    $passedTypes = $candidate->screenings()
-                        ->whereIn('screening_type', $requiredTypes)
-                        ->where('status', CandidateScreening::STATUS_PASSED)
-                        ->pluck('screening_type')
-                        ->toArray();
-                    $pendingTypes = array_diff($requiredTypes, $passedTypes);
-
-                    if (!empty($pendingTypes)) {
-                        $pendingLabels = array_map(function($type) {
-                            return CandidateScreening::getScreeningTypes()[$type] ?? $type;
-                        }, $pendingTypes);
-                        $message .= ' Pending: ' . implode(', ', $pendingLabels);
-                    }
-                }
-            } elseif ($status === CandidateScreening::STATUS_FAILED) {
-                $screening->markAsFailed($remarks);
-                $message = 'Screening failed - candidate has been REJECTED.';
-            } elseif ($status === CandidateScreening::STATUS_DEFERRED) {
-                $nextDate = $request->input('next_date', now()->addDays(7));
-                $screening->defer($nextDate, $remarks);
-                $message = 'Screening deferred.';
-            } else {
-                // For other statuses (pending, in_progress, cancelled), just update the record
-                $screening->status = $status;
-                if ($remarks) {
-                    $screening->remarks = $remarks;
-                }
-                $screening->updated_by = auth()->id();
-                $screening->save();
-                $message = 'Screening status updated.';
-            }
-
-            activity()
-                ->performedOn($candidate)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'screening_type' => $screening->screening_type,
-                    'screening_status' => $status,
-                    'candidate_status' => $candidate->fresh()->status,
-                ])
-                ->log('Screening outcome recorded');
-
-            DB::commit();
-
-            return back()->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to record outcome: ' . $e->getMessage());
-        }
+        // WASL v3: Redirect to Module 2 Initial Screening
+        // The legacy outcome recording has been replaced with Initial Screening workflow
+        return redirect()->route('candidates.initial-screening', $candidate)
+            ->with('warning', 'The legacy screening outcome system has been deprecated. Please use Initial Screening instead.');
     }
 
     /**
@@ -536,111 +293,17 @@ class ScreeningController extends Controller
     }
 
     /**
-     * Screening dashboard with analytics and statistics
+     * Screening dashboard with analytics and statistics.
+     *
+     * @deprecated WASL v3: This dashboard is part of the legacy 3-call screening system.
+     *             Use initialScreeningDashboard() for the new Module 2 Initial Screening workflow.
+     * @see \App\Http\Controllers\ScreeningController::initialScreeningDashboard()
      */
     public function dashboard()
     {
-        $this->authorize('viewAny', CandidateScreening::class);
-
-        // Apply campus filtering for campus admin users
-        $user = Auth::user();
-        $baseQuery = CandidateScreening::query();
-
-        if ($user->isCampusAdmin() && $user->campus_id) {
-            $baseQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $user->campus_id));
-        }
-
-        // Basic statistics
-        $stats = [
-            'total_screenings' => (clone $baseQuery)->count(),
-            'pending' => Candidate::where('status', 'screening')
-                ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('campus_id', $user->campus_id))
-                ->count(),
-            'completed_today' => (clone $baseQuery)->whereDate('completed_at', today())->count(),
-            'completed_this_week' => (clone $baseQuery)->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-            'completed_this_month' => (clone $baseQuery)->whereMonth('completed_at', now()->month)->count(),
-        ];
-
-        // Outcome statistics
-        $outcomes = (clone $baseQuery)->whereNotNull('outcome')
-            ->select('outcome', DB::raw('count(*) as count'))
-            ->groupBy('outcome')
-            ->get()
-            ->pluck('count', 'outcome');
-
-        $stats['eligible'] = $outcomes->get('eligible', 0);
-        $stats['not_eligible'] = $outcomes->get('not_eligible', 0);
-        $stats['pending_decision'] = $outcomes->get('pending', 0);
-
-        // Calculate eligibility rate
-        $total_with_outcome = $outcomes->sum();
-        $stats['eligibility_rate'] = $total_with_outcome > 0
-            ? round(($stats['eligible'] / $total_with_outcome) * 100, 1)
-            : 0;
-
-        // By campus (for admins only)
-        if ($user->role === 'admin' || $user->role === 'project_director') {
-            $stats['by_campus'] = Candidate::join('candidate_screenings', 'candidates.id', '=', 'candidate_screenings.candidate_id')
-                ->join('campuses', 'candidates.campus_id', '=', 'campuses.id')
-                ->select('campuses.name as campus_name', DB::raw('count(*) as count'))
-                ->groupBy('campuses.id', 'campuses.name')
-                ->orderBy('count', 'desc')
-                ->limit(10)
-                ->get();
-        }
-
-        // By OEP
-        $stats['by_oep'] = Candidate::join('candidate_screenings', 'candidates.id', '=', 'candidate_screenings.candidate_id')
-            ->join('oeps', 'candidates.oep_id', '=', 'oeps.id')
-            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('candidates.campus_id', $user->campus_id))
-            ->select('oeps.name as oep_name', DB::raw('count(*) as count'))
-            ->groupBy('oeps.id', 'oeps.name')
-            ->orderBy('count', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Monthly trend (last 6 months)
-        $monthlyTrend = (clone $baseQuery)
-            ->where('created_at', '>=', now()->subMonths(6))
-            ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                DB::raw('count(*) as total'),
-                DB::raw('SUM(CASE WHEN outcome = "eligible" THEN 1 ELSE 0 END) as eligible'),
-                DB::raw('SUM(CASE WHEN outcome = "not_eligible" THEN 1 ELSE 0 END) as not_eligible')
-            )
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
-
-        $stats['monthly_trend'] = $monthlyTrend;
-
-        // Average screening time (from candidate creation to screening completion)
-        $avgTime = CandidateScreening::whereNotNull('completed_at')
-            ->join('candidates', 'candidate_screenings.candidate_id', '=', 'candidates.id')
-            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('candidates.campus_id', $user->campus_id))
-            ->select(DB::raw('AVG(DATEDIFF(candidate_screenings.completed_at, candidates.created_at)) as avg_days'))
-            ->value('avg_days');
-
-        $stats['avg_screening_time_days'] = $avgTime ? round($avgTime, 1) : 0;
-
-        // Recent screenings
-        $recentScreenings = (clone $baseQuery)
-            ->with(['candidate.campus', 'candidate.oep'])
-            ->latest('created_at')
-            ->limit(10)
-            ->get();
-
-        $stats['recent_screenings'] = $recentScreenings;
-
-        // Pending candidates (overdue > 7 days)
-        $overdueCount = Candidate::where('status', 'screening')
-            ->where('created_at', '<=', now()->subDays(7))
-            ->when($user->isCampusAdmin() && $user->campus_id, fn($q) => $q->where('campus_id', $user->campus_id))
-            ->count();
-
-        $stats['overdue_screenings'] = $overdueCount;
-
-        return view('screening.dashboard', compact('stats'));
+        // WASL v3: Redirect to Module 2 Initial Screening Dashboard
+        return redirect()->route('screening.initial-dashboard')
+            ->with('info', 'The legacy screening dashboard has been replaced with Initial Screening.');
     }
 
     /**
