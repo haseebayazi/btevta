@@ -313,8 +313,9 @@ class ScreeningController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
-        // Check if candidate is in correct status (Module 1 statuses: listed, pre_departure_docs, or screening)
-        if (!in_array($candidate->status, ['listed', 'pre_departure_docs', 'screening'])) {
+        // Check if candidate is in correct status (Module 1 statuses: new, listed, pre_departure_docs, or screening)
+        // 'new' is included for backward compatibility with legacy workflow
+        if (!in_array($candidate->status, ['new', 'listed', 'pre_departure_docs', 'screening'])) {
             return back()->with('error', 'Candidate must be in Module 1 (Listed or Pre-Departure Documents) before screening.');
         }
 
@@ -412,9 +413,9 @@ class ScreeningController extends Controller
             $baseQuery->where('campus_id', $user->campus_id);
         }
 
-        // Statistics
+        // Statistics - includes all Module 1 statuses (new, listed, pre_departure_docs, screening)
         $stats = [
-            'pending' => (clone $baseQuery)->where('status', 'screening')->count(),
+            'pending' => (clone $baseQuery)->whereIn('status', ['new', 'listed', 'pre_departure_docs', 'screening'])->count(),
             'screened' => (clone $baseQuery)->where('status', 'screened')->count(),
             'deferred' => (clone $baseQuery)->where('status', 'deferred')->count(),
             'total_this_month' => CandidateScreening::whereMonth('reviewed_at', now()->month)
@@ -426,9 +427,10 @@ class ScreeningController extends Controller
         ];
 
         // Pending candidates for screening - show all candidates from Module 1 with document status
-        // Module 1 includes: listed, pre_departure_docs statuses (candidates who have/are uploading documents)
+        // Module 1 includes: new, listed, pre_departure_docs statuses (candidates who have/are uploading documents)
+        // 'new' is included for backward compatibility with legacy workflow
         $pendingCandidates = (clone $baseQuery)
-            ->whereIn('status', ['listed', 'pre_departure_docs', 'screening'])
+            ->whereIn('status', ['new', 'listed', 'pre_departure_docs', 'screening'])
             ->with(['campus', 'trade', 'oep', 'preDepartureDocuments'])
             ->latest()
             ->get();
