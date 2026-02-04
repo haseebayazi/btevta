@@ -331,7 +331,16 @@ class ScreeningController extends Controller
             return back()->with('error', 'Candidate must have all mandatory documents uploaded and verified before screening. Missing: ' . $missingNames);
         }
 
+        // Get destination countries, fallback to all active countries if none marked as destinations
         $countries = Country::destinations()->active()->orderBy('name')->get();
+        if ($countries->isEmpty()) {
+            $countries = Country::active()->orderBy('name')->get();
+        }
+        // Final fallback: get all countries if none are active
+        if ($countries->isEmpty()) {
+            $countries = Country::orderBy('name')->get();
+        }
+
         $existingScreening = $candidate->screenings()
             ->where('screening_type', 'initial')
             ->latest()

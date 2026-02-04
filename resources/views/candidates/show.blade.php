@@ -188,8 +188,7 @@
                 </div>
             </div>
 
-            {{-- Pre-Departure Documents Card --}}
-            @if(in_array($candidate->status, ['listed', 'pre_departure_docs', 'new']))
+            {{-- Pre-Departure Documents Card - Always visible for document management --}}
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Pre-Departure Documents</h3>
                 @php
@@ -209,13 +208,12 @@
                 </div>
                 @can('viewAny', [App\Models\PreDepartureDocument::class, $candidate])
                 <a href="{{ route('candidates.pre-departure-documents.index', $candidate) }}"
-                   class="block w-full {{ $docStatus['is_complete'] ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600' }} text-white text-center px-4 py-2 rounded-lg transition">
+                   class="block w-full {{ $docStatus['is_complete'] ? 'bg-blue-600 hover:bg-blue-700' : 'bg-yellow-500 hover:bg-yellow-600' }} text-white text-center px-4 py-2 rounded-lg transition">
                     <i class="fas fa-file-alt mr-2"></i>
                     {{ $docStatus['is_complete'] ? 'View Documents' : 'Upload Documents' }}
                 </a>
                 @endcan
             </div>
-            @endif
 
             {{-- Initial Screening Card - Module 2 Entry Point --}}
             @if(in_array($candidate->status, ['listed', 'pre_departure_docs', 'new', 'screening']))
