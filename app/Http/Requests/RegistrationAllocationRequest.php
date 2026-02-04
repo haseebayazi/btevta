@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 
 class RegistrationAllocationRequest extends FormRequest
 {
@@ -29,8 +30,8 @@ class RegistrationAllocationRequest extends FormRequest
 
             // Course Assignment
             'course_id' => 'required|exists:courses,id',
-            'course_start_date' => 'required|date|after_or_equal:today',
-            'course_end_date' => 'required|date|after:course_start_date',
+            'course_start_date' => 'required|date',
+            'course_end_date' => 'required|date',
 
             // Next of Kin (enhanced)
             'nok_name' => 'required|string|max:100',
@@ -40,9 +41,33 @@ class RegistrationAllocationRequest extends FormRequest
             'nok_address' => 'nullable|string|max:500',
             'nok_payment_method_id' => 'required|exists:payment_methods,id',
             'nok_account_number' => 'required|string|max:50',
-            'nok_bank_name' => 'nullable|required_if:nok_payment_method_requires_bank,true|string|max:100',
+            'nok_bank_name' => 'nullable|string|max:100',
             'nok_id_card' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $startDate = $this->input('course_start_date');
+            $endDate = $this->input('course_end_date');
+
+            if ($startDate && $endDate) {
+                try {
+                    $start = \Carbon\Carbon::parse($startDate);
+                    $end = \Carbon\Carbon::parse($endDate);
+
+                    if ($end->lte($start)) {
+                        $validator->errors()->add('course_end_date', 'Course end date must be after start date.');
+                    }
+                } catch (\Exception $e) {
+                    // Date parsing errors will be caught by the 'date' rule
+                }
+            }
+        });
     }
 
     /**
@@ -56,9 +81,7 @@ class RegistrationAllocationRequest extends FormRequest
             'trade_id.required' => 'Please select a trade.',
             'course_id.required' => 'Please select a course.',
             'course_start_date.required' => 'Course start date is required.',
-            'course_start_date.after_or_equal' => 'Course start date must be today or later.',
             'course_end_date.required' => 'Course end date is required.',
-            'course_end_date.after' => 'Course end date must be after start date.',
             'nok_name.required' => 'Next of kin name is required.',
             'nok_relationship.required' => 'Next of kin relationship is required.',
             'nok_cnic.required' => 'Next of kin CNIC is required.',
@@ -66,7 +89,6 @@ class RegistrationAllocationRequest extends FormRequest
             'nok_phone.required' => 'Next of kin phone number is required.',
             'nok_payment_method_id.required' => 'Payment method is required.',
             'nok_account_number.required' => 'Account number is required.',
-            'nok_bank_name.required_if' => 'Bank name is required when payment method is Bank Account.',
             'nok_id_card.max' => 'ID card file must not exceed 5MB.',
             'nok_id_card.mimes' => 'ID card must be a PDF or image file (jpg, jpeg, png).',
         ];

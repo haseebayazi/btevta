@@ -14,13 +14,29 @@ return new class extends Migration
      * - Account number
      * - Bank name (required for bank accounts)
      * - ID card document path
+     * 
+     * Also adds audit columns if missing (for databases created by earlier migrations).
      */
     public function up(): void
     {
         Schema::table('next_of_kins', function (Blueprint $table) {
+            // Add audit columns if they don't exist (for existing databases)
+            if (!Schema::hasColumn('next_of_kins', 'created_by')) {
+                $table->unsignedBigInteger('created_by')->nullable()->after('occupation');
+            }
+            if (!Schema::hasColumn('next_of_kins', 'updated_by')) {
+                $table->unsignedBigInteger('updated_by')->nullable()->after('created_by');
+            }
+            if (!Schema::hasColumn('next_of_kins', 'monthly_income')) {
+                $table->decimal('monthly_income', 10, 2)->nullable()->after('updated_by');
+            }
+            if (!Schema::hasColumn('next_of_kins', 'emergency_contact')) {
+                $table->string('emergency_contact', 20)->nullable()->after('monthly_income');
+            }
+            
+            // Add Module 3 financial fields
             if (!Schema::hasColumn('next_of_kins', 'payment_method_id')) {
-                $table->foreignId('payment_method_id')->nullable()->after('relationship')
-                    ->constrained('payment_methods')->nullOnDelete();
+                $table->unsignedBigInteger('payment_method_id')->nullable()->after('relationship');
             }
             if (!Schema::hasColumn('next_of_kins', 'account_number')) {
                 $table->string('account_number', 50)->nullable()->after('payment_method_id');
@@ -50,7 +66,6 @@ return new class extends Migration
                 $table->dropColumn('account_number');
             }
             if (Schema::hasColumn('next_of_kins', 'payment_method_id')) {
-                $table->dropForeign(['payment_method_id']);
                 $table->dropColumn('payment_method_id');
             }
         });

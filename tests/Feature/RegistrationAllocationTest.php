@@ -17,6 +17,7 @@ use App\Enums\CandidateStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class RegistrationAllocationTest extends TestCase
@@ -95,141 +96,6 @@ class RegistrationAllocationTest extends TestCase
         $response->assertViewHas('paymentMethods');
     }
 
-    public function test_can_complete_registration_with_allocation(): void
-    {
-        $startDate = now()->addDays(7)->format('Y-m-d');
-        $endDate = now()->addDays(37)->format('Y-m-d');
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('registration.store-allocation', $this->screenedCandidate), [
-                'campus_id' => $this->campus->id,
-                'program_id' => $this->program->id,
-                'trade_id' => $this->trade->id,
-                'oep_id' => $this->oep->id,
-                'implementing_partner_id' => $this->partner->id,
-                'course_id' => $this->course->id,
-                'course_start_date' => $startDate,
-                'course_end_date' => $endDate,
-                'nok_name' => 'Test NOK',
-                'nok_relationship' => 'father',
-                'nok_cnic' => '3520112345678',
-                'nok_phone' => '03001234567',
-                'nok_address' => '123 Test Street, Test City',
-                'nok_payment_method_id' => $this->paymentMethod->id,
-                'nok_account_number' => '03001234567',
-            ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $this->screenedCandidate->refresh();
-        $this->assertEquals(CandidateStatus::REGISTERED->value, $this->screenedCandidate->status);
-        $this->assertNotNull($this->screenedCandidate->batch_id);
-        $this->assertNotNull($this->screenedCandidate->allocated_number);
-        $this->assertEquals($this->program->id, $this->screenedCandidate->program_id);
-    }
-
-    public function test_auto_batch_assignment_works(): void
-    {
-        $startDate = now()->addDays(7)->format('Y-m-d');
-        $endDate = now()->addDays(37)->format('Y-m-d');
-
-        // Ensure no batch exists initially
-        $this->assertNull($this->screenedCandidate->batch_id);
-
-        $this->actingAs($this->admin)
-            ->post(route('registration.store-allocation', $this->screenedCandidate), [
-                'campus_id' => $this->campus->id,
-                'program_id' => $this->program->id,
-                'trade_id' => $this->trade->id,
-                'course_id' => $this->course->id,
-                'course_start_date' => $startDate,
-                'course_end_date' => $endDate,
-                'nok_name' => 'Test NOK',
-                'nok_relationship' => 'father',
-                'nok_cnic' => '3520112345678',
-                'nok_phone' => '03001234567',
-                'nok_payment_method_id' => $this->paymentMethod->id,
-                'nok_account_number' => '03001234567',
-            ]);
-
-        $this->screenedCandidate->refresh();
-        
-        // Batch should be assigned
-        $this->assertNotNull($this->screenedCandidate->batch_id);
-        
-        // Verify batch has correct attributes
-        $batch = Batch::find($this->screenedCandidate->batch_id);
-        $this->assertEquals($this->campus->id, $batch->campus_id);
-        $this->assertEquals($this->program->id, $batch->program_id);
-        $this->assertEquals($this->trade->id, $batch->trade_id);
-    }
-
-    public function test_next_of_kin_with_financial_details_saved(): void
-    {
-        $startDate = now()->addDays(7)->format('Y-m-d');
-        $endDate = now()->addDays(37)->format('Y-m-d');
-
-        $this->actingAs($this->admin)
-            ->post(route('registration.store-allocation', $this->screenedCandidate), [
-                'campus_id' => $this->campus->id,
-                'program_id' => $this->program->id,
-                'trade_id' => $this->trade->id,
-                'course_id' => $this->course->id,
-                'course_start_date' => $startDate,
-                'course_end_date' => $endDate,
-                'nok_name' => 'Muhammad Ali',
-                'nok_relationship' => 'father',
-                'nok_cnic' => '3520112345678',
-                'nok_phone' => '03001234567',
-                'nok_address' => '123 Test Street, Lahore',
-                'nok_payment_method_id' => $this->paymentMethod->id,
-                'nok_account_number' => '03009876543',
-            ]);
-
-        $nok = NextOfKin::where('candidate_id', $this->screenedCandidate->id)->first();
-        
-        $this->assertNotNull($nok);
-        $this->assertEquals('Muhammad Ali', $nok->name);
-        $this->assertEquals('father', $nok->relationship);
-        $this->assertEquals('3520112345678', $nok->cnic);
-        $this->assertEquals($this->paymentMethod->id, $nok->payment_method_id);
-        $this->assertEquals('03009876543', $nok->account_number);
-    }
-
-    public function test_course_assignment_saved(): void
-    {
-        $startDate = now()->addDays(7)->format('Y-m-d');
-        $endDate = now()->addDays(37)->format('Y-m-d');
-
-        $this->actingAs($this->admin)
-            ->post(route('registration.store-allocation', $this->screenedCandidate), [
-                'campus_id' => $this->campus->id,
-                'program_id' => $this->program->id,
-                'trade_id' => $this->trade->id,
-                'course_id' => $this->course->id,
-                'course_start_date' => $startDate,
-                'course_end_date' => $endDate,
-                'nok_name' => 'Test NOK',
-                'nok_relationship' => 'father',
-                'nok_cnic' => '3520112345678',
-                'nok_phone' => '03001234567',
-                'nok_payment_method_id' => $this->paymentMethod->id,
-                'nok_account_number' => '03001234567',
-            ]);
-
-        $this->screenedCandidate->refresh();
-        
-        // Verify course is attached
-        $this->assertTrue($this->screenedCandidate->courses->contains($this->course));
-        
-        // Verify pivot data
-        $pivot = $this->screenedCandidate->courses->first()->pivot;
-        $this->assertEquals('assigned', $pivot->status);
-        $this->assertEquals($startDate, $pivot->start_date->format('Y-m-d'));
-        $this->assertEquals($endDate, $pivot->end_date->format('Y-m-d'));
-    }
-
     public function test_cannot_register_unscreened_candidate(): void
     {
         $newCandidate = Candidate::factory()->create([
@@ -238,17 +104,14 @@ class RegistrationAllocationTest extends TestCase
             'trade_id' => $this->trade->id,
         ]);
 
-        $startDate = now()->addDays(7)->format('Y-m-d');
-        $endDate = now()->addDays(37)->format('Y-m-d');
-
         $response = $this->actingAs($this->admin)
             ->post(route('registration.store-allocation', $newCandidate), [
                 'campus_id' => $this->campus->id,
                 'program_id' => $this->program->id,
                 'trade_id' => $this->trade->id,
                 'course_id' => $this->course->id,
-                'course_start_date' => $startDate,
-                'course_end_date' => $endDate,
+                'course_start_date' => Carbon::now()->addDays(7)->format('Y-m-d'),
+                'course_end_date' => Carbon::now()->addDays(37)->format('Y-m-d'),
                 'nok_name' => 'Test NOK',
                 'nok_relationship' => 'father',
                 'nok_cnic' => '3520112345678',
@@ -259,7 +122,7 @@ class RegistrationAllocationTest extends TestCase
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
-        
+
         $newCandidate->refresh();
         $this->assertEquals(CandidateStatus::LISTED->value, $newCandidate->status);
     }
@@ -283,5 +146,148 @@ class RegistrationAllocationTest extends TestCase
             'nok_payment_method_id',
             'nok_account_number',
         ]);
+    }
+
+    public function test_can_complete_registration_with_allocation(): void
+    {
+        $startDate = Carbon::now()->addDays(7)->format('Y-m-d');
+        $endDate = Carbon::now()->addDays(37)->format('Y-m-d');
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('registration.store-allocation', $this->screenedCandidate), [
+                'campus_id' => $this->campus->id,
+                'program_id' => $this->program->id,
+                'trade_id' => $this->trade->id,
+                'oep_id' => $this->oep->id,
+                'implementing_partner_id' => $this->partner->id,
+                'course_id' => $this->course->id,
+                'course_start_date' => $startDate,
+                'course_end_date' => $endDate,
+                'nok_name' => 'Test NOK',
+                'nok_relationship' => 'father',
+                'nok_cnic' => '3520112345678',
+                'nok_phone' => '03001234567',
+                'nok_address' => '123 Test Street, Test City',
+                'nok_payment_method_id' => $this->paymentMethod->id,
+                'nok_account_number' => '03001234567',
+            ]);
+
+        // Check for errors in session
+        if ($response->getSession()->has('error')) {
+            $this->fail('Error in session: ' . $response->getSession()->get('error'));
+        }
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->screenedCandidate->refresh();
+        $this->assertEquals(CandidateStatus::REGISTERED->value, $this->screenedCandidate->status);
+        $this->assertNotNull($this->screenedCandidate->batch_id);
+        $this->assertNotNull($this->screenedCandidate->allocated_number);
+        $this->assertEquals($this->program->id, $this->screenedCandidate->program_id);
+    }
+
+    public function test_auto_batch_assignment_works(): void
+    {
+        $startDate = Carbon::now()->addDays(7)->format('Y-m-d');
+        $endDate = Carbon::now()->addDays(37)->format('Y-m-d');
+
+        // Ensure no batch exists initially
+        $this->assertNull($this->screenedCandidate->batch_id);
+
+        $this->actingAs($this->admin)
+            ->post(route('registration.store-allocation', $this->screenedCandidate), [
+                'campus_id' => $this->campus->id,
+                'program_id' => $this->program->id,
+                'trade_id' => $this->trade->id,
+                'course_id' => $this->course->id,
+                'course_start_date' => $startDate,
+                'course_end_date' => $endDate,
+                'nok_name' => 'Test NOK',
+                'nok_relationship' => 'father',
+                'nok_cnic' => '3520112345678',
+                'nok_phone' => '03001234567',
+                'nok_payment_method_id' => $this->paymentMethod->id,
+                'nok_account_number' => '03001234567',
+            ]);
+
+        $this->screenedCandidate->refresh();
+
+        // Batch should be assigned
+        $this->assertNotNull($this->screenedCandidate->batch_id);
+
+        // Verify batch has correct attributes
+        $batch = Batch::find($this->screenedCandidate->batch_id);
+        $this->assertEquals($this->campus->id, $batch->campus_id);
+        $this->assertEquals($this->program->id, $batch->program_id);
+        $this->assertEquals($this->trade->id, $batch->trade_id);
+    }
+
+    public function test_next_of_kin_with_financial_details_saved(): void
+    {
+        $startDate = Carbon::now()->addDays(7)->format('Y-m-d');
+        $endDate = Carbon::now()->addDays(37)->format('Y-m-d');
+
+        $this->actingAs($this->admin)
+            ->post(route('registration.store-allocation', $this->screenedCandidate), [
+                'campus_id' => $this->campus->id,
+                'program_id' => $this->program->id,
+                'trade_id' => $this->trade->id,
+                'course_id' => $this->course->id,
+                'course_start_date' => $startDate,
+                'course_end_date' => $endDate,
+                'nok_name' => 'Muhammad Ali',
+                'nok_relationship' => 'father',
+                'nok_cnic' => '3520112345678',
+                'nok_phone' => '03001234567',
+                'nok_address' => '123 Test Street, Lahore',
+                'nok_payment_method_id' => $this->paymentMethod->id,
+                'nok_account_number' => '03009876543',
+            ]);
+
+        $nok = NextOfKin::where('candidate_id', $this->screenedCandidate->id)->first();
+
+        $this->assertNotNull($nok);
+        $this->assertEquals('Muhammad Ali', $nok->name);
+        $this->assertEquals('father', $nok->relationship);
+        $this->assertEquals('3520112345678', $nok->cnic);
+        $this->assertEquals($this->paymentMethod->id, $nok->payment_method_id);
+        $this->assertEquals('03009876543', $nok->account_number);
+    }
+
+    public function test_course_assignment_saved(): void
+    {
+        $startDate = Carbon::now()->addDays(7)->format('Y-m-d');
+        $endDate = Carbon::now()->addDays(37)->format('Y-m-d');
+
+        $this->actingAs($this->admin)
+            ->post(route('registration.store-allocation', $this->screenedCandidate), [
+                'campus_id' => $this->campus->id,
+                'program_id' => $this->program->id,
+                'trade_id' => $this->trade->id,
+                'course_id' => $this->course->id,
+                'course_start_date' => $startDate,
+                'course_end_date' => $endDate,
+                'nok_name' => 'Test NOK',
+                'nok_relationship' => 'father',
+                'nok_cnic' => '3520112345678',
+                'nok_phone' => '03001234567',
+                'nok_payment_method_id' => $this->paymentMethod->id,
+                'nok_account_number' => '03001234567',
+            ]);
+
+        $this->screenedCandidate->refresh();
+
+        // Verify course is attached
+        $this->assertTrue($this->screenedCandidate->courses->contains($this->course));
+
+        // Verify pivot data
+        $pivot = $this->screenedCandidate->courses->first()->pivot;
+        $this->assertEquals('assigned', $pivot->status);
+        // Handle both Carbon instance and string dates
+        $pivotStartDate = is_string($pivot->start_date) ? $pivot->start_date : $pivot->start_date->format('Y-m-d');
+        $pivotEndDate = is_string($pivot->end_date) ? $pivot->end_date : $pivot->end_date->format('Y-m-d');
+        $this->assertEquals($startDate, $pivotStartDate);
+        $this->assertEquals($endDate, $pivotEndDate);
     }
 }
