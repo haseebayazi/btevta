@@ -190,9 +190,12 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
         $this->assertEquals(5, $status['mandatory_total']);
         $this->assertFalse($status['is_complete']);
 
-        // Upload remaining 2 = 100%
-        // Note: Using offset() instead of skip() for SQLite compatibility
-        $remaining = DocumentChecklist::mandatory()->active()->orderBy('display_order')->offset(3)->limit(10)->get();
+        // Upload remaining documents to reach 100%
+        // Get all mandatory documents and filter out the already uploaded ones
+        $allMandatory = DocumentChecklist::mandatory()->active()->orderBy('display_order')->get();
+        $alreadyUploadedIds = $candidate->preDepartureDocuments()->pluck('document_checklist_id')->toArray();
+        $remaining = $allMandatory->filter(fn($doc) => !in_array($doc->id, $alreadyUploadedIds));
+        
         foreach ($remaining as $checklist) {
             PreDepartureDocument::create([
                 'candidate_id' => $candidate->id,

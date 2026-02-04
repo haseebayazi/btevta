@@ -148,6 +148,7 @@ class Candidate extends Model
     const STATUS_PRE_DEPARTURE_DOCS = 'pre_departure_docs';
     const STATUS_SCREENED = 'screened';
     const STATUS_DEFERRED = 'deferred';
+    const STATUS_WITHDRAWN = 'withdrawn';
 
     /**
      * Training status constants - Sub-detail during training phase
@@ -182,6 +183,7 @@ class Candidate extends Model
             self::STATUS_DROPPED => 'Dropped',
             self::STATUS_RETURNED => 'Returned',
             self::STATUS_DEFERRED => 'Deferred',
+            self::STATUS_WITHDRAWN => 'Withdrawn',
         ];
     }
 
@@ -681,12 +683,12 @@ class Candidate extends Model
             self::STATUS_NEW => [self::STATUS_SCREENING, self::STATUS_LISTED, self::STATUS_REJECTED],
             
             // WASL v3 Module 1 workflow: Listed → Pre-Departure Docs → Screening
-            self::STATUS_LISTED => [self::STATUS_PRE_DEPARTURE_DOCS, self::STATUS_SCREENING, self::STATUS_DEFERRED, 'withdrawn'],
-            self::STATUS_PRE_DEPARTURE_DOCS => [self::STATUS_SCREENING, self::STATUS_DEFERRED, 'withdrawn'],
+            self::STATUS_LISTED => [self::STATUS_PRE_DEPARTURE_DOCS, self::STATUS_SCREENING, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
+            self::STATUS_PRE_DEPARTURE_DOCS => [self::STATUS_SCREENING, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
             
             // WASL v3 Module 2 workflow: Screening → Screened → Registered
             self::STATUS_SCREENING => [self::STATUS_SCREENED, self::STATUS_REGISTERED, self::STATUS_DEFERRED, self::STATUS_REJECTED],
-            self::STATUS_SCREENED => [self::STATUS_REGISTERED, self::STATUS_DEFERRED, 'withdrawn'],
+            self::STATUS_SCREENED => [self::STATUS_REGISTERED, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
             
             // Original workflow (unchanged)
             self::STATUS_REGISTERED => [self::STATUS_TRAINING, self::STATUS_DROPPED, self::STATUS_DEFERRED],
