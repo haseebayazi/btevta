@@ -54,6 +54,10 @@ class ScreeningService
     /**
      * Get call logs for a screening
      *
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening workflow.
+     *             Module 2 Initial Screening uses a single-review approach.
+     *             See docs/MODULE_2_INITIAL_SCREENING.md for the new workflow.
+     *
      * AUDIT FIX: Replaced fragile string parsing with proper field-based approach.
      * Previously parsed remarks text looking for 'Call' which was unreliable.
      * Now uses the dedicated call_1/2/3 fields from the 3-call workflow.
@@ -285,6 +289,10 @@ class ScreeningService
 
     /**
      * Record a call attempt in the 3-call workflow.
+     *
+     * @deprecated WASL v3: Use Module 2 Initial Screening instead. The 3-call workflow is 
+     *             being replaced by a single-review Initial Screening. See ScreeningController::storeInitialScreening()
+     *             and docs/MODULE_2_INITIAL_SCREENING.md for the new workflow.
      *
      * @param CandidateScreening $screening
      * @param int $callNumber (1, 2, or 3)

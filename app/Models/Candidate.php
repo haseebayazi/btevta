@@ -677,9 +677,19 @@ class Candidate extends Model
     public function updateStatus($newStatus, $remarks = null)
     {
         $allowedTransitions = [
-            self::STATUS_NEW => [self::STATUS_SCREENING, self::STATUS_REJECTED],
-            self::STATUS_SCREENING => [self::STATUS_REGISTERED, self::STATUS_REJECTED],
-            self::STATUS_REGISTERED => [self::STATUS_TRAINING, self::STATUS_DROPPED],
+            // Legacy workflow (kept for backward compatibility)
+            self::STATUS_NEW => [self::STATUS_SCREENING, self::STATUS_LISTED, self::STATUS_REJECTED],
+            
+            // WASL v3 Module 1 workflow: Listed → Pre-Departure Docs → Screening
+            self::STATUS_LISTED => [self::STATUS_PRE_DEPARTURE_DOCS, self::STATUS_SCREENING, self::STATUS_DEFERRED, 'withdrawn'],
+            self::STATUS_PRE_DEPARTURE_DOCS => [self::STATUS_SCREENING, self::STATUS_DEFERRED, 'withdrawn'],
+            
+            // WASL v3 Module 2 workflow: Screening → Screened → Registered
+            self::STATUS_SCREENING => [self::STATUS_SCREENED, self::STATUS_REGISTERED, self::STATUS_DEFERRED, self::STATUS_REJECTED],
+            self::STATUS_SCREENED => [self::STATUS_REGISTERED, self::STATUS_DEFERRED, 'withdrawn'],
+            
+            // Original workflow (unchanged)
+            self::STATUS_REGISTERED => [self::STATUS_TRAINING, self::STATUS_DROPPED, self::STATUS_DEFERRED],
             self::STATUS_TRAINING => [self::STATUS_VISA_PROCESS, self::STATUS_DROPPED],
             self::STATUS_VISA_PROCESS => [self::STATUS_READY, self::STATUS_REJECTED],
             self::STATUS_READY => [self::STATUS_DEPARTED],

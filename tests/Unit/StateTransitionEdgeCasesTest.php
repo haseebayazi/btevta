@@ -285,18 +285,27 @@ class StateTransitionEdgeCasesTest extends TestCase
     // =========================================================================
 
     #[Test]
-    public function it_validates_screening_prerequisite_chain()
+    public function it_validates_screening_eligibility_by_status()
     {
-        $candidate = Candidate::factory()->create([
+        // WASL v3: canRecordScreening() checks if candidate is in an eligible status
+        // Eligible statuses: listed, pre_departure_docs, screening
+        $eligibleCandidate = Candidate::factory()->create([
             'status' => 'screening',
             'campus_id' => $this->campus->id,
             'trade_id' => $this->trade->id,
         ]);
 
-        // Try to record physical screening without desk/call
-        $result = $candidate->canRecordScreening('physical');
+        $ineligibleCandidate = Candidate::factory()->create([
+            'status' => 'registered', // Not eligible for new screening
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
+        ]);
 
-        $this->assertFalse($result);
+        // Candidate in 'screening' status can record screening
+        $this->assertTrue($eligibleCandidate->canRecordScreening());
+
+        // Candidate in 'registered' status cannot record new screening
+        $this->assertFalse($ineligibleCandidate->canRecordScreening());
     }
 
     #[Test]
