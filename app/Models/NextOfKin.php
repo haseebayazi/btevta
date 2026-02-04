@@ -29,6 +29,10 @@ class NextOfKin extends Model
         'occupation',
         'monthly_income',
         'emergency_contact',
+        'payment_method_id',
+        'account_number',
+        'bank_name',
+        'id_card_path',
         'created_by',
         'updated_by'
     ];
@@ -113,6 +117,14 @@ class NextOfKin extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /**
+     * Get the payment method for this next of kin.
+     */
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
     // ==================== SCOPES ====================
 
     /**
@@ -180,6 +192,25 @@ class NextOfKin extends Model
     public function getFullAddressAttribute()
     {
         return $this->address;
+    }
+
+    /**
+     * Get the ID card URL for secure file access.
+     */
+    public function getIdCardUrlAttribute()
+    {
+        if (empty($this->id_card_path)) {
+            return null;
+        }
+        return route('secure-file.view', ['path' => $this->id_card_path]);
+    }
+
+    /**
+     * Check if financial account details are complete.
+     */
+    public function hasFinancialDetails(): bool
+    {
+        return !empty($this->payment_method_id) && !empty($this->account_number);
     }
 
     // ==================== HELPER METHODS ====================

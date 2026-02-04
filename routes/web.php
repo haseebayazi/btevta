@@ -293,6 +293,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{candidate}/undertaking', [RegistrationController::class, 'saveUndertaking'])->name('undertaking');
         Route::post('/{candidate}/complete', [RegistrationController::class, 'completeRegistration'])->name('complete');
 
+        // MODULE 3: Registration Allocation (Campus, Program, OEP, Partner, Course, NOK with financial details)
+        Route::get('/{candidate}/allocation', [RegistrationController::class, 'allocation'])->name('allocation');
+        Route::post('/{candidate}/allocation', [RegistrationController::class, 'storeAllocation'])->name('store-allocation');
+
         // PHASE 3 IMPROVEMENTS: Transition to training phase
         Route::post('/{candidate}/start-training', [RegistrationController::class, 'startTraining'])->name('start-training');
 

@@ -6,7 +6,16 @@ use App\Models\Candidate;
 use App\Models\RegistrationDocument;
 use App\Models\NextOfKin;
 use App\Models\Undertaking;
+use App\Models\Campus;
+use App\Models\Program;
+use App\Models\Trade;
+use App\Models\Oep;
+use App\Models\ImplementingPartner;
+use App\Models\Course;
+use App\Models\PaymentMethod;
 use App\Enums\CandidateStatus;
+use App\Http\Requests\RegistrationAllocationRequest;
+use App\Services\AutoBatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -802,6 +811,134 @@ class RegistrationController extends Controller
         // (upload-document, next-of-kin, undertaking, complete)
         return redirect()->route('registration.show', $id)
             ->with('info', 'Use the specific forms to update registration details.');
+    }
+
+    /**
+     * Show allocation form for registration.
+     * Module 3: Registration with Campus, Program, OEP, Implementing Partner allocation.
+     */
+    public function allocation(Candidate $candidate)
+    {
+        $this->authorize('update', $candidate);
+
+        // Verify candidate is screened (Module 3 gate)
+        if (!in_array($candidate->status, ['screened', 'screening_passed'])) {
+            return redirect()->route('registration.show', $candidate)
+                ->with('error', 'Only screened candidates can proceed to allocation. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
+        }
+
+        $candidate->load(['campus', 'trade', 'program', 'oep', 'implementingPartner', 'nextOfKin']);
+
+        $campuses = Campus::where('is_active', true)->orderBy('name')->get();
+        $programs = Program::where('is_active', true)->orderBy('name')->get();
+        $trades = Trade::orderBy('name')->get();
+        $oeps = Oep::where('is_active', true)->orderBy('name')->get();
+        $partners = ImplementingPartner::where('is_active', true)->orderBy('name')->get();
+        $courses = Course::where('is_active', true)->orderBy('name')->get();
+        $paymentMethods = PaymentMethod::where('is_active', true)->orderBy('display_order')->get();
+        $batchSizes = config('wasl.allowed_batch_sizes', [20, 25, 30]);
+        $relationships = NextOfKin::getRelationshipTypes();
+
+        return view('registration.allocation', compact(
+            'candidate', 'campuses', 'programs', 'trades', 'oeps', 'partners',
+            'courses', 'paymentMethods', 'batchSizes', 'relationships'
+        ));
+    }
+
+    /**
+     * Store allocation and complete registration.
+     * Module 3: Auto-batch assignment, course assignment, and NOK with financial details.
+     */
+    public function storeAllocation(RegistrationAllocationRequest $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate);
+
+        // Verify candidate is screened (Module 3 gate)
+        if (!in_array($candidate->status, ['screened', 'screening_passed'])) {
+            return redirect()->route('registration.show', $candidate)
+                ->with('error', 'Only screened candidates can proceed to registration. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
+        }
+
+        $validated = $request->validated();
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Update candidate allocation
+            $candidate->update([
+                'campus_id' => $validated['campus_id'],
+                'program_id' => $validated['program_id'],
+                'trade_id' => $validated['trade_id'],
+                'oep_id' => $validated['oep_id'] ?? null,
+                'implementing_partner_id' => $validated['implementing_partner_id'] ?? null,
+            ]);
+
+            // 2. Auto-assign to batch using AutoBatchService
+            $autoBatchService = app(AutoBatchService::class);
+            $batch = $autoBatchService->assignOrCreateBatch($candidate);
+
+            // 3. Assign course
+            $candidate->courses()->attach($validated['course_id'], [
+                'start_date' => $validated['course_start_date'],
+                'end_date' => $validated['course_end_date'],
+                'status' => 'assigned',
+                'assigned_by' => auth()->id(),
+                'assigned_at' => now(),
+            ]);
+
+            // 4. Update/Create Next of Kin with financial details
+            $nokData = [
+                'name' => $validated['nok_name'],
+                'relationship' => $validated['nok_relationship'],
+                'cnic' => $validated['nok_cnic'],
+                'phone' => $validated['nok_phone'],
+                'address' => $validated['nok_address'] ?? null,
+                'payment_method_id' => $validated['nok_payment_method_id'],
+                'account_number' => $validated['nok_account_number'],
+                'bank_name' => $validated['nok_bank_name'] ?? null,
+            ];
+
+            // Handle ID card upload
+            if ($request->hasFile('nok_id_card')) {
+                $file = $request->file('nok_id_card');
+                $path = $file->store('next-of-kin/id-cards/' . $candidate->id, 'private');
+                $nokData['id_card_path'] = $path;
+            }
+
+            NextOfKin::updateOrCreate(
+                ['candidate_id' => $candidate->id],
+                $nokData
+            );
+
+            // 5. Update candidate status to registered
+            $candidate->update([
+                'status' => CandidateStatus::REGISTERED->value,
+                'registration_date' => now(),
+            ]);
+
+            // Log activity
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'batch_id' => $batch->id,
+                    'batch_code' => $batch->batch_code,
+                    'allocated_number' => $candidate->allocated_number,
+                    'program_id' => $validated['program_id'],
+                    'course_id' => $validated['course_id'],
+                ])
+                ->log('Registration completed with allocation');
+
+            DB::commit();
+
+            return redirect()->route('registration.show', $candidate)
+                ->with('success', 'Registration completed successfully! Allocated Number: ' . $candidate->allocated_number . ' | Batch: ' . $batch->batch_code);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()
+                ->with('error', 'Registration failed: ' . $e->getMessage());
+        }
     }
 
     /**

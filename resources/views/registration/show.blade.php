@@ -39,6 +39,21 @@
     </div>
     @endif
 
+    {{-- Module 3: Allocation CTA for screened candidates --}}
+    @if(in_array($candidate->status, ['screened', 'screening_passed']))
+    <div class="alert alert-success shadow-sm mb-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h5 class="mb-1"><i class="fas fa-check-circle mr-2"></i>Candidate Ready for Registration</h5>
+                <p class="mb-0">This candidate has been screened. Proceed to allocation to complete registration with Campus, Program, Course, and NOK details.</p>
+            </div>
+            <a href="{{ route('registration.allocation', $candidate->id) }}" class="btn btn-success btn-lg">
+                <i class="fas fa-clipboard-list mr-2"></i>Proceed to Allocation
+            </a>
+        </div>
+    </div>
+    @endif
+
     <div class="row">
         {{-- Left Column --}}
         <div class="col-lg-8">
