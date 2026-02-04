@@ -123,12 +123,12 @@
                                 @if($readyForScreening)
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                         <i class="fas fa-check-circle mr-1"></i>
-                                        {{ $docStatus['mandatory_uploaded'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Verified
+                                        {{ $docStatus['mandatory_verified'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Verified
                                     </span>
                                 @elseif(($docStatus['mandatory_uploaded'] ?? 0) >= ($docStatus['mandatory_total'] ?? 1))
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                         <i class="fas fa-clock mr-1"></i>
-                                        Pending Verification
+                                        {{ $docStatus['mandatory_verified'] ?? 0 }}/{{ $docStatus['mandatory_total'] ?? 0 }} Verified
                                     </span>
                                 @else
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">

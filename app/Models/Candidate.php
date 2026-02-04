@@ -1083,17 +1083,25 @@ class Candidate extends Model
         $mandatory = DocumentChecklist::mandatory()->active()->get();
         $optional = DocumentChecklist::optional()->active()->get();
 
+        // Use database queries for efficient counting
         $uploadedIds = $this->preDepartureDocuments()
+            ->pluck('document_checklist_id')
+            ->toArray();
+        $verifiedIds = $this->preDepartureDocuments()
+            ->whereNotNull('verified_at')
             ->pluck('document_checklist_id')
             ->toArray();
 
         $mandatoryUploaded = $mandatory->filter(fn($doc) => in_array($doc->id, $uploadedIds))->count();
+        $mandatoryVerified = $mandatory->filter(fn($doc) => in_array($doc->id, $verifiedIds))->count();
         $optionalUploaded = $optional->filter(fn($doc) => in_array($doc->id, $uploadedIds))->count();
 
         return [
             'mandatory_total' => $mandatory->count(),
             'mandatory_uploaded' => $mandatoryUploaded,
+            'mandatory_verified' => $mandatoryVerified,
             'mandatory_complete' => $mandatoryUploaded >= $mandatory->count() && $mandatory->count() > 0,
+            'all_verified' => $mandatoryVerified >= $mandatory->count() && $mandatory->count() > 0,
             'optional_total' => $optional->count(),
             'optional_uploaded' => $optionalUploaded,
             'is_complete' => $this->hasCompletedPreDepartureDocuments(),

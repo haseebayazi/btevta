@@ -188,4 +188,64 @@ class CandidatePreDepartureTest extends TestCase
         $this->assertCount(1, $candidate->preDepartureDocuments);
         $this->assertEquals($document->id, $candidate->preDepartureDocuments->first()->id);
     }
+
+    /** @test */
+    public function it_returns_correct_verified_document_count()
+    {
+        $candidate = Candidate::factory()->create();
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+
+        // Upload 5 documents, verify only 3
+        foreach ($mandatoryChecklists as $index => $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'test/path.pdf',
+                'original_filename' => 'test.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->user->id,
+                'verified_at' => $index < 3 ? now() : null, // Verify first 3 only
+                'verified_by' => $index < 3 ? $this->user->id : null,
+            ]);
+        }
+
+        $status = $candidate->getPreDepartureDocumentStatus();
+
+        $this->assertEquals(5, $status['mandatory_total']);
+        $this->assertEquals(5, $status['mandatory_uploaded']);
+        $this->assertEquals(3, $status['mandatory_verified']);
+        $this->assertTrue($status['mandatory_complete']);
+        $this->assertFalse($status['all_verified']);
+        $this->assertTrue($status['is_complete']);
+    }
+
+    /** @test */
+    public function it_returns_all_verified_when_all_documents_are_verified()
+    {
+        $candidate = Candidate::factory()->create();
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+
+        // Upload and verify all documents
+        foreach ($mandatoryChecklists as $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'test/path.pdf',
+                'original_filename' => 'test.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->user->id,
+                'verified_at' => now(),
+                'verified_by' => $this->user->id,
+            ]);
+        }
+
+        $status = $candidate->getPreDepartureDocumentStatus();
+
+        $this->assertEquals(5, $status['mandatory_verified']);
+        $this->assertTrue($status['all_verified']);
+    }
 }
