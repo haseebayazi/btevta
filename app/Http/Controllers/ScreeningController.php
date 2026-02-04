@@ -619,9 +619,9 @@ class ScreeningController extends Controller
     {
         $this->authorize('create', CandidateScreening::class);
 
-        // Check if candidate is in correct status
-        if (!in_array($candidate->status, ['pre_departure_docs', 'screening'])) {
-            return back()->with('error', 'Candidate must complete Pre-Departure Documents before screening.');
+        // Check if candidate is in correct status (Module 1 statuses: listed, pre_departure_docs, or screening)
+        if (!in_array($candidate->status, ['listed', 'pre_departure_docs', 'screening'])) {
+            return back()->with('error', 'Candidate must be in Module 1 (Listed or Pre-Departure Documents) before screening.');
         }
 
         // Verify all mandatory pre-departure documents are completed AND verified
@@ -731,9 +731,10 @@ class ScreeningController extends Controller
                 ->count(),
         ];
 
-        // Pending candidates for screening - show all in correct status with document status
+        // Pending candidates for screening - show all candidates from Module 1 with document status
+        // Module 1 includes: listed, pre_departure_docs statuses (candidates who have/are uploading documents)
         $pendingCandidates = (clone $baseQuery)
-            ->whereIn('status', ['pre_departure_docs', 'screening'])
+            ->whereIn('status', ['listed', 'pre_departure_docs', 'screening'])
             ->with(['campus', 'trade', 'oep', 'preDepartureDocuments'])
             ->latest()
             ->get();
