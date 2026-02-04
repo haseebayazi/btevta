@@ -10,6 +10,8 @@ use App\Models\CandidateScreening;
 use App\Models\Country;
 use App\Models\Campus;
 use App\Models\Trade;
+use App\Models\DocumentChecklist;
+use App\Models\PreDepartureDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +23,7 @@ class InitialScreeningControllerTest extends TestCase
     protected $user;
     protected $candidate;
     protected $country;
+    protected $documentChecklist;
 
     protected function setUp(): void
     {
@@ -53,6 +56,39 @@ class InitialScreeningControllerTest extends TestCase
             'is_destination' => true,
             'is_active' => true,
         ]);
+
+        // Create a mandatory document checklist
+        $this->documentChecklist = DocumentChecklist::create([
+            'name' => 'CNIC Copy',
+            'code' => 'cnic',
+            'category' => 'mandatory',
+            'is_mandatory' => true,
+            'is_active' => true,
+            'display_order' => 1,
+        ]);
+    }
+
+    /**
+     * Helper method to setup completed documents for a candidate
+     */
+    protected function setupCompletedDocuments(Candidate $candidate): void
+    {
+        // Get all mandatory document checklists
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+
+        // Create pre-departure documents for each mandatory checklist
+        foreach ($mandatoryChecklists as $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'documents/test_' . $checklist->code . '.pdf',
+                'original_filename' => $checklist->code . '.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->user->id,
+            ]);
+        }
     }
 
     #[Test]
@@ -73,6 +109,9 @@ class InitialScreeningControllerTest extends TestCase
     public function user_can_view_initial_screening_form()
     {
         $this->actingAs($this->user);
+
+        // Setup completed documents for the candidate
+        $this->setupCompletedDocuments($this->candidate);
 
         $response = $this->get(route('candidates.initial-screening', $this->candidate));
 
@@ -297,14 +336,18 @@ class InitialScreeningControllerTest extends TestCase
             'status' => 'screening',
         ]);
 
+        // Setup completed documents for both candidates
+        $this->setupCompletedDocuments($ownCandidate);
+        $this->setupCompletedDocuments($otherCandidate);
+
         $this->actingAs($campusAdmin);
 
         $response = $this->get(route('screening.initial-dashboard'));
 
         $response->assertStatus(200);
-        
+
         $pendingCandidates = $response->viewData('pendingCandidates');
-        
+
         // Should only see own campus candidate
         $this->assertTrue($pendingCandidates->contains('id', $ownCandidate->id));
         $this->assertFalse($pendingCandidates->contains('id', $otherCandidate->id));
