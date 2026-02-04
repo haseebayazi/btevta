@@ -19,6 +19,8 @@ use App\Models\TrainingAssessment;
 use App\Models\TrainingCertificate;
 use App\Models\VisaProcess;
 use App\Models\Departure;
+use App\Models\DocumentChecklist;
+use App\Models\PreDepartureDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -26,8 +28,10 @@ use Laravel\Sanctum\Sanctum;
 
 /**
  * Integration tests for the complete candidate lifecycle.
- * Tests the full journey from NEW → SCREENING → REGISTERED → TRAINING →
+ * Tests the full journey from LISTED → SCREENING → REGISTERED → TRAINING →
  * VISA_PROCESS → READY → DEPARTED
+ * 
+ * WASL v3: Module 1 (Pre-Departure Documents) → Module 2 (Initial Screening) → Registration
  */
 class CandidateLifecycleIntegrationTest extends TestCase
 {
@@ -55,7 +59,50 @@ class CandidateLifecycleIntegrationTest extends TestCase
             'capacity' => 30,
         ]);
 
+        // Seed document checklists for WASL v3 Module 1 workflow
+        $this->seedDocumentChecklists();
+
         Storage::fake('public');
+    }
+
+    /**
+     * Seed mandatory document checklists for pre-departure document workflow
+     */
+    protected function seedDocumentChecklists(): void
+    {
+        $checklists = [
+            ['name' => 'CNIC', 'code' => 'CNIC', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 1, 'is_active' => true],
+            ['name' => 'Passport', 'code' => 'PASSPORT', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 2, 'is_active' => true],
+            ['name' => 'Domicile', 'code' => 'DOMICILE', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 3, 'is_active' => true],
+            ['name' => 'FRC', 'code' => 'FRC', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 4, 'is_active' => true],
+            ['name' => 'PCC', 'code' => 'PCC', 'category' => 'mandatory', 'is_mandatory' => true, 'display_order' => 5, 'is_active' => true],
+        ];
+
+        foreach ($checklists as $checklist) {
+            DocumentChecklist::create($checklist);
+        }
+    }
+
+    /**
+     * Create verified pre-departure documents for a candidate
+     */
+    protected function createVerifiedPreDepartureDocuments(Candidate $candidate): void
+    {
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+        foreach ($mandatoryChecklists as $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'test/path.pdf',
+                'original_filename' => 'test.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->admin->id,
+                'verified_at' => now(),
+                'verified_by' => $this->admin->id,
+            ]);
+        }
     }
 
     // ==================== PHASE 1: REGISTRATION ====================
@@ -127,14 +174,18 @@ class CandidateLifecycleIntegrationTest extends TestCase
     // ==================== PHASE 2: SCREENING ====================
 
     #[Test]
-    public function it_transitions_from_new_to_screening()
+    public function it_transitions_from_listed_to_screening_with_verified_documents()
     {
+        // WASL v3: Create candidate in 'listed' status (Module 1)
         $candidate = Candidate::factory()->create([
-            'status' => Candidate::STATUS_NEW,
+            'status' => Candidate::STATUS_LISTED,
             'trade_id' => $this->trade->id,
         ]);
 
-        // Validate transition
+        // Create verified pre-departure documents (Module 1 requirement)
+        $this->createVerifiedPreDepartureDocuments($candidate);
+
+        // Validate transition (should pass with all documents verified)
         $validation = $candidate->canTransitionToScreening();
         $this->assertTrue($validation['can_transition']);
 

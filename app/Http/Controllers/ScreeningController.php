@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class ScreeningController extends Controller
 {
+    /**
+     * Display a listing of screenings.
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Use initialScreeningDashboard() for the new Module 2 Initial Screening workflow.
+     */
     public function index(Request $request)
     {
         $this->authorize('viewAny', CandidateScreening::class);
@@ -41,6 +47,12 @@ class ScreeningController extends Controller
         return view('screening.index', compact('screenings'));
     }
 
+    /**
+     * Display pending screenings.
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Use initialScreeningDashboard() for the new Module 2 Initial Screening workflow.
+     */
     public function pending()
     {
         $this->authorize('viewAny', CandidateScreening::class);
@@ -62,6 +74,12 @@ class ScreeningController extends Controller
         return view('screening.pending', compact('candidates'));
     }
 
+    /**
+     * Show the form for creating a new screening.
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Use initialScreening() for the new Module 2 Initial Screening workflow.
+     */
     public function create()
     {
         $this->authorize('create', CandidateScreening::class);
@@ -82,6 +100,12 @@ class ScreeningController extends Controller
         return view('screening.create', compact('candidates'));
     }
 
+    /**
+     * Store a newly created screening in storage.
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Use storeInitialScreening() for the new Module 2 Initial Screening workflow.
+     */
     public function store(Request $request)
     {
         $this->authorize('create', CandidateScreening::class);
@@ -167,6 +191,9 @@ class ScreeningController extends Controller
      * Log a call attempt for a candidate's call screening.
      * Updates existing call screening record instead of creating new ones.
      * Respects the max 3 attempts limit.
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Module 2 Initial Screening uses a single-review approach with storeInitialScreening().
      */
     public function logCall(Request $request, Candidate $candidate)
     {
@@ -245,6 +272,10 @@ class ScreeningController extends Controller
      * Record screening outcome for a candidate.
      * Uses the model's markAsPassed/markAsFailed methods to ensure proper
      * auto-progression logic (all 3 screenings must pass for REGISTERED status).
+     * 
+     * @deprecated WASL v3: This method is part of the legacy 3-call screening system.
+     *             Module 2 Initial Screening uses storeInitialScreening() with outcomes:
+     *             'screened', 'pending', or 'deferred'.
      */
     public function recordOutcome(Request $request, Candidate $candidate)
     {

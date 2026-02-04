@@ -8,18 +8,21 @@ use App\Models\Candidate;
 use App\Models\DocumentChecklist;
 use App\Models\PreDepartureDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 
 class PreDepartureWorkflowIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $testUser;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Role::create(['name' => 'super_admin']);
-        Role::create(['name' => 'campus_admin']);
+        // Create a test user for foreign key references
+        $this->testUser = User::factory()->create([
+            'role' => User::ROLE_SUPER_ADMIN,
+        ]);
 
         $this->seedDocumentChecklists();
     }
@@ -43,7 +46,7 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
     public function candidate_cannot_transition_to_screening_without_pre_departure_documents()
     {
         $candidate = Candidate::factory()->create([
-            'status' => 'new',
+            'status' => 'listed',  // Module 1 status
             'name' => 'Test Candidate',
             'cnic' => '1234567890123',
             'phone' => '03001234567',
@@ -57,16 +60,16 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
     }
 
     /** @test */
-    public function candidate_can_transition_to_screening_with_all_mandatory_documents()
+    public function candidate_can_transition_to_screening_with_all_mandatory_documents_uploaded_and_verified()
     {
         $candidate = Candidate::factory()->create([
-            'status' => 'new',
+            'status' => 'listed',  // Module 1 status
             'name' => 'Test Candidate',
             'cnic' => '1234567890123',
             'phone' => '03001234567',
         ]);
 
-        // Upload all mandatory documents
+        // Upload AND verify all mandatory documents (Module 2 requirement)
         $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
         foreach ($mandatoryChecklists as $checklist) {
             PreDepartureDocument::create([
@@ -77,7 +80,9 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->testUser->id,
+                'verified_at' => now(),  // Document must be verified
+                'verified_by' => $this->testUser->id,
             ]);
         }
 
@@ -88,16 +93,49 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
     }
 
     /** @test */
-    public function workflow_blocks_screening_with_partial_documents()
+    public function candidate_cannot_transition_to_screening_with_unverified_documents()
     {
         $candidate = Candidate::factory()->create([
-            'status' => 'new',
+            'status' => 'pre_departure_docs',  // Module 1 status
             'name' => 'Test Candidate',
             'cnic' => '1234567890123',
             'phone' => '03001234567',
         ]);
 
-        // Upload only 3 out of 5 mandatory documents
+        // Upload all mandatory documents but DON'T verify them
+        $mandatoryChecklists = DocumentChecklist::mandatory()->active()->get();
+        foreach ($mandatoryChecklists as $checklist) {
+            PreDepartureDocument::create([
+                'candidate_id' => $candidate->id,
+                'document_checklist_id' => $checklist->id,
+                'file_path' => 'test/path.pdf',
+                'original_filename' => 'test.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 1024,
+                'uploaded_at' => now(),
+                'uploaded_by' => $this->testUser->id,
+                // NOT verified - verified_at is null
+            ]);
+        }
+
+        $result = $candidate->canTransitionToScreening();
+
+        $this->assertFalse($result['can_transition']);
+        $this->assertNotEmpty($result['issues']);
+        $this->assertStringContainsString('pending verification', $result['issues'][0]);
+    }
+
+    /** @test */
+    public function workflow_blocks_screening_with_partial_documents()
+    {
+        $candidate = Candidate::factory()->create([
+            'status' => 'listed',  // Module 1 status
+            'name' => 'Test Candidate',
+            'cnic' => '1234567890123',
+            'phone' => '03001234567',
+        ]);
+
+        // Upload only 3 out of 5 mandatory documents (with verification)
         $mandatoryChecklists = DocumentChecklist::mandatory()->active()->take(3)->get();
         foreach ($mandatoryChecklists as $checklist) {
             PreDepartureDocument::create([
@@ -108,7 +146,9 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->testUser->id,
+                'verified_at' => now(),
+                'verified_by' => $this->testUser->id,
             ]);
         }
 
@@ -140,7 +180,7 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->testUser->id,
             ]);
         }
 
@@ -150,8 +190,12 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
         $this->assertEquals(5, $status['mandatory_total']);
         $this->assertFalse($status['is_complete']);
 
-        // Upload remaining 2 = 100%
-        $remaining = DocumentChecklist::mandatory()->active()->skip(3)->get();
+        // Upload remaining documents to reach 100%
+        // Get all mandatory documents and filter out the already uploaded ones
+        $allMandatory = DocumentChecklist::mandatory()->active()->orderBy('display_order')->get();
+        $alreadyUploadedIds = $candidate->preDepartureDocuments()->pluck('document_checklist_id')->toArray();
+        $remaining = $allMandatory->filter(fn($doc) => !in_array($doc->id, $alreadyUploadedIds));
+        
         foreach ($remaining as $checklist) {
             PreDepartureDocument::create([
                 'candidate_id' => $candidate->id,
@@ -161,7 +205,7 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->testUser->id,
             ]);
         }
 
@@ -187,7 +231,7 @@ class PreDepartureWorkflowIntegrationTest extends TestCase
                 'mime_type' => 'application/pdf',
                 'file_size' => 1024,
                 'uploaded_at' => now(),
-                'uploaded_by' => 1,
+                'uploaded_by' => $this->testUser->id,
             ]);
         }
 
