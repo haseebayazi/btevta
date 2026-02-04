@@ -169,8 +169,8 @@
             @else
                 <div class="px-6 py-12 text-center">
                     <i class="fas fa-clipboard-check text-gray-300 text-5xl mb-4"></i>
-                    <p class="text-gray-500">No candidates in screening stage</p>
-                    <p class="text-xs text-gray-400 mt-2">Candidates must be in 'pre_departure_docs' or 'screening' status to appear here</p>
+                    <p class="text-gray-500">No candidates available for screening</p>
+                    <p class="text-xs text-gray-400 mt-2">Candidates from Module 1 (Listed, Pre-Departure Docs) will appear here</p>
                 </div>
             @endif
         </div>
