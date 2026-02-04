@@ -217,6 +217,51 @@
             </div>
             @endif
 
+            {{-- Initial Screening Card - Module 2 Entry Point --}}
+            @if(in_array($candidate->status, ['listed', 'pre_departure_docs', 'new', 'screening']))
+            @php
+                $docStatus = $candidate->getPreDepartureDocumentStatus();
+                $readyForScreening = $candidate->hasCompletedAndVerifiedPreDepartureDocuments();
+                $transitionCheck = $candidate->canTransitionToScreening();
+            @endphp
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Initial Screening</h3>
+                @if($readyForScreening)
+                    <div class="mb-4">
+                        <div class="flex items-center text-sm text-green-600 mb-2">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            All documents verified
+                        </div>
+                        <p class="text-sm text-gray-600">Candidate is ready for Module 2 Initial Screening.</p>
+                    </div>
+                    @can('create', App\Models\CandidateScreening::class)
+                    <a href="{{ route('candidates.initial-screening', $candidate) }}"
+                       class="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-clipboard-check mr-2"></i>Start Initial Screening
+                    </a>
+                    @endcan
+                @else
+                    <div class="mb-4">
+                        <div class="flex items-center text-sm text-yellow-600 mb-2">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Not ready for screening
+                        </div>
+                        @if(!empty($transitionCheck['issues']))
+                            <ul class="text-sm text-gray-600 list-disc list-inside">
+                                @foreach($transitionCheck['issues'] as $issue)
+                                    <li>{{ $issue }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                    <a href="{{ route('candidates.pre-departure-documents.index', $candidate) }}"
+                       class="block w-full bg-yellow-500 hover:bg-yellow-600 text-white text-center px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-file-upload mr-2"></i>Complete Documents First
+                    </a>
+                @endif
+            </div>
+            @endif
+
             <!-- Action Card -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
