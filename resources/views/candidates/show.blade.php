@@ -260,6 +260,28 @@
             </div>
             @endif
 
+            {{-- Registration Card - Module 3 Entry Point for Screened Candidates --}}
+            @if($candidate->status === 'screened')
+            <div class="bg-white rounded-lg shadow-md p-6 border-2 border-green-500">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>Ready for Registration
+                </h3>
+                <div class="mb-4">
+                    <div class="flex items-center text-sm text-green-600 mb-2">
+                        <i class="fas fa-clipboard-check mr-2"></i>
+                        Screening completed successfully
+                    </div>
+                    <p class="text-sm text-gray-600">This candidate has passed screening and is ready for Module 3 Registration with campus allocation, course assignment, and NOK financial details.</p>
+                </div>
+                @can('update', $candidate)
+                <a href="{{ route('registration.allocation', $candidate) }}"
+                   class="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-user-plus mr-2"></i>Proceed to Registration
+                </a>
+                @endcan
+            </div>
+            @endif
+
             <!-- Action Card -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
