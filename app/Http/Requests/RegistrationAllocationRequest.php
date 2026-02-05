@@ -67,6 +67,17 @@ class RegistrationAllocationRequest extends FormRequest
                     // Date parsing errors will be caught by the 'date' rule
                 }
             }
+
+            // Conditional validation: bank_name required if payment method requires it
+            $paymentMethodId = $this->input('nok_payment_method_id');
+            if ($paymentMethodId) {
+                $paymentMethod = \App\Models\PaymentMethod::find($paymentMethodId);
+                if ($paymentMethod && $paymentMethod->requires_bank_name) {
+                    if (empty($this->input('nok_bank_name'))) {
+                        $validator->errors()->add('nok_bank_name', 'Bank name is required for this payment method.');
+                    }
+                }
+            }
         });
     }
 
