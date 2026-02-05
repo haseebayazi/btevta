@@ -34,6 +34,7 @@ class Candidate extends Model
         'campus_id',
         'program_id',
         'implementing_partner_id',
+        'allocated_number',
         'trade_id',
         'oep_id',
         'visa_partner_id',

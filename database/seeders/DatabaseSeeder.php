@@ -285,6 +285,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call(CountriesSeeder::class);
         $this->call(PaymentMethodsSeeder::class);
+        $this->call(ProgramsSeeder::class);
+        $this->call(ImplementingPartnersSeeder::class);
+        $this->call(CoursesSeeder::class);
         $this->call(DocumentChecklistsSeeder::class);
 
         echo "\n";

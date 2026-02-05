@@ -215,10 +215,17 @@
                                 {{ $candidate->updated_at->format('M d, Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ route('candidates.show', $candidate) }}" 
-                                   class="text-blue-600 hover:text-blue-900 transition">
-                                    View Details
-                                </a>
+                                <div class="flex justify-end items-center space-x-2">
+                                    <a href="{{ route('registration.allocation', $candidate) }}" 
+                                       class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition"
+                                       title="Proceed to Registration">
+                                        <i class="fas fa-user-plus mr-1.5"></i>Register
+                                    </a>
+                                    <a href="{{ route('candidates.show', $candidate) }}" 
+                                       class="text-blue-600 hover:text-blue-900 transition">
+                                        View
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @endforeach

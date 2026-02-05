@@ -104,6 +104,14 @@ class Batch extends Model
     }
 
     /**
+     * Get the program associated with this batch.
+     */
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    /**
      * Get the trade associated with this batch.
      */
     public function trade()
