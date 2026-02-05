@@ -55,7 +55,10 @@ class Country extends Model
      */
     public function scopeDestinations($query)
     {
-        return $query->where('is_destination', true);
+        return $query->where(function ($q) {
+            $q->where('is_destination', true)
+              ->orWhereNull('is_destination');
+        });
     }
 
     /**
@@ -63,6 +66,9 @@ class Country extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where(function ($q) {
+            $q->where('is_active', true)
+              ->orWhereNull('is_active');
+        });
     }
 }
