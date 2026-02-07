@@ -347,8 +347,8 @@ class DatabaseSeeder extends Seeder
      */
     private function createSecureUser(array $userData): User
     {
-        // Generate a secure random password
-        $password = $this->generateSecurePassword();
+        // Use a fixed default password for testing/QA convenience
+        $password = 'Jaamiah@12345';
 
         $user = User::updateOrCreate(
             ['email' => $userData['email']],
@@ -360,7 +360,7 @@ class DatabaseSeeder extends Seeder
                 'oep_id' => $userData['oep_id'] ?? null,
                 'visa_partner_id' => $userData['visa_partner_id'] ?? null,
                 'is_active' => true,
-                'force_password_change' => true, // SECURITY: Force password change on first login
+                'force_password_change' => false,
             ]
         );
 
