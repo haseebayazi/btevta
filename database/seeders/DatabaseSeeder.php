@@ -292,14 +292,15 @@ class DatabaseSeeder extends Seeder
 
         echo "\n";
 
-        // Create Sample Candidates using factories
-        if (\App\Models\Candidate::count() === 0) {
-            echo "Creating sample candidates using factories...\n";
-            \App\Models\Candidate::factory(50)->create();
-            echo "✓ Created 50 sample candidates\n";
-        } else {
-            echo "✓ Candidates already exist, skipping...\n";
-        }
+        // Seed lifecycle test data (candidates at every workflow stage)
+        echo "\n";
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        echo "📋 LIFECYCLE TEST DATA\n";
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        $this->call(LifecycleDataSeeder::class);
+
+        echo "\n";
 
         // Finalize credentials log
         $this->finalizeCredentialsLog();
@@ -314,9 +315,6 @@ class DatabaseSeeder extends Seeder
         echo "    1. Securely distribute credentials to users\n";
         echo "    2. DELETE the credentials log file after distribution\n";
         echo "    3. All users MUST change password on first login\n\n";
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        echo "💡 TIP: To populate comprehensive test data for all modules, run:\n";
-        echo "   php artisan db:seed --class=TestDataSeeder\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
     }
 
