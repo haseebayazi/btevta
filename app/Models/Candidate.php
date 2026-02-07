@@ -309,6 +309,14 @@ class Candidate extends Model
     }
 
     /**
+     * Get the training record for the candidate.
+     */
+    public function training()
+    {
+        return $this->hasOne(Training::class);
+    }
+
+    /**
      * Get all training attendances for the candidate.
      */
     public function trainingAttendances()

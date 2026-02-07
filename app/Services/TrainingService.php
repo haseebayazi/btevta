@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\Candidate;
 use App\Models\Batch;
+use App\Models\Training;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
 use App\Models\TrainingCertificate;
 use App\Models\VisaProcess;
 use App\Enums\CandidateStatus;
 use App\Enums\TrainingStatus;
+use App\Enums\TrainingProgress;
 use App\Enums\VisaStage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -1050,6 +1052,189 @@ class TrainingService
             'attendance' => $attendance,
             'final_assessment' => $finalAssessment,
             'existing_certificate' => $existingCertificate,
+        ];
+    }
+
+    // ==================== MODULE 4: DUAL-STATUS TRAINING METHODS ====================
+
+    /**
+     * Get or create a Training record for a candidate.
+     */
+    public function getOrCreateTraining(Candidate $candidate): Training
+    {
+        return Training::findOrCreateForCandidate($candidate);
+    }
+
+    /**
+     * Record assessment with training type (technical/soft_skills).
+     */
+    public function recordAssessmentWithType(
+        Training $training,
+        Candidate $candidate,
+        string $assessmentType,
+        string $trainingType,
+        float $score,
+        float $maxScore = 100,
+        ?string $notes = null,
+        $evidenceFile = null
+    ): TrainingAssessment {
+        return DB::transaction(function () use ($training, $candidate, $assessmentType, $trainingType, $score, $maxScore, $notes, $evidenceFile) {
+            // Check if assessment already exists for this combination
+            $existing = TrainingAssessment::where('training_id', $training->id)
+                ->where('candidate_id', $candidate->id)
+                ->where('assessment_type', $assessmentType)
+                ->where('training_type', $trainingType)
+                ->first();
+
+            if ($existing) {
+                throw new \Exception("Assessment already recorded for this type.");
+            }
+
+            $passScore = $maxScore * 0.5;
+            $result = $score >= $passScore ? 'pass' : 'fail';
+
+            $assessment = TrainingAssessment::create([
+                'training_id' => $training->id,
+                'candidate_id' => $candidate->id,
+                'batch_id' => $candidate->batch_id,
+                'assessment_type' => $assessmentType,
+                'training_type' => $trainingType,
+                'score' => $score,
+                'total_score' => $score,
+                'max_score' => $maxScore,
+                'total_marks' => $maxScore,
+                'pass_score' => $passScore,
+                'result' => $result,
+                'assessment_date' => now(),
+                'remarks' => $notes,
+                'trainer_id' => auth()->id(),
+            ]);
+
+            // Handle evidence upload
+            if ($evidenceFile) {
+                $assessment->uploadEvidence($evidenceFile);
+            }
+
+            // Auto-start the corresponding training type if not started
+            if ($trainingType === 'technical' && $training->technical_training_status === TrainingProgress::NOT_STARTED) {
+                $training->startTechnicalTraining();
+            } elseif ($trainingType === 'soft_skills' && $training->soft_skills_status === TrainingProgress::NOT_STARTED) {
+                $training->startSoftSkillsTraining();
+            }
+
+            activity()
+                ->performedOn($training)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'candidate_id' => $candidate->id,
+                    'assessment_type' => $assessmentType,
+                    'training_type' => $trainingType,
+                    'score' => $score,
+                    'max_score' => $maxScore,
+                    'grade' => $assessment->grade,
+                ])
+                ->log("Assessment recorded: {$trainingType} - {$assessmentType}");
+
+            return $assessment;
+        });
+    }
+
+    /**
+     * Complete specific training type.
+     */
+    public function completeTrainingType(Training $training, string $trainingType): void
+    {
+        if ($trainingType === 'technical') {
+            $training->completeTechnicalTraining();
+        } elseif ($trainingType === 'soft_skills') {
+            $training->completeSoftSkillsTraining();
+        } else {
+            throw new \Exception("Invalid training type: {$trainingType}");
+        }
+    }
+
+    /**
+     * Get training progress summary for a Training record.
+     */
+    public function getTrainingProgress(Training $training): array
+    {
+        $technicalAssessments = $training->technicalAssessments()->get();
+        $softSkillsAssessments = $training->softSkillsAssessments()->get();
+
+        return [
+            'technical' => [
+                'status' => $training->technical_training_status,
+                'status_label' => $training->technical_training_status->label(),
+                'status_color' => $training->technical_training_status->color(),
+                'completed_at' => $training->technical_completed_at?->format('Y-m-d H:i'),
+                'assessments' => $technicalAssessments->map(fn($a) => [
+                    'id' => $a->id,
+                    'type' => $a->assessment_type,
+                    'score' => $a->score ?: $a->total_score,
+                    'max_score' => $a->max_score ?: $a->total_marks ?: 100,
+                    'percentage' => $a->percentage,
+                    'grade' => $a->grade,
+                    'passed' => $a->isPassed(),
+                    'date' => $a->assessment_date?->format('Y-m-d'),
+                ]),
+                'can_complete' => $training->hasPassedTechnicalAssessments(),
+            ],
+            'soft_skills' => [
+                'status' => $training->soft_skills_status,
+                'status_label' => $training->soft_skills_status->label(),
+                'status_color' => $training->soft_skills_status->color(),
+                'completed_at' => $training->soft_skills_completed_at?->format('Y-m-d H:i'),
+                'assessments' => $softSkillsAssessments->map(fn($a) => [
+                    'id' => $a->id,
+                    'type' => $a->assessment_type,
+                    'score' => $a->score ?: $a->total_score,
+                    'max_score' => $a->max_score ?: $a->total_marks ?: 100,
+                    'percentage' => $a->percentage,
+                    'grade' => $a->grade,
+                    'passed' => $a->isPassed(),
+                    'date' => $a->assessment_date?->format('Y-m-d'),
+                ]),
+                'can_complete' => $training->hasPassedSoftSkillsAssessments(),
+            ],
+            'overall' => [
+                'completion_percentage' => $training->completion_percentage,
+                'both_complete' => $training->isBothComplete(),
+                'can_generate_certificate' => $training->isBothComplete(),
+            ],
+        ];
+    }
+
+    /**
+     * Get batch training summary with dual status.
+     */
+    public function getBatchTrainingSummary(Batch $batch): array
+    {
+        $trainings = Training::where('batch_id', $batch->id)
+            ->with(['candidate', 'assessments'])
+            ->get();
+
+        return [
+            'total_candidates' => $trainings->count(),
+            'technical' => [
+                'not_started' => $trainings->filter(fn($t) => $t->technical_training_status === TrainingProgress::NOT_STARTED)->count(),
+                'in_progress' => $trainings->filter(fn($t) => $t->technical_training_status === TrainingProgress::IN_PROGRESS)->count(),
+                'completed' => $trainings->filter(fn($t) => $t->technical_training_status === TrainingProgress::COMPLETED)->count(),
+            ],
+            'soft_skills' => [
+                'not_started' => $trainings->filter(fn($t) => $t->soft_skills_status === TrainingProgress::NOT_STARTED)->count(),
+                'in_progress' => $trainings->filter(fn($t) => $t->soft_skills_status === TrainingProgress::IN_PROGRESS)->count(),
+                'completed' => $trainings->filter(fn($t) => $t->soft_skills_status === TrainingProgress::COMPLETED)->count(),
+            ],
+            'fully_complete' => $trainings->filter(fn($t) => $t->isBothComplete())->count(),
+            'candidates' => $trainings->map(fn($t) => [
+                'training_id' => $t->id,
+                'candidate_id' => $t->candidate_id,
+                'candidate_name' => $t->candidate->name ?? 'N/A',
+                'btevta_id' => $t->candidate->btevta_id ?? 'N/A',
+                'technical_status' => $t->technical_training_status,
+                'soft_skills_status' => $t->soft_skills_status,
+                'completion_percentage' => $t->completion_percentage,
+            ]),
         ];
     }
 }

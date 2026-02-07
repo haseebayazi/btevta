@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Candidate;
 use App\Models\Batch;
+use App\Models\Training;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
 use App\Services\TrainingService;
@@ -530,6 +531,106 @@ class TrainingController extends Controller
                 ->with('success', 'Candidate removed from training!');
         } catch (Exception $e) {
             return back()->with('error', 'Failed to remove candidate: ' . $e->getMessage());
+        }
+    }
+
+    // ==================== MODULE 4: DUAL-STATUS TRAINING ====================
+
+    /**
+     * Show dual status training dashboard for a batch.
+     */
+    public function dualStatusDashboard(Batch $batch)
+    {
+        $this->authorize('viewAny', Candidate::class);
+
+        $summary = $this->trainingService->getBatchTrainingSummary($batch);
+
+        $trainings = Training::where('batch_id', $batch->id)
+            ->with(['candidate', 'assessments'])
+            ->get();
+
+        return view('training.dual-status-dashboard', compact('batch', 'summary', 'trainings'));
+    }
+
+    /**
+     * Show training progress for a candidate.
+     */
+    public function candidateProgress(Training $training)
+    {
+        $this->authorize('view', $training->candidate);
+
+        $training->load(['candidate', 'candidate.batch', 'candidate.trade', 'candidate.campus', 'assessments']);
+
+        $progress = $this->trainingService->getTrainingProgress($training);
+        $attendanceStats = $this->trainingService->getAttendanceStatistics($training->candidate_id);
+
+        return view('training.candidate-progress', compact('training', 'progress', 'attendanceStats'));
+    }
+
+    /**
+     * Record assessment with training type (technical/soft_skills).
+     */
+    public function storeTypedAssessment(Request $request, Training $training)
+    {
+        $this->authorize('update', $training->candidate);
+
+        $validated = $request->validate([
+            'candidate_id' => 'required|exists:candidates,id',
+            'assessment_type' => 'required|in:initial,interim,midterm,practical,final',
+            'training_type' => 'required|in:technical,soft_skills',
+            'score' => 'required|numeric|min:0|max:100',
+            'max_score' => 'required|numeric|min:1|max:100',
+            'notes' => 'nullable|string|max:1000',
+            'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+        ]);
+
+        try {
+            $candidate = Candidate::findOrFail($validated['candidate_id']);
+
+            $assessment = $this->trainingService->recordAssessmentWithType(
+                $training,
+                $candidate,
+                $validated['assessment_type'],
+                $validated['training_type'],
+                $validated['score'],
+                $validated['max_score'],
+                $validated['notes'] ?? null,
+                $request->file('evidence')
+            );
+
+            return back()->with('success',
+                "Assessment recorded. Grade: {$assessment->grade} ({$assessment->percentage}%)"
+            );
+        } catch (Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Complete training type for a candidate.
+     */
+    public function completeTrainingType(Request $request, Training $training)
+    {
+        $this->authorize('update', $training->candidate);
+
+        $validated = $request->validate([
+            'training_type' => 'required|in:technical,soft_skills',
+        ]);
+
+        try {
+            $this->trainingService->completeTrainingType($training, $validated['training_type']);
+
+            $typeLabel = $validated['training_type'] === 'technical' ? 'Technical' : 'Soft Skills';
+
+            if ($training->fresh()->isBothComplete()) {
+                return back()->with('success',
+                    "{$typeLabel} training completed. All training complete - certificate can be generated!"
+                );
+            }
+
+            return back()->with('success', "{$typeLabel} training marked as completed.");
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
     }
 }
