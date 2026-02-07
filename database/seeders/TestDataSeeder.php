@@ -115,7 +115,16 @@ class TestDataSeeder extends Seeder
         $this->seedDocumentArchive($candidates);
         $this->command->info('✓ Document archive created');
 
-        // 16. Log credentials
+        // 16. Seed reference data (countries, payment methods, programs, etc.)
+        $this->call(CountriesSeeder::class);
+        $this->call(PaymentMethodsSeeder::class);
+        $this->call(ProgramsSeeder::class);
+        $this->call(ImplementingPartnersSeeder::class);
+        $this->call(CoursesSeeder::class);
+        $this->call(DocumentChecklistsSeeder::class);
+        $this->command->info('✓ Reference data seeded (countries, payment methods, programs, partners, courses, checklists)');
+
+        // 17. Log credentials
         $this->logCredentials();
 
         $this->command->info('🎉 All test data seeded successfully!');
@@ -184,8 +193,8 @@ class TestDataSeeder extends Seeder
     {
         $users = [];
 
-        // Generate secure password for admin
-        $adminPassword = Str::random(12);
+        // Use fixed password for QA convenience
+        $adminPassword = 'Jaamiah@12345';
 
         // Admin user - use firstOrCreate to avoid duplicate errors
         $adminUser = User::where('email', 'admin@theleap.org')->first();
@@ -224,7 +233,7 @@ class TestDataSeeder extends Seeder
         foreach ($campusAdmins as $index => $admin) {
             $existingUser = User::where('email', $admin['email'])->first();
             $isNewUser = !$existingUser;
-            $password = Str::random(12);
+            $password = 'Jaamiah@12345';
 
             $users["campus_admin_$index"] = User::firstOrCreate(
                 ['email' => $admin['email']],
@@ -258,7 +267,7 @@ class TestDataSeeder extends Seeder
         foreach ($regularUsers as $index => $userData) {
             $existingUser = User::where('email', $userData['email'])->first();
             $isNewUser = !$existingUser;
-            $password = Str::random(12);
+            $password = 'Jaamiah@12345';
 
             $users["user" . ($index + 1)] = User::firstOrCreate(
                 ['email' => $userData['email']],
