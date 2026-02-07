@@ -95,8 +95,9 @@ class LifecycleDataSeeder extends Seeder
             ['code' => 'LHR'],
             [
                 'name' => 'Lahore Campus',
-                'district' => 'Lahore',
+                'city' => 'Lahore',
                 'address' => '123 Main Street, Lahore',
+                'contact_person' => 'Campus Manager',
                 'phone' => '042-12345678',
                 'email' => 'lahore@wasl.test',
             ]
@@ -126,19 +127,20 @@ class LifecycleDataSeeder extends Seeder
         $this->partner = ImplementingPartner::firstOrCreate(
             ['name' => 'Skills Development Center'],
             [
+                'code' => 'SDC',
                 'contact_person' => 'Ali Khan',
                 'contact_email' => 'ali@skills.test',
-                'phone' => '0300-1234567',
+                'contact_phone' => '0300-1234567',
                 'is_active' => true,
             ]
         );
 
         // OEP
         $this->oep = Oep::firstOrCreate(
-            ['license_number' => 'OEP-2026-001'],
+            ['name' => 'Global Employment Services'],
             [
-                'name' => 'Global Employment Services',
-                'license_expiry' => now()->addYears(2),
+                'company_name' => 'GES International',
+                'registration_number' => 'OEP-2026-001',
                 'contact_person' => 'Hassan Ali',
                 'phone' => '0321-1234567',
                 'email' => 'contact@globalemployment.test',
