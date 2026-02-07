@@ -26,6 +26,15 @@ enum TrainingProgress: string
         };
     }
 
+    public function icon(): string
+    {
+        return match($this) {
+            self::NOT_STARTED => 'fas fa-clock',
+            self::IN_PROGRESS => 'fas fa-spinner fa-spin',
+            self::COMPLETED => 'fas fa-check-circle',
+        };
+    }
+
     public static function toArray(): array
     {
         return array_combine(

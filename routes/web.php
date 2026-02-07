@@ -341,6 +341,12 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:5,1')->name('assessment-report');
 
             Route::get('/batch/{batch}/performance', [TrainingController::class, 'batchPerformance'])->name('batch-performance');
+
+            // MODULE 4: Dual-Status Training Routes
+            Route::get('/batch/{batch}/dual-status', [TrainingController::class, 'dualStatusDashboard'])->name('dual-status-dashboard');
+            Route::get('/progress/{training}', [TrainingController::class, 'candidateProgress'])->name('candidate-progress');
+            Route::post('/progress/{training}/typed-assessment', [TrainingController::class, 'storeTypedAssessment'])->name('store-typed-assessment');
+            Route::post('/progress/{training}/complete-type', [TrainingController::class, 'completeTrainingType'])->name('complete-training-type');
         });
     });
 

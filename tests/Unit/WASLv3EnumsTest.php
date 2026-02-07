@@ -59,8 +59,11 @@ class WASLv3EnumsTest extends TestCase
     {
         $cases = AssessmentType::cases();
 
-        $this->assertCount(2, $cases);
+        $this->assertCount(5, $cases);
+        $this->assertEquals('initial', AssessmentType::INITIAL->value);
         $this->assertEquals('interim', AssessmentType::INTERIM->value);
+        $this->assertEquals('midterm', AssessmentType::MIDTERM->value);
+        $this->assertEquals('practical', AssessmentType::PRACTICAL->value);
         $this->assertEquals('final', AssessmentType::FINAL->value);
     }
 
