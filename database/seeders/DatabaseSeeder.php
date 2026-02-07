@@ -360,7 +360,7 @@ class DatabaseSeeder extends Seeder
                 'oep_id' => $userData['oep_id'] ?? null,
                 'visa_partner_id' => $userData['visa_partner_id'] ?? null,
                 'is_active' => true,
-                'force_password_change' => true, // SECURITY: Force password change on first login
+                'force_password_change' => false,
             ]
         );
 
