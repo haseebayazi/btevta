@@ -80,88 +80,84 @@ class LifecycleDataSeeder extends Seeder
     {
         $this->command->info('Creating base dependencies...');
 
-        // Admin user
-        $this->admin = User::firstOrCreate(
-            ['email' => 'admin@wasl.test'],
-            [
-                'name' => 'WASL Admin',
-                'password' => Hash::make('password'),
-                'is_active' => true,
-            ]
-        );
+        // Admin user - reuse existing or create
+        $this->admin = User::where('role', 'admin')->first()
+            ?? User::where('role', 'super_admin')->first()
+            ?? User::firstOrCreate(
+                ['email' => 'admin@wasl.test'],
+                [
+                    'name' => 'WASL Admin',
+                    'password' => Hash::make('password'),
+                    'is_active' => true,
+                ]
+            );
 
-        // Campus
-        $this->campus = Campus::firstOrCreate(
-            ['code' => 'LHR'],
-            [
-                'name' => 'Lahore Campus',
-                'city' => 'Lahore',
-                'address' => '123 Main Street, Lahore',
-                'contact_person' => 'Campus Manager',
-                'phone' => '042-12345678',
-                'email' => 'lahore@wasl.test',
-            ]
-        );
+        // Campus - reuse any existing campus, only create if none exist
+        $this->campus = Campus::first() ?? Campus::create([
+            'name' => 'Lahore Campus',
+            'code' => 'CAMP-LHR-SEED',
+            'city' => 'Lahore',
+            'address' => '123 Main Street, Lahore',
+            'contact_person' => 'Campus Manager',
+            'phone' => '042-12345678',
+            'email' => 'lahore@wasl.test',
+            'is_active' => true,
+        ]);
 
-        // Trade
-        $this->trade = Trade::firstOrCreate(
-            ['code' => 'ELEC'],
-            [
-                'name' => 'Electrician',
-                'description' => 'Electrical installation and maintenance',
-                'is_active' => true,
-            ]
-        );
+        // Trade - reuse any existing trade, only create if none exist
+        $this->trade = Trade::first() ?? Trade::create([
+            'name' => 'Electrician',
+            'code' => 'TRADE-ELEC-SEED',
+            'description' => 'Electrical installation and maintenance',
+            'is_active' => true,
+        ]);
 
-        // Program
-        $this->program = Program::firstOrCreate(
-            ['code' => 'KSAWP'],
-            [
-                'name' => 'Saudi Arabia Worker Program',
-                'description' => 'Skilled worker program for Saudi Arabia',
-                'is_active' => true,
-            ]
-        );
+        // Program - reuse existing or create
+        $this->program = Program::first() ?? Program::create([
+            'name' => 'Saudi Arabia Worker Program',
+            'code' => 'KSAWP',
+            'description' => 'Skilled worker program for Saudi Arabia',
+            'is_active' => true,
+        ]);
 
-        // Implementing Partner
-        $this->partner = ImplementingPartner::firstOrCreate(
-            ['name' => 'Skills Development Center'],
-            [
-                'code' => 'SDC',
-                'contact_person' => 'Ali Khan',
-                'contact_email' => 'ali@skills.test',
-                'contact_phone' => '0300-1234567',
-                'is_active' => true,
-            ]
-        );
+        // Implementing Partner - reuse existing or create
+        $this->partner = ImplementingPartner::first() ?? ImplementingPartner::create([
+            'name' => 'Skills Development Center',
+            'code' => 'SDC',
+            'contact_person' => 'Ali Khan',
+            'contact_email' => 'ali@skills.test',
+            'contact_phone' => '0300-1234567',
+            'is_active' => true,
+        ]);
 
-        // OEP
-        $this->oep = Oep::firstOrCreate(
-            ['name' => 'Global Employment Services'],
-            [
-                'company_name' => 'GES International',
-                'registration_number' => 'OEP-2026-001',
-                'contact_person' => 'Hassan Ali',
-                'phone' => '0321-1234567',
-                'email' => 'contact@globalemployment.test',
-                'is_active' => true,
-            ]
-        );
+        // OEP - reuse existing or create
+        $this->oep = Oep::first() ?? Oep::create([
+            'name' => 'Global Employment Services',
+            'company_name' => 'GES International',
+            'registration_number' => 'OEP-2026-001',
+            'contact_person' => 'Hassan Ali',
+            'phone' => '0321-1234567',
+            'email' => 'contact@globalemployment.test',
+            'is_active' => true,
+        ]);
 
-        // Country
-        $this->country = Country::firstOrCreate(
-            ['code' => 'SA'],
-            [
+        // Country - reuse existing Saudi Arabia or any country
+        $this->country = Country::where('code_2', 'SA')->first()
+            ?? Country::where('code', 'SAU')->first()
+            ?? Country::first()
+            ?? Country::create([
                 'name' => 'Saudi Arabia',
+                'code' => 'SAU',
+                'code_2' => 'SA',
                 'is_active' => true,
-            ]
-        );
+            ]);
 
-        // Batch
-        $this->batch = Batch::firstOrCreate(
-            ['batch_code' => 'LHR-KSAWP-ELEC-2026-0001'],
-            [
+        // Batch - reuse existing active batch or create one
+        $this->batch = Batch::where('status', Batch::STATUS_ACTIVE)->first()
+            ?? Batch::first()
+            ?? Batch::create([
                 'name' => 'Lahore - Electrician - January 2026',
+                'batch_code' => 'LHR-KSAWP-ELEC-2026-0001',
                 'campus_id' => $this->campus->id,
                 'trade_id' => $this->trade->id,
                 'program_id' => $this->program->id,
@@ -170,8 +166,7 @@ class LifecycleDataSeeder extends Seeder
                 'status' => Batch::STATUS_ACTIVE,
                 'start_date' => now()->subDays(30),
                 'end_date' => now()->addDays(60),
-            ]
-        );
+            ]);
     }
 
     protected function createListedCandidates(): void
