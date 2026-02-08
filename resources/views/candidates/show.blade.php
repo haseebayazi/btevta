@@ -108,26 +108,12 @@
                 </div>
             </div>
 
-            <!-- Training Information -->
+            <!-- Trade / Skill Information -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Training Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm text-gray-600">Campus</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->campus?->name ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Trade</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->trade?->name ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Batch</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->batch?->name ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">OEP</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->oep?->name ?? 'N/A' }}</p>
-                    </div>
+                <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Trade / Skill</h2>
+                <div>
+                    <p class="text-sm text-gray-600">Trade</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ $candidate->trade?->name ?? 'N/A' }}</p>
                 </div>
             </div>
 
@@ -260,25 +246,13 @@
             </div>
             @endif
 
-            {{-- Registration Card - Module 3 Entry Point for Screened Candidates --}}
+            {{-- Registration status info for screened candidates --}}
             @if($candidate->status === 'screened')
             <div class="bg-white rounded-lg shadow-md p-6 border-2 border-green-500">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    <i class="fas fa-check-circle text-green-500 mr-2"></i>Ready for Registration
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>Screening Complete
                 </h3>
-                <div class="mb-4">
-                    <div class="flex items-center text-sm text-green-600 mb-2">
-                        <i class="fas fa-clipboard-check mr-2"></i>
-                        Screening completed successfully
-                    </div>
-                    <p class="text-sm text-gray-600">This candidate has passed screening and is ready for Module 3 Registration with campus allocation, course assignment, and NOK financial details.</p>
-                </div>
-                @can('update', $candidate)
-                <a href="{{ route('registration.allocation', $candidate) }}"
-                   class="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-user-plus mr-2"></i>Proceed to Registration
-                </a>
-                @endcan
+                <p class="text-sm text-gray-600">This candidate has passed screening and is ready for registration. Go to the <a href="{{ route('registration.index') }}" class="text-blue-600 hover:underline font-semibold">Registration Module</a> to proceed.</p>
             </div>
             @endif
 

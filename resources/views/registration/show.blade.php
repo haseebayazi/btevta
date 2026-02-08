@@ -54,6 +54,204 @@
     </div>
     @endif
 
+    {{-- Registration Completed: Show allocation details --}}
+    @if($candidate->status === \App\Models\Candidate::STATUS_REGISTERED)
+    <div class="row">
+        <div class="col-lg-8">
+            {{-- Registration Success Banner --}}
+            <div class="card shadow-sm mb-4 border-success">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Registration Completed</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong class="text-muted d-block">Allocated Number</strong>
+                            <span class="text-monospace font-weight-bold text-success h5">{{ $candidate->allocated_number ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong class="text-muted d-block">Registration Date</strong>
+                            <span>{{ $candidate->registration_date ? $candidate->registration_date->format('d M Y') : $candidate->updated_at->format('d M Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Allocation Details --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Allocation Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">Campus</strong>
+                            <span>{{ $candidate->campus->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">Program</strong>
+                            <span>{{ $candidate->program->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">Trade</strong>
+                            <span>{{ $candidate->trade->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">OEP</strong>
+                            <span>{{ $candidate->oep->name ?? 'Not Assigned' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">Implementing Partner</strong>
+                            <span>{{ $candidate->implementingPartner->name ?? 'Not Assigned' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <strong class="text-muted d-block">Batch</strong>
+                            <span class="text-monospace">{{ $candidate->batch->batch_code ?? $candidate->batch->name ?? 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Course Assignment --}}
+            @if($candidate->courses->count() > 0)
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3" style="background: linear-gradient(to right, #fef3c7, #fde68a); border-bottom: 1px solid #fbbf24;">
+                    <h5 class="mb-0"><i class="fas fa-book mr-2 text-warning"></i>Course Assignment</h5>
+                </div>
+                <div class="card-body">
+                    @foreach($candidate->courses as $course)
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Course</strong>
+                            <span>{{ $course->name }}</span>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <strong class="text-muted d-block">Start Date</strong>
+                            <span>{{ $course->pivot->start_date ? \Carbon\Carbon::parse($course->pivot->start_date)->format('d M Y') : 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <strong class="text-muted d-block">End Date</strong>
+                            <span>{{ $course->pivot->end_date ? \Carbon\Carbon::parse($course->pivot->end_date)->format('d M Y') : 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <strong class="text-muted d-block">Status</strong>
+                            <span class="badge badge-info">{{ ucfirst($course->pivot->status) }}</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Next of Kin & Financial Details --}}
+            @if($candidate->nextOfKin)
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3" style="background: linear-gradient(to right, #e0e7ff, #c7d2fe); border-bottom: 1px solid #818cf8;">
+                    <h5 class="mb-0"><i class="fas fa-users mr-2 text-indigo"></i>Next of Kin & Financial Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Name</strong>
+                            <span>{{ $candidate->nextOfKin->name }}</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Relationship</strong>
+                            <span>{{ $candidate->nextOfKin->relationship }}</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">CNIC</strong>
+                            <span class="text-monospace">{{ $candidate->nextOfKin->cnic }}</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Phone</strong>
+                            <span>{{ $candidate->nextOfKin->phone }}</span>
+                        </div>
+                        @if($candidate->nextOfKin->payment_method_id)
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Payment Method</strong>
+                            <span>{{ $candidate->nextOfKin->paymentMethod->name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Account Number</strong>
+                            <span class="text-monospace">{{ $candidate->nextOfKin->account_number ?? 'N/A' }}</span>
+                        </div>
+                        @if($candidate->nextOfKin->bank_name)
+                        <div class="col-md-4 mb-2">
+                            <strong class="text-muted d-block">Bank Name</strong>
+                            <span>{{ $candidate->nextOfKin->bank_name }}</span>
+                        </div>
+                        @endif
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        {{-- Right Column: Status summary --}}
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-success mb-4">
+                <div class="card-header py-3 bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Registration Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>Registration Completed!</strong><br>
+                        <small>{{ $candidate->registration_date ? $candidate->registration_date->format('d M Y H:i') : $candidate->updated_at->format('d M Y H:i') }}</small>
+                    </div>
+
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success mr-2"></i>
+                            Allocation Assigned
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas {{ $candidate->batch_id ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mr-2"></i>
+                            Batch Assigned
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas {{ $candidate->courses->count() > 0 ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mr-2"></i>
+                            Course Assigned
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas {{ $candidate->nextOfKin ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' }} mr-2"></i>
+                            Next of Kin
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            {{-- Candidate Info Card --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-user mr-2"></i>Candidate Info</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong class="text-muted">TheLeap ID:</strong><br>
+                        <span class="text-monospace font-weight-bold">{{ $candidate->btevta_id }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-muted">CNIC:</strong><br>
+                        <span class="text-monospace">{{ $candidate->formatted_cnic ?? $candidate->cnic ?? 'N/A' }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-muted">Phone:</strong><br>
+                        {{ $candidate->phone ?? 'N/A' }}
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-muted">Father Name:</strong><br>
+                        {{ $candidate->father_name ?? 'N/A' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Pre-allocation view: Document/NOK/Undertaking workflow for screened candidates --}}
+    @else
     <div class="row">
         {{-- Left Column --}}
         <div class="col-lg-8">
@@ -74,7 +272,7 @@
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong class="text-muted">Status:</strong><br>
-                            <span class="badge badge-{{ $candidate->status === \App\Models\Candidate::STATUS_REGISTERED ? 'success' : 'warning' }} px-3 py-2">
+                            <span class="badge badge-warning px-3 py-2">
                                 {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
                             </span>
                         </div>
@@ -380,53 +578,6 @@
 
         {{-- Right Column --}}
         <div class="col-lg-4">
-            {{-- OEP Allocation --}}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header py-3 bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-building mr-2"></i>OEP Allocation</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('candidates.update', $candidate->id) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="form-group">
-                            <label class="font-weight-bold">Overseas Employment Promoter</label>
-                            <select name="oep_id" class="form-control @error('oep_id') is-invalid @enderror">
-                                <option value="">-- Not Assigned --</option>
-                                @foreach(\App\Models\Oep::where('is_active', true)->get() as $oep)
-                                    <option value="{{ $oep->id }}" {{ $candidate->oep_id == $oep->id ? 'selected' : '' }}>
-                                        {{ $oep->name }} ({{ $oep->code }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('oep_id')<span class="invalid-feedback">{{ $message }}</span>@enderror
-                            <small class="text-muted">Assign candidate to an OEP based on demand or trade specialization</small>
-                        </div>
-                        {{-- Include required hidden fields --}}
-                        <input type="hidden" name="btevta_id" value="{{ $candidate->btevta_id }}">
-                        <input type="hidden" name="name" value="{{ $candidate->name }}">
-                        <input type="hidden" name="father_name" value="{{ $candidate->father_name }}">
-                        <input type="hidden" name="cnic" value="{{ $candidate->cnic }}">
-                        <input type="hidden" name="date_of_birth" value="{{ $candidate->date_of_birth?->format('Y-m-d') }}">
-                        <input type="hidden" name="gender" value="{{ $candidate->gender }}">
-                        <input type="hidden" name="phone" value="{{ $candidate->phone }}">
-                        <input type="hidden" name="email" value="{{ $candidate->email }}">
-                        <input type="hidden" name="address" value="{{ $candidate->address }}">
-                        <input type="hidden" name="district" value="{{ $candidate->district }}">
-                        <input type="hidden" name="trade_id" value="{{ $candidate->trade_id }}">
-                        <button type="submit" class="btn btn-info btn-block">
-                            <i class="fas fa-save mr-1"></i>Update OEP Assignment
-                        </button>
-                    </form>
-                    @if($candidate->oep)
-                        <div class="mt-3 p-2 bg-light rounded">
-                            <strong>Current OEP:</strong><br>
-                            <span class="text-primary">{{ $candidate->oep->name }}</span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
             {{-- Registration Checklist --}}
             <div class="card shadow-sm mb-4">
                 <div class="card-header py-3">
@@ -463,13 +614,7 @@
                     <h5 class="mb-0"><i class="fas fa-check-circle mr-2"></i>Complete Registration</h5>
                 </div>
                 <div class="card-body">
-                    @if($candidate->status === \App\Models\Candidate::STATUS_REGISTERED)
-                        <div class="alert alert-success mb-0">
-                            <i class="fas fa-check-circle mr-2"></i>
-                            <strong>Registration Completed!</strong><br>
-                            <small>{{ $candidate->registered_at ? $candidate->registered_at->format('d M Y H:i') : $candidate->updated_at->format('d M Y H:i') }}</small>
-                        </div>
-                    @elseif($canComplete)
+                    @if($canComplete)
                         <p class="text-muted small">All requirements met. Click below to complete the registration process.</p>
                         <form action="{{ route('registration.complete', $candidate->id) }}" method="POST">
                             @csrf
@@ -488,5 +633,6 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 @endsection

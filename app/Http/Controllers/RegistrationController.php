@@ -29,7 +29,7 @@ class RegistrationController extends Controller
     {
         $this->authorize('viewAny', Candidate::class);
 
-        $query = Candidate::with(['trade', 'campus', 'documents', 'nextOfKin'])
+        $query = Candidate::with(['trade', 'campus', 'batch', 'documents', 'nextOfKin'])
             ->whereIn('status', ['screened', 'screening_passed', 'registered', 'pending_registration']);
 
         // Filter by campus for campus_admin users
@@ -37,7 +37,7 @@ class RegistrationController extends Controller
             $query->where('campus_id', auth()->user()->campus_id);
         }
 
-        $candidates = $query->latest()->paginate(20);
+        $candidates = $query->latest()->get();
 
         return view('registration.index', compact('candidates'));
     }
@@ -49,7 +49,10 @@ class RegistrationController extends Controller
     {
         $this->authorize('view', $candidate);
 
-        $candidate->load(['documents', 'nextOfKin', 'undertakings', 'campus', 'trade']);
+        $candidate->load([
+            'documents', 'nextOfKin', 'nextOfKin.paymentMethod', 'undertakings',
+            'campus', 'trade', 'program', 'batch', 'oep', 'implementingPartner', 'courses',
+        ]);
 
         return view('registration.show', compact('candidate'));
     }

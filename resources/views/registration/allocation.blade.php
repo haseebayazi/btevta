@@ -496,6 +496,16 @@
                         </div>
                     </div>
                 </div>
+                {{-- Submit Actions (below form, always visible) --}}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <a href="{{ route('registration.show', $candidate->id) }}"
+                        class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center justify-center text-sm">
+                        <i class="fas fa-times mr-2"></i> Cancel
+                    </a>
+                    <button type="submit" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition flex items-center justify-center">
+                        <i class="fas fa-check-circle mr-2"></i> Complete Registration
+                    </button>
+                </div>
             </div>
 
             {{-- Right Column (Sidebar) --}}
@@ -574,17 +584,6 @@
                             </p>
                         </div>
                     </div>
-                </div>
-
-                {{-- Submit Actions --}}
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <button type="submit" class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition flex items-center justify-center">
-                        <i class="fas fa-check-circle mr-2"></i> Complete Registration
-                    </button>
-                    <a href="{{ route('registration.show', $candidate->id) }}"
-                        class="w-full mt-3 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition flex items-center justify-center text-sm">
-                        <i class="fas fa-times mr-2"></i> Cancel
-                    </a>
                 </div>
             </div>
         </div>
