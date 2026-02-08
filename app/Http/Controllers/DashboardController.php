@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CandidateStatus;
 use App\Models\Candidate;
 use App\Models\Campus;
 use App\Models\Batch;
@@ -638,7 +639,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
-        $pendingRegistrations = Candidate::whereIn('status', ['screened', 'screening_passed'])
+        $pendingRegistrations = Candidate::where('status', CandidateStatus::SCREENED->value)
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
             ->with(['documents', 'nextOfKin', 'undertakings', 'campus'])
             ->withCount('documents', 'undertakings')
@@ -646,15 +647,15 @@ class DashboardController extends Controller
             ->paginate(15);
 
         $stats = [
-            'total_pending' => Candidate::whereIn('status', ['screened', 'screening_passed'])
+            'total_pending' => Candidate::where('status', CandidateStatus::SCREENED->value)
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->count(),
-            'complete_docs' => Candidate::whereIn('status', ['screened', 'screening_passed'])
+            'complete_docs' => Candidate::where('status', CandidateStatus::SCREENED->value)
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->withCount('documents')
                 ->having('documents_count', '>', 0)
                 ->count(),
-            'incomplete_docs' => Candidate::whereIn('status', ['screened', 'screening_passed'])
+            'incomplete_docs' => Candidate::where('status', CandidateStatus::SCREENED->value)
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->withCount('documents')
                 ->having('documents_count', '=', 0)

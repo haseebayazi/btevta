@@ -44,7 +44,7 @@
     @endif
 
     {{-- Module 3: Allocation CTA for screened candidates --}}
-    @if(in_array($candidate->status, ['screened', 'screening_passed']))
+    @if($candidate->status === \App\Enums\CandidateStatus::SCREENED->value)
     <div class="bg-green-50 border border-green-200 rounded-xl shadow-sm p-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -494,6 +494,5 @@
             </div>
         </div>
     </div>
-    @endif
 </div>
 @endsection
