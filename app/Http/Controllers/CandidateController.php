@@ -108,6 +108,9 @@ class CandidateController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('candidates/photos', 'public');
         }
 
+        // Ensure address is never null (fallback for nullable migration compatibility)
+        $validated['address'] = $validated['address'] ?? '';
+
         $validated['status'] = 'new';
 
         $candidate = Candidate::create($validated);

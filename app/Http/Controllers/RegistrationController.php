@@ -29,7 +29,7 @@ class RegistrationController extends Controller
     {
         $this->authorize('viewAny', Candidate::class);
 
-        $query = Candidate::with(['trade', 'campus', 'documents', 'nextOfKin'])
+        $query = Candidate::with(['trade', 'campus', 'batch', 'documents', 'nextOfKin'])
             ->whereIn('status', ['screened', 'screening_passed', 'registered', 'pending_registration']);
 
         // Filter by campus for campus_admin users
@@ -37,7 +37,7 @@ class RegistrationController extends Controller
             $query->where('campus_id', auth()->user()->campus_id);
         }
 
-        $candidates = $query->latest()->paginate(20);
+        $candidates = $query->latest()->get();
 
         return view('registration.index', compact('candidates'));
     }
@@ -45,11 +45,16 @@ class RegistrationController extends Controller
     /**
      * Display the specified candidate's registration details.
      */
-    public function show(Candidate $candidate)
+    public function show($id)
     {
+        $candidate = Candidate::findOrFail($id);
+
         $this->authorize('view', $candidate);
 
-        $candidate->load(['documents', 'nextOfKin', 'undertakings', 'campus', 'trade']);
+        $candidate->load([
+            'documents', 'nextOfKin', 'nextOfKin.paymentMethod', 'undertakings',
+            'campus', 'trade', 'program', 'batch', 'oep', 'implementingPartner', 'courses',
+        ]);
 
         return view('registration.show', compact('candidate'));
     }
@@ -189,10 +194,15 @@ class RegistrationController extends Controller
         try {
             $validated['candidate_id'] = $candidate->id;
 
-            NextOfKin::updateOrCreate(
+            $nok = NextOfKin::updateOrCreate(
                 ['candidate_id' => $candidate->id],
                 $validated
             );
+
+            // Link NOK to candidate via belongsTo relationship
+            if (!$candidate->next_of_kin_id || $candidate->next_of_kin_id !== $nok->id) {
+                $candidate->update(['next_of_kin_id' => $nok->id]);
+            }
 
             // Log activity
             activity()
@@ -905,15 +915,16 @@ class RegistrationController extends Controller
                 $nokData['id_card_path'] = $path;
             }
 
-            NextOfKin::updateOrCreate(
+            $nok = NextOfKin::updateOrCreate(
                 ['candidate_id' => $candidate->id],
                 $nokData
             );
 
-            // 5. Update candidate status to registered
+            // 5. Update candidate status to registered and link NOK
             $candidate->update([
                 'status' => CandidateStatus::REGISTERED->value,
                 'registration_date' => now(),
+                'next_of_kin_id' => $nok->id,
             ]);
 
             // Log activity

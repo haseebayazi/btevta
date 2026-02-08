@@ -222,11 +222,11 @@
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-600">Trade</span>
-                        <span class="font-medium">{{ $candidate->trade->name ?? 'N/A' }}</span>
+                        <span class="font-medium">{{ $candidate->trade?->name ?? 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Campus</span>
-                        <span class="font-medium">{{ $candidate->campus->name ?? 'N/A' }}</span>
+                        <span class="font-medium">{{ $candidate->campus?->name ?? 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Current Status</span>
