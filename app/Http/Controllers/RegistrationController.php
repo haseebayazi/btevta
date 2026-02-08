@@ -52,11 +52,22 @@ class RegistrationController extends Controller
         $this->authorize('view', $candidate);
 
         $candidate->load([
-            'documents', 'nextOfKin', 'nextOfKin.paymentMethod', 'undertakings',
+            'documents', 'preDepartureDocuments.documentChecklist',
+            'nextOfKin', 'nextOfKin.paymentMethod', 'undertakings',
             'campus', 'trade', 'program', 'batch', 'oep', 'implementingPartner', 'courses',
         ]);
 
-        return view('registration.show', compact('candidate'));
+        // Count mandatory pre-departure docs uploaded and verified
+        $mandatoryChecklistIds = \App\Models\DocumentChecklist::where('is_mandatory', true)
+            ->where('is_active', true)
+            ->pluck('id');
+        $uploadedMandatoryCount = $candidate->preDepartureDocuments
+            ->whereIn('document_checklist_id', $mandatoryChecklistIds)
+            ->count();
+        $totalMandatory = $mandatoryChecklistIds->count();
+        $allPreDepartureDocsUploaded = $uploadedMandatoryCount >= $totalMandatory && $totalMandatory > 0;
+
+        return view('registration.show', compact('candidate', 'allPreDepartureDocsUploaded'));
     }
 
     /**
@@ -832,7 +843,7 @@ class RegistrationController extends Controller
         $this->authorize('update', $candidate);
 
         // Verify candidate is screened (Module 3 gate)
-        if (!in_array($candidate->status, ['screened', 'screening_passed'])) {
+        if ($candidate->status !== CandidateStatus::SCREENED->value) {
             return redirect()->route('registration.show', $candidate)
                 ->with('error', 'Only screened candidates can proceed to allocation. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
         }
@@ -864,7 +875,7 @@ class RegistrationController extends Controller
         $this->authorize('update', $candidate);
 
         // Verify candidate is screened (Module 3 gate)
-        if (!in_array($candidate->status, ['screened', 'screening_passed'])) {
+        if ($candidate->status !== CandidateStatus::SCREENED->value) {
             return redirect()->route('registration.show', $candidate)
                 ->with('error', 'Only screened candidates can proceed to registration. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
         }
