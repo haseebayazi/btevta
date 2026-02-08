@@ -54,12 +54,12 @@ class RegistrationControllerTest extends TestCase
 
         $ownCandidate = Candidate::factory()->create([
             'campus_id' => $campus->id,
-            'status' => 'screening_passed',
+            'status' => 'screened',
         ]);
 
         $otherCandidate = Candidate::factory()->create([
             'campus_id' => $otherCampus->id,
-            'status' => 'screening_passed',
+            'status' => 'screened',
         ]);
 
         $response = $this->actingAs($user)->get('/registration');

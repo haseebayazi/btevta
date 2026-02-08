@@ -97,53 +97,8 @@
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
             <i class="fas fa-info-circle text-blue-500 text-xl mb-2"></i>
             <p class="text-blue-700">No candidates pending registration found.</p>
+            <p class="text-blue-600 text-sm mt-1">Candidates will appear here once they complete the screening process (Module 2).</p>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="px-4">TheLeap ID</th>
-                            <th>Name</th>
-                            <th>CNIC</th>
-                            <th>Campus</th>
-                            <th>Trade</th>
-                            <th>Status</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($pendingCandidates as $candidate)
-                        <tr>
-                            <td class="px-4 text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td>
-                            <td>{{ $candidate->name }}</td>
-                            <td class="text-monospace">{{ $candidate->cnic ?? '-' }}</td>
-                            <td>{{ $candidate->campus?->name ?? 'N/A' }}</td>
-                            <td>{{ $candidate->trade?->name ?? 'N/A' }}</td>
-                            <td><span class="badge badge-info px-3 py-1">Pending</span></td>
-                            <td class="text-center">
-                                <a href="{{ route('registration.show', $candidate->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-edit mr-1"></i>Manage
-                                </a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- Empty state --}}
-    @if($totalCount === 0)
-    <div class="card shadow-sm">
-        <div class="card-body text-center py-5">
-            <i class="fas fa-clipboard-list fa-4x text-gray-300 mb-3"></i>
-            <h4 class="text-muted">No Candidates in Registration Phase</h4>
-            <p class="text-muted">Candidates will appear here once they complete the screening process (Module 2).</p>
-        </div>
-    </div>
     @endif
 </div>
 @endsection
