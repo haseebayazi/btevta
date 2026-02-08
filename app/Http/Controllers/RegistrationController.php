@@ -30,14 +30,14 @@ class RegistrationController extends Controller
         $this->authorize('viewAny', Candidate::class);
 
         $query = Candidate::with(['trade', 'campus', 'batch', 'documents', 'nextOfKin'])
-            ->whereIn('status', ['screened', 'screening_passed', 'registered', 'pending_registration']);
+            ->where('status', CandidateStatus::SCREENED->value);
 
         // Filter by campus for campus_admin users
         if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
             $query->where('campus_id', auth()->user()->campus_id);
         }
 
-        $candidates = $query->latest()->get();
+        $candidates = $query->latest()->paginate(20);
 
         return view('registration.index', compact('candidates'));
     }
@@ -287,7 +287,7 @@ class RegistrationController extends Controller
         $this->authorize('update', $candidate);
 
         // Gate: Only screened candidates can complete registration
-        if (!in_array($candidate->status, ['screened', 'screening_passed', 'pending_registration'])) {
+        if ($candidate->status !== CandidateStatus::SCREENED->value) {
             return back()->with('error', 'Only screened candidates can be registered. Current status: ' . ucfirst(str_replace('_', ' ', $candidate->status)));
         }
 
