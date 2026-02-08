@@ -103,7 +103,7 @@ class DashboardController extends Controller
                     ->with('instructor')
                     ->get(),
                 'pending_registrations' => Candidate::where('campus_id', $campusId)
-                    ->where('status', 'screening')
+                    ->whereIn('status', ['screened', 'screening_passed'])
                     ->count(),
                 'attendance_today' => TrainingAttendance::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
                     ->whereDate('date', today())
@@ -638,23 +638,23 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
-        $pendingRegistrations = Candidate::where('status', 'screening')
+        $pendingRegistrations = Candidate::whereIn('status', ['screened', 'screening_passed'])
             ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
             ->with(['documents', 'nextOfKin', 'undertakings', 'campus'])
             ->withCount('documents', 'undertakings')
             ->latest()
             ->paginate(15);
-        
+
         $stats = [
-            'total_pending' => Candidate::where('status', 'screening')
+            'total_pending' => Candidate::whereIn('status', ['screened', 'screening_passed'])
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->count(),
-            'complete_docs' => Candidate::where('status', 'screening')
+            'complete_docs' => Candidate::whereIn('status', ['screened', 'screening_passed'])
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->withCount('documents')
                 ->having('documents_count', '>', 0)
                 ->count(),
-            'incomplete_docs' => Candidate::where('status', 'screening')
+            'incomplete_docs' => Candidate::whereIn('status', ['screened', 'screening_passed'])
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
                 ->withCount('documents')
                 ->having('documents_count', '=', 0)
