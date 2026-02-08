@@ -130,10 +130,10 @@
                         <span class="text-gray-600">Days Since Listing:</span>
                         <span class="font-semibold">{{ $candidate->created_at->diffInDays(now()) }} days</span>
                     </div>
-                    @if($candidate->registered_at)
+                    @if($candidate->registration_date)
                     <div class="flex justify-between items-center pb-3 border-b">
                         <span class="text-gray-600">Days Since Registration:</span>
-                        <span class="font-semibold">{{ $candidate->registered_at->diffInDays(now()) }} days</span>
+                        <span class="font-semibold">{{ $candidate->registration_date->diffInDays(now()) }} days</span>
                     </div>
                     @endif
                 </div>

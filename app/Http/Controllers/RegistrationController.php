@@ -29,17 +29,25 @@ class RegistrationController extends Controller
     {
         $this->authorize('viewAny', Candidate::class);
 
-        $query = Candidate::with(['trade', 'campus', 'batch', 'documents', 'nextOfKin'])
-            ->where('status', CandidateStatus::SCREENED->value);
+        $campusFilter = auth()->user()->role === 'campus_admin' && auth()->user()->campus_id
+            ? auth()->user()->campus_id
+            : null;
 
-        // Filter by campus for campus_admin users
-        if (auth()->user()->role === 'campus_admin' && auth()->user()->campus_id) {
-            $query->where('campus_id', auth()->user()->campus_id);
-        }
+        // Pending registration (screened candidates)
+        $candidates = Candidate::with(['trade', 'campus', 'batch', 'nextOfKin'])
+            ->where('status', CandidateStatus::SCREENED->value)
+            ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
+            ->latest()
+            ->paginate(20);
 
-        $candidates = $query->latest()->paginate(20);
+        // Recently registered candidates
+        $registeredCandidates = Candidate::with(['trade', 'campus', 'batch', 'oep', 'program'])
+            ->where('status', CandidateStatus::REGISTERED->value)
+            ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
+            ->latest('registration_date')
+            ->paginate(20, ['*'], 'registered_page');
 
-        return view('registration.index', compact('candidates'));
+        return view('registration.index', compact('candidates', 'registeredCandidates'));
     }
 
     /**
