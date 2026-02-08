@@ -81,7 +81,7 @@
                         <div>
                             <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</span>
                             <p class="mt-1">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $candidate->status === \App\Models\Candidate::STATUS_REGISTERED ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $candidate->status === \App\Enums\CandidateStatus::REGISTERED->value ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                     {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
                                 </span>
                             </p>
@@ -104,121 +104,48 @@
                 </div>
             </div>
 
-            {{-- Documents Section --}}
+            {{-- Pre-Departure Documents (Module 1) --}}
             <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                 <div class="px-6 py-4 border-b border-gray-100">
-                    <h5 class="font-semibold text-gray-900"><i class="fas fa-file-alt mr-2 text-gray-500"></i>Document Archive</h5>
+                    <h5 class="font-semibold text-gray-900"><i class="fas fa-file-alt mr-2 text-gray-500"></i>Pre-Departure Documents</h5>
+                    <p class="text-xs text-gray-500 mt-1">Documents uploaded during Module 1 (Pre-Departure)</p>
                 </div>
                 <div class="p-6">
-                    {{-- Upload Form --}}
-                    <form action="{{ route('registration.upload-document', $candidate->id) }}" method="POST" enctype="multipart/form-data" class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        @csrf
-                        <h6 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-upload mr-1"></i>Upload New Document</h6>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-                            <div>
-                                <label class="text-xs font-medium text-gray-600">Document Type *</label>
-                                <select name="document_type" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('document_type') border-red-500 @enderror" required>
-                                    <option value="">Select Type</option>
-                                    <option value="cnic">CNIC</option>
-                                    <option value="passport">Passport</option>
-                                    <option value="education">Education Certificate</option>
-                                    <option value="police_clearance">Police Clearance</option>
-                                    <option value="medical">Medical Certificate</option>
-                                    <option value="photo">Photo</option>
-                                    <option value="other">Other</option>
-                                </select>
-                                @error('document_type')<span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>@enderror
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-gray-600">Document #</label>
-                                <input type="text" name="document_number" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Optional">
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-gray-600">Issue Date</label>
-                                <input type="date" name="issue_date" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-gray-600">Expiry Date</label>
-                                <input type="date" name="expiry_date" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-gray-600">File *</label>
-                                <input type="file" name="file" class="w-full mt-1 text-sm @error('file') text-red-500 @enderror" required accept=".pdf,.jpg,.jpeg,.png">
-                                @error('file')<span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>@enderror
-                            </div>
-                            <div class="flex items-end">
-                                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                                    <i class="fas fa-upload"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-
-                    {{-- Required Documents Checklist --}}
-                    @php
-                        $requiredDocs = ['cnic', 'passport', 'education', 'police_clearance', 'medical'];
-                        $uploadedTypes = $candidate->documents->pluck('document_type')->toArray();
-                    @endphp
-                    <div class="mb-4">
-                        <h6 class="text-sm font-semibold text-gray-700 mb-2">Required Documents:</h6>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($requiredDocs as $docType)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ in_array($docType, $uploadedTypes) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500' }}">
-                                    <i class="fas {{ in_array($docType, $uploadedTypes) ? 'fa-check' : 'fa-times' }} mr-1"></i>
-                                    {{ ucfirst(str_replace('_', ' ', $docType)) }}
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    {{-- Documents List --}}
-                    @if($candidate->documents->count() > 0)
+                    @if($candidate->preDepartureDocuments->count() > 0)
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 border-b border-gray-200">
                                     <tr>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Type</th>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Document #</th>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Issue Date</th>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Expiry Date</th>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Document</th>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Category</th>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Uploaded</th>
                                         <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Status</th>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
-                                    @foreach($candidate->documents as $doc)
+                                    @foreach($candidate->preDepartureDocuments as $doc)
                                         <tr class="hover:bg-gray-50">
                                             <td class="px-4 py-2.5">
-                                                <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">{{ ucfirst(str_replace('_', ' ', $doc->document_type)) }}</span>
+                                                <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">{{ $doc->documentChecklist?->name ?? 'Document' }}</span>
                                             </td>
-                                            <td class="px-4 py-2.5 font-mono text-gray-600 text-xs">{{ $doc->document_number ?? '-' }}</td>
-                                            <td class="px-4 py-2.5 text-gray-600">{{ $doc->issue_date ? $doc->issue_date->format('d M Y') : '-' }}</td>
-                                            <td class="px-4 py-2.5">
-                                                @if($doc->expiry_date)
-                                                    <span class="{{ $doc->expiry_date->isPast() ? 'text-red-600 font-semibold' : ($doc->expiry_date->diffInDays(now()) < 30 ? 'text-yellow-600' : 'text-gray-600') }}">
-                                                        {{ $doc->expiry_date->format('d M Y') }}
-                                                    </span>
+                                            <td class="px-4 py-2.5 text-gray-600 text-xs">
+                                                @if($doc->documentChecklist?->is_mandatory)
+                                                    <span class="text-red-600 font-semibold">Mandatory</span>
                                                 @else
-                                                    <span class="text-gray-400">-</span>
+                                                    <span class="text-gray-500">Optional</span>
                                                 @endif
                                             </td>
+                                            <td class="px-4 py-2.5 text-gray-600 text-xs">{{ $doc->uploaded_at ? $doc->uploaded_at->format('d M Y') : $doc->created_at->format('d M Y') }}</td>
                                             <td class="px-4 py-2.5">
-                                                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold {{ ($doc->verification_status ?? $doc->status) === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                                    {{ ucfirst($doc->verification_status ?? $doc->status ?? 'pending') }}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-2.5">
-                                                <div class="flex space-x-1">
-                                                    <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="inline-flex items-center px-2 py-1 bg-cyan-500 text-white text-xs rounded hover:bg-cyan-600 transition" title="View">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <form action="{{ route('registration.delete-document', $doc->id) }}" method="POST" class="inline">
-                                                        @csrf @method('DELETE')
-                                                        <button type="submit" class="inline-flex items-center px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition" onclick="return confirm('Delete this document?')" title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                </div>
+                                                @if($doc->isVerified())
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                                        <i class="fas fa-check-circle mr-1"></i>Verified
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                                        <i class="fas fa-clock mr-1"></i>Uploaded
+                                                    </span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -227,7 +154,7 @@
                         </div>
                     @else
                         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800 text-sm">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>No documents uploaded yet. Please upload required documents.
+                            <i class="fas fa-exclamation-triangle mr-2"></i>No pre-departure documents found for this candidate.
                         </div>
                     @endif
                 </div>
@@ -440,54 +367,51 @@
                 </div>
                 <div class="p-6">
                     @php
-                        $hasAllDocs = $candidate->documents->whereIn('document_type', ['cnic', 'passport', 'education', 'police_clearance'])->count() >= 4;
                         $hasNextOfKin = $candidate->nextOfKin !== null;
-                        $hasUndertaking = $candidate->undertakings->count() > 0;
-                        $canComplete = $hasAllDocs && $hasNextOfKin && $hasUndertaking;
                     @endphp
 
                     <ul class="space-y-3">
                         <li class="flex items-start text-sm">
-                            <i class="fas {{ $hasAllDocs ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-400' }} mr-3 mt-0.5 text-base"></i>
-                            <span class="text-gray-700">Required Documents (CNIC, Passport, Education, Police Clearance)</span>
+                            <i class="fas {{ $allPreDepartureDocsUploaded ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-400' }} mr-3 mt-0.5 text-base"></i>
+                            <span class="text-gray-700">Pre-Departure Documents (Module 1)</span>
                         </li>
                         <li class="flex items-start text-sm">
-                            <i class="fas {{ $hasNextOfKin ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-400' }} mr-3 mt-0.5 text-base"></i>
-                            <span class="text-gray-700">Next of Kin Information</span>
+                            <i class="fas fa-check-circle text-green-500 mr-3 mt-0.5 text-base"></i>
+                            <span class="text-gray-700">Screening Completed (Module 2)</span>
                         </li>
                         <li class="flex items-start text-sm">
-                            <i class="fas {{ $hasUndertaking ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-400' }} mr-3 mt-0.5 text-base"></i>
-                            <span class="text-gray-700">At Least One Undertaking Signed</span>
+                            <i class="fas {{ $hasNextOfKin ? 'fa-check-circle text-green-500' : 'fa-info-circle text-blue-400' }} mr-3 mt-0.5 text-base"></i>
+                            <span class="text-gray-700">Next of Kin Information {{ $hasNextOfKin ? '' : '(can be added during allocation)' }}</span>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            {{-- Complete Registration --}}
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden border-2 {{ $candidate->status === \App\Models\Candidate::STATUS_REGISTERED ? 'border-green-300' : 'border-gray-200' }}">
+            {{-- Registration Status --}}
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border-2 {{ $candidate->status === \App\Enums\CandidateStatus::REGISTERED->value ? 'border-green-300' : 'border-gray-200' }}">
                 <div class="bg-green-600 text-white px-6 py-4">
-                    <h5 class="font-semibold"><i class="fas fa-check-circle mr-2"></i>Complete Registration</h5>
+                    <h5 class="font-semibold"><i class="fas fa-check-circle mr-2"></i>Registration</h5>
                 </div>
                 <div class="p-6">
-                    @if($candidate->status === \App\Models\Candidate::STATUS_REGISTERED)
+                    @if($candidate->status === \App\Enums\CandidateStatus::REGISTERED->value)
                         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                             <i class="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
                             <p class="text-green-800 font-semibold">Registration Completed!</p>
-                            <p class="text-green-600 text-xs mt-1">{{ $candidate->registered_at ? $candidate->registered_at->format('d M Y H:i') : $candidate->updated_at->format('d M Y H:i') }}</p>
+                            <p class="text-green-600 text-xs mt-1">{{ $candidate->registration_date ? $candidate->registration_date->format('d M Y H:i') : $candidate->updated_at->format('d M Y H:i') }}</p>
+                            @if($candidate->allocated_number)
+                                <p class="text-green-700 text-sm mt-2 font-mono">Allocated #: {{ $candidate->allocated_number }}</p>
+                            @endif
                         </div>
-                    @elseif($canComplete)
-                        <p class="text-gray-500 text-sm mb-3">All requirements met. Click below to complete the registration process.</p>
-                        <form action="{{ route('registration.complete', $candidate->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition text-lg" onclick="return confirm('Complete registration for this candidate? This will update their status to Registered.')">
-                                <i class="fas fa-check-double mr-2"></i>Complete Registration
-                            </button>
-                        </form>
+                    @elseif($candidate->status === \App\Enums\CandidateStatus::SCREENED->value)
+                        <p class="text-gray-500 text-sm mb-3">Proceed to allocation to assign Campus, Program, Course, and complete registration.</p>
+                        <a href="{{ route('registration.allocation', $candidate->id) }}" class="block w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition text-lg text-center">
+                            <i class="fas fa-clipboard-list mr-2"></i>Proceed to Allocation
+                        </a>
                     @else
                         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
                             <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
-                            <p class="text-yellow-800 font-semibold">Cannot Complete Yet</p>
-                            <p class="text-yellow-600 text-xs mt-1">Please complete all items in the checklist above.</p>
+                            <p class="text-yellow-800 font-semibold">Not Eligible</p>
+                            <p class="text-yellow-600 text-xs mt-1">Candidate must be screened before registration.</p>
                         </div>
                     @endif
                 </div>
