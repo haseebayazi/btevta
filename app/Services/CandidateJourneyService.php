@@ -113,8 +113,12 @@ class CandidateJourneyService
             ],
             [
                 'name' => 'Registered',
-                'date' => $candidate->registered_at?->toDateString(),
-                'completed' => $candidate->registered_at !== null,
+                'date' => $candidate->registration_date?->toDateString(),
+                'completed' => $candidate->registration_date !== null || in_array($candidate->status, [
+                    'registered', 'training', 'training_completed',
+                    'visa_process', 'visa_approved', 'departure_processing',
+                    'ready_to_depart', 'departed', 'post_departure', 'completed'
+                ]),
                 'icon' => 'fa-clipboard-check',
                 'color' => 'success',
             ],

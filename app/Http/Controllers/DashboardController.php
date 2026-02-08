@@ -636,33 +636,7 @@ class DashboardController extends Controller
     // ============================================
     public function registration(Request $request)
     {
-        $user = auth()->user();
-        $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
-        
-        $pendingRegistrations = Candidate::where('status', CandidateStatus::SCREENED->value)
-            ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-            ->with(['documents', 'nextOfKin', 'undertakings', 'campus'])
-            ->withCount('documents', 'undertakings')
-            ->latest()
-            ->paginate(15);
-
-        $stats = [
-            'total_pending' => Candidate::where('status', CandidateStatus::SCREENED->value)
-                ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-                ->count(),
-            'complete_docs' => Candidate::where('status', CandidateStatus::SCREENED->value)
-                ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-                ->withCount('documents')
-                ->having('documents_count', '>', 0)
-                ->count(),
-            'incomplete_docs' => Candidate::where('status', CandidateStatus::SCREENED->value)
-                ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))
-                ->withCount('documents')
-                ->having('documents_count', '=', 0)
-                ->count(),
-        ];
-        
-        return view('dashboard.tabs.registration', compact('pendingRegistrations', 'stats'));
+        return redirect()->route('registration.index');
     }
 
     // ============================================
