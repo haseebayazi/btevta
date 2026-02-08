@@ -45,8 +45,10 @@ class RegistrationController extends Controller
     /**
      * Display the specified candidate's registration details.
      */
-    public function show(Candidate $candidate)
+    public function show($id)
     {
+        $candidate = Candidate::findOrFail($id);
+
         $this->authorize('view', $candidate);
 
         $candidate->load([
