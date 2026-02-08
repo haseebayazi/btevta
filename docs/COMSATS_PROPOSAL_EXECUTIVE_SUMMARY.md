@@ -7,8 +7,8 @@ Full proposal: [COMSATS_SSBC_BIC_UPLIFT_PROPOSAL.md](./COMSATS_SSBC_BIC_UPLIFT_P
 
 A comprehensive, actionable strategy to transform COMSATS University's Student Startup Business Centre (SSBC) and Business Incubation Centre (BIC) into a nationally recognized entrepreneurship hub.
 
-**Document Size:** 1,600 lines | ~60,000 words  
-**Investment Required:** PKR 75,000,000 over 24 months  
+**Document Size:** Comprehensive strategic proposal  
+**Maximum Funding per Startup:** PKR 1,000,000  
 **Implementation Timeline:** 24 months with phased approach
 
 ---
@@ -85,9 +85,9 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 ### 7. Lack of Networking & Funding
 **Solutions:**
 - 4-tier funding ecosystem:
-  - Tier 1: COMSATS Seed Fund (PKR 50M corpus, 500K-2M tickets)
+  - Tier 1: COMSATS Seed Fund (maximum PKR 1,000,000 per startup)
   - Tier 2: Angel Network (30+ angels)
-  - Tier 3: VC partnerships (10+ funds)
+  - Tier 3: VC (Venture Capital) partnerships (10+ funds)
   - Tier 4: Corporate ventures and grants
 - Investor readiness program (4-module curriculum)
 - Quarterly Demo Days and monthly networking events
@@ -99,10 +99,10 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 
 ### 8. Lack of Academia-Industry Linkage
 **Solutions:**
-- Industry Liaison Office (5 dedicated staff, PKR 10M/year budget)
+- Industry Liaison Office (ILO) with 5 dedicated staff
 - 50+ active corporate partnerships (Platinum/Gold/Silver tiers)
-- Industry Problem Bank with PKR 500K-2M per solved problem
-- Industry-sponsored research program (PKR 50M/year target)
+- Industry Problem Bank
+- Industry-sponsored research program
 - Faculty industry fellowships (20 faculty/year)
 - Joint facilities and shared infrastructure
 
@@ -125,12 +125,12 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 ### Phase 2: Scale (Months 7-12)
 - Launch all 5 sector tracks
 - Deploy digital platforms
-- Establish COMSATS Seed Fund
+- Establish COMSATS Seed Fund (max PKR 1M per startup)
 - Investment readiness program
 - Faculty fellowships
 - Industry-sponsored research
 
-**Expected:** 100+ applicants, 40+ startups, 20+ partnerships, PKR 20M external funding
+**Expected:** 100+ applicants, 40+ startups, 20+ partnerships
 
 ### Phase 3: Maturity (Months 13-24)
 - First graduation cohort
@@ -140,27 +140,7 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 - Sustainability assessment
 - National recognition
 
-**Expected:** 200+ applicants, 60+ startups, 20+ graduates, 5+ success stories, PKR 50M annual funding
-
----
-
-## Budget Breakdown
-
-### Year 1: PKR 40,000,000
-- Infrastructure & Facilities: PKR 10M (25%)
-- Personnel: PKR 15M (37.5%)
-- Programs & Services: PKR 8M (20%)
-- Startup Support: PKR 5M (12.5%)
-- Events & Networking: PKR 2M (5%)
-
-### Year 2: PKR 35,000,000
-- Reduced infrastructure, scaled programs
-
-### Funding Sources
-- Internal (40%): University budget, fees, alumni, IP royalties
-- Government Grants (30%): HEC, Ignite, Planning Commission
-- Corporate Partnerships (20%): Partnership packages, sponsorships
-- Returns on Investment (10%): Equity, licensing, training fees
+**Expected:** 200+ applicants, 60+ startups, 20+ graduates, 5+ success stories
 
 ---
 
@@ -184,14 +164,13 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 - 5 faculty with commercialized IP
 
 **Financial:**
-- PKR 50M raised by startups
-- PKR 15M corporate revenue
-- PKR 20M government grants
-- PKR 5M service revenue
-- PKR 10M seed fund deployments
+- External funding raised by startups
+- Corporate partnership revenue
+- Government grants secured
+- Service revenue generated
 
 **Impact:**
-- 10 IP disclosures
+- 10 IP (Intellectual Property) disclosures
 - 5 patents filed
 - 8 industry research projects
 - 100 student internships
@@ -202,19 +181,19 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 ## Policy References Cited
 
 ### National
-- **HEC:** NBEAC Framework 2021, Vision 2025, Faculty Development Guidelines, Tenure Criteria 2020, TTO Guidelines
-- **Ignite:** NIC Framework 2020, Pakistan Startup Report 2023, Strategic Plan 2025
-- **Planning Commission:** STI Policy 2022, 10th Five-Year Plan, National Innovation Agenda 2024
-- **SECP:** Alternative Investment Funds Regulations
-- **SBP:** Credit Guarantee Scheme
+- **HEC (Higher Education Commission):** NBEAC (National Business Education Accreditation Council) Framework 2021, Vision 2025, Faculty Development Guidelines, Tenure Criteria 2020, TTO (Technology Transfer Office) Guidelines
+- **Ignite:** NIC (National Incubation Centre) Framework 2020, Pakistan Startup Report 2023, Strategic Plan 2025
+- **Planning Commission:** STI (Science, Technology and Innovation) Policy 2022, 10th Five-Year Plan, National Innovation Agenda 2024
+- **SECP (Securities and Exchange Commission of Pakistan):** Alternative Investment Funds Regulations
+- **SBP (State Bank of Pakistan):** Credit Guarantee Scheme
 
 ### International
-- MIT Delta V, Stanford STVP, Y Combinator, Babson College, Berkeley SkyDeck
-- MIT ILP, MIT Media Lab Consortium
+- MIT (Massachusetts Institute of Technology) Delta V, Stanford STVP, Y Combinator, Babson College, Berkeley SkyDeck
+- MIT ILP (Industrial Liaison Program), MIT Media Lab Consortium
 - Israel's Yozma Program
 - Singapore A*STAR Fund
 - Station F Paris
-- UNESCO, World Bank, OECD frameworks
+- UNESCO, World Bank, OECD (Organisation for Economic Co-operation and Development) frameworks
 
 ---
 
@@ -234,8 +213,7 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 ## Risk Mitigation
 
 - **Faculty Resistance:** Strong incentives, pilot approach, showcase wins
-- **Limited Corporate Interest:** Clear ROI, tiered options, relationship building
-- **Funding Shortfall:** Phased implementation, diversified sources, quick wins
+- **Limited Corporate Interest:** Clear ROI (Return on Investment), tiered options, relationship building
 - **Weak Startup Quality:** Rigorous selection, mandatory pre-incubation, quality gates
 - **Low Student Awareness:** Aggressive marketing, success stories, curriculum integration
 
@@ -245,11 +223,10 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 
 1. Present to university leadership for approval
 2. Constitute implementation steering committee
-3. Allocate Year 1 budget (PKR 40M)
-4. Hire Industry Liaison Office Director
-5. Launch first Innovation Challenge
-6. Begin mentor recruitment
-7. Initiate faculty EIR program
+3. Hire Industry Liaison Office Director
+4. Launch first Innovation Challenge
+5. Begin mentor recruitment
+6. Initiate faculty EIR (Entrepreneur-in-Residence) program
 
 ---
 
@@ -262,8 +239,8 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 - [x] SECP and SBP regulations cited
 - [x] International best practice models referenced (MIT, Stanford, Y Combinator, etc.)
 - [x] Implementation timeline (24 months)
-- [x] Budget breakdown (PKR 75M)
-- [x] KPIs and success metrics
+- [x] Maximum funding per startup (PKR 1M)
+- [x] KPIs (Key Performance Indicators) and success metrics
 - [x] Risk mitigation strategies
 - [x] Funding sources identified
 - [x] Immediate next steps outlined
@@ -274,7 +251,7 @@ A comprehensive, actionable strategy to transform COMSATS University's Student S
 
 **Document Type:** Strategic policy proposal with actionable implementation roadmap
 
-**Target Audience:** COMSATS University leadership, Board of Governors, HEC, potential corporate partners
+**Target Audience:** COMSATS (Commission on Science and Technology for Sustainable Development in the South) University leadership, Board of Governors, HEC (Higher Education Commission), potential corporate partners
 
 ---
 
