@@ -194,10 +194,15 @@ class RegistrationController extends Controller
         try {
             $validated['candidate_id'] = $candidate->id;
 
-            NextOfKin::updateOrCreate(
+            $nok = NextOfKin::updateOrCreate(
                 ['candidate_id' => $candidate->id],
                 $validated
             );
+
+            // Link NOK to candidate via belongsTo relationship
+            if (!$candidate->next_of_kin_id || $candidate->next_of_kin_id !== $nok->id) {
+                $candidate->update(['next_of_kin_id' => $nok->id]);
+            }
 
             // Log activity
             activity()
@@ -910,15 +915,16 @@ class RegistrationController extends Controller
                 $nokData['id_card_path'] = $path;
             }
 
-            NextOfKin::updateOrCreate(
+            $nok = NextOfKin::updateOrCreate(
                 ['candidate_id' => $candidate->id],
                 $nokData
             );
 
-            // 5. Update candidate status to registered
+            // 5. Update candidate status to registered and link NOK
             $candidate->update([
                 'status' => CandidateStatus::REGISTERED->value,
                 'registration_date' => now(),
+                'next_of_kin_id' => $nok->id,
             ]);
 
             // Log activity

@@ -182,7 +182,7 @@
                     <input type="text"
                            name="nok_name"
                            id="nok_name"
-                           value="{{ old('nok_name', $candidate->nextOfKin->name ?? '') }}"
+                           value="{{ old('nok_name', $candidate->nextOfKin?->name ?? '') }}"
                            required
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
@@ -211,7 +211,7 @@
                     <input type="text"
                            name="nok_cnic"
                            id="nok_cnic"
-                           value="{{ old('nok_cnic', $candidate->nextOfKin->cnic ?? '') }}"
+                           value="{{ old('nok_cnic', $candidate->nextOfKin?->cnic ?? '') }}"
                            placeholder="00000-0000000-0"
                            required
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -224,7 +224,7 @@
                     <input type="text"
                            name="nok_phone"
                            id="nok_phone"
-                           value="{{ old('nok_phone', $candidate->nextOfKin->phone ?? '') }}"
+                           value="{{ old('nok_phone', $candidate->nextOfKin?->phone ?? '') }}"
                            placeholder="03XX-XXXXXXX"
                            required
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -238,7 +238,7 @@
                               id="nok_address"
                               rows="2"
                               required
-                              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('nok_address', $candidate->nextOfKin->address ?? '') }}</textarea>
+                              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('nok_address', $candidate->nextOfKin?->address ?? '') }}</textarea>
                 </div>
 
                 <!-- Financial Account Details (NEW in WASL v3) -->
@@ -249,7 +249,7 @@
                     <input type="text"
                            name="nok_bank_name"
                            id="nok_bank_name"
-                           value="{{ old('nok_bank_name', $candidate->nextOfKin->bank_name ?? '') }}"
+                           value="{{ old('nok_bank_name', $candidate->nextOfKin?->bank_name ?? '') }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
@@ -260,7 +260,7 @@
                     <input type="text"
                            name="nok_account_number"
                            id="nok_account_number"
-                           value="{{ old('nok_account_number', $candidate->nextOfKin->account_number ?? '') }}"
+                           value="{{ old('nok_account_number', $candidate->nextOfKin?->account_number ?? '') }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
