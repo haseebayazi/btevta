@@ -4,20 +4,21 @@ Two documents have been created for the COMSATS University Islamabad Student Sta
 
 ## Documents
 
-1. **[COMSATS_PROPOSAL_EXECUTIVE_SUMMARY.md](./COMSATS_PROPOSAL_EXECUTIVE_SUMMARY.md)** (8.7 KB)
+1. **[COMSATS_PROPOSAL_EXECUTIVE_SUMMARY.md](./COMSATS_PROPOSAL_EXECUTIVE_SUMMARY.md)** (Updated)
    - Quick reference guide
    - Solutions summary for all 8 problems
-   - Budget and timeline overview
-   - KPI highlights
+   - Maximum funding per startup: PKR 1,000,000
+   - Timeline overview
+   - KPI (Key Performance Indicators) highlights
    - Policy citations index
    - Start here for a quick understanding
 
-2. **[COMSATS_SSBC_BIC_UPLIFT_PROPOSAL.md](./COMSATS_SSBC_BIC_UPLIFT_PROPOSAL.md)** (60 KB, 1,600 lines)
+2. **[COMSATS_SSBC_BIC_UPLIFT_PROPOSAL.md](./COMSATS_SSBC_BIC_UPLIFT_PROPOSAL.md)** (Updated)
    - Complete strategic proposal
    - Detailed actionable solutions for all 8 problems
    - Full policy citations and references
    - Implementation roadmap
-   - Budget breakdown
+   - Glossary of abbreviations
    - Ready for submission
 
 ## What's Included
@@ -33,17 +34,18 @@ Two documents have been created for the COMSATS University Islamabad Student Sta
 8. Lack of Linkage Between Academia and Industry
 
 ### Policy References
-- **National:** HEC, Ignite/NIC, Planning Commission, SECP, SBP
-- **International:** MIT, Stanford, Y Combinator, Babson College, Israel's Yozma Program, Singapore A*STAR, Station F Paris
+- **National:** HEC (Higher Education Commission), Ignite/NIC (National Incubation Centre), Planning Commission, SECP (Securities and Exchange Commission of Pakistan), SBP (State Bank of Pakistan)
+- **International:** MIT (Massachusetts Institute of Technology), Stanford, Y Combinator, Babson College, Israel's Yozma Program, Singapore A*STAR, Station F Paris
 
 ### Key Features
-✅ Actionable solutions with clear timelines and budgets  
+✅ Actionable solutions with clear timelines  
 ✅ Evidence-based approach aligned with national policies  
 ✅ International best practices integration  
 ✅ 24-month implementation roadmap  
-✅ PKR 75M budget with funding sources  
+✅ Maximum PKR 1M per startup funding  
 ✅ Comprehensive KPIs and success metrics  
 ✅ Risk mitigation strategies  
+✅ Complete glossary of abbreviations  
 
 ## Usage
 

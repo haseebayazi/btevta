@@ -27,8 +27,32 @@ The proposed interventions are designed to be immediately implementable while es
 7. [Problem 7: Lack of Networking & Funding](#problem-7-lack-of-networking--funding-opportunities)
 8. [Problem 8: Lack of Academia-Industry Linkage](#problem-8-lack-of-academia-industry-linkage)
 9. [Implementation Timeline](#implementation-timeline)
-10. [Budget Considerations](#budget-considerations)
-11. [Key Performance Indicators](#key-performance-indicators)
+10. [Key Performance Indicators](#key-performance-indicators)
+
+---
+
+## Glossary of Abbreviations
+
+- **SSBC** - Student Startup Business Centre
+- **BIC** - Business Incubation Centre
+- **HEC** - Higher Education Commission
+- **NBEAC** - National Business Education Accreditation Council
+- **NIC** - National Incubation Centre
+- **EPA** - Entrepreneurial Potential Assessment
+- **STEM** - Science, Technology, Engineering, and Mathematics
+- **EIR** - Entrepreneur-in-Residence
+- **IP** - Intellectual Property
+- **TTO** - Technology Transfer Office
+- **VC** - Venture Capital
+- **SECP** - Securities and Exchange Commission of Pakistan
+- **SBP** - State Bank of Pakistan
+- **SDG** - Sustainable Development Goals
+- **GDP** - Gross Domestic Product
+- **STI** - Science, Technology and Innovation
+- **OECD** - Organisation for Economic Co-operation and Development
+- **ILO** - Industry Liaison Office
+- **ORIC** - Office of Research, Innovation and Commercialization
+- **PKR** - Pakistani Rupees
 
 ---
 
@@ -81,8 +105,6 @@ The SSBC/BIC struggles to attract high-potential entrepreneurs with scalable bus
   - Pitch Development & Investor Readiness (2 weeks)
 - Only graduates of this program are eligible for incubation
 - Partner with Ignite NIC for curriculum certification
-
-**Budget:** PKR 2,000,000/year (facilitators, materials, events)
 
 **Policy Alignment:**
 - HEC's directive on mandatory entrepreneurship courses (Vision 2025)
@@ -164,8 +186,6 @@ High failure rates and inconsistent progress due to lack of structured support s
   - Resource allocation tied to performance
   - Incentives for milestone achievement
 
-**Budget:** PKR 1,500,000 (software licenses, staff training)
-
 #### 2.3 Create Founder Support System (0-6 months)
 
 **Action Steps:**
@@ -222,8 +242,6 @@ Startups develop products without adequate customer validation, leading to marke
 - 3-day intensive "Customer Discovery Bootcamp"
 - Weekly "Learning from the Field" sessions
 - Monthly expert panels on market validation
-
-**Budget:** PKR 1,200,000/year (training, tools, expert fees)
 
 #### 3.2 Establish Market Intelligence Unit (3-9 months)
 
@@ -435,8 +453,6 @@ No structured framework to guide startups from ideation through growth stages, r
   - Cohort-based programming and peer learning
   - Cohort graduation ceremonies and recognition
 
-**Budget:** PKR 3,000,000 (software development, process design, training)
-
 **International Model - TechStars Lifecycle Approach:**
 > "Clear phase definitions with differentiated support increase startup survival rates from 20% to 68% over 3 years."
 
@@ -574,8 +590,6 @@ Generic support models fail to address sector-specific challenges; lack of domai
 - Feedback and rating system
 - Mentor leaderboards and recognition program
 - Annual "Mentor of the Year" awards
-
-**Budget:** PKR 2,500,000/year (platform, mentor recognition events, training)
 
 #### 5.3 Establish Sector Advisory Boards (6-12 months)
 
@@ -764,8 +778,6 @@ Faculty members are disconnected from entrepreneurship activities; vast intellec
   - Academic credit for incubation participation
   - Faculty startup supervision counted as thesis supervision
 
-**Budget:** PKR 8,000,000/year (stipends, training, grants, awards)
-
 **Policy Alignment:**
 - HEC's requirement for entrepreneurship courses (Business Education Policy)
 - Planning Commission emphasis on applied research and innovation
@@ -807,8 +819,7 @@ Limited investor connections, weak industry networks, and absence of systematic 
 **Tier 1: Early-Stage Funding (SSBC Internal)**
 
 **A. COMSATS Seed Fund**
-- **Fund Size:** PKR 50,000,000 (initial corpus)
-- **Ticket Size:** PKR 500,000 - 2,000,000 per startup
+- **Maximum Funding per Startup:** PKR 1,000,000
 - **Equity Take:** 5-8% equity
 - **Investment Criteria:**
   - Graduated from pre-incubation
@@ -1010,8 +1021,6 @@ Limited investor connections, weak industry networks, and absence of systematic 
 - Resource library and templates
 - Job board for startup hiring
 
-**Budget:** PKR 12,000,000/year (events, fund operations, platform, marketing)
-
 **International Model - TechCrunch Disrupt & Y Combinator Demo Day:**
 > "Systematic investor exposure through professionally organized demo days increases funding success rates from 15% to 45% and average round sizes by 2.3x."
 
@@ -1057,8 +1066,6 @@ Minimal collaboration between university research and industry needs; theoretica
   - 2 Partnership Managers (sector-specific)
   - 1 Research Commercialization Officer
   - 1 Administrative Coordinator
-  
-- **Budget:** PKR 10,000,000/year (salaries, operations, events)
 
 **Core Functions:**
 
@@ -1263,8 +1270,6 @@ Minimal collaboration between university research and industry needs; theoretica
 - **Co-Working Spaces:** Industry R&D teams can work on-campus
 - **Library Access:** Industry partners get research database access
 
-**Budget:** PKR 15,000,000/year (ILO operations, events, fellowships, infrastructure)
-
 **International Models:**
 
 **Stanford Industrial Affiliates Program:**
@@ -1373,66 +1378,7 @@ Minimal collaboration between university research and industry needs; theoretica
 
 ---
 
-## Budget Considerations
 
-### Total Investment Requirement: PKR 75,000,000 over 24 months
-
-### Year 1 Budget Breakdown (PKR 40,000,000)
-
-| Category | Amount (PKR) | % of Budget |
-|----------|--------------|-------------|
-| **Infrastructure & Facilities** | 10,000,000 | 25% |
-| Space renovation & equipment | 6,000,000 | |
-| Digital platforms & software | 2,500,000 | |
-| Office setup & furniture | 1,500,000 | |
-| **Personnel** | 15,000,000 | 37.5% |
-| Industry Liaison Office (5 staff) | 7,000,000 | |
-| Program managers & coordinators | 5,000,000 | |
-| Faculty stipends & EIR | 3,000,000 | |
-| **Programs & Services** | 8,000,000 | 20% |
-| Training & workshops | 2,500,000 | |
-| Mentorship program | 1,500,000 | |
-| Customer discovery support | 1,200,000 | |
-| Market intelligence unit | 2,000,000 | |
-| Investor readiness program | 800,000 | |
-| **Startup Support** | 5,000,000 | 12.5% |
-| Prototyping grants | 2,000,000 | |
-| Seed fund (initial) | 3,000,000 | |
-| **Events & Networking** | 2,000,000 | 5% |
-| Demo days & showcases | 800,000 | |
-| Industry challenges | 600,000 | |
-| Monthly networking events | 400,000 | |
-| Annual summit | 200,000 | |
-
-### Year 2 Budget (PKR 35,000,000) - Reduced infrastructure, scaled programs
-
-### Funding Sources Strategy
-
-**Internal Sources (40%):**
-- University budget allocation
-- Incubation fees (post-stabilization)
-- Alumni donations
-- IP royalties (projected)
-
-**Government Grants (30%):**
-- HEC ORIC grants
-- Ignite National Grassroots program
-- Planning Commission innovation funding
-- Provincial government startup initiatives
-
-**Corporate Partnerships (20%):**
-- Partnership packages (Platinum, Gold, Silver)
-- Innovation challenge sponsorships
-- Industry-sponsored research
-- Event sponsorships
-
-**Returns on Investment (10%):**
-- Equity returns from seed fund
-- Licensing revenues
-- Training program fees (external)
-- Consulting services
-
----
 
 ## Key Performance Indicators (KPIs)
 
@@ -1514,11 +1460,10 @@ This proposal presents a comprehensive, actionable strategy to transform COMSATS
 **Immediate Next Steps:**
 1. Present to university leadership for approval and resource allocation
 2. Constitute implementation steering committee
-3. Allocate Year 1 budget (PKR 40M)
-4. Hire Industry Liaison Office Director
-5. Launch first Innovation Challenge
-6. Begin mentor recruitment
-7. Initiate faculty EIR program
+3. Hire Industry Liaison Office Director
+4. Launch first Innovation Challenge
+5. Begin mentor recruitment
+6. Initiate faculty EIR program
 
 **Success will require:**
 - Strong leadership commitment from university administration
