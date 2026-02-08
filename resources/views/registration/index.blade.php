@@ -116,8 +116,8 @@
                             <td class="px-4 text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td>
                             <td>{{ $candidate->name }}</td>
                             <td class="text-monospace">{{ $candidate->cnic ?? '-' }}</td>
-                            <td>{{ $candidate->campus->name ?? 'N/A' }}</td>
-                            <td>{{ $candidate->trade->name ?? 'N/A' }}</td>
+                            <td>{{ $candidate->campus?->name ?? 'N/A' }}</td>
+                            <td>{{ $candidate->trade?->name ?? 'N/A' }}</td>
                             <td>
                                 <span class="badge badge-warning px-3 py-1">
                                     {{ ucfirst(str_replace('_', ' ', $candidate->status)) }}
@@ -170,9 +170,9 @@
                             <td class="px-4 text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td>
                             <td>{{ $candidate->name }}</td>
                             <td class="text-monospace">{{ $candidate->cnic ?? '-' }}</td>
-                            <td>{{ $candidate->campus->name ?? 'N/A' }}</td>
-                            <td>{{ $candidate->trade->name ?? 'N/A' }}</td>
-                            <td class="text-monospace small">{{ $candidate->batch->batch_code ?? $candidate->batch->name ?? '-' }}</td>
+                            <td>{{ $candidate->campus?->name ?? 'N/A' }}</td>
+                            <td>{{ $candidate->trade?->name ?? 'N/A' }}</td>
+                            <td class="text-monospace small">{{ $candidate->batch?->batch_code ?? $candidate->batch?->name ?? '-' }}</td>
                             <td class="text-monospace font-weight-bold text-success">{{ $candidate->allocated_number ?? '-' }}</td>
                             <td class="text-center">
                                 <a href="{{ route('registration.show', $candidate->id) }}" class="btn btn-info btn-sm">
@@ -222,8 +222,8 @@
                             <td class="px-4 text-monospace font-weight-bold">{{ $candidate->btevta_id }}</td>
                             <td>{{ $candidate->name }}</td>
                             <td class="text-monospace">{{ $candidate->cnic ?? '-' }}</td>
-                            <td>{{ $candidate->campus->name ?? 'N/A' }}</td>
-                            <td>{{ $candidate->trade->name ?? 'N/A' }}</td>
+                            <td>{{ $candidate->campus?->name ?? 'N/A' }}</td>
+                            <td>{{ $candidate->trade?->name ?? 'N/A' }}</td>
                             <td><span class="badge badge-info px-3 py-1">Pending</span></td>
                             <td class="text-center">
                                 <a href="{{ route('registration.show', $candidate->id) }}" class="btn btn-primary btn-sm">

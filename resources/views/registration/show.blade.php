@@ -86,27 +86,27 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">Campus</strong>
-                            <span>{{ $candidate->campus->name ?? 'N/A' }}</span>
+                            <span>{{ $candidate->campus?->name ?? 'N/A' }}</span>
                         </div>
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">Program</strong>
-                            <span>{{ $candidate->program->name ?? 'N/A' }}</span>
+                            <span>{{ $candidate->program?->name ?? 'N/A' }}</span>
                         </div>
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">Trade</strong>
-                            <span>{{ $candidate->trade->name ?? 'N/A' }}</span>
+                            <span>{{ $candidate->trade?->name ?? 'N/A' }}</span>
                         </div>
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">OEP</strong>
-                            <span>{{ $candidate->oep->name ?? 'Not Assigned' }}</span>
+                            <span>{{ $candidate->oep?->name ?? 'Not Assigned' }}</span>
                         </div>
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">Implementing Partner</strong>
-                            <span>{{ $candidate->implementingPartner->name ?? 'Not Assigned' }}</span>
+                            <span>{{ $candidate->implementingPartner?->name ?? 'Not Assigned' }}</span>
                         </div>
                         <div class="col-md-4 mb-3">
                             <strong class="text-muted d-block">Batch</strong>
-                            <span class="text-monospace">{{ $candidate->batch->batch_code ?? $candidate->batch->name ?? 'N/A' }}</span>
+                            <span class="text-monospace">{{ $candidate->batch?->batch_code ?? $candidate->batch?->name ?? 'N/A' }}</span>
                         </div>
                     </div>
                 </div>
@@ -170,7 +170,7 @@
                         @if($candidate->nextOfKin->payment_method_id)
                         <div class="col-md-4 mb-2">
                             <strong class="text-muted d-block">Payment Method</strong>
-                            <span>{{ $candidate->nextOfKin->paymentMethod->name ?? 'N/A' }}</span>
+                            <span>{{ $candidate->nextOfKin?->paymentMethod?->name ?? 'N/A' }}</span>
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong class="text-muted d-block">Account Number</strong>
@@ -279,10 +279,10 @@
                     </div>
                     <div class="row mt-2">
                         <div class="col-md-4 mb-2">
-                            <strong class="text-muted">Campus:</strong><br>{{ $candidate->campus->name ?? 'N/A' }}
+                            <strong class="text-muted">Campus:</strong><br>{{ $candidate->campus?->name ?? 'N/A' }}
                         </div>
                         <div class="col-md-4 mb-2">
-                            <strong class="text-muted">Trade:</strong><br>{{ $candidate->trade->name ?? 'N/A' }}
+                            <strong class="text-muted">Trade:</strong><br>{{ $candidate->trade?->name ?? 'N/A' }}
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong class="text-muted">Phone:</strong><br>{{ $candidate->phone ?? 'N/A' }}
@@ -430,7 +430,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">Full Name <span class="text-danger">*</span></label>
                                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                           value="{{ old('name', $candidate->nextOfKin->name ?? '') }}" required>
+                                           value="{{ old('name', $candidate->nextOfKin?->name ?? '') }}" required>
                                     @error('name')<span class="invalid-feedback">{{ $message }}</span>@enderror
                                 </div>
                             </div>
@@ -440,7 +440,7 @@
                                     <select name="relationship" class="form-control @error('relationship') is-invalid @enderror" required>
                                         <option value="">Select</option>
                                         @foreach(['Father', 'Mother', 'Spouse', 'Brother', 'Sister', 'Son', 'Daughter', 'Uncle', 'Aunt', 'Other'] as $rel)
-                                            <option value="{{ $rel }}" {{ old('relationship', $candidate->nextOfKin->relationship ?? '') == $rel ? 'selected' : '' }}>{{ $rel }}</option>
+                                            <option value="{{ $rel }}" {{ old('relationship', $candidate->nextOfKin?->relationship ?? '') == $rel ? 'selected' : '' }}>{{ $rel }}</option>
                                         @endforeach
                                     </select>
                                     @error('relationship')<span class="invalid-feedback">{{ $message }}</span>@enderror
@@ -450,7 +450,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">CNIC <span class="text-danger">*</span></label>
                                     <input type="text" name="cnic" class="form-control @error('cnic') is-invalid @enderror"
-                                           value="{{ old('cnic', $candidate->nextOfKin->cnic ?? '') }}"
+                                           value="{{ old('cnic', $candidate->nextOfKin?->cnic ?? '') }}"
                                            placeholder="1234567891234" maxlength="13" required>
                                     @error('cnic')<span class="invalid-feedback">{{ $message }}</span>@enderror
                                 </div>
@@ -461,7 +461,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">Phone <span class="text-danger">*</span></label>
                                     <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                                           value="{{ old('phone', $candidate->nextOfKin->phone ?? '') }}" required>
+                                           value="{{ old('phone', $candidate->nextOfKin?->phone ?? '') }}" required>
                                     @error('phone')<span class="invalid-feedback">{{ $message }}</span>@enderror
                                 </div>
                             </div>
@@ -469,13 +469,13 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold">Occupation</label>
                                     <input type="text" name="occupation" class="form-control"
-                                           value="{{ old('occupation', $candidate->nextOfKin->occupation ?? '') }}">
+                                           value="{{ old('occupation', $candidate->nextOfKin?->occupation ?? '') }}">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="font-weight-bold">Address <span class="text-danger">*</span></label>
-                                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="1" required>{{ old('address', $candidate->nextOfKin->address ?? '') }}</textarea>
+                                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="1" required>{{ old('address', $candidate->nextOfKin?->address ?? '') }}</textarea>
                                     @error('address')<span class="invalid-feedback">{{ $message }}</span>@enderror
                                 </div>
                             </div>
