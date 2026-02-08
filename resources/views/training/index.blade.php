@@ -12,7 +12,7 @@
             <a href="{{ route('training.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> New Training
             </a>
-            <a href="{{ route('training.batches') }}" class="btn btn-info">
+            <a href="{{ route('batches.index') }}" class="btn btn-info">
                 <i class="fas fa-list"></i> Batches
             </a>
         </div>
