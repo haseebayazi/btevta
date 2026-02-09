@@ -31,8 +31,6 @@ The proposed interventions are designed to be immediately implementable while es
 
 ---
 
----
-
 ## Problem 2: Lack of Consistency in Startups
 
 **Challenge:** High failure rates due to lack of structure and accountability.
@@ -154,6 +152,4 @@ The proposed interventions are designed to be immediately implementable while es
 
 **International:** MIT (Delta V, ILP, Media Lab), Stanford (STVP), Y Combinator, Babson College, Berkeley SkyDeck, Israel Yozma Program, Singapore A*STAR, Station F Paris, UNESCO, World Bank, OECD
 
----
 
-*COMSATS University Islamabad | February 2026 | Version 1.0*
