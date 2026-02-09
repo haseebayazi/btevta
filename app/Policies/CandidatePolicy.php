@@ -213,6 +213,88 @@ class CandidatePolicy
         return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
     }
 
+    // ==================== TRAINING MODULE POLICY METHODS ====================
+
+    /**
+     * Determine if the user can view training attendance.
+     */
+    public function viewAttendance(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
+    /**
+     * Determine if the user can mark training attendance.
+     */
+    public function markAttendance(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
+    /**
+     * Determine if the user can create training assessments.
+     */
+    public function createAssessment(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
+    /**
+     * Determine if the user can generate training certificates.
+     */
+    public function generateCertificate(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+    }
+
+    /**
+     * Determine if the user can download training certificates.
+     */
+    public function downloadCertificate(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor()
+            || $user->isViewer();
+    }
+
+    /**
+     * Determine if the user can complete training for a candidate.
+     */
+    public function completeTraining(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isCampusAdmin();
+    }
+
+    /**
+     * Determine if the user can view attendance reports.
+     */
+    public function viewAttendanceReport(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
+    /**
+     * Determine if the user can view assessment reports.
+     */
+    public function viewAssessmentReport(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
+    /**
+     * Determine if the user can view batch performance data.
+     */
+    public function viewBatchPerformance(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector()
+            || $user->isCampusAdmin() || $user->isTrainer() || $user->isInstructor();
+    }
+
     /**
      * Determine if the user can update departure information for a candidate.
      * OEPs can update post-departure info for their assigned candidates.

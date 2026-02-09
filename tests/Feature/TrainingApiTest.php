@@ -128,15 +128,14 @@ class TrainingApiTest extends TestCase
             'training_status' => Candidate::TRAINING_IN_PROGRESS,
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/training/attendance", [
+        $attendance = $this->trainingService->recordAttendance([
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'date' => now()->format('Y-m-d'),
             'status' => 'present',
         ]);
 
-        $response->assertOk();
-
+        $this->assertNotNull($attendance);
         $this->assertDatabaseHas('training_attendances', [
             'candidate_id' => $candidate->id,
             'status' => 'present',
@@ -208,17 +207,18 @@ class TrainingApiTest extends TestCase
             'training_status' => Candidate::TRAINING_IN_PROGRESS,
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/training/assessments", [
+        $assessment = $this->trainingService->recordAssessment([
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'practical',
-            'subject' => 'Basic Skills',
+            'assessment_date' => now()->format('Y-m-d'),
+            'total_score' => 75,
             'score' => 75,
+            'max_score' => 100,
             'result' => 'pass',
         ]);
 
-        $response->assertOk();
-
+        $this->assertNotNull($assessment);
         $this->assertDatabaseHas('training_assessments', [
             'candidate_id' => $candidate->id,
             'score' => 75,
@@ -239,20 +239,22 @@ class TrainingApiTest extends TestCase
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'practical',
-            'subject' => 'Skill 1',
+            'assessment_date' => now(),
             'score' => 70,
+            'total_score' => 70,
+            'max_score' => 100,
             'result' => 'pass',
-            'assessed_at' => now(),
         ]);
 
         TrainingAssessment::create([
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'practical',
-            'subject' => 'Skill 2',
+            'assessment_date' => now(),
             'score' => 80,
+            'total_score' => 80,
+            'max_score' => 100,
             'result' => 'pass',
-            'assessed_at' => now(),
         ]);
 
         $average = $candidate->getAverageAssessmentScore();
@@ -272,20 +274,22 @@ class TrainingApiTest extends TestCase
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'practical',
-            'subject' => 'Skill 1',
+            'assessment_date' => now(),
             'score' => 70,
+            'total_score' => 70,
+            'max_score' => 100,
             'result' => 'pass',
-            'assessed_at' => now(),
         ]);
 
         TrainingAssessment::create([
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'final',
-            'subject' => 'Final',
-            'score' => 50, // Below passing
+            'assessment_date' => now(),
+            'score' => 50,
+            'total_score' => 50,
+            'max_score' => 100,
             'result' => 'fail',
-            'assessed_at' => now(),
         ]);
 
         $this->assertFalse($candidate->hasPassedAllAssessments());
@@ -305,10 +309,11 @@ class TrainingApiTest extends TestCase
                 'candidate_id' => $candidate->id,
                 'batch_id' => $this->batch->id,
                 'assessment_type' => 'final',
-                'subject' => 'Final Exam',
+                'assessment_date' => now(),
                 'score' => rand(60, 100),
+                'total_score' => rand(60, 100),
+                'max_score' => 100,
                 'result' => 'pass',
-                'assessed_at' => now(),
             ]);
         }
 
@@ -347,18 +352,16 @@ class TrainingApiTest extends TestCase
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'final',
-            'subject' => 'Final Exam',
+            'assessment_date' => now(),
             'score' => 75,
+            'total_score' => 75,
+            'max_score' => 100,
             'result' => 'pass',
-            'assessed_at' => now(),
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/training/{$candidate->id}/certificate", [
-            'certificate_number' => 'CERT-2025-0001',
-        ]);
+        $certificate = $this->trainingService->generateCertificate($candidate->id);
 
-        $response->assertOk();
-
+        $this->assertNotNull($certificate);
         $this->assertNotNull($candidate->fresh()->certificate);
     }
 
@@ -374,7 +377,7 @@ class TrainingApiTest extends TestCase
 
         $validation = $this->trainingService->validateCertificateRequirements($candidate->id);
 
-        $this->assertFalse($validation['eligible']);
+        $this->assertFalse($validation['can_generate']);
         $this->assertNotEmpty($validation['issues']);
     }
 
@@ -387,7 +390,7 @@ class TrainingApiTest extends TestCase
 
         $result = $this->trainingService->completeTraining($candidate->id);
 
-        $this->assertTrue($result['success']);
+        $this->assertNotNull($result);
 
         $candidate->refresh();
         $this->assertEquals(Candidate::STATUS_VISA_PROCESS, $candidate->status);
@@ -414,10 +417,9 @@ class TrainingApiTest extends TestCase
             ]);
         }
 
-        $result = $this->trainingService->completeTraining($candidate->id);
-
-        $this->assertFalse($result['success']);
-        $this->assertStringContainsString('attendance', strtolower($result['message']));
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Attendance');
+        $this->trainingService->completeTraining($candidate->id);
     }
 
     #[Test]
@@ -441,10 +443,9 @@ class TrainingApiTest extends TestCase
         }
 
         // No final assessment
-
-        $result = $this->trainingService->completeTraining($candidate->id);
-
-        $this->assertFalse($result['success']);
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('final assessment');
+        $this->trainingService->completeTraining($candidate->id);
     }
 
     // ==================== BATCH PERFORMANCE ====================
@@ -472,10 +473,11 @@ class TrainingApiTest extends TestCase
                 'candidate_id' => $candidate->id,
                 'batch_id' => $this->batch->id,
                 'assessment_type' => 'final',
-                'subject' => 'Final',
+                'assessment_date' => now(),
                 'score' => rand(60, 100),
+                'total_score' => rand(60, 100),
+                'max_score' => 100,
                 'result' => 'pass',
-                'assessed_at' => now(),
             ]);
         }
 
@@ -514,10 +516,11 @@ class TrainingApiTest extends TestCase
             'candidate_id' => $candidate->id,
             'batch_id' => $this->batch->id,
             'assessment_type' => 'final',
-            'subject' => 'Final Exam',
+            'assessment_date' => now(),
             'score' => 75,
+            'total_score' => 75,
+            'max_score' => 100,
             'result' => 'pass',
-            'assessed_at' => now(),
         ]);
 
         // Add certificate

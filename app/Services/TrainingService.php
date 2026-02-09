@@ -122,6 +122,48 @@ class TrainingService
     }
 
     /**
+     * Mark attendance for a single candidate (convenience wrapper).
+     *
+     * @param int $candidateId Candidate ID
+     * @param string $date Date string
+     * @param string $status Attendance status (present, absent, late, leave)
+     * @param string|null $remarks Optional remarks
+     * @return TrainingAttendance
+     */
+    public function markAttendance($candidateId, $date, $status, $remarks = null)
+    {
+        return $this->recordAttendance([
+            'candidate_id' => $candidateId,
+            'date' => $date,
+            'status' => $status,
+            'remarks' => $remarks,
+        ]);
+    }
+
+    /**
+     * Bulk mark attendance for a batch (convenience wrapper).
+     *
+     * @param int $batchId Batch ID
+     * @param string $date Date string
+     * @param array $attendances Array of candidate attendance data
+     * @return void
+     */
+    public function bulkMarkAttendance($batchId, $date, $attendances)
+    {
+        return DB::transaction(function () use ($batchId, $date, $attendances) {
+            foreach ($attendances as $entry) {
+                $this->recordAttendance([
+                    'candidate_id' => $entry['candidate_id'],
+                    'batch_id' => $batchId,
+                    'date' => $date,
+                    'status' => $entry['status'],
+                    'remarks' => $entry['remarks'] ?? null,
+                ]);
+            }
+        });
+    }
+
+    /**
      * Record attendance for a session
      */
     public function recordAttendance($data)
@@ -289,6 +331,40 @@ class TrainingService
         $this->updateCandidateAssessmentStatus($data['candidate_id'], $data['assessment_type'], $assessment->result);
 
         return $assessment;
+    }
+
+    /**
+     * Update an existing assessment.
+     *
+     * @param int $assessmentId Assessment ID
+     * @param int $obtainedMarks Updated obtained marks
+     * @param string $grade Updated grade
+     * @param string|null $remarks Optional remarks
+     * @return TrainingAssessment Updated assessment
+     */
+    public function updateAssessment($assessmentId, $obtainedMarks, $grade, $remarks = null)
+    {
+        $assessment = TrainingAssessment::findOrFail($assessmentId);
+
+        $assessment->update([
+            'total_score' => $obtainedMarks,
+            'score' => $obtainedMarks,
+            'grade' => $grade,
+            'result' => $obtainedMarks >= ($assessment->pass_score ?? 60) ? 'pass' : 'fail',
+            'remarks' => $remarks,
+        ]);
+
+        activity()
+            ->performedOn($assessment)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'assessment_id' => $assessmentId,
+                'obtained_marks' => $obtainedMarks,
+                'grade' => $grade,
+            ])
+            ->log('Assessment updated');
+
+        return $assessment->fresh();
     }
 
     /**
@@ -1053,6 +1129,69 @@ class TrainingService
             'final_assessment' => $finalAssessment,
             'existing_certificate' => $existingCertificate,
         ];
+    }
+
+    /**
+     * Transfer a candidate to a different batch.
+     *
+     * @param int $candidateId Candidate ID
+     * @param int $newBatchId New Batch ID
+     * @return Candidate Updated candidate
+     * @throws \Exception If candidate or batch not found
+     */
+    public function transferCandidateToBatch($candidateId, $newBatchId)
+    {
+        $candidate = Candidate::findOrFail($candidateId);
+        $newBatch = Batch::findOrFail($newBatchId);
+
+        return DB::transaction(function () use ($candidate, $newBatch) {
+            $oldBatchId = $candidate->batch_id;
+
+            $candidate->update([
+                'batch_id' => $newBatch->id,
+            ]);
+
+            // Update training record batch reference if it exists
+            $training = Training::where('candidate_id', $candidate->id)->first();
+            if ($training) {
+                $training->update(['batch_id' => $newBatch->id]);
+            }
+
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'old_batch_id' => $oldBatchId,
+                    'new_batch_id' => $newBatch->id,
+                ])
+                ->log('Candidate transferred to new batch');
+
+            return $candidate->fresh();
+        });
+    }
+
+    /**
+     * Remove a candidate from training.
+     *
+     * @param int $candidateId Candidate ID
+     * @return void
+     */
+    public function removeCandidateFromTraining($candidateId): void
+    {
+        $candidate = Candidate::findOrFail($candidateId);
+
+        DB::transaction(function () use ($candidate) {
+            // Soft-delete the training record if exists
+            $training = Training::where('candidate_id', $candidate->id)->first();
+            if ($training) {
+                $training->delete();
+            }
+
+            activity()
+                ->performedOn($candidate)
+                ->causedBy(auth()->user())
+                ->log('Candidate removed from training');
+        });
     }
 
     // ==================== MODULE 4: DUAL-STATUS TRAINING METHODS ====================
