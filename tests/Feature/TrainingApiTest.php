@@ -59,8 +59,8 @@ class TrainingApiTest extends TestCase
             $candidateIds
         );
 
-        $this->assertArrayHasKey('assigned', $result);
-        $this->assertEquals(5, count($result['assigned']));
+        $this->assertArrayHasKey('success', $result);
+        $this->assertEquals(5, count($result['success']));
 
         foreach ($candidates as $candidate) {
             $candidate->refresh();
@@ -95,7 +95,7 @@ class TrainingApiTest extends TestCase
         );
 
         // Only 1 should be assigned (capacity is 3, already have 2)
-        $this->assertEquals(1, count($result['assigned']));
+        $this->assertEquals(1, count($result['success']));
         $this->assertEquals(2, count($result['failed']));
     }
 
@@ -113,7 +113,7 @@ class TrainingApiTest extends TestCase
             [$candidate->id]
         );
 
-        $this->assertEmpty($result['assigned']);
+        $this->assertEmpty($result['success']);
     }
 
     // ==================== ATTENDANCE ====================
@@ -190,9 +190,9 @@ class TrainingApiTest extends TestCase
             'batch_id' => $this->batch->id,
         ]);
 
-        $this->assertArrayHasKey('summary', $report);
-        $this->assertArrayHasKey('candidates', $report);
-        $this->assertEquals(3, count($report['candidates']));
+        $this->assertArrayHasKey('batch', $report);
+        $this->assertArrayHasKey('attendance', $report);
+        $this->assertEquals(3, count($report['attendance']));
     }
 
     // ==================== ASSESSMENTS ====================
@@ -321,8 +321,8 @@ class TrainingApiTest extends TestCase
             'batch_id' => $this->batch->id,
         ]);
 
-        $this->assertArrayHasKey('summary', $report);
-        $this->assertArrayHasKey('candidates', $report);
+        $this->assertArrayHasKey('statistics', $report);
+        $this->assertArrayHasKey('assessments', $report);
     }
 
     // ==================== CERTIFICATES ====================
@@ -334,6 +334,7 @@ class TrainingApiTest extends TestCase
             'status' => Candidate::STATUS_TRAINING,
             'batch_id' => $this->batch->id,
             'trade_id' => $this->trade->id,
+            'campus_id' => $this->campus->id,
             'training_status' => Candidate::TRAINING_IN_PROGRESS,
         ]);
 
@@ -484,10 +485,9 @@ class TrainingApiTest extends TestCase
         $performance = $this->trainingService->getBatchPerformance($this->batch->id);
 
         $this->assertArrayHasKey('batch', $performance);
-        $this->assertArrayHasKey('candidates_count', $performance);
-        $this->assertArrayHasKey('average_attendance', $performance);
-        $this->assertArrayHasKey('average_score', $performance);
-        $this->assertEquals(5, $performance['candidates_count']);
+        $this->assertArrayHasKey('metrics', $performance);
+        $this->assertArrayHasKey('candidates', $performance);
+        $this->assertEquals(5, $performance['metrics']['total_candidates']);
     }
 
     // ==================== HELPER METHODS ====================
