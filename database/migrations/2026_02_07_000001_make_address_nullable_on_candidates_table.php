@@ -9,13 +9,27 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Use raw SQL for reliable TEXT column modification across MySQL versions
-        DB::statement('ALTER TABLE `candidates` MODIFY `address` TEXT NULL');
+        // Make address nullable - compatible with SQLite for testing
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite doesn't support MODIFY - recreate table
+            Schema::table('candidates', function (Blueprint $table) {
+                $table->text('address')->nullable()->change();
+            });
+        } else {
+            // Use raw SQL for MySQL
+            DB::statement('ALTER TABLE `candidates` MODIFY `address` TEXT NULL');
+        }
     }
 
     public function down(): void
     {
-        DB::statement("UPDATE `candidates` SET `address` = '' WHERE `address` IS NULL");
-        DB::statement('ALTER TABLE `candidates` MODIFY `address` TEXT NOT NULL');
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('candidates', function (Blueprint $table) {
+                $table->text('address')->nullable(false)->change();
+            });
+        } else {
+            DB::statement("UPDATE `candidates` SET `address` = '' WHERE `address` IS NULL");
+            DB::statement('ALTER TABLE `candidates` MODIFY `address` TEXT NOT NULL');
+        }
     }
 };

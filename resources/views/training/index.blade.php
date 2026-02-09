@@ -32,6 +32,33 @@
         </div>
     @endif
 
+    {{-- Module 4: Dual-Status Dashboard Notice --}}
+    @if($batches ?? false)
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-line mr-2"></i>Dual-Status Training Dashboard (New)</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">Track Technical and Soft Skills training separately for enhanced progress monitoring.</p>
+            <div class="row">
+                @foreach($batches as $batch)
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ $batch->name }}</h6>
+                            <p class="card-text text-muted small mb-2">{{ $batch->batch_code }}</p>
+                            <a href="{{ route('training.dual-status-dashboard', $batch) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-chart-bar mr-1"></i> View Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">Candidates in Training</h5>

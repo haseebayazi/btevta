@@ -13,6 +13,7 @@ use App\Models\Oep;
 use App\Models\ImplementingPartner;
 use App\Models\Course;
 use App\Models\PaymentMethod;
+use App\Models\Training;
 use App\Enums\CandidateStatus;
 use App\Http\Requests\RegistrationAllocationRequest;
 use App\Services\AutoBatchService;
@@ -676,6 +677,9 @@ class RegistrationController extends Controller
             $candidate->training_status = 'in_progress';
             $candidate->training_start_date = now();
             $candidate->save();
+
+            // MODULE 4: Create dual-status Training record
+            Training::findOrCreateForCandidate($candidate);
 
             activity()
                 ->performedOn($candidate)
