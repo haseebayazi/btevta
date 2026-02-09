@@ -150,6 +150,4 @@ The proposed interventions are designed to be immediately implementable while es
 
 **Industry Problem Bank:** Companies pay PKR 500K-2M per solved problem, 40% to research team, IP negotiated per case
 
-**International:** MIT (Delta V, ILP, Media Lab), Stanford (STVP), Y Combinator, Babson College, Berkeley SkyDeck, Israel Yozma Program, Singapore A*STAR, Station F Paris, UNESCO, World Bank, OECD
-
 
