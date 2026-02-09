@@ -197,7 +197,14 @@
             <h4 class="font-semibold text-gray-800"><i class="fas fa-plus-circle mr-2 text-blue-500"></i>Record New Assessment</h4>
             <i class="fas" :class="showForm ? 'fa-chevron-up' : 'fa-chevron-down'" class="text-gray-400"></i>
         </div>
-        <div x-show="showForm" x-collapse class="p-5">
+        <div x-show="showForm" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform -translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform translate-y-0"
+             x-transition:leave-end="opacity-0 transform -translate-y-2"
+             class="p-5">
             <form action="{{ route('training.store-typed-assessment', $training) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="candidate_id" value="{{ $training->candidate_id }}">
