@@ -77,8 +77,8 @@ class TrainingController extends Controller
 
         // AUDIT FIX: Apply campus filtering for campus admin users
         $user = auth()->user();
-        $batchQuery = Batch::whereIn('status', ['active', 'pending']);
-        $candidateQuery = Candidate::whereIn('status', ['registered', 'screening'])
+        $batchQuery = Batch::whereIn('status', ['active', 'planned']);
+        $candidateQuery = Candidate::where('status', 'registered')
             ->with(['trade', 'campus']);
 
         if ($user->role === 'campus_admin' && $user->campus_id) {
