@@ -195,7 +195,7 @@ class TrainingAssessment extends Model
             $score = $assessment->score ?: $assessment->total_score ?: 0;
             $maxScore = $assessment->max_score ?: $assessment->total_marks ?: 100;
 
-            if ($score > 0 && $maxScore > 0 && empty($assessment->grade)) {
+            if ($maxScore > 0 && empty($assessment->grade)) {
                 $assessment->grade = self::calculateGrade($score, $maxScore);
             }
         });

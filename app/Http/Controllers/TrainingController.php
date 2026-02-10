@@ -108,12 +108,12 @@ class TrainingController extends Controller
         ]);
 
         try {
-            $batch = $this->trainingService->assignCandidatesToBatch(
+            $results = $this->trainingService->assignCandidatesToBatch(
                 $validated['batch_id'],
-                $validated['candidate_ids'],
-                $validated['training_start_date'],
-                $validated['training_end_date']
+                $validated['candidate_ids']
             );
+
+            $batch = Batch::find($validated['batch_id']);
 
             // PERFORMANCE: Load all candidates at once instead of N+1 queries
             $candidates = Candidate::whereIn('id', $validated['candidate_ids'])->get();
@@ -142,6 +142,7 @@ class TrainingController extends Controller
             'trade',
             'campus',
             'batch',
+            'training',
             'attendances' => function ($query) {
                 $query->orderBy('date', 'desc');
             },
@@ -300,15 +301,17 @@ class TrainingController extends Controller
         ]);
 
         try {
-            $assessment = $this->trainingService->recordAssessment(
-                $candidate->id,
-                $validated['assessment_type'],
-                $validated['assessment_date'],
-                $validated['obtained_marks'],
-                $validated['total_marks'],
-                $validated['grade'],
-                $validated['remarks'] ?? null
-            );
+            $assessment = $this->trainingService->recordAssessment([
+                'candidate_id' => $candidate->id,
+                'batch_id' => $candidate->batch_id,
+                'assessment_type' => $validated['assessment_type'],
+                'assessment_date' => $validated['assessment_date'],
+                'score' => $validated['obtained_marks'],
+                'total_score' => $validated['obtained_marks'],
+                'max_score' => $validated['total_marks'],
+                'grade' => $validated['grade'],
+                'remarks' => $validated['remarks'] ?? null,
+            ]);
 
             return redirect()->route('training.show', $candidate)
                 ->with('success', 'Assessment recorded successfully!');
@@ -361,13 +364,8 @@ class TrainingController extends Controller
         try {
             $certificate = $this->trainingService->generateCertificate(
                 $candidate->id,
-                $validated['certificate_number'],
-                $validated['issue_date'],
-                $validated['grade']
+                $validated['issue_date']
             );
-
-            // Generate PDF
-            $pdfPath = $this->trainingService->generateCertificatePDF($certificate->id);
 
             $this->notificationService->sendCertificateIssued($candidate);
 
@@ -386,11 +384,11 @@ class TrainingController extends Controller
         $this->authorize('downloadCertificate', Candidate::class);
 
         try {
-            if (!$candidate->certificate) {
+            if (!$candidate->certificate || !$candidate->certificate->certificate_path) {
                 throw new Exception('No certificate found for this candidate');
             }
 
-            $pdfPath = $this->trainingService->generateCertificatePDF($candidate->certificate->id);
+            $pdfPath = $candidate->certificate->certificate_path;
 
             return response()->download(
                 storage_path('app/public/' . $pdfPath),
@@ -457,11 +455,11 @@ class TrainingController extends Controller
         ]);
 
         try {
-            $report = $this->trainingService->generateAttendanceReport(
-                $validated['batch_id'],
-                $validated['start_date'],
-                $validated['end_date']
-            );
+            $report = $this->trainingService->generateAttendanceReport([
+                'batch_id' => $validated['batch_id'],
+                'from_date' => $validated['start_date'],
+                'to_date' => $validated['end_date'],
+            ]);
 
             $batch = Batch::find($validated['batch_id']);
 
@@ -484,10 +482,10 @@ class TrainingController extends Controller
         ]);
 
         try {
-            $report = $this->trainingService->generateAssessmentReport(
-                $validated['batch_id'] ?? null,
-                $validated['assessment_type'] ?? null
-            );
+            $report = $this->trainingService->generateAssessmentReport([
+                'batch_id' => $validated['batch_id'] ?? null,
+                'assessment_type' => $validated['assessment_type'] ?? null,
+            ]);
 
             return view('training.assessment-report', compact('report'));
         } catch (Exception $e) {
@@ -542,6 +540,12 @@ class TrainingController extends Controller
     public function dualStatusDashboard(Batch $batch)
     {
         $this->authorize('viewAny', Candidate::class);
+
+        // Campus admin isolation: only allow access to batches from their campus
+        $user = auth()->user();
+        if ($user->role === 'campus_admin' && $user->campus_id && $batch->campus_id !== $user->campus_id) {
+            abort(403, 'You can only view batches from your campus.');
+        }
 
         $summary = $this->trainingService->getBatchTrainingSummary($batch);
 

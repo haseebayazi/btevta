@@ -41,6 +41,19 @@
     </div>
     @endif
 
+    {{-- Module 4: Dual-Status Training Progress Link --}}
+    @if($candidate->training)
+    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <i class="fas fa-chart-line mr-2"></i>
+            <strong>Dual-Status Training:</strong> Track Technical and Soft Skills progress separately.
+        </div>
+        <a href="{{ route('training.candidate-progress', $candidate->training) }}" class="btn btn-sm btn-info">
+            <i class="fas fa-chart-bar mr-1"></i> View Dual-Status Progress
+        </a>
+    </div>
+    @endif
+
     {{-- Statistics Cards --}}
     <div class="row mb-4">
         <div class="col-md-3">
