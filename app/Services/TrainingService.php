@@ -757,6 +757,11 @@ class TrainingService
 
         // Use DB::transaction() closure to properly support nested transactions/savepoints
         return DB::transaction(function () use ($batch, $batchId, $candidateIds) {
+            // Activate batch if it's still in planned status
+            if ($batch->status === Batch::STATUS_PLANNED) {
+                $batch->start();
+            }
+
             $results = [
                 'success' => [],
                 'failed' => [],

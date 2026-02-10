@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Batch;
 use App\Models\Candidate;
 use App\Models\RegistrationDocument;
 use App\Models\NextOfKin;
@@ -669,7 +670,12 @@ class RegistrationController extends Controller
         try {
             DB::beginTransaction();
 
-            // Assign to batch
+            // Assign to batch and activate it if still planned
+            $batch = Batch::findOrFail($validated['batch_id']);
+            if ($batch->status === Batch::STATUS_PLANNED) {
+                $batch->start();
+            }
+
             $candidate->batch_id = $validated['batch_id'];
 
             // AUDIT FIX: Use CandidateStatus enum instead of hardcoded string
