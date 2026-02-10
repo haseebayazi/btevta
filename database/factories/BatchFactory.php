@@ -21,7 +21,6 @@ class BatchFactory extends Factory
         $endDate = fake()->dateTimeBetween($startDate, '+6 months');
 
         return [
-            'batch_code' => $this->generateBatchCode(),
             'name' => fake()->randomElement([
                 'Basic Training Batch',
                 'Advanced Skills Program',
@@ -62,18 +61,6 @@ class BatchFactory extends Factory
                 User::whereIn('role', ['campus_admin', 'admin'])->pluck('id')->toArray()
             ),
         ];
-    }
-
-    /**
-     * Generate a unique batch code
-     */
-    protected function generateBatchCode(): string
-    {
-        $year = date('Y');
-        $month = date('m');
-        $random = fake()->unique()->numberBetween(1, 9999);
-
-        return sprintf('BATCH-%s%s-%04d', $year, $month, $random);
     }
 
     /**
