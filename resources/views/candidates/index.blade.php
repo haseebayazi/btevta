@@ -53,25 +53,6 @@
                     </div>
                 </div>
 
-                <!-- Batch Assignment -->
-                <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm flex items-center">
-                        <i class="fas fa-layer-group mr-2"></i>Assign Batch
-                        <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                    </button>
-                    <div x-show="open" @click.away="open = false" x-cloak
-                         class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50 max-h-64 overflow-y-auto">
-                        <div class="py-1">
-                            @foreach($batches as $batch)
-                            <button @click="bulkAssignBatch({{ $batch->id }}); open = false"
-                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                {{ $batch->batch_code ?? $batch->name }}
-                            </button>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Export -->
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" class="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm flex items-center">
@@ -106,7 +87,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm p-4">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <input type="text" name="search" placeholder="Search by Name, CNIC, TheLeap ID"
                    value="{{ request('search') }}" class="px-4 py-2 border rounded-lg w-full">
 
@@ -123,13 +104,6 @@
                 <option value="">All Trades</option>
                 @foreach($trades as $trade)
                     <option value="{{ $trade->id }}" {{ request('trade_id') == $trade->id ? 'selected' : '' }}>{{ $trade->name }}</option>
-                @endforeach
-            </select>
-
-            <select name="batch_id" class="px-4 py-2 border rounded-lg w-full">
-                <option value="">All Batches</option>
-                @foreach($batches as $batch)
-                    <option value="{{ $batch->id }}" {{ request('batch_id') == $batch->id ? 'selected' : '' }}>{{ $batch->batch_code ?? $batch->name }}</option>
                 @endforeach
             </select>
 
@@ -300,29 +274,6 @@ function bulkOperations() {
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     this.showToast(response.data.message, 'error');
-                }
-            } catch (error) {
-                this.showToast(error.response?.data?.message || 'Operation failed', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async bulkAssignBatch(batchId) {
-            if (!confirm(`Assign ${this.selectedIds.length} candidates to this batch?`)) return;
-
-            this.loading = true;
-            this.loadingMessage = 'Assigning to batch...';
-
-            try {
-                const response = await axios.post('/bulk/candidates/batch', {
-                    candidate_ids: this.selectedIds,
-                    batch_id: batchId
-                });
-
-                if (response.data.success) {
-                    this.showToast(response.data.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
                 }
             } catch (error) {
                 this.showToast(error.response?.data?.message || 'Operation failed', 'error');

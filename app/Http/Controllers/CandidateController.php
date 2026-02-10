@@ -47,18 +47,13 @@ class CandidateController extends Controller
             $query->where('district', $request->district);
         }
 
-        if ($request->filled('batch_id')) {
-            $query->where('batch_id', $request->batch_id);
-        }
-
         $candidates = $query->latest()->paginate(20);
 
         // Get dropdown data - fetching fresh to avoid cache issues
         $campuses = Campus::where('is_active', true)->select('id', 'name')->get();
         $trades = Trade::where('is_active', true)->select('id', 'name', 'code')->get();
-        $batches = Batch::whereIn('status', ['planned', 'active'])->select('id', 'batch_code', 'name')->get();
 
-        return view('candidates.index', compact('candidates', 'campuses', 'trades', 'batches'));
+        return view('candidates.index', compact('candidates', 'campuses', 'trades'));
     }
 
     public function create()

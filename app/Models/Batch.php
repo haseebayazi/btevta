@@ -392,26 +392,28 @@ class Batch extends Model
 
     /**
      * Generate a unique batch code.
+     * Format: CAMPUS-PROGRAM-TRADE-YEAR-SEQUENCE
+     * Example: LHR-KSAWP-ELEC-2026-0001
      */
-    public static function generateBatchCode($campusCode = null, $tradeCode = null)
+    public static function generateBatchCode($campusCode = null, $programCode = null, $tradeCode = null)
     {
         $year = date('Y');
-        $month = date('m');
-        $campus = $campusCode ?? 'XX';
-        $trade = $tradeCode ?? 'XX';
-        
-        $lastBatch = self::where('batch_code', 'like', "BATCH-{$campus}-{$trade}-{$year}{$month}%")
+        $campus = strtoupper($campusCode ?? 'XX');
+        $program = strtoupper($programCode ?? 'GEN');
+        $trade = strtoupper($tradeCode ?? 'XX');
+
+        $prefix = sprintf('%s-%s-%s-%s-', $campus, $program, $trade, $year);
+
+        $lastBatch = self::where('batch_code', 'like', "{$prefix}%")
                          ->orderBy('batch_code', 'desc')
                          ->first();
-        
+
+        $sequence = 1;
         if ($lastBatch) {
-            $lastNumber = intval(substr($lastBatch->batch_code, -3));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
+            $sequence = (int) substr($lastBatch->batch_code, -4) + 1;
         }
-        
-        return sprintf("BATCH-%s-%s-%s%s-%03d", $campus, $trade, $year, $month, $newNumber);
+
+        return sprintf('%s%04d', $prefix, $sequence);
     }
 
     /**
@@ -554,8 +556,9 @@ class Batch extends Model
             
             if (empty($batch->batch_code)) {
                 $campusCode = $batch->campus ? $batch->campus->code : null;
+                $programCode = $batch->program ? $batch->program->code : null;
                 $tradeCode = $batch->trade ? $batch->trade->code : null;
-                $batch->batch_code = self::generateBatchCode($campusCode, $tradeCode);
+                $batch->batch_code = self::generateBatchCode($campusCode, $programCode, $tradeCode);
             }
             
             if (auth()->check()) {
