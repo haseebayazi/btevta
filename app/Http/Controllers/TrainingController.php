@@ -103,8 +103,6 @@ class TrainingController extends Controller
             'batch_id' => 'required|exists:batches,id',
             'candidate_ids' => 'required|array|min:1',
             'candidate_ids.*' => 'exists:candidates,id',
-            'training_start_date' => 'required|date',
-            'training_end_date' => 'required|date|after:training_start_date',
         ]);
 
         try {

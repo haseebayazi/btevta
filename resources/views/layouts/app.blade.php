@@ -569,9 +569,9 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
-        // Auto-hide alerts after 5 seconds
+        // Auto-hide alerts after 5 seconds (only target alert elements, not all bg-colored elements)
         setTimeout(() => {
-            document.querySelectorAll('.bg-green-50, .bg-red-50, .bg-yellow-50').forEach(el => {
+            document.querySelectorAll('main > .mb-4.bg-green-50, main > .mb-4.bg-red-50, main > .mb-4.bg-yellow-50').forEach(el => {
                 el.style.transition = 'opacity 0.5s';
                 el.style.opacity = '0';
                 setTimeout(() => el.remove(), 500);

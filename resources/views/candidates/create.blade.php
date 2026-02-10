@@ -173,29 +173,6 @@
                         @error('trade_id')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
                     </div>
 
-                    <!-- Batch -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Batch (Optional)
-                            @if(auth()->user()->isAdmin())
-                            <a href="{{ route('admin.batches.create') }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 ml-2">
-                                + Create New Batch
-                            </a>
-                            @endif
-                        </label>
-                        <select name="batch_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('batch_id') border-red-500 @enderror">
-                            <option value="">No Batch (can be assigned later)</option>
-                            @foreach($batches ?? [] as $batch)
-                                <option value="{{ $batch->id }}" {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
-                                    {{ $batch->batch_code }} - {{ $batch->name ?? $batch->trade->name ?? 'N/A' }}
-                                    @if($batch->status === 'planned') [Planned] @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Shows planned and active batches. Can be assigned later from candidate profile.</p>
-                        @error('batch_id')<span class="text-red-500 text-sm">{{ $message }}</span>@enderror
-                    </div>
-
                     <!-- OEP -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Overseas Employment Programme</label>
