@@ -65,14 +65,7 @@ class CandidateController extends Controller
         $trades = Trade::where('is_active', true)->select('id', 'name', 'code')->get();
         $oeps = Oep::where('is_active', true)->select('id', 'name', 'code')->get();
 
-        // Get batches - include planned and active, fresh query (no cache)
-        $batches = Batch::with('trade:id,name')
-            ->whereIn('status', ['planned', 'active'])
-            ->select('id', 'batch_code', 'name', 'trade_id', 'status')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('candidates.create', compact('campuses', 'trades', 'oeps', 'batches'));
+        return view('candidates.create', compact('campuses', 'trades', 'oeps'));
     }
 
     public function store(Request $request)
@@ -93,7 +86,6 @@ class CandidateController extends Controller
             'tehsil' => 'nullable|string|max:100',
             'trade_id' => 'required|exists:trades,id',
             'campus_id' => 'nullable|exists:campuses,id',
-            'batch_id' => 'nullable|exists:batches,id',
             'oep_id' => 'nullable|exists:oeps,id',
             'photo' => 'nullable|image|max:2048',
         ]);
