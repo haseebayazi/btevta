@@ -290,9 +290,9 @@ class TrainingController extends Controller
         $this->authorize('createAssessment', Candidate::class);
 
         $validated = $request->validate([
-            'assessment_type' => 'required|in:theory,practical,final',
+            'assessment_type' => 'required|in:initial,interim,midterm,practical,final',
             'assessment_date' => 'required|date',
-            'total_marks' => 'required|integer|min:0',
+            'total_marks' => 'required|integer|min:1',
             'obtained_marks' => 'required|integer|min:0|lte:total_marks',
             'grade' => 'required|in:A+,A,B,C,D,F',
             'remarks' => 'nullable|string|max:1000',
@@ -389,7 +389,7 @@ class TrainingController extends Controller
             $pdfPath = $candidate->certificate->certificate_path;
 
             return response()->download(
-                storage_path('app/public/' . $pdfPath),
+                storage_path('app/private/' . $pdfPath),
                 'Certificate_' . $candidate->name . '.pdf'
             );
         } catch (Exception $e) {
@@ -476,7 +476,7 @@ class TrainingController extends Controller
 
         $validated = $request->validate([
             'batch_id' => 'nullable|exists:batches,id',
-            'assessment_type' => 'nullable|in:theory,practical,final',
+            'assessment_type' => 'nullable|in:initial,interim,midterm,practical,final',
         ]);
 
         try {
