@@ -145,7 +145,7 @@
 
     <!-- Back Button -->
     <div class="flex justify-end">
-        <a href="{{ route('admin.candidates.show', $candidate) }}"
+        <a href="{{ route('candidates.show', $candidate) }}"
            class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
             Back to Candidate
         </a>

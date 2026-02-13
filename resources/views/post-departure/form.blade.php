@@ -11,7 +11,7 @@
                 <h1 class="text-2xl font-bold text-gray-800">Post-Departure Tracking</h1>
                 <p class="text-gray-600 mt-1">Track residency, identity, and employment details after departure</p>
             </div>
-            <a href="{{ route('admin.candidates.show', $candidate) }}"
+            <a href="{{ route('candidates.show', $candidate) }}"
                class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
                 Back to Candidate
             </a>
@@ -366,7 +366,7 @@
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center bg-white rounded-lg shadow-md p-6">
-            <a href="{{ route('admin.candidates.show', $candidate) }}"
+            <a href="{{ route('candidates.show', $candidate) }}"
                class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
                 Cancel
             </a>
