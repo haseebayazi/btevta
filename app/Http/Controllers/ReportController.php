@@ -930,7 +930,7 @@ class ReportController extends Controller
 
         // Filter options
         $campuses = Campus::where('is_active', true)->pluck('name', 'id');
-        $batches = Batch::where('is_active', true)->pluck('name', 'id');
+        $batches = Batch::active()->pluck('name', 'id');
 
         return view('reports.assessment-analytics', compact(
             'stats',
