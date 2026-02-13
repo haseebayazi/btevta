@@ -25,7 +25,7 @@
     <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
         <p class="text-yellow-800 text-sm">
             <strong>Note:</strong> Please select a candidate before registering a complaint.
-            <a href="{{ route('admin.candidates.index') }}" class="underline font-semibold">Go to Candidates List</a>
+            <a href="{{ route('candidates.index') }}" class="underline font-semibold">Go to Candidates List</a>
         </p>
     </div>
     @endif

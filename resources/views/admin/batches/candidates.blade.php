@@ -145,7 +145,7 @@
                             <td>{{ $candidate->batch_assigned_date ? $candidate->batch_assigned_date->format('d M Y') : 'N/A' }}</td>
                             <td>
                                 @can('view', $candidate)
-                                <a href="{{ route('admin.candidates.show', $candidate->id) }}" class="btn btn-sm btn-info" title="View Candidate">
+                                <a href="{{ route('candidates.show', $candidate->id) }}" class="btn btn-sm btn-info" title="View Candidate">
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 @endcan

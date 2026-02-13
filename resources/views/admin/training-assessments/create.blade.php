@@ -177,7 +177,7 @@
 
         <!-- Action Buttons -->
         <div class="flex justify-between items-center">
-            <a href="{{ route('admin.candidates.show', $candidate) }}"
+            <a href="{{ route('candidates.show', $candidate) }}"
                class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
                 Cancel
             </a>
