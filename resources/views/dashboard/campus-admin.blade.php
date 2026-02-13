@@ -107,7 +107,7 @@
     <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-900">Active Batches</h3>
-            <a href="{{ route('batches.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            <a href="{{ route('admin.batches.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 View All <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
@@ -124,7 +124,7 @@
                     <span class="text-gray-500">
                         <i class="fas fa-users mr-1"></i>{{ $batch->candidates_count ?? 0 }} students
                     </span>
-                    <a href="{{ route('batches.show', $batch) }}" class="text-blue-600 hover:underline">Details</a>
+                    <a href="{{ route('admin.batches.show', $batch) }}" class="text-blue-600 hover:underline">Details</a>
                 </div>
             </div>
             @endforeach
@@ -181,7 +181,7 @@
                     </div>
                     <i class="fas fa-chevron-right text-gray-400"></i>
                 </a>
-                <a href="{{ route('batches.create') }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                <a href="{{ route('admin.batches.create') }}" class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
                     <div class="flex items-center">
                         <i class="fas fa-plus-circle text-purple-600 mr-3"></i>
                         <span class="text-gray-700">Create Batch</span>
