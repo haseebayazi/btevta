@@ -164,7 +164,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="{{ route('batches.show', $batch->id) }}"
+                                    <a href="{{ route('admin.batches.show', $batch->id) }}"
                                        class="text-blue-600 hover:text-blue-900 font-medium">View</a>
                                 </td>
                             </tr>
