@@ -1,54 +1,69 @@
 @extends('layouts.app')
-@section('title', 'Batch Performance - ' . $training->batch_name)
+@section('title', 'Batch Performance - ' . $batch->name)
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold">Batch Performance Analysis</h1>
-        <p class="text-gray-600 mt-1">{{ $training->title }} - {{ $training->batch_name }}</p>
-    </div>
-    
-    <div class="grid md:grid-cols-3 gap-6 mb-6">
-        <div class="card bg-blue-50">
-            <h3 class="text-sm font-medium text-blue-800 mb-2">Average Attendance</h3>
-            <p class="text-3xl font-bold text-blue-900">{{ number_format($avgAttendance, 1) }}%</p>
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Batch Performance Analysis</h2>
+            <p class="text-gray-500 text-sm mt-1">{{ $batch->name }} - {{ $batch->batch_code }}</p>
         </div>
-        <div class="card bg-green-50">
-            <h3 class="text-sm font-medium text-green-800 mb-2">Average Score</h3>
-            <p class="text-3xl font-bold text-green-900">{{ number_format($avgScore, 1) }}%</p>
-        </div>
-        <div class="card bg-purple-50">
-            <h3 class="text-sm font-medium text-purple-800 mb-2">Pass Rate</h3>
-            <p class="text-3xl font-bold text-purple-900">{{ number_format($passRate, 1) }}%</p>
+        <div class="mt-3 sm:mt-0">
+            <a href="{{ route('training.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Back
+            </a>
         </div>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-6">
-        <div class="card">
-            <h2 class="text-xl font-bold mb-4">Attendance Trend</h2>
+    {{-- Summary Stats --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Average Attendance</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ number_format($performance['avg_attendance'] ?? 0, 1) }}%</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Average Score</h3>
+            <p class="text-3xl font-bold text-green-600">{{ number_format($performance['avg_score'] ?? 0, 1) }}%</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="text-sm font-medium text-gray-500 mb-2">Pass Rate</h3>
+            <p class="text-3xl font-bold text-purple-600">{{ number_format($performance['pass_rate'] ?? 0, 1) }}%</p>
+        </div>
+    </div>
+
+    {{-- Charts --}}
+    @if(isset($performance['attendance_data']) && isset($performance['assessment_data']))
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h4 class="text-lg font-bold text-gray-800 mb-4">Attendance Trend</h4>
             <canvas id="attendanceChart" height="300"></canvas>
         </div>
-        <div class="card">
-            <h2 class="text-xl font-bold mb-4">Assessment Performance</h2>
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h4 class="text-lg font-bold text-gray-800 mb-4">Assessment Performance</h4>
             <canvas id="assessmentChart" height="300"></canvas>
         </div>
     </div>
+    @endif
 
-    <div class="card mt-6">
-        <h2 class="text-xl font-bold mb-4">Top Performers</h2>
+    {{-- Top Performers --}}
+    @if(isset($performance['top_performers']))
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="px-5 py-4 border-b">
+            <h4 class="font-semibold text-gray-800">Top Performers</h4>
+        </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full">
+            <table class="w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left">Rank</th>
-                        <th class="px-4 py-3 text-left">Candidate</th>
-                        <th class="px-4 py-3 text-center">Attendance</th>
-                        <th class="px-4 py-3 text-center">Avg Score</th>
-                        <th class="px-4 py-3 text-center">Grade</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-600">Rank</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-600">Candidate</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Attendance</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Avg Score</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Grade</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y">
-                    @foreach($topPerformers as $index => $performer)
-                    <tr>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($performance['top_performers'] as $index => $performer)
+                    <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3">
                             @if($index < 3)
                                 <i class="fas fa-medal text-{{ ['yellow', 'gray', 'orange'][$index] }}-500 text-xl"></i>
@@ -56,11 +71,13 @@
                                 {{ $index + 1 }}
                             @endif
                         </td>
-                        <td class="px-4 py-3 font-medium">{{ $performer->name }}</td>
-                        <td class="px-4 py-3 text-center">{{ number_format($performer->attendance_percentage, 1) }}%</td>
-                        <td class="px-4 py-3 text-center">{{ number_format($performer->avg_score, 1) }}%</td>
+                        <td class="px-4 py-3 font-medium text-gray-800">{{ $performer['name'] ?? 'N/A' }}</td>
+                        <td class="px-4 py-3 text-center">{{ number_format($performer['attendance_percentage'] ?? 0, 1) }}%</td>
+                        <td class="px-4 py-3 text-center">{{ number_format($performer['avg_score'] ?? 0, 1) }}%</td>
                         <td class="px-4 py-3 text-center">
-                            <span class="badge badge-success">{{ $performer->grade }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {{ $performer['grade'] ?? 'N/A' }}
+                            </span>
                         </td>
                     </tr>
                     @endforeach
@@ -68,13 +85,14 @@
             </table>
         </div>
     </div>
+    @endif
 </div>
 
+@if(isset($performance['attendance_data']) && isset($performance['assessment_data']))
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const attendanceData = @json($attendanceData);
-const assessmentData = @json($assessmentData);
+const attendanceData = @json($performance['attendance_data']);
+const assessmentData = @json($performance['assessment_data']);
 
 // Attendance Chart
 new Chart(document.getElementById('attendanceChart'), {
@@ -119,4 +137,5 @@ new Chart(document.getElementById('assessmentChart'), {
 });
 </script>
 @endpush
+@endif
 @endsection
