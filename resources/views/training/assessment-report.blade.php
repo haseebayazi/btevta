@@ -1,143 +1,116 @@
 @extends('layouts.app')
 @section('title', 'Assessment Report')
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Assessment Report</h1>
-        <div class="flex gap-2">
-            <button onclick="exportToExcel()" class="btn btn-success">
-                <i class="fas fa-file-excel mr-2"></i>Export Excel
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Assessment Report</h2>
+            <p class="text-gray-500 text-sm mt-1">Assessment performance analysis</p>
+        </div>
+        <div class="mt-3 sm:mt-0 flex space-x-2">
+            <button onclick="window.print()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-print mr-1"></i>Print
             </button>
-            <button onclick="window.print()" class="btn btn-secondary">
-                <i class="fas fa-print mr-2"></i>Print
-            </button>
+            <a href="{{ route('training.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-arrow-left mr-1"></i>Back
+            </a>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-6">
-        <form method="GET" class="grid md:grid-cols-5 gap-4">
-            <div>
-                <label class="form-label">Training Batch</label>
-                <select name="training_id" class="form-input">
-                    <option value="">All Batches</option>
-                    @foreach($trainings as $t)
-                        <option value="{{ $t->id }}">{{ $t->batch_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="form-label">Assessment Type</label>
-                <select name="type" class="form-input">
-                    <option value="">All Types</option>
-                    <option value="theory">Theory</option>
-                    <option value="practical">Practical</option>
-                    <option value="final">Final</option>
-                </select>
-            </div>
-            <div>
-                <label class="form-label">Date From</label>
-                <input type="date" name="date_from" class="form-input">
-            </div>
-            <div>
-                <label class="form-label">Date To</label>
-                <input type="date" name="date_to" class="form-input">
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="btn btn-primary w-full">
-                    <i class="fas fa-search mr-2"></i>Search
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Summary Stats -->
-    <div class="grid md:grid-cols-4 gap-4 mb-6">
-        <div class="card bg-blue-50">
+    {{-- Summary Stats --}}
+    @if(isset($report['summary']))
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
             <div class="text-blue-800">
-                <p class="text-sm font-medium">Total Assessments</p>
-                <p class="text-3xl font-bold mt-1">{{ $stats['total'] }}</p>
+                <p class="text-sm font-medium text-gray-500">Total Assessments</p>
+                <p class="text-2xl font-bold text-blue-600 mt-1">{{ $report['summary']['total'] ?? 0 }}</p>
             </div>
         </div>
-        <div class="card bg-green-50">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
             <div class="text-green-800">
-                <p class="text-sm font-medium">Average Score</p>
-                <p class="text-3xl font-bold mt-1">{{ number_format($stats['avg_score'], 1) }}%</p>
+                <p class="text-sm font-medium text-gray-500">Average Score</p>
+                <p class="text-2xl font-bold text-green-600 mt-1">{{ number_format($report['summary']['avg_score'] ?? 0, 1) }}%</p>
             </div>
         </div>
-        <div class="card bg-purple-50">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
             <div class="text-purple-800">
-                <p class="text-sm font-medium">Pass Rate</p>
-                <p class="text-3xl font-bold mt-1">{{ number_format($stats['pass_rate'], 1) }}%</p>
+                <p class="text-sm font-medium text-gray-500">Pass Rate</p>
+                <p class="text-2xl font-bold text-purple-600 mt-1">{{ number_format($report['summary']['pass_rate'] ?? 0, 1) }}%</p>
             </div>
         </div>
-        <div class="card bg-orange-50">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
             <div class="text-orange-800">
-                <p class="text-sm font-medium">Fail Rate</p>
-                <p class="text-3xl font-bold mt-1">{{ number_format($stats['fail_rate'], 1) }}%</p>
+                <p class="text-sm font-medium text-gray-500">Fail Rate</p>
+                <p class="text-2xl font-bold text-orange-600 mt-1">{{ number_format($report['summary']['fail_rate'] ?? 0, 1) }}%</p>
             </div>
         </div>
     </div>
+    @endif
 
-    <!-- Results Table -->
-    <div class="card">
+    {{-- Results Table --}}
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="px-5 py-4 border-b">
+            <h5 class="font-semibold text-gray-800">Assessment Results</h5>
+        </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full" id="assessmentTable">
+            <table class="w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left">Date</th>
-                        <th class="px-4 py-3 text-left">Candidate</th>
-                        <th class="px-4 py-3 text-left">Batch</th>
-                        <th class="px-4 py-3 text-center">Type</th>
-                        <th class="px-4 py-3 text-center">Marks</th>
-                        <th class="px-4 py-3 text-center">Percentage</th>
-                        <th class="px-4 py-3 text-center">Grade</th>
-                        <th class="px-4 py-3 text-center">Status</th>
+                        <th class="px-4 py-3 text-left font-medium text-gray-600">Candidate</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Type</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Score</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Percentage</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Grade</th>
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">Result</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y">
-                    @forelse($assessments as $assessment)
-                    <tr>
-                        <td class="px-4 py-3">{{ $assessment->date->format('M d, Y') }}</td>
-                        <td class="px-4 py-3 font-medium">{{ $assessment->candidate->name }}</td>
-                        <td class="px-4 py-3">{{ $assessment->training->batch_name }}</td>
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($report['assessments'] ?? $report['records'] ?? [] as $assessment)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-800">{{ $assessment['candidate_name'] ?? $assessment['name'] ?? 'N/A' }}</td>
                         <td class="px-4 py-3 text-center">
-                            <span class="badge badge-secondary">{{ ucfirst($assessment->type) }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                {{ ucfirst($assessment['assessment_type'] ?? $assessment['type'] ?? 'N/A') }}
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-center font-semibold">
-                            {{ $assessment->marks_obtained }}/{{ $assessment->max_marks }}
+                            {{ $assessment['score'] ?? $assessment['obtained_marks'] ?? 0 }}/{{ $assessment['max_score'] ?? $assessment['total_marks'] ?? 0 }}
                         </td>
-                        <td class="px-4 py-3 text-center">{{ number_format($assessment->percentage, 1) }}%</td>
+                        <td class="px-4 py-3 text-center">{{ number_format($assessment['percentage'] ?? 0, 1) }}%</td>
                         <td class="px-4 py-3 text-center">
-                            <span class="badge badge-{{ $assessment->grade_color }}">{{ $assessment->grade }}</span>
+                            @php
+                                $grade = $assessment['grade'] ?? 'N/A';
+                                $gradeColor = match(true) {
+                                    in_array($grade, ['A+', 'A']) => 'bg-green-100 text-green-800',
+                                    $grade === 'B' => 'bg-blue-100 text-blue-800',
+                                    $grade === 'C' => 'bg-yellow-100 text-yellow-800',
+                                    $grade === 'D' => 'bg-orange-100 text-orange-800',
+                                    $grade === 'F' => 'bg-red-100 text-red-800',
+                                    default => 'bg-gray-100 text-gray-600',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $gradeColor }}">
+                                {{ $grade }}
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <span class="badge badge-{{ $assessment->passed ? 'success' : 'danger' }}">
-                                {{ $assessment->passed ? 'Pass' : 'Fail' }}
+                            @php $passed = $assessment['passed'] ?? ($assessment['result'] ?? '') === 'pass'; @endphp
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $passed ? 'Pass' : 'Fail' }}
                             </span>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No assessments found</td>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-chart-bar text-3xl text-gray-300 mb-2 block"></i>
+                            No assessments found
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        
-        <div class="mt-4">
-            {{ $assessments->links() }}
-        </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-function exportToExcel() {
-    // Export logic here
-    alert('Export functionality will be implemented');
-}
-</script>
-@endpush
 @endsection
