@@ -237,6 +237,27 @@
                     </div>
                 </div>
 
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Trainer / Instructor
+                        <span class="text-gray-400 font-normal">(for performance attribution)</span>
+                    </label>
+                    <select name="trainer_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Current User ({{ auth()->user()->name }}) --</option>
+                        @foreach($instructors ?? [] as $instructor)
+                            <option value="{{ $instructor->id }}">
+                                {{ $instructor->name }}
+                                @if($instructor->specialization) - {{ $instructor->specialization }} @endif
+                                @if($instructor->campus) ({{ $instructor->campus->name }}) @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1">Select the trainer who conducted this assessment. Defaults to current user if not selected.</p>
+                    @error('trainer_id')
+                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Score</label>

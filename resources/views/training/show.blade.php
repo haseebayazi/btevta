@@ -179,7 +179,7 @@
             <div class="bg-white rounded-xl shadow-sm border mb-6 overflow-hidden">
                 <div class="px-5 py-3 border-b flex items-center justify-between">
                     <h5 class="font-semibold text-gray-800"><i class="fas fa-clipboard-list mr-2"></i>Attendance History</h5>
-                    <a href="{{ route('training.mark-attendance', $candidate) }}" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm">
+                    <a href="{{ route('training.attendance-form') }}?batch_id={{ $candidate->batch_id }}" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm">
                         <i class="fas fa-plus mr-1"></i> Mark Attendance
                     </a>
                 </div>
@@ -287,7 +287,7 @@
                 </div>
                 <div class="p-5">
                     <div class="divide-y divide-gray-100">
-                        <a href="{{ route('training.mark-attendance', $candidate) }}" class="py-3 px-0 flex items-center hover:bg-gray-50 -mx-5 px-5 transition-colors">
+                        <a href="{{ route('training.attendance-form') }}?batch_id={{ $candidate->batch_id }}" class="py-3 px-0 flex items-center hover:bg-gray-50 -mx-5 px-5 transition-colors">
                             <i class="fas fa-clipboard-check text-green-600 mr-3"></i>
                             <div>
                                 <strong class="text-gray-800">Mark Attendance</strong>

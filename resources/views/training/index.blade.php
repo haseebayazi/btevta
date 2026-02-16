@@ -76,7 +76,7 @@
                                     <td class="px-4 py-3 font-medium text-gray-800">{{ $candidate->name }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $candidate->trade?->name ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ $candidate->campus?->name ?? 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-gray-600">{{ $candidate->batch?->batch_number ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ $candidate->batch?->batch_code ?? 'N/A' }}</td>
                                     <td class="px-4 py-3 text-center">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $attendancePct >= 80 ? 'bg-green-100 text-green-800' : ($attendancePct >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
                                             {{ $attendancePct }}%
@@ -84,9 +84,14 @@
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center space-x-1">
-                                            <a href="{{ route('training.show', $candidate) }}" class="bg-cyan-50 text-cyan-600 hover:bg-cyan-100 p-1.5 rounded" title="View">
+                                            <a href="{{ route('training.show', $candidate) }}" class="bg-cyan-50 text-cyan-600 hover:bg-cyan-100 p-1.5 rounded" title="View Details">
                                                 <i class="fas fa-eye text-xs"></i>
                                             </a>
+                                            @if($candidate->training)
+                                            <a href="{{ route('training.candidate-progress', $candidate->training) }}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 p-1.5 rounded" title="View Progress">
+                                                <i class="fas fa-chart-line text-xs"></i>
+                                            </a>
+                                            @endif
                                             <a href="{{ route('training.edit', $candidate) }}" class="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 p-1.5 rounded" title="Edit">
                                                 <i class="fas fa-edit text-xs"></i>
                                             </a>

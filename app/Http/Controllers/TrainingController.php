@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\Training;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
+use App\Models\Instructor;
 use App\Services\TrainingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class TrainingController extends Controller
     {
         $this->authorize('viewAny', Candidate::class);
 
-        $query = Candidate::with(['trade', 'campus', 'batch', 'attendances'])
+        $query = Candidate::with(['trade', 'campus', 'batch', 'attendances', 'training'])
             ->where('status', 'training');
 
         // Filter by campus for campus admins
@@ -89,7 +90,13 @@ class TrainingController extends Controller
         $batches = $batchQuery->get();
         $candidates = $candidateQuery->get();
 
-        return view('training.create', compact('batches', 'candidates'));
+        // Get IDs of candidates already in any training session to show warnings
+        $candidatesInTraining = Training::whereIn('candidate_id', $candidates->pluck('id'))
+            ->whereNull('deleted_at')
+            ->pluck('candidate_id')
+            ->toArray();
+
+        return view('training.create', compact('batches', 'candidates', 'candidatesInTraining'));
     }
 
     /**
@@ -113,14 +120,39 @@ class TrainingController extends Controller
 
             $batch = Batch::find($validated['batch_id']);
 
-            // PERFORMANCE: Load all candidates at once instead of N+1 queries
-            $candidates = Candidate::whereIn('id', $validated['candidate_ids'])->get();
-            foreach ($candidates as $candidate) {
-                $this->notificationService->sendTrainingAssigned($candidate, $batch);
+            $successCount = count($results['success']);
+            $failedCount = count($results['failed']);
+            $alreadyCount = count($results['already_assigned']);
+
+            // Only send notifications for successfully assigned candidates
+            if ($successCount > 0) {
+                $candidates = Candidate::whereIn('id', $results['success'])->get();
+                foreach ($candidates as $candidate) {
+                    $this->notificationService->sendTrainingAssigned($candidate, $batch);
+                }
             }
 
+            // Build accurate feedback message
+            if ($successCount > 0 && $failedCount === 0 && $alreadyCount === 0) {
+                return redirect()->route('training.index')
+                    ->with('success', "{$successCount} candidate(s) assigned to training successfully!");
+            }
+
+            $messages = [];
+            if ($successCount > 0) {
+                $messages[] = "{$successCount} candidate(s) assigned successfully";
+            }
+            if ($alreadyCount > 0) {
+                $messages[] = "{$alreadyCount} already in this batch";
+            }
+            if ($failedCount > 0) {
+                $reasons = collect($results['failed'])->pluck('reason')->unique()->implode(', ');
+                $messages[] = "{$failedCount} failed ({$reasons})";
+            }
+
+            $flashType = $successCount > 0 ? 'success' : 'error';
             return redirect()->route('training.index')
-                ->with('success', count($validated['candidate_ids']) . ' candidates assigned to training successfully!');
+                ->with($flashType, implode('. ', $messages) . '.');
         } catch (Exception $e) {
             // SECURITY: Log exception details, show generic message to user
             Log::error('Training assignment failed', ['error' => $e->getMessage()]);
@@ -559,6 +591,12 @@ class TrainingController extends Controller
      */
     public function candidateProgress(Training $training)
     {
+        // Ensure the training has a valid candidate (handle soft-deleted or missing)
+        if (!$training->candidate) {
+            return redirect()->route('training.index')
+                ->with('error', 'Candidate record not found for this training entry.');
+        }
+
         $this->authorize('view', $training->candidate);
 
         $training->load(['candidate', 'candidate.batch', 'candidate.trade', 'candidate.campus', 'assessments']);
@@ -566,7 +604,10 @@ class TrainingController extends Controller
         $progress = $this->trainingService->getTrainingProgress($training);
         $attendanceStats = $this->trainingService->getAttendanceStatistics($training->candidate_id);
 
-        return view('training.candidate-progress', compact('training', 'progress', 'attendanceStats'));
+        // Load active instructors for trainer attribution in assessment form
+        $instructors = Instructor::active()->orderBy('name')->get();
+
+        return view('training.candidate-progress', compact('training', 'progress', 'attendanceStats', 'instructors'));
     }
 
     /**
@@ -584,6 +625,7 @@ class TrainingController extends Controller
             'max_score' => 'required|numeric|min:1|max:100',
             'notes' => 'nullable|string|max:1000',
             'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'trainer_id' => 'nullable|exists:instructors,id',
         ]);
 
         try {
@@ -597,7 +639,8 @@ class TrainingController extends Controller
                 $validated['score'],
                 $validated['max_score'],
                 $validated['notes'] ?? null,
-                $request->file('evidence')
+                $request->file('evidence'),
+                $validated['trainer_id'] ?? null
             );
 
             return back()->with('success',

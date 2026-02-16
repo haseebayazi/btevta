@@ -64,15 +64,27 @@
             <div id="candidatesList" class="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
                 @if(isset($candidates) && $candidates->count() > 0)
                     @foreach($candidates as $candidate)
-                    <label class="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer candidate-item"
+                    @php
+                        $alreadyInTraining = in_array($candidate->id, $candidatesInTraining ?? []);
+                    @endphp
+                    <label class="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 cursor-pointer candidate-item {{ $alreadyInTraining ? 'bg-yellow-50' : '' }}"
                            data-name="{{ strtolower($candidate->name) }}"
-                           data-id="{{ strtolower($candidate->btevta_id ?? $candidate->application_id) }}">
+                           data-id="{{ strtolower($candidate->btevta_id ?? $candidate->application_id) }}"
+                           data-in-training="{{ $alreadyInTraining ? '1' : '0' }}">
                         <input type="checkbox"
                                name="candidate_ids[]"
                                value="{{ $candidate->id }}"
-                               class="candidate-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                               class="candidate-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                               @if($alreadyInTraining) data-already-in-training="true" @endif>
                         <div class="ml-3 flex-1">
-                            <p class="text-sm font-medium text-gray-900">{{ $candidate->name }}</p>
+                            <p class="text-sm font-medium text-gray-900">
+                                {{ $candidate->name }}
+                                @if($alreadyInTraining)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>Already in Training
+                                    </span>
+                                @endif
+                            </p>
                             <p class="text-xs text-gray-500">
                                 ID: {{ $candidate->btevta_id ?? $candidate->application_id }}
                                 @if($candidate->trade)
@@ -80,8 +92,8 @@
                                 @endif
                             </p>
                         </div>
-                        <span class="text-xs text-gray-400">
-                            <i class="fas fa-user"></i>
+                        <span class="text-xs {{ $alreadyInTraining ? 'text-yellow-500' : 'text-gray-400' }}">
+                            <i class="fas {{ $alreadyInTraining ? 'fa-exclamation-circle' : 'fa-user' }}"></i>
                         </span>
                     </label>
                     @endforeach
@@ -146,9 +158,18 @@ document.getElementById('candidateSearch')?.addEventListener('input', function(e
     });
 });
 
-// Listen for checkbox changes
+// Listen for checkbox changes and warn for already-in-training candidates
 document.querySelectorAll('.candidate-checkbox').forEach(cb => {
-    cb.addEventListener('change', updateSelectedCount);
+    cb.addEventListener('change', function() {
+        updateSelectedCount();
+        if (this.checked && this.dataset.alreadyInTraining === 'true') {
+            const candidateName = this.closest('.candidate-item').dataset.name;
+            if (!confirm('Warning: This candidate is already registered in a training session. Are you sure you want to add them again?')) {
+                this.checked = false;
+                updateSelectedCount();
+            }
+        }
+    });
 });
 
 // Initialize count on page load

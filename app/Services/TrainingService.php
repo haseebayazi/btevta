@@ -753,10 +753,11 @@ class TrainingService
      */
     public function assignCandidatesToBatch($batchId, array $candidateIds)
     {
-        $batch = Batch::lockForUpdate()->findOrFail($batchId);
-
         // Use DB::transaction() closure to properly support nested transactions/savepoints
-        return DB::transaction(function () use ($batch, $batchId, $candidateIds) {
+        return DB::transaction(function () use ($batchId, $candidateIds) {
+            // Lock batch inside transaction for proper pessimistic locking
+            $batch = Batch::lockForUpdate()->findOrFail($batchId);
+
             // Activate batch if it's still in planned status
             if ($batch->status === Batch::STATUS_PLANNED) {
                 $batch->start();
@@ -780,7 +781,7 @@ class TrainingService
                 }
 
                 // Check if already in this batch
-                if ($candidate->batch_id === $batchId) {
+                if ($candidate->batch_id === $batchId && $candidate->status === CandidateStatus::TRAINING->value) {
                     $results['already_assigned'][] = $candidateId;
                     continue;
                 }
@@ -795,13 +796,16 @@ class TrainingService
                     continue;
                 }
 
-                // Assign to batch
+                // Assign to batch and update status
                 $candidate->update([
                     'batch_id' => $batchId,
                     'status' => CandidateStatus::TRAINING->value,
                     'training_status' => TrainingStatus::IN_PROGRESS->value,
                     'training_start_date' => $batch->start_date ?? now(),
                 ]);
+
+                // Create dual-status Training record so candidate appears in dashboard
+                Training::findOrCreateForCandidate($candidate->fresh());
 
                 $results['success'][] = $candidateId;
 
@@ -1220,9 +1224,10 @@ class TrainingService
         float $score,
         float $maxScore = 100,
         ?string $notes = null,
-        $evidenceFile = null
+        $evidenceFile = null,
+        ?int $trainerId = null
     ): TrainingAssessment {
-        return DB::transaction(function () use ($training, $candidate, $assessmentType, $trainingType, $score, $maxScore, $notes, $evidenceFile) {
+        return DB::transaction(function () use ($training, $candidate, $assessmentType, $trainingType, $score, $maxScore, $notes, $evidenceFile, $trainerId) {
             // Check if assessment already exists for this combination
             $existing = TrainingAssessment::where('training_id', $training->id)
                 ->where('candidate_id', $candidate->id)
@@ -1251,7 +1256,7 @@ class TrainingService
                 'result' => $result,
                 'assessment_date' => now(),
                 'remarks' => $notes,
-                'trainer_id' => auth()->id(),
+                'trainer_id' => $trainerId ?? auth()->id(),
             ]);
 
             // Handle evidence upload
