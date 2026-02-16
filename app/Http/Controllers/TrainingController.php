@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\Training;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
+use App\Models\Instructor;
 use App\Services\TrainingService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -572,7 +573,10 @@ class TrainingController extends Controller
         $progress = $this->trainingService->getTrainingProgress($training);
         $attendanceStats = $this->trainingService->getAttendanceStatistics($training->candidate_id);
 
-        return view('training.candidate-progress', compact('training', 'progress', 'attendanceStats'));
+        // Load active instructors for trainer attribution in assessment form
+        $instructors = Instructor::active()->orderBy('name')->get();
+
+        return view('training.candidate-progress', compact('training', 'progress', 'attendanceStats', 'instructors'));
     }
 
     /**
@@ -590,6 +594,7 @@ class TrainingController extends Controller
             'max_score' => 'required|numeric|min:1|max:100',
             'notes' => 'nullable|string|max:1000',
             'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'trainer_id' => 'nullable|exists:instructors,id',
         ]);
 
         try {
@@ -603,7 +608,8 @@ class TrainingController extends Controller
                 $validated['score'],
                 $validated['max_score'],
                 $validated['notes'] ?? null,
-                $request->file('evidence')
+                $request->file('evidence'),
+                $validated['trainer_id'] ?? null
             );
 
             return back()->with('success',

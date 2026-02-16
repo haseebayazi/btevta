@@ -1220,9 +1220,10 @@ class TrainingService
         float $score,
         float $maxScore = 100,
         ?string $notes = null,
-        $evidenceFile = null
+        $evidenceFile = null,
+        ?int $trainerId = null
     ): TrainingAssessment {
-        return DB::transaction(function () use ($training, $candidate, $assessmentType, $trainingType, $score, $maxScore, $notes, $evidenceFile) {
+        return DB::transaction(function () use ($training, $candidate, $assessmentType, $trainingType, $score, $maxScore, $notes, $evidenceFile, $trainerId) {
             // Check if assessment already exists for this combination
             $existing = TrainingAssessment::where('training_id', $training->id)
                 ->where('candidate_id', $candidate->id)
@@ -1251,7 +1252,7 @@ class TrainingService
                 'result' => $result,
                 'assessment_date' => now(),
                 'remarks' => $notes,
-                'trainer_id' => auth()->id(),
+                'trainer_id' => $trainerId ?? auth()->id(),
             ]);
 
             // Handle evidence upload
