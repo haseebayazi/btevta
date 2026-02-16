@@ -89,7 +89,13 @@ class TrainingController extends Controller
         $batches = $batchQuery->get();
         $candidates = $candidateQuery->get();
 
-        return view('training.create', compact('batches', 'candidates'));
+        // Get IDs of candidates already in any training session to show warnings
+        $candidatesInTraining = Training::whereIn('candidate_id', $candidates->pluck('id'))
+            ->whereNull('deleted_at')
+            ->pluck('candidate_id')
+            ->toArray();
+
+        return view('training.create', compact('batches', 'candidates', 'candidatesInTraining'));
     }
 
     /**
