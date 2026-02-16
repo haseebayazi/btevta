@@ -120,14 +120,39 @@ class TrainingController extends Controller
 
             $batch = Batch::find($validated['batch_id']);
 
-            // PERFORMANCE: Load all candidates at once instead of N+1 queries
-            $candidates = Candidate::whereIn('id', $validated['candidate_ids'])->get();
-            foreach ($candidates as $candidate) {
-                $this->notificationService->sendTrainingAssigned($candidate, $batch);
+            $successCount = count($results['success']);
+            $failedCount = count($results['failed']);
+            $alreadyCount = count($results['already_assigned']);
+
+            // Only send notifications for successfully assigned candidates
+            if ($successCount > 0) {
+                $candidates = Candidate::whereIn('id', $results['success'])->get();
+                foreach ($candidates as $candidate) {
+                    $this->notificationService->sendTrainingAssigned($candidate, $batch);
+                }
             }
 
+            // Build accurate feedback message
+            if ($successCount > 0 && $failedCount === 0 && $alreadyCount === 0) {
+                return redirect()->route('training.index')
+                    ->with('success', "{$successCount} candidate(s) assigned to training successfully!");
+            }
+
+            $messages = [];
+            if ($successCount > 0) {
+                $messages[] = "{$successCount} candidate(s) assigned successfully";
+            }
+            if ($alreadyCount > 0) {
+                $messages[] = "{$alreadyCount} already in this batch";
+            }
+            if ($failedCount > 0) {
+                $reasons = collect($results['failed'])->pluck('reason')->unique()->implode(', ');
+                $messages[] = "{$failedCount} failed ({$reasons})";
+            }
+
+            $flashType = $successCount > 0 ? 'success' : 'error';
             return redirect()->route('training.index')
-                ->with('success', count($validated['candidate_ids']) . ' candidates assigned to training successfully!');
+                ->with($flashType, implode('. ', $messages) . '.');
         } catch (Exception $e) {
             // SECURITY: Log exception details, show generic message to user
             Log::error('Training assignment failed', ['error' => $e->getMessage()]);
