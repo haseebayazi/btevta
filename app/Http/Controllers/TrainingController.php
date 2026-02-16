@@ -35,7 +35,7 @@ class TrainingController extends Controller
     {
         $this->authorize('viewAny', Candidate::class);
 
-        $query = Candidate::with(['trade', 'campus', 'batch', 'attendances'])
+        $query = Candidate::with(['trade', 'campus', 'batch', 'attendances', 'training'])
             ->where('status', 'training');
 
         // Filter by campus for campus admins
@@ -591,6 +591,12 @@ class TrainingController extends Controller
      */
     public function candidateProgress(Training $training)
     {
+        // Ensure the training has a valid candidate (handle soft-deleted or missing)
+        if (!$training->candidate) {
+            return redirect()->route('training.index')
+                ->with('error', 'Candidate record not found for this training entry.');
+        }
+
         $this->authorize('view', $training->candidate);
 
         $training->load(['candidate', 'candidate.batch', 'candidate.trade', 'candidate.campus', 'assessments']);
