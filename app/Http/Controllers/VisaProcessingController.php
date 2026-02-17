@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
+use App\Models\Campus;
 use App\Models\Departure;
 use App\Models\VisaProcess;
 use App\Services\VisaProcessingService;
 use App\Services\NotificationService;
+use App\Http\Requests\VisaStageUpdateRequest;
+use App\ValueObjects\VisaStageDetails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -850,6 +853,133 @@ class VisaProcessingController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to delete visa process: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // Module 5 Enhancement: Hierarchical Dashboard & Stage Management
+    // =========================================================================
+
+    /**
+     * Hierarchical dashboard view
+     */
+    public function hierarchicalDashboard(Request $request)
+    {
+        $this->authorize('viewAny', VisaProcess::class);
+
+        $user = auth()->user();
+        $campusId = $user->isCampusAdmin() ? $user->campus_id : $request->get('campus_id');
+
+        $dashboard = $this->visaService->getHierarchicalDashboard($campusId);
+
+        $campuses = Campus::orderBy('name')->get();
+
+        return view('visa-processing.hierarchical-dashboard', compact('dashboard', 'campuses'));
+    }
+
+    /**
+     * Stage details view
+     */
+    public function stageDetails(VisaProcess $visaProcess, string $stage)
+    {
+        $this->authorize('view', $visaProcess);
+
+        $validStages = VisaProcess::DETAIL_STAGES;
+        if (!in_array($stage, $validStages)) {
+            abort(404, 'Invalid stage');
+        }
+
+        $details = VisaStageDetails::fromArray($visaProcess->{"{$stage}_details"});
+        $stagesOverview = $visaProcess->getStagesOverview();
+        $visaProcess->load('candidate.trade', 'candidate.campus');
+
+        return view('visa-processing.stage-details', compact('visaProcess', 'stage', 'details', 'stagesOverview'));
+    }
+
+    /**
+     * Update stage with appointment/result/evidence
+     */
+    public function updateStage(VisaStageUpdateRequest $request, VisaProcess $visaProcess, string $stage)
+    {
+        $this->authorize('update', $visaProcess);
+
+        $validStages = ['interview', 'trade_test', 'takamol', 'medical', 'biometric'];
+        if (!in_array($stage, $validStages)) {
+            return back()->with('error', 'Invalid stage');
+        }
+
+        $validated = $request->validated();
+
+        try {
+            switch ($validated['action']) {
+                case 'schedule':
+                    $this->visaService->scheduleStage(
+                        $visaProcess,
+                        $stage,
+                        $validated['appointment_date'],
+                        $validated['appointment_time'],
+                        $validated['center']
+                    );
+                    $message = ucfirst(str_replace('_', ' ', $stage)) . ' appointment scheduled successfully.';
+                    break;
+
+                case 'result':
+                    $this->visaService->recordStageResultWithDetails(
+                        $visaProcess,
+                        $stage,
+                        $validated['result_status'],
+                        $validated['notes'] ?? null,
+                        $request->file('evidence')
+                    );
+                    $message = ucfirst(str_replace('_', ' ', $stage)) . ' result recorded: ' . $validated['result_status'];
+                    break;
+
+                case 'evidence':
+                    if (!$request->hasFile('evidence')) {
+                        return back()->with('error', 'No evidence file provided.');
+                    }
+                    $visaProcess->uploadStageEvidence($stage, $request->file('evidence'));
+                    $message = 'Evidence uploaded successfully.';
+                    break;
+
+                default:
+                    throw new Exception('Invalid action');
+            }
+
+            return back()->with('success', $message);
+
+        } catch (Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update visa application status
+     */
+    public function updateVisaApplication(Request $request, VisaProcess $visaProcess)
+    {
+        $this->authorize('update', $visaProcess);
+
+        $validated = $request->validate([
+            'application_status' => 'required|in:not_applied,applied,refused',
+            'issued_status' => 'nullable|in:pending,confirmed,refused',
+            'notes' => 'nullable|string|max:2000',
+            'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+        ]);
+
+        try {
+            $this->visaService->updateVisaApplicationStatus(
+                $visaProcess,
+                $validated['application_status'],
+                $validated['issued_status'] ?? null,
+                $validated['notes'] ?? null,
+                $request->file('evidence')
+            );
+
+            return back()->with('success', 'Visa application status updated.');
+
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
     }
 

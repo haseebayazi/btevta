@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -26,6 +27,12 @@ class AppServiceProvider extends ServiceProvider
         // Register policies
         Gate::policy(\App\Models\PreDepartureDocument::class, \App\Policies\PreDepartureDocumentPolicy::class);
         Gate::policy(\App\Models\CandidateLicense::class, \App\Policies\CandidateLicensePolicy::class);
+
+        // Register event listeners
+        Event::listen(
+            \App\Events\TrainingCompleted::class,
+            \App\Listeners\HandleTrainingCompleted::class
+        );
 
         // Define standard API rate limiter
         RateLimiter::for('api', function (Request $request) {
