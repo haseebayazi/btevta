@@ -3,119 +3,126 @@
 @section('title', 'Visa Processing')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2>Visa Processing</h2>
+<div class="space-y-6">
+    {{-- Header --}}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Visa Processing</h2>
+            <p class="text-gray-500 text-sm mt-1">Manage candidates in visa processing pipeline</p>
         </div>
-        <div class="col-md-4 text-right">
-            <a href="{{ route('visa-processing.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> New Visa Process
+        <div class="mt-3 sm:mt-0 flex space-x-2">
+            <a href="{{ route('visa-processing.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-plus mr-1"></i> New Visa Process
+            </a>
+            <a href="{{ route('visa-processing.hierarchical-dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-th-large mr-1"></i> Stage Dashboard
             </a>
         </div>
     </div>
 
-    @if ($message = Session::get('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ $message }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-        </div>
+    {{-- Flash Messages --}}
+    @if($message = Session::get('success'))
+    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between" x-data="{ show: true }" x-show="show">
+        <span><i class="fas fa-check-circle mr-2"></i>{{ $message }}</span>
+        <button @click="show = false" class="text-green-500 hover:text-green-700"><i class="fas fa-times"></i></button>
+    </div>
+    @endif
+    @if($message = Session::get('error'))
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between" x-data="{ show: true }" x-show="show">
+        <span><i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}</span>
+        <button @click="show = false" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
+    </div>
     @endif
 
-    @if ($message = Session::get('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            {{ $message }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{-- Candidates Table --}}
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div class="px-5 py-4 border-b">
+            <h5 class="font-semibold text-gray-800">Candidates in Visa Processing</h5>
         </div>
-    @endif
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Candidates in Visa Processing</h5>
-        </div>
-        <div class="card-body">
+        <div class="p-5">
             @if($candidates->count())
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th>TheLeap ID</th>
-                                <th>Name</th>
-                                <th>OEP</th>
-                                <th>Current Stage</th>
-                                <th>Interview</th>
-                                <th>Trade Test</th>
-                                <th>Medical</th>
-                                <th>Visa Status</th>
-                                <th>Actions</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">TheLeap ID</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Name</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">OEP</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Current Stage</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Interview</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Trade Test</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Medical</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Visa Status</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-600">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-gray-100">
                             @foreach($candidates as $candidate)
-                                <tr>
-                                    <td>{{ $candidate->btevta_id }}</td>
-                                    <td>{{ $candidate->name }}</td>
-                                    <td>{{ $candidate->oep?->name ?? 'N/A' }}</td>
-                                    <td>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-mono text-xs">{{ $candidate->btevta_id }}</td>
+                                    <td class="px-4 py-3 font-medium text-gray-800">{{ $candidate->name }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ $candidate->oep?->name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3 text-center">
                                         @if($candidate->visaProcess)
-                                            <span class="badge badge-info">
-                                                {{ ucfirst(str_replace('_', ' ', $candidate->visaProcess->current_stage ?? 'Pending')) }}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                {{ ucfirst(str_replace('_', ' ', $candidate->visaProcess->overall_status ?? 'Initiated')) }}
                                             </span>
                                         @else
-                                            <span class="badge badge-secondary">Not Started</span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Not Started</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        @if($candidate->visaProcess?->interview_result)
-                                            <span class="badge badge-{{ $candidate->visaProcess->interview_result === 'pass' ? 'success' : 'danger' }}">
-                                                {{ ucfirst($candidate->visaProcess->interview_result) }}
-                                            </span>
-                                        @else
-                                            <span class="badge badge-secondary">-</span>
-                                        @endif
+                                    <td class="px-4 py-3 text-center">
+                                        @php $iSt = $candidate->visaProcess?->interview_status; @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $iSt === 'completed' || $iSt === 'passed' ? 'bg-green-100 text-green-700' : ($iSt === 'failed' ? 'bg-red-100 text-red-700' : ($iSt === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500')) }}">
+                                            {{ $iSt ? ucfirst($iSt) : '-' }}
+                                        </span>
                                     </td>
-                                    <td>
-                                        @if($candidate->visaProcess?->trade_test_result)
-                                            <span class="badge badge-{{ $candidate->visaProcess->trade_test_result === 'pass' ? 'success' : 'danger' }}">
-                                                {{ ucfirst($candidate->visaProcess->trade_test_result) }}
-                                            </span>
-                                        @else
-                                            <span class="badge badge-secondary">-</span>
-                                        @endif
+                                    <td class="px-4 py-3 text-center">
+                                        @php $ttSt = $candidate->visaProcess?->trade_test_status; @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $ttSt === 'completed' || $ttSt === 'passed' ? 'bg-green-100 text-green-700' : ($ttSt === 'failed' ? 'bg-red-100 text-red-700' : ($ttSt === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500')) }}">
+                                            {{ $ttSt ? ucfirst($ttSt) : '-' }}
+                                        </span>
                                     </td>
-                                    <td>
-                                        @if($candidate->visaProcess?->gamca_result)
-                                            <span class="badge badge-success">Done</span>
-                                        @else
-                                            <span class="badge badge-secondary">-</span>
-                                        @endif
+                                    <td class="px-4 py-3 text-center">
+                                        @php $mSt = $candidate->visaProcess?->medical_status; @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $mSt === 'completed' || $mSt === 'fit' ? 'bg-green-100 text-green-700' : ($mSt === 'unfit' || $mSt === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500') }}">
+                                            {{ $mSt ? ucfirst($mSt) : '-' }}
+                                        </span>
                                     </td>
-                                    <td>
+                                    <td class="px-4 py-3 text-center">
                                         @if($candidate->visaProcess?->visa_number)
-                                            <span class="badge badge-success">
-                                                {{ $candidate->visaProcess->visa_number }}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                Issued
                                             </span>
                                         @else
-                                            <span class="badge badge-warning">Pending</span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <a href="{{ route('visa-processing.show', $candidate) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ route('visa-processing.edit', $candidate->visaProcess ?? '') }}" class="btn btn-sm btn-warning" {{ !$candidate->visaProcess ? 'disabled' : '' }}>
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex items-center justify-center space-x-1">
+                                            <a href="{{ route('visa-processing.show', $candidate) }}" class="bg-cyan-50 text-cyan-600 hover:bg-cyan-100 p-1.5 rounded" title="View Details">
+                                                <i class="fas fa-eye text-xs"></i>
+                                            </a>
+                                            @if($candidate->visaProcess)
+                                            <a href="{{ route('visa-processing.edit', $candidate) }}" class="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 p-1.5 rounded" title="Edit">
+                                                <i class="fas fa-edit text-xs"></i>
+                                            </a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                {{ $candidates->links() }}
+                <div class="mt-4">
+                    {{ $candidates->links() }}
+                </div>
             @else
-                <div class="alert alert-info">
-                    No candidates in visa processing.
+                <div class="text-center py-8">
+                    <i class="fas fa-passport text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">No candidates in visa processing.</p>
+                    <a href="{{ route('visa-processing.create') }}" class="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block">Start now</a>
                 </div>
             @endif
         </div>
