@@ -4,8 +4,13 @@ namespace App\Services;
 
 use App\Models\VisaProcess;
 use App\Models\Candidate;
+use App\Models\Campus;
 use App\Enums\CandidateStatus;
 use App\Enums\VisaStage;
+use App\Enums\VisaStageResult;
+use App\Enums\VisaApplicationStatus;
+use App\Enums\VisaIssuedStatus;
+use App\ValueObjects\VisaStageDetails;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -915,5 +920,237 @@ class VisaProcessingService
                 'end' => $endDate,
             ],
         ];
+    }
+
+    // =========================================================================
+    // Module 5 Enhancement: Stage Detail Management
+    // =========================================================================
+
+    /**
+     * Schedule stage appointment with details
+     */
+    public function scheduleStage(
+        VisaProcess $visaProcess,
+        string $stage,
+        string $date,
+        string $time,
+        string $center
+    ): void {
+        $validStages = ['interview', 'trade_test', 'takamol', 'medical', 'biometric'];
+        if (!in_array($stage, $validStages)) {
+            throw new \Exception("Invalid stage: {$stage}");
+        }
+
+        $this->validateStagePrerequisites($visaProcess, $stage);
+
+        $visaProcess->scheduleStageAppointment($stage, $date, $time, $center);
+    }
+
+    /**
+     * Record stage result with details
+     */
+    public function recordStageResultWithDetails(
+        VisaProcess $visaProcess,
+        string $stage,
+        string $resultStatus,
+        ?string $notes = null,
+        $evidenceFile = null
+    ): void {
+        DB::transaction(function () use ($visaProcess, $stage, $resultStatus, $notes, $evidenceFile) {
+            $evidencePath = null;
+
+            // Upload evidence if provided
+            if ($evidenceFile) {
+                $evidencePath = $visaProcess->uploadStageEvidence($stage, $evidenceFile);
+            }
+
+            // Record the result
+            $visaProcess->recordStageResult($stage, $resultStatus, $notes, $evidencePath);
+
+            // Handle failed/refused results
+            $result = VisaStageResult::from($resultStatus);
+            if ($result->isTerminal()) {
+                $visaProcess->update([
+                    'failed_at' => now(),
+                    'failed_stage' => $stage,
+                    'failure_reason' => $notes ?? "Failed at {$stage}",
+                ]);
+
+                // Update candidate status to rejected
+                $visaProcess->candidate->update(['status' => CandidateStatus::REJECTED->value]);
+            }
+        });
+    }
+
+    /**
+     * Update visa application status
+     */
+    public function updateVisaApplicationStatus(
+        VisaProcess $visaProcess,
+        string $applicationStatus,
+        ?string $issuedStatus = null,
+        ?string $notes = null,
+        $evidenceFile = null
+    ): void {
+        DB::transaction(function () use ($visaProcess, $applicationStatus, $issuedStatus, $notes, $evidenceFile) {
+            $evidencePath = null;
+
+            if ($evidenceFile) {
+                $evidencePath = $visaProcess->uploadStageEvidence('visa_application', $evidenceFile);
+            }
+
+            $details = VisaStageDetails::fromArray($visaProcess->visa_application_details);
+            $visaProcess->visa_application_details = $details->withResult(
+                $applicationStatus,
+                $notes,
+                $evidencePath
+            )->toArray();
+
+            $visaProcess->visa_application_status = VisaApplicationStatus::from($applicationStatus);
+
+            if ($issuedStatus) {
+                $visaProcess->visa_issued_status = VisaIssuedStatus::from($issuedStatus);
+            }
+
+            // If visa confirmed, update candidate status
+            if ($issuedStatus === 'confirmed') {
+                $visaProcess->visa_status = 'approved';
+                $visaProcess->visa_issued = true;
+                $visaProcess->candidate->update(['status' => CandidateStatus::VISA_APPROVED->value]);
+            } elseif ($applicationStatus === 'refused' || $issuedStatus === 'refused') {
+                $visaProcess->update([
+                    'failed_at' => now(),
+                    'failed_stage' => 'visa_application',
+                    'failure_reason' => $notes ?? 'Visa application refused',
+                ]);
+                $visaProcess->candidate->update(['status' => CandidateStatus::REJECTED->value]);
+            }
+
+            $visaProcess->save();
+
+            activity()
+                ->performedOn($visaProcess)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'application_status' => $applicationStatus,
+                    'issued_status' => $issuedStatus,
+                ])
+                ->log('Visa application status updated');
+        });
+    }
+
+    /**
+     * Get hierarchical dashboard data
+     */
+    public function getHierarchicalDashboard(?int $campusId = null): array
+    {
+        $query = VisaProcess::with(['candidate.campus', 'candidate.trade'])
+            ->whereNotIn('overall_status', ['completed', 'cancelled']);
+
+        if ($campusId) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
+        }
+
+        $processes = $query->get();
+
+        $dashboard = [
+            'scheduled' => collect(),
+            'done' => collect(),
+            'passed' => collect(),
+            'failed' => collect(),
+            'pending' => collect(),
+        ];
+
+        foreach ($processes as $process) {
+            $hierarchical = $process->getHierarchicalStatus();
+
+            foreach (['scheduled', 'done', 'passed', 'failed', 'pending'] as $category) {
+                foreach ($hierarchical[$category] as $stage => $stageData) {
+                    $dashboard[$category]->push([
+                        'visa_process_id' => $process->id,
+                        'candidate' => $process->candidate,
+                        'stage' => $stage,
+                        'stage_name' => $stageData['name'],
+                        'details' => $stageData['details'],
+                        'icon' => $stageData['icon'],
+                    ]);
+                }
+            }
+        }
+
+        return [
+            'counts' => [
+                'scheduled' => $dashboard['scheduled']->count(),
+                'done' => $dashboard['done']->count(),
+                'passed' => $dashboard['passed']->count(),
+                'failed' => $dashboard['failed']->count(),
+                'pending' => $dashboard['pending']->count(),
+            ],
+            'items' => $dashboard,
+        ];
+    }
+
+    /**
+     * Get stages requiring evidence
+     */
+    public function getStagesMissingEvidence(VisaProcess $visaProcess): array
+    {
+        $stages = ['interview', 'trade_test', 'takamol', 'medical', 'biometric'];
+        $missing = [];
+
+        foreach ($stages as $stage) {
+            $details = VisaStageDetails::fromArray($visaProcess->{"{$stage}_details"});
+
+            if ($details->hasResult() && !$details->hasEvidence()) {
+                $missing[] = [
+                    'stage' => $stage,
+                    'result' => $details->resultStatus,
+                ];
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Validate stage prerequisites for enhanced stages
+     */
+    protected function validateStagePrerequisites(VisaProcess $visaProcess, string $stage): void
+    {
+        $errors = [];
+
+        switch ($stage) {
+            case 'trade_test':
+                $interviewDetails = VisaStageDetails::fromArray($visaProcess->interview_details);
+                if (!$interviewDetails->isPassed() && $visaProcess->interview_status !== 'passed') {
+                    $errors[] = 'Interview must be passed before Trade Test';
+                }
+                break;
+
+            case 'takamol':
+                if ($visaProcess->interview_status !== 'passed' && !VisaStageDetails::fromArray($visaProcess->interview_details)->isPassed()) {
+                    $errors[] = 'Interview must be passed before Takamol';
+                }
+                break;
+
+            case 'medical':
+                if ($visaProcess->interview_status !== 'passed' && !VisaStageDetails::fromArray($visaProcess->interview_details)->isPassed()) {
+                    $errors[] = 'Interview must be passed first';
+                }
+                break;
+
+            case 'biometric':
+                if ($visaProcess->medical_status !== 'fit' && $visaProcess->medical_status !== 'completed') {
+                    $medicalDetails = VisaStageDetails::fromArray($visaProcess->medical_details);
+                    if (!$medicalDetails->isPassed()) {
+                        $errors[] = 'Medical examination must be cleared before biometrics';
+                    }
+                }
+                break;
+        }
+
+        if (!empty($errors)) {
+            throw new \Exception(implode('; ', $errors));
+        }
     }
 }

@@ -17,6 +17,15 @@ enum VisaIssuedStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match($this) {
+            self::PENDING => 'warning',
+            self::CONFIRMED => 'success',
+            self::REFUSED => 'danger',
+        };
+    }
+
     public static function toArray(): array
     {
         return array_combine(

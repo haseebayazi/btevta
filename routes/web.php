@@ -356,6 +356,16 @@ Route::middleware(['auth'])->group(function () {
     // Roles: admin, project_director, campus_admin, instructor/trainer, oep, visa_partner
     // ========================================================================
     Route::middleware('role:admin,project_director,campus_admin,instructor,oep,visa_partner')->group(function () {
+        // MODULE 5 ENHANCEMENT: Hierarchical Dashboard & Stage Management
+        // IMPORTANT: These routes MUST be before the resource routes to avoid
+        // the resource show route catching 'hierarchical-dashboard' as a model ID
+        Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
+            Route::get('/hierarchical-dashboard', [VisaProcessingController::class, 'hierarchicalDashboard'])->name('hierarchical-dashboard');
+            Route::get('/stage/{visaProcess}/{stage}', [VisaProcessingController::class, 'stageDetails'])->name('stage-details');
+            Route::post('/stage/{visaProcess}/{stage}', [VisaProcessingController::class, 'updateStage'])->name('update-stage');
+            Route::post('/visa-application/{visaProcess}', [VisaProcessingController::class, 'updateVisaApplication'])->name('update-visa-application');
+        });
+
         Route::resource('visa-processing', VisaProcessingController::class);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
             // UPDATE ROUTES (Use these to modify existing records)

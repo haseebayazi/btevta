@@ -17,6 +17,15 @@ enum VisaApplicationStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'secondary',
+            self::APPLIED => 'info',
+            self::REFUSED => 'danger',
+        };
+    }
+
     public static function toArray(): array
     {
         return array_combine(
