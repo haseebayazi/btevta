@@ -1,84 +1,115 @@
 @extends('layouts.app')
-@section('title', 'Add New Instructor')
+@section('title', 'Add Instructor')
 @section('content')
-<div class="container mx-auto px-4 py-6 max-w-4xl">
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold">Add New Instructor</h1>
-        <p class="text-gray-600 mt-1">Fill in the details to create a new instructor record</p>
+<div class="max-w-3xl mx-auto space-y-6">
+
+    {{-- Header --}}
+    <div class="flex items-center gap-3">
+        <a href="{{ route('instructors.index') }}"
+           class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fas fa-arrow-left text-lg"></i>
+        </a>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Add Instructor</h2>
+            <p class="text-gray-500 text-sm mt-0.5">Create a new instructor record</p>
+        </div>
     </div>
 
-    <div class="card">
-        <form action="{{ route('instructors.store') }}" method="POST">
-            @csrf
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div class="flex gap-2 mb-2">
+                <i class="fas fa-exclamation-circle text-red-500 mt-0.5"></i>
+                <p class="text-sm font-medium text-red-700">Please fix the following errors:</p>
+            </div>
+            <ul class="list-disc list-inside text-sm text-red-600 space-y-0.5 ml-5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-            <div class="grid md:grid-cols-2 gap-6">
-                <!-- Name -->
+    <form action="{{ route('instructors.store') }}" method="POST" class="space-y-6">
+        @csrf
+
+        {{-- Personal Information --}}
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gray-50">
+                <h3 class="font-semibold text-gray-800">
+                    <i class="fas fa-user mr-2 text-blue-500"></i>Personal Information
+                </h3>
+            </div>
+            <div class="p-6 grid md:grid-cols-2 gap-5">
                 <div>
-                    <label for="name" class="form-label">Name <span class="text-red-500">*</span></label>
-                    <input type="text" id="name" name="name" value="{{ old('name') }}"
-                           class="form-input w-full @error('name') border-red-500 @enderror" required>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" value="{{ old('name') }}" required
+                           class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  {{ $errors->has('name') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
                     @error('name')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- CNIC -->
                 <div>
-                    <label for="cnic" class="form-label">CNIC <span class="text-red-500">*</span></label>
+                    <label for="cnic" class="block text-sm font-medium text-gray-700 mb-1">
+                        CNIC <span class="text-red-500">*</span>
+                    </label>
                     <input type="text" id="cnic" name="cnic" value="{{ old('cnic') }}"
-                           placeholder="xxxxx-xxxxxxx-x"
-                           class="form-input w-full @error('cnic') border-red-500 @enderror" required>
+                           placeholder="xxxxx-xxxxxxx-x" required
+                           class="w-full px-3 py-2 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  {{ $errors->has('cnic') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
                     @error('cnic')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Email -->
                 <div>
-                    <label for="email" class="form-label">Email <span class="text-red-500">*</span></label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}"
-                           class="form-input w-full @error('email') border-red-500 @enderror" required>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="email" name="email" value="{{ old('email') }}" required
+                           class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
                     @error('email')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Phone -->
                 <div>
-                    <label for="phone" class="form-label">Phone <span class="text-red-500">*</span></label>
-                    <input type="text" id="phone" name="phone" value="{{ old('phone') }}"
-                           class="form-input w-full @error('phone') border-red-500 @enderror" required>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                        Phone <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="phone" name="phone" value="{{ old('phone') }}" required
+                           class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  {{ $errors->has('phone') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
                     @error('phone')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Qualification -->
-                <div>
-                    <label for="qualification" class="form-label">Qualification</label>
-                    <input type="text" id="qualification" name="qualification" value="{{ old('qualification') }}"
-                           class="form-input w-full">
+                <div class="md:col-span-2">
+                    <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <textarea id="address" name="address" rows="2"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none">{{ old('address') }}</textarea>
                 </div>
+            </div>
+        </div>
 
-                <!-- Specialization -->
+        {{-- Professional Details --}}
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gray-50">
+                <h3 class="font-semibold text-gray-800">
+                    <i class="fas fa-briefcase mr-2 text-green-500"></i>Professional Details
+                </h3>
+            </div>
+            <div class="p-6 grid md:grid-cols-2 gap-5">
                 <div>
-                    <label for="specialization" class="form-label">Specialization</label>
-                    <input type="text" id="specialization" name="specialization" value="{{ old('specialization') }}"
-                           class="form-input w-full">
-                </div>
-
-                <!-- Experience Years -->
-                <div>
-                    <label for="experience_years" class="form-label">Experience (Years)</label>
-                    <input type="number" id="experience_years" name="experience_years" value="{{ old('experience_years', 0) }}"
-                           min="0" class="form-input w-full">
-                </div>
-
-                <!-- Campus -->
-                <div>
-                    <label for="campus_id" class="form-label">Campus</label>
-                    <select id="campus_id" name="campus_id" class="form-select w-full">
-                        <option value="">Select Campus</option>
+                    <label for="campus_id" class="block text-sm font-medium text-gray-700 mb-1">Campus</label>
+                    <select id="campus_id" name="campus_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">— Select Campus —</option>
                         @foreach($campuses as $campus)
                             <option value="{{ $campus->id }}" {{ old('campus_id') == $campus->id ? 'selected' : '' }}>
                                 {{ $campus->name }}
@@ -87,11 +118,11 @@
                     </select>
                 </div>
 
-                <!-- Trade -->
                 <div>
-                    <label for="trade_id" class="form-label">Trade</label>
-                    <select id="trade_id" name="trade_id" class="form-select w-full">
-                        <option value="">Select Trade</option>
+                    <label for="trade_id" class="block text-sm font-medium text-gray-700 mb-1">Trade</label>
+                    <select id="trade_id" name="trade_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">— Select Trade —</option>
                         @foreach($trades as $trade)
                             <option value="{{ $trade->id }}" {{ old('trade_id') == $trade->id ? 'selected' : '' }}>
                                 {{ $trade->name }}
@@ -100,51 +131,69 @@
                     </select>
                 </div>
 
-                <!-- Employment Type -->
                 <div>
-                    <label for="employment_type" class="form-label">Employment Type <span class="text-red-500">*</span></label>
-                    <select id="employment_type" name="employment_type" class="form-select w-full" required>
+                    <label for="qualification" class="block text-sm font-medium text-gray-700 mb-1">Qualification</label>
+                    <input type="text" id="qualification" name="qualification" value="{{ old('qualification') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label for="specialization" class="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                    <input type="text" id="specialization" name="specialization" value="{{ old('specialization') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label for="experience_years" class="block text-sm font-medium text-gray-700 mb-1">Experience (Years)</label>
+                    <input type="number" id="experience_years" name="experience_years"
+                           value="{{ old('experience_years', 0) }}" min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label for="employment_type" class="block text-sm font-medium text-gray-700 mb-1">
+                        Employment Type <span class="text-red-500">*</span>
+                    </label>
+                    <select id="employment_type" name="employment_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="permanent" {{ old('employment_type') == 'permanent' ? 'selected' : '' }}>Permanent</option>
-                        <option value="contract" {{ old('employment_type') == 'contract' ? 'selected' : '' }}>Contract</option>
-                        <option value="visiting" {{ old('employment_type') == 'visiting' ? 'selected' : '' }}>Visiting</option>
+                        <option value="contract"  {{ old('employment_type') == 'contract'  ? 'selected' : '' }}>Contract</option>
+                        <option value="visiting"  {{ old('employment_type') == 'visiting'  ? 'selected' : '' }}>Visiting</option>
                     </select>
                 </div>
 
-                <!-- Joining Date -->
                 <div>
-                    <label for="joining_date" class="form-label">Joining Date</label>
+                    <label for="joining_date" class="block text-sm font-medium text-gray-700 mb-1">Joining Date</label>
                     <input type="date" id="joining_date" name="joining_date" value="{{ old('joining_date') }}"
-                           class="form-input w-full">
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
-                <!-- Status -->
                 <div>
-                    <label for="status" class="form-label">Status <span class="text-red-500">*</span></label>
-                    <select id="status" name="status" class="form-select w-full" required>
-                        <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        <option value="on_leave" {{ old('status') == 'on_leave' ? 'selected' : '' }}>On Leave</option>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+                    <select id="status" name="status" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="active"     {{ old('status', 'active') == 'active'     ? 'selected' : '' }}>Active</option>
+                        <option value="inactive"   {{ old('status') == 'inactive'   ? 'selected' : '' }}>Inactive</option>
+                        <option value="on_leave"   {{ old('status') == 'on_leave'   ? 'selected' : '' }}>On Leave</option>
                         <option value="terminated" {{ old('status') == 'terminated' ? 'selected' : '' }}>Terminated</option>
                     </select>
                 </div>
-
-                <!-- Address -->
-                <div class="md:col-span-2">
-                    <label for="address" class="form-label">Address</label>
-                    <textarea id="address" name="address" rows="3"
-                              class="form-input w-full">{{ old('address') }}</textarea>
-                </div>
             </div>
+        </div>
 
-            <div class="flex gap-3 mt-6">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save mr-2"></i>Create Instructor
-                </button>
-                <a href="{{ route('instructors.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-times mr-2"></i>Cancel
-                </a>
-            </div>
-        </form>
-    </div>
+        {{-- Actions --}}
+        <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                <i class="fas fa-save mr-1"></i> Create Instructor
+            </button>
+            <a href="{{ route('instructors.index') }}"
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium">
+                Cancel
+            </a>
+        </div>
+    </form>
 </div>
 @endsection
