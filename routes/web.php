@@ -443,6 +443,26 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:5,1')->name('reports.salary-status');
             Route::get('/tracking/90-days/export', [DepartureController::class, 'tracking90DaysExport'])
                 ->middleware('throttle:5,1')->name('tracking-90-days.export');
+
+            // MODULE 6 ENHANCEMENT ROUTES
+            Route::get('/enhanced-dashboard', [DepartureController::class, 'enhancedDashboard'])
+                ->name('enhanced-dashboard');
+            Route::get('/{departure}/checklist', [DepartureController::class, 'checklist'])
+                ->name('checklist');
+            Route::post('/{departure}/ptn', [DepartureController::class, 'updatePTN'])
+                ->name('update-ptn');
+            Route::post('/{departure}/protector', [DepartureController::class, 'updateProtector'])
+                ->name('update-protector');
+            Route::post('/{departure}/ticket', [DepartureController::class, 'updateTicket'])
+                ->name('update-ticket');
+            Route::post('/{departure}/briefing/schedule', [DepartureController::class, 'scheduleBriefing'])
+                ->name('schedule-briefing');
+            Route::post('/{departure}/briefing/complete', [DepartureController::class, 'completeBriefing'])
+                ->name('complete-briefing');
+            Route::post('/{departure}/ready', [DepartureController::class, 'markReadyToDepart'])
+                ->name('mark-ready');
+            Route::post('/{departure}/depart', [DepartureController::class, 'recordActualDeparture'])
+                ->name('record-departure-actual');
         });
     });
 

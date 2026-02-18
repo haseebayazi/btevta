@@ -23,6 +23,30 @@ enum ProtectorStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'secondary',
+            self::APPLIED => 'info',
+            self::DONE => 'success',
+            self::PENDING => 'warning',
+            self::NOT_ISSUED => 'danger',
+            self::REFUSED => 'danger',
+        };
+    }
+
+    public function icon(): string
+    {
+        return match($this) {
+            self::NOT_APPLIED => 'fas fa-circle',
+            self::APPLIED => 'fas fa-paper-plane',
+            self::DONE => 'fas fa-check-circle',
+            self::PENDING => 'fas fa-clock',
+            self::NOT_ISSUED => 'fas fa-pause-circle',
+            self::REFUSED => 'fas fa-times-circle',
+        };
+    }
+
     public static function toArray(): array
     {
         return array_combine(

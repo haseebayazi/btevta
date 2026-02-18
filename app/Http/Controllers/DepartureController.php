@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CompleteBriefingRequest;
+use App\Http\Requests\UpdateTicketDetailsRequest;
+use App\Models\Campus;
 use App\Models\Candidate;
 use App\Models\Departure;
 use App\Services\DepartureService;
@@ -972,5 +975,196 @@ class DepartureController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // -----------------------------------------------------------------------
+    // Module 6 Enhancement Methods
+    // -----------------------------------------------------------------------
+
+    /**
+     * Enhanced departure dashboard with status breakdowns.
+     */
+    public function enhancedDashboard(Request $request)
+    {
+        $this->authorize('viewAny', Departure::class);
+
+        $user = auth()->user();
+        $campusId = $user->role === 'campus_admin' ? $user->campus_id : $request->get('campus_id');
+
+        $dashboard = $this->departureService->getEnhancedDashboard($campusId);
+        $campuses = Campus::orderBy('name')->get();
+
+        return view('departure.enhanced-dashboard', compact('dashboard', 'campuses'));
+    }
+
+    /**
+     * Departure checklist for a single departure record.
+     */
+    public function checklist(Departure $departure)
+    {
+        $this->authorize('view', $departure);
+
+        $checklist = $this->departureService->getDepartureChecklist($departure);
+
+        return view('departure.checklist', compact('departure', 'checklist'));
+    }
+
+    /**
+     * Update PTN details.
+     */
+    public function updatePTN(Request $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        $validated = $request->validate([
+            'ptn_number' => 'required|string|max:50',
+            'issued_date' => 'required|date',
+            'expiry_date' => 'nullable|date|after:issued_date',
+            'evidence' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png',
+        ]);
+
+        try {
+            $this->departureService->issuePTN(
+                $departure,
+                $validated['ptn_number'],
+                $validated['issued_date'],
+                $validated['expiry_date'] ?? null,
+                $request->file('evidence')
+            );
+
+            return back()->with('success', 'PTN details updated successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update protector status.
+     */
+    public function updateProtector(Request $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        $validated = $request->validate([
+            'status' => 'required|in:not_applied,applied,done,pending,not_issued,refused',
+            'notes' => 'nullable|string|max:1000',
+            'certificate' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png',
+        ]);
+
+        try {
+            $this->departureService->updateProtector(
+                $departure,
+                $validated['status'],
+                $validated['notes'] ?? null,
+                $request->file('certificate')
+            );
+
+            return back()->with('success', 'Protector status updated.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update ticket details.
+     */
+    public function updateTicket(UpdateTicketDetailsRequest $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        try {
+            $this->departureService->updateTicket(
+                $departure,
+                $request->validated(),
+                $request->file('ticket_file')
+            );
+
+            return back()->with('success', 'Ticket details updated successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Schedule pre-departure briefing.
+     */
+    public function scheduleBriefing(Request $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        $validated = $request->validate([
+            'briefing_date' => 'required|date|after_or_equal:today',
+        ]);
+
+        try {
+            $this->departureService->scheduleBriefing($departure, $validated['briefing_date']);
+
+            return back()->with('success', 'Pre-departure briefing scheduled.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Complete pre-departure briefing with optional uploads.
+     */
+    public function completeBriefing(CompleteBriefingRequest $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        try {
+            $this->departureService->completeBriefing(
+                $departure,
+                $request->boolean('acknowledgment_signed'),
+                $request->input('notes'),
+                $request->file('briefing_document'),
+                $request->file('briefing_video'),
+                $request->file('acknowledgment_file')
+            );
+
+            return back()->with('success', 'Pre-departure briefing completed.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Mark candidate as ready to depart.
+     */
+    public function markReadyToDepart(Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        try {
+            $this->departureService->markReadyToDepart($departure);
+
+            return back()->with('success', 'Candidate marked as ready to depart.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Record actual departure.
+     */
+    public function recordActualDeparture(Request $request, Departure $departure)
+    {
+        $this->authorize('update', $departure);
+
+        $validated = $request->validate([
+            'actual_departure_time' => 'nullable|date',
+        ]);
+
+        try {
+            $this->departureService->recordActualDeparture(
+                $departure,
+                $validated['actual_departure_time'] ?? null
+            );
+
+            return redirect()->route('departure.show', $departure->candidate)
+                ->with('success', 'Departure recorded. Proceed with post-departure tracking.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }
