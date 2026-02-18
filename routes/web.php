@@ -368,22 +368,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('visa-processing', VisaProcessingController::class);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
-            // UPDATE ROUTES (Use these to modify existing records)
-            Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
-            Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
-            Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
-            Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
+            // E-Number (externally generated, no Module 5 equivalent)
             Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');
-            Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
-            Route::post('/{candidate}/update-visa-submission', [VisaProcessingController::class, 'updateVisaSubmission'])->name('update-visa-submission');
-            Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
-            Route::post('/{candidate}/update-ptn', [VisaProcessingController::class, 'updatePTN'])->name('update-ptn');
 
-            // FILE UPLOAD ROUTES (throttled)
-            Route::post('/{candidate}/upload-takamol-result', [VisaProcessingController::class, 'uploadTakamolResult'])
-                ->middleware('throttle:30,1')->name('upload-takamol-result');
-            Route::post('/{candidate}/upload-gamca-result', [VisaProcessingController::class, 'uploadGamcaResult'])
-                ->middleware('throttle:30,1')->name('upload-gamca-result');
+            // Ticket & Travel (no Module 5 equivalent)
             Route::post('/{candidate}/upload-travel-plan', [VisaProcessingController::class, 'uploadTravelPlan'])
                 ->middleware('throttle:30,1')->name('upload-travel-plan');
             Route::post('/{candidate}/upload-ticket', [VisaProcessingController::class, 'uploadTicket'])
@@ -393,13 +381,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/dashboard', [VisaProcessingController::class, 'dashboard'])->name('dashboard');
             Route::get('/{candidate}/timeline', [VisaProcessingController::class, 'timeline'])->name('timeline');
 
-            // THROTTLE FIX: Overdue report limited to 5/min (resource intensive)
             Route::get('/reports/overdue', [VisaProcessingController::class, 'overdue'])
                 ->middleware('throttle:5,1')->name('overdue');
 
             Route::post('/{candidate}/complete', [VisaProcessingController::class, 'complete'])->name('complete');
 
-            // THROTTLE FIX: Report generation limited to 5/min (resource intensive)
             Route::post('/reports/generate', [VisaProcessingController::class, 'report'])
                 ->middleware('throttle:5,1')->name('report');
         });

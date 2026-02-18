@@ -990,9 +990,12 @@ class VisaProcessingService
         string $applicationStatus,
         ?string $issuedStatus = null,
         ?string $notes = null,
-        $evidenceFile = null
+        $evidenceFile = null,
+        ?string $visaNumber = null,
+        ?string $visaDate = null,
+        ?string $ptnNumber = null
     ): void {
-        DB::transaction(function () use ($visaProcess, $applicationStatus, $issuedStatus, $notes, $evidenceFile) {
+        DB::transaction(function () use ($visaProcess, $applicationStatus, $issuedStatus, $notes, $evidenceFile, $visaNumber, $visaDate, $ptnNumber) {
             $evidencePath = null;
 
             if ($evidenceFile) {
@@ -1020,11 +1023,26 @@ class VisaProcessingService
                 $visaProcess->visa_issued_status = VisaIssuedStatus::from($issuedStatus);
             }
 
-            // If visa confirmed, update candidate status
+            // Set visa number and date if provided
+            if ($visaNumber) {
+                $visaProcess->visa_number = $visaNumber;
+            }
+            if ($visaDate) {
+                $visaProcess->visa_date = $visaDate;
+            }
+            if ($ptnNumber) {
+                $visaProcess->ptn_number = $ptnNumber;
+                $visaProcess->ptn_issue_date = now();
+            }
+
+            // If visa confirmed, update statuses and candidate
             if ($issuedStatus === 'confirmed') {
-                $visaProcess->visa_status = 'approved';
+                $visaProcess->visa_status = 'issued';
                 $visaProcess->visa_issued = true;
+                $visaProcess->overall_status = 'visa_issued';
                 $visaProcess->candidate->update(['status' => CandidateStatus::VISA_APPROVED->value]);
+            } elseif ($applicationStatus === 'applied') {
+                $visaProcess->overall_status = 'visa_submission';
             } elseif ($applicationStatus === 'refused' || $issuedStatus === 'refused') {
                 $visaProcess->update([
                     'failed_at' => now(),
@@ -1042,6 +1060,8 @@ class VisaProcessingService
                 ->withProperties([
                     'application_status' => $applicationStatus,
                     'issued_status' => $issuedStatus,
+                    'visa_number' => $visaNumber,
+                    'ptn_number' => $ptnNumber,
                 ])
                 ->log('Visa application status updated');
         });

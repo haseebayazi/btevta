@@ -226,20 +226,24 @@ All routes are protected by `role:admin,project_director,campus_admin,instructor
 | POST   | `/visa-processing/stage/{visaProcess}/{stage}`     | Schedule/record/upload stage  |
 | POST   | `/visa-processing/visa-application/{visaProcess}`  | Update visa application status|
 
-### Existing Routes (preserved)
+### Retained Routes
 
 | Method | Route                                              | Action                        |
 |--------|-----------------------------------------------------|-------------------------------|
 | GET    | `/visa-processing`                                 | Index (candidates list)       |
+| GET    | `/visa-processing/create`                          | Create new visa process form  |
+| POST   | `/visa-processing`                                 | Store new visa process        |
 | GET    | `/visa-processing/{candidate}`                     | Show visa process details     |
+| GET    | `/visa-processing/{candidate}/edit`                | Edit visa process form        |
+| PUT    | `/visa-processing/{candidate}`                     | Update visa process           |
 | GET    | `/visa-processing/{candidate}/timeline`            | Timeline view                 |
+| POST   | `/visa-processing/{candidate}/update-enumber`      | E-number update (external)    |
+| POST   | `/visa-processing/{candidate}/upload-travel-plan`  | Upload travel plan            |
+| POST   | `/visa-processing/{candidate}/upload-ticket`       | Upload ticket                 |
 | POST   | `/visa-processing/{candidate}/complete`            | Complete visa process         |
-| POST   | `/visa-processing/{candidate}/update-interview`    | Legacy interview update       |
-| POST   | `/visa-processing/{candidate}/update-trade-test`   | Legacy trade test update      |
-| POST   | `/visa-processing/{candidate}/update-takamol`      | Legacy takamol update         |
-| POST   | `/visa-processing/{candidate}/update-medical`      | Legacy medical update         |
-| POST   | `/visa-processing/{candidate}/update-enumber`      | Legacy e-number update        |
-| POST   | `/visa-processing/{candidate}/update-biometric`    | Legacy biometric update       |
+| GET    | `/visa-processing/dashboard`                       | Analytics dashboard           |
+| GET    | `/visa-processing/reports/overdue`                 | Overdue report                |
+| POST   | `/visa-processing/reports/generate`                | Generate report               |
 
 All routes require authentication and role-based authorization.
 
@@ -267,6 +271,9 @@ All routes require authentication and role-based authorization.
 [
     'application_status' => 'required|in:not_applied,applied,refused',
     'issued_status'      => 'nullable|in:pending,confirmed,refused',
+    'visa_number'        => 'nullable|string|max:50',
+    'visa_date'          => 'nullable|date',
+    'ptn_number'         => 'nullable|string|max:50',
     'notes'              => 'nullable|string|max:2000',
     'evidence'           => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
 ]
@@ -461,15 +468,50 @@ activity()
 
 ---
 
-## Backward Compatibility
+## Backward Compatibility & Legacy Deprecation
 
-### Existing Visa Processing System
+### Deprecated Legacy Routes (REMOVED)
 
-- All existing visa processing functionality **PRESERVED** (legacy stage updates, file uploads, timeline, reports)
-- Legacy update routes (`/update-interview`, `/update-trade-test`, etc.) continue to work unchanged
-- Legacy file upload routes (`/upload-takamol-result`, `/upload-gamca-result`, etc.) continue to work
-- Existing `VisaProcessingService` methods untouched; new methods added alongside
-- Model backward compatibility stubs for `setTakamolBookingDateAttribute` and `setGamcaBookingDateAttribute`
+The following legacy routes have been **removed** in favor of Module 5 stage management:
+
+| Removed Route | Module 5 Replacement |
+|---|---|
+| `POST /update-interview` | `POST /stage/{visaProcess}/interview` |
+| `POST /update-trade-test` | `POST /stage/{visaProcess}/trade_test` |
+| `POST /update-takamol` | `POST /stage/{visaProcess}/takamol` |
+| `POST /update-medical` | `POST /stage/{visaProcess}/medical` |
+| `POST /update-biometric` | `POST /stage/{visaProcess}/biometric` |
+| `POST /upload-takamol-result` | `POST /stage/{visaProcess}/takamol` (evidence action) |
+| `POST /upload-gamca-result` | `POST /stage/{visaProcess}/medical` (evidence action) |
+| `POST /update-visa-submission` | `POST /visa-application/{visaProcess}` |
+| `POST /update-visa` | `POST /visa-application/{visaProcess}` |
+| `POST /update-ptn` | `POST /visa-application/{visaProcess}` (ptn_number field) |
+
+### Retained Routes (No Module 5 Equivalent)
+
+| Route | Reason |
+|---|---|
+| `POST /update-enumber` | E-Number is externally generated |
+| `POST /upload-travel-plan` | Ticket/travel stage not in Module 5 detail stages |
+| `POST /upload-ticket` | Ticket/travel stage not in Module 5 detail stages |
+| `POST /complete` | Process completion validation |
+| `GET /timeline` | Timeline view |
+| `GET /dashboard` | Analytics dashboard |
+| Resource routes (CRUD) | Index, create, store, show, edit, update, destroy |
+
+### Legacy-Compatible Status Values
+
+Module 5's `recordStageResult()` maps VisaStageResult values to legacy-compatible status values:
+
+| Stage | pass → | fail → | Legacy Expected |
+|---|---|---|---|
+| Interview | `passed` | `failed` | `passed`/`failed` |
+| Trade Test | `passed` | `failed` | `passed`/`failed` |
+| Takamol | `completed` | `failed` | `completed`/`failed` |
+| Medical | `fit` | `unfit` | `fit`/`unfit` |
+| Biometric | `completed` | `failed` | `completed`/`failed` |
+
+Module 5 also sets `*_completed` booleans and advances `overall_status` on pass results, ensuring the progress bar, completion validation, and all legacy code paths work correctly.
 
 ### Legacy Training Path
 
