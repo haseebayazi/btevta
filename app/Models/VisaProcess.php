@@ -359,7 +359,66 @@ class VisaProcess extends Model
         }
 
         $this->{$detailsField} = $currentDetails->withResult($resultStatus, $notes, $evidencePath)->toArray();
-        $this->{"{$stage}_status"} = $resultStatus === 'pass' ? 'completed' : $resultStatus;
+
+        // Map Module 5 result values to legacy-compatible status values per stage
+        $legacyStatus = match ($stage) {
+            'interview' => match ($resultStatus) {
+                'pass' => 'passed',
+                'fail', 'refused' => 'failed',
+                default => $resultStatus,
+            },
+            'trade_test' => match ($resultStatus) {
+                'pass' => 'passed',
+                'fail', 'refused' => 'failed',
+                default => $resultStatus,
+            },
+            'takamol' => match ($resultStatus) {
+                'pass' => 'completed',
+                'fail', 'refused' => 'failed',
+                default => $resultStatus,
+            },
+            'medical' => match ($resultStatus) {
+                'pass' => 'fit',
+                'fail', 'refused' => 'unfit',
+                default => $resultStatus,
+            },
+            'biometric' => match ($resultStatus) {
+                'pass' => 'completed',
+                'fail', 'refused' => 'failed',
+                default => $resultStatus,
+            },
+            default => $resultStatus === 'pass' ? 'completed' : $resultStatus,
+        };
+
+        $this->{"{$stage}_status"} = $legacyStatus;
+
+        // Set *_completed booleans for legacy compatibility
+        if ($resultStatus === 'pass') {
+            $completedFields = [
+                'interview' => 'interview_completed',
+                'trade_test' => 'trade_test_completed',
+                'medical' => 'medical_completed',
+                'biometric' => 'biometric_completed',
+            ];
+            if (isset($completedFields[$stage])) {
+                $this->{$completedFields[$stage]} = true;
+            }
+        }
+
+        // Advance overall_status to track pipeline progress
+        if ($resultStatus === 'pass') {
+            $stageProgressMap = [
+                'interview' => 'interview_completed',
+                'trade_test' => 'trade_test_completed',
+                'takamol' => 'takamol_completed',
+                'medical' => 'medical_completed',
+                'biometric' => 'biometric_completed',
+            ];
+            if (isset($stageProgressMap[$stage])) {
+                $this->overall_status = $stageProgressMap[$stage];
+            }
+        }
+
         $this->save();
 
         activity()
