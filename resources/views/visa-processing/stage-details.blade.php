@@ -75,18 +75,34 @@
                         <div class="flex-1">
                             <span class="text-sm {{ $stageKey === $stage ? 'font-bold text-blue-700' : 'text-gray-700' }}">{{ $stageInfo['name'] }}</span>
                         </div>
-                        @php
-                            $stageResult = $stageInfo['details']->getResultEnum();
-                        @endphp
-                        @if($stageResult)
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                {{ $stageResult === \App\Enums\VisaStageResult::PASS ? 'bg-green-100 text-green-800' :
-                                   ($stageResult === \App\Enums\VisaStageResult::FAIL || $stageResult === \App\Enums\VisaStageResult::REFUSED ? 'bg-red-100 text-red-800' :
-                                   ($stageResult === \App\Enums\VisaStageResult::SCHEDULED ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')) }}">
-                                {{ $stageResult->label() }}
-                            </span>
+                        @if($stageKey === 'visa_application')
+                            @php
+                                $navVaStatus = $visaProcess->visa_application_status?->value;
+                                $navViStatus = $visaProcess->visa_issued_status?->value;
+                            @endphp
+                            @if($navViStatus === 'confirmed')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Confirmed</span>
+                            @elseif($navVaStatus === 'refused' || $navViStatus === 'refused')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Refused</span>
+                            @elseif($navVaStatus === 'applied')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Applied</span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Not Applied</span>
+                            @endif
                         @else
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Pending</span>
+                            @php
+                                $stageResult = $stageInfo['details']->getResultEnum();
+                            @endphp
+                            @if($stageResult)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                    {{ $stageResult === \App\Enums\VisaStageResult::PASS ? 'bg-green-100 text-green-800' :
+                                       ($stageResult === \App\Enums\VisaStageResult::FAIL || $stageResult === \App\Enums\VisaStageResult::REFUSED ? 'bg-red-100 text-red-800' :
+                                       ($stageResult === \App\Enums\VisaStageResult::SCHEDULED ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')) }}">
+                                    {{ $stageResult->label() }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Pending</span>
+                            @endif
                         @endif
                     </a>
                     @endforeach
@@ -109,28 +125,112 @@
                                 <p class="text-sm text-gray-500">Stage details and management</p>
                             </div>
                         </div>
-                        @php
-                            $currentResult = $details->getResultEnum();
-                        @endphp
-                        @if($currentResult)
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
-                                {{ $currentResult === \App\Enums\VisaStageResult::PASS ? 'bg-green-100 text-green-800' :
-                                   ($currentResult === \App\Enums\VisaStageResult::FAIL || $currentResult === \App\Enums\VisaStageResult::REFUSED ? 'bg-red-100 text-red-800' :
-                                   ($currentResult === \App\Enums\VisaStageResult::SCHEDULED ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')) }}">
-                                <i class="{{ $currentResult->icon() }}"></i>
-                                {{ $currentResult->label() }}
-                            </span>
+                        @if($stage === 'visa_application')
+                            @php
+                                $vaStatus = $visaProcess->visa_application_status;
+                                $viStatus = $visaProcess->visa_issued_status;
+                            @endphp
+                            @if($viStatus?->value === 'confirmed')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle"></i> Visa Confirmed
+                                </span>
+                            @elseif($vaStatus?->value === 'refused' || $viStatus?->value === 'refused')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle"></i> Refused
+                                </span>
+                            @elseif($vaStatus?->value === 'applied')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                    <i class="fas fa-paper-plane"></i> Applied
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                                    <i class="fas fa-clock"></i> Not Applied
+                                </span>
+                            @endif
                         @else
-                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
-                                <i class="fas fa-clock"></i> Pending
-                            </span>
+                            @php
+                                $currentResult = $details->getResultEnum();
+                            @endphp
+                            @if($currentResult)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                                    {{ $currentResult === \App\Enums\VisaStageResult::PASS ? 'bg-green-100 text-green-800' :
+                                       ($currentResult === \App\Enums\VisaStageResult::FAIL || $currentResult === \App\Enums\VisaStageResult::REFUSED ? 'bg-red-100 text-red-800' :
+                                       ($currentResult === \App\Enums\VisaStageResult::SCHEDULED ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')) }}">
+                                    <i class="{{ $currentResult->icon() }}"></i>
+                                    {{ $currentResult->label() }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                                    <i class="fas fa-clock"></i> Pending
+                                </span>
+                            @endif
                         @endif
                     </div>
                 </div>
             </div>
 
             {{-- Current Details --}}
-            @if($details->isScheduled() || $details->hasResult())
+            @if($stage === 'visa_application')
+                @php
+                    $infoVaStatus = $visaProcess->visa_application_status;
+                    $infoViStatus = $visaProcess->visa_issued_status;
+                @endphp
+                @if($infoVaStatus || $details->hasResult() || $details->notes || $details->hasEvidence())
+                <div class="bg-white rounded-lg shadow-sm border mb-4">
+                    <div class="px-6 py-4 border-b">
+                        <h3 class="font-semibold text-gray-700"><i class="fas fa-info-circle mr-2"></i>Current Information</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Application Status</span>
+                                <p class="font-medium">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $infoVaStatus?->value === 'applied' ? 'bg-blue-100 text-blue-700' : ($infoVaStatus?->value === 'refused' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600') }}">
+                                        {{ $infoVaStatus?->label() ?? 'Not Applied' }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Issued Status</span>
+                                <p class="font-medium">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $infoViStatus?->value === 'confirmed' ? 'bg-green-100 text-green-700' : ($infoViStatus?->value === 'refused' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') }}">
+                                        {{ $infoViStatus?->label() ?? 'Pending' }}
+                                    </span>
+                                </p>
+                            </div>
+                            @if($visaProcess->visa_number)
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Visa Number</span>
+                                <p class="font-mono font-medium">{{ $visaProcess->visa_number }}</p>
+                            </div>
+                            @endif
+                            @if($visaProcess->ptn_number)
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">PTN Number</span>
+                                <p class="font-mono font-medium">{{ $visaProcess->ptn_number }}</p>
+                            </div>
+                            @endif
+                            @if($details->notes)
+                            <div class="md:col-span-2">
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Notes</span>
+                                <p class="font-medium">{{ $details->notes }}</p>
+                            </div>
+                            @endif
+                            @if($details->hasEvidence())
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Evidence</span>
+                                <p>
+                                    <a href="{{ route('secure-file.download', $details->evidencePath) }}" class="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                                        <i class="fas fa-download"></i> Download Evidence
+                                    </a>
+                                </p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endif
+            @elseif($details->isScheduled() || $details->hasResult())
             <div class="bg-white rounded-lg shadow-sm border mb-4">
                 <div class="px-6 py-4 border-b">
                     <h3 class="font-semibold text-gray-700"><i class="fas fa-info-circle mr-2"></i>Current Information</h3>

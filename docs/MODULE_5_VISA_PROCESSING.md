@@ -337,14 +337,16 @@ DB::transaction(function() {
 ```php
 // Service: updateVisaApplicationStatus()
 DB::transaction(function() {
-    // 1. Upload evidence if provided
-    // 2. Update visa_application_details via VisaStageDetails
-    // 3. Set visa_application_status enum
-    // 4. If issued_status provided, set visa_issued_status enum
-    // 5. Branch:
+    // 1. Map application/issued status to VisaStageResult for details JSON:
+    //    - confirmed → PASS, refused → REFUSED, applied → SCHEDULED, else → PENDING
+    // 2. Upload evidence if provided
+    // 3. Update visa_application_details via VisaStageDetails (with mapped result)
+    // 4. Set visa_application_status enum
+    // 5. If issued_status provided, set visa_issued_status enum
+    // 6. Branch:
     //    - 'confirmed' → visa_issued=true, candidate → VISA_APPROVED
     //    - 'refused' → set failure fields, candidate → REJECTED
-    // 6. Log activity
+    // 7. Log activity
 });
 ```
 

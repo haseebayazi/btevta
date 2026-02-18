@@ -999,9 +999,17 @@ class VisaProcessingService
                 $evidencePath = $visaProcess->uploadStageEvidence('visa_application', $evidenceFile);
             }
 
+            // Map application/issued status to a VisaStageResult for the details JSON
+            $detailResultStatus = match (true) {
+                $issuedStatus === 'confirmed' => VisaStageResult::PASS->value,
+                $applicationStatus === 'refused', $issuedStatus === 'refused' => VisaStageResult::REFUSED->value,
+                $applicationStatus === 'applied' => VisaStageResult::SCHEDULED->value,
+                default => VisaStageResult::PENDING->value,
+            };
+
             $details = VisaStageDetails::fromArray($visaProcess->visa_application_details);
             $visaProcess->visa_application_details = $details->withResult(
-                $applicationStatus,
+                $detailResultStatus,
                 $notes,
                 $evidencePath
             )->toArray();

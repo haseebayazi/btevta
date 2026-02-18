@@ -275,6 +275,22 @@ class VisaProcess extends Model
         foreach ($stages as $key => $stage) {
             $result = $stage['details']->getResultEnum();
 
+            // For visa_application, also check the enum fields as fallback
+            if ($key === 'visa_application' && !$result) {
+                $issuedVal = $stage['issued_status'] ?? null;
+                $statusVal = $stage['status'] ?? null;
+                if ($issuedVal === 'confirmed') {
+                    $passed[$key] = $stage;
+                    continue;
+                } elseif ($statusVal === 'refused' || $issuedVal === 'refused') {
+                    $failed[$key] = $stage;
+                    continue;
+                } elseif ($statusVal === 'applied') {
+                    $scheduled[$key] = $stage;
+                    continue;
+                }
+            }
+
             if ($result === VisaStageResult::PASS) {
                 $passed[$key] = $stage;
             } elseif ($result === VisaStageResult::FAIL || $result === VisaStageResult::REFUSED) {
