@@ -779,7 +779,7 @@ class ReportController extends Controller
         ]);
 
         $user = auth()->user();
-        $query = TrainingAssessment::with(['candidate', 'batch', 'trainer']);
+        $query = TrainingAssessment::with(['candidate', 'batch', 'instructor']);
 
         // Apply filters
         if (!empty($validated['campus_id'])) {
