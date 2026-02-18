@@ -117,7 +117,9 @@
         <div class="card">
             <h2 class="text-xl font-bold mb-4">Performance by Assessment Type</h2>
             @if($byType->count() > 0)
-                <canvas id="typeChart" height="300"></canvas>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="typeChart"></canvas>
+                </div>
             @else
                 <p class="text-gray-500 text-center py-8">No data available</p>
             @endif
@@ -127,7 +129,9 @@
         <div class="card">
             <h2 class="text-xl font-bold mb-4">Score Distribution</h2>
             @if($scoreDistribution->count() > 0)
-                <canvas id="distributionChart" height="300"></canvas>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
             @else
                 <p class="text-gray-500 text-center py-8">No data available</p>
             @endif
@@ -138,7 +142,9 @@
     <div class="card mb-6">
         <h2 class="text-xl font-bold mb-4">Performance Trend (Last 12 Months)</h2>
         @if($monthlyTrend->count() > 0)
-            <canvas id="trendChart" height="120"></canvas>
+            <div class="relative" style="height: 300px;">
+                <canvas id="trendChart"></canvas>
+            </div>
         @else
             <p class="text-gray-500 text-center py-8">No trend data available</p>
         @endif
