@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\Departure;
 use App\Models\Candidate;
+use App\Enums\BriefingStatus;
 use App\Enums\CandidateStatus;
+use App\Enums\DepartureStatus;
+use App\Enums\ProtectorStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -1060,5 +1063,158 @@ class DepartureService
             'total' => $total,
             'percentage' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
         ];
+    }
+
+    // -----------------------------------------------------------------------
+    // Module 6 Enhancement Methods
+    // -----------------------------------------------------------------------
+
+    /**
+     * Get enhanced departure dashboard data with status breakdowns.
+     */
+    public function getEnhancedDashboard(?int $campusId = null): array
+    {
+        $query = Departure::with(['candidate.campus', 'candidate.trade'])
+            ->whereHas('candidate');
+
+        if ($campusId) {
+            $query->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
+        }
+
+        $departures = $query->get();
+
+        return [
+            'summary' => [
+                'total' => $departures->count(),
+                'processing' => $departures->where('departure_status', DepartureStatus::PROCESSING)->count(),
+                'ready_to_depart' => $departures->where('departure_status', DepartureStatus::READY_TO_DEPART)->count(),
+                'departed' => $departures->where('departure_status', DepartureStatus::DEPARTED)->count(),
+                'cancelled' => $departures->where('departure_status', DepartureStatus::CANCELLED)->count(),
+            ],
+            'ptn_status' => [
+                'pending' => $departures->filter(fn($d) => ! $d->ptn_details_object->isIssued())->count(),
+                'issued' => $departures->filter(fn($d) => $d->ptn_details_object->isIssued())->count(),
+            ],
+            'protector_status' => [
+                'not_applied' => $departures->filter(fn($d) => $d->protector_status === ProtectorStatus::NOT_APPLIED)->count(),
+                'applied' => $departures->filter(fn($d) => $d->protector_status === ProtectorStatus::APPLIED)->count(),
+                'done' => $departures->filter(fn($d) => $d->protector_status === ProtectorStatus::DONE)->count(),
+                'pending' => $departures->filter(fn($d) => $d->protector_status === ProtectorStatus::PENDING)->count(),
+            ],
+            'briefing_status' => [
+                'not_scheduled' => $departures->where('briefing_status', BriefingStatus::NOT_SCHEDULED)->count(),
+                'scheduled' => $departures->where('briefing_status', BriefingStatus::SCHEDULED)->count(),
+                'completed' => $departures->where('briefing_status', BriefingStatus::COMPLETED)->count(),
+            ],
+            'upcoming_flights' => $departures
+                ->filter(fn($d) => $d->ticket_details_object->departureDate !== null)
+                ->filter(fn($d) => $d->ticket_details_object->getDepartureDateTime()?->isFuture())
+                ->sortBy(fn($d) => $d->ticket_details_object->getDepartureDateTime())
+                ->take(10)
+                ->values(),
+            'ready_candidates' => $departures
+                ->where('departure_status', DepartureStatus::READY_TO_DEPART)
+                ->values(),
+        ];
+    }
+
+    /**
+     * Get departure checklist status for a departure record.
+     */
+    public function getDepartureChecklist(Departure $departure): array
+    {
+        $checklist = $departure->getDepartureChecklist();
+
+        $completedCount = collect($checklist)->filter(fn($item) => $item['complete'])->count();
+        $totalCount = count($checklist);
+
+        return [
+            'items' => $checklist,
+            'completed' => $completedCount,
+            'total' => $totalCount,
+            'percentage' => $totalCount > 0 ? round(($completedCount / $totalCount) * 100) : 0,
+            'can_mark_ready' => $departure->canMarkReadyToDepart(),
+        ];
+    }
+
+    /**
+     * Issue/update PTN with evidence upload.
+     */
+    public function issuePTN(
+        Departure $departure,
+        string $ptnNumber,
+        string $issuedDate,
+        ?string $expiryDate = null,
+        $evidenceFile = null
+    ): void {
+        DB::transaction(function () use ($departure, $ptnNumber, $issuedDate, $expiryDate, $evidenceFile) {
+            $departure->updatePTN($ptnNumber, $issuedDate, $expiryDate, $evidenceFile);
+        });
+    }
+
+    /**
+     * Update protector clearance status.
+     */
+    public function updateProtector(
+        Departure $departure,
+        string $status,
+        ?string $notes = null,
+        $certificateFile = null
+    ): void {
+        $departure->updateProtectorStatus($status, ['notes' => $notes], $certificateFile);
+    }
+
+    /**
+     * Update flight ticket with full details.
+     */
+    public function updateTicket(Departure $departure, array $ticketData, $ticketFile = null): void
+    {
+        $departure->updateTicketDetails($ticketData, $ticketFile);
+    }
+
+    /**
+     * Schedule the pre-departure briefing.
+     */
+    public function scheduleBriefing(Departure $departure, string $date): void
+    {
+        $departure->scheduleBriefing($date);
+    }
+
+    /**
+     * Complete the pre-departure briefing with optional media uploads.
+     */
+    public function completeBriefing(
+        Departure $departure,
+        bool $acknowledgmentSigned,
+        ?string $notes = null,
+        $documentFile = null,
+        $videoFile = null,
+        $acknowledgmentFile = null
+    ): void {
+        $departure->completeBriefing(
+            $acknowledgmentSigned,
+            $notes,
+            $documentFile,
+            $videoFile,
+            $acknowledgmentFile
+        );
+    }
+
+    /**
+     * Mark departure as ready to depart (all checklist items must be complete).
+     */
+    public function markReadyToDepart(Departure $departure): void
+    {
+        $departure->markReadyToDepart();
+    }
+
+    /**
+     * Record actual departure and trigger post-departure workflow.
+     */
+    public function recordActualDeparture(Departure $departure, ?string $actualTime = null): void
+    {
+        $departure->recordDeparture($actualTime);
+
+        event(new \App\Events\CandidateDeparted($departure->candidate, $departure));
     }
 }
