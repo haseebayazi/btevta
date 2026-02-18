@@ -420,6 +420,20 @@
                     </a>
                 </div>
 
+                <!-- Instructors - accessible to admin and campus_admin -->
+                @if(auth()->user()->isAdmin() || auth()->user()->isCampusAdmin())
+                <div class="pt-4 border-t">
+                    <p x-show="sidebarOpen" class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Staff
+                    </p>
+                    <a href="{{ route('instructors.index') }}"
+                       class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('instructors.*') ? 'sidebar-item-active' : '' }}">
+                        <i class="fas fa-chalkboard-teacher text-lg w-6"></i>
+                        <span x-show="sidebarOpen" class="font-medium">Instructors</span>
+                    </a>
+                </div>
+                @endif
+
                 <!-- Admin Section -->
                 @if(auth()->user()->isAdmin())
                 <div class="pt-4 border-t">
