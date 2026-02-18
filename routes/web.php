@@ -314,7 +314,7 @@ Route::middleware(['auth'])->group(function () {
     // AUTHORIZATION FIX: Restricted to admin, campus_admin, and instructor roles
     // ========================================================================
     Route::middleware('role:admin,campus_admin,instructor')->group(function () {
-        Route::resource('training', TrainingController::class);
+        Route::resource('training', TrainingController::class)->parameters(['training' => 'candidate']);
         Route::prefix('training')->name('training.')->group(function () {
             // TRAINING ROUTES
             // Legacy routes kept for backward compatibility
