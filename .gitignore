@@ -96,12 +96,10 @@ node_modules/
 *.sqlite3
 *.db
 
-# Uploaded files (optional - adjust based on your needs)
-# /storage/app/public/*
-# !/storage/app/public/.gitkeep
-
-# Generated test certificates
+# Uploaded files and runtime storage
+/storage/app/private/
 /storage/app/public/certificates/*.pdf
+/storage/app/public/visa/
 
 # Temporary migration scripts
 fix_*.php
