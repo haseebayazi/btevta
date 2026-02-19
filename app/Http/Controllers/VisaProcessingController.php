@@ -729,9 +729,11 @@ class VisaProcessingController extends Controller
         $this->authorize('viewAny', VisaProcess::class);
 
         try {
-            $overdueCandidates = $this->visaService->getOverdueProcesses();
+            $overdueProcesses = $this->visaService->getOverdueProcesses();
+            $overdueCandidates = $overdueProcesses;
+            $campuses = Campus::orderBy('name')->get();
 
-            return view('visa-processing.overdue', compact('overdueCandidates'));
+            return view('visa-processing.overdue', compact('overdueCandidates', 'overdueProcesses', 'campuses'));
         } catch (Exception $e) {
             return back()->with('error', 'Failed to fetch overdue processes: ' . $e->getMessage());
         }

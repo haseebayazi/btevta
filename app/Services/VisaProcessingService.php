@@ -1032,7 +1032,6 @@ class VisaProcessingService
             }
             if ($ptnNumber) {
                 $visaProcess->ptn_number = $ptnNumber;
-                $visaProcess->ptn_issue_date = now();
             }
 
             // If visa confirmed, update statuses and candidate

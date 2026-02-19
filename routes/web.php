@@ -366,7 +366,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/visa-application/{visaProcess}', [VisaProcessingController::class, 'updateVisaApplication'])->name('update-visa-application');
         });
 
-        Route::resource('visa-processing', VisaProcessingController::class);
+        Route::resource('visa-processing', VisaProcessingController::class)
+            ->parameters(['visa-processing' => 'candidate']);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
             // E-Number (externally generated, no Module 5 equivalent)
             Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');
