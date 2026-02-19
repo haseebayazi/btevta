@@ -32,7 +32,7 @@ class VisaProcess extends Model
         'medical_date', 'medical_status', 'medical_completed',
         'medical_details',
         // E-Number
-        'enumber',
+        'enumber', 'enumber_status',
         // Biometrics/Etimad
         'biometric_date', 'etimad_appointment_id', 'biometric_status', 'biometric_completed',
         'biometric_details',

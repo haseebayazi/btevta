@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold">Overdue Visa Processes</h1>
-            <p class="text-gray-600 mt-1">{{ $overdueCount }} processes are overdue</p>
+            <p class="text-gray-600 mt-1">{{ $overdueCandidates->count() ?? 0 }} processes are overdue</p>
         </div>
         <button onclick="exportToExcel()" class="btn btn-success">
             <i class="fas fa-file-excel mr-2"></i>Export
@@ -105,9 +105,11 @@
             </table>
         </div>
         
+        @if(method_exists($overdueProcesses, 'links'))
         <div class="mt-4">
             {{ $overdueProcesses->links() }}
         </div>
+        @endif
     </div>
 </div>
 

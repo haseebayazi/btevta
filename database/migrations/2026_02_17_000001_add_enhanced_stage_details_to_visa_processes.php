@@ -25,6 +25,11 @@ return new class extends Migration
                 $table->json('takamol_details')->nullable()->after('takamol_status');
             }
 
+            // E-Number status tracking (used by validateStagePrerequisites and updateEnumber)
+            if (!Schema::hasColumn('visa_processes', 'enumber_status')) {
+                $table->string('enumber_status', 20)->nullable()->after('enumber');
+            }
+
             // Failed stage tracking
             if (!Schema::hasColumn('visa_processes', 'failed_at')) {
                 $table->timestamp('failed_at')->nullable()->after('overall_status');
@@ -41,7 +46,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('visa_processes', function (Blueprint $table) {
-            $columns = ['takamol_details', 'failed_at', 'failed_stage', 'failure_reason'];
+            $columns = ['takamol_details', 'enumber_status', 'failed_at', 'failed_stage', 'failure_reason'];
             foreach ($columns as $column) {
                 if (Schema::hasColumn('visa_processes', $column)) {
                     $table->dropColumn($column);
