@@ -86,11 +86,12 @@ class DepartureService
                 ]);
             }
 
-            // Update candidate status with NULL CHECK
-            // Pre-departure briefing is a sub-step while candidate is in 'ready_to_depart' status
-            // Only update to 'ready_to_depart' if not already departed
-            if ($candidate->status !== CandidateStatus::DEPARTED->value) {
-                $candidate->update(['status' => CandidateStatus::READY_TO_DEPART->value]);
+            // Pre-departure briefing is a sub-step within DEPARTURE_PROCESSING.
+            // Do NOT advance to READY_TO_DEPART here - that requires all 4 checklist
+            // items (PTN, Protector, Ticket, Briefing) to be complete.
+            // Only set to DEPARTURE_PROCESSING if not already at a later stage.
+            if ($candidate->status === CandidateStatus::VISA_APPROVED->value) {
+                $candidate->update(['status' => CandidateStatus::DEPARTURE_PROCESSING->value]);
             }
 
             // Log activity
@@ -160,11 +161,13 @@ class DepartureService
                 'current_stage' => 'iqama_issued',
             ]);
 
-            // Update candidate status with NULL CHECK
+            // Update candidate status to POST_DEPARTURE if still at DEPARTED
             if (!$departure->candidate) {
                 throw new \Exception("Departure {$departureId} has no associated candidate");
             }
-            $departure->candidate->update(['status' => 'iqama_issued']);
+            if ($departure->candidate->status === CandidateStatus::DEPARTED->value) {
+                $departure->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
+            }
 
             // Log activity
             activity()
@@ -184,7 +187,7 @@ class DepartureService
         $departure = Departure::findOrFail($departureId);
         
         // Store file
-        $path = $file->store('departure/medical', 'public');
+        $path = $file->store('departure/medical', 'private');
         
         $departure->update([
             'medical_report_path' => $path,
@@ -203,9 +206,9 @@ class DepartureService
     /**
      * Record Absher registration
      */
-    public function recordAbsherRegistration($departureId, $data)
+    public function recordAbsherRegistration($candidateId, $data)
     {
-        $departure = Departure::findOrFail($departureId);
+        $departure = Departure::firstOrCreate(['candidate_id' => $candidateId]);
         
         $departure->update([
             'absher_registered' => true,
@@ -215,8 +218,10 @@ class DepartureService
             'current_stage' => 'absher_registered',
         ]);
 
-        // Update candidate status
-        $departure->candidate->update(['status' => 'absher_registered']);
+        // Ensure candidate is in POST_DEPARTURE status
+        if ($departure->candidate->status === CandidateStatus::DEPARTED->value) {
+            $departure->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
+        }
 
         // Log activity
         activity()
@@ -241,8 +246,10 @@ class DepartureService
             'current_stage' => 'qiwa_activated',
         ]);
 
-        // Update candidate status
-        $departure->candidate->update(['status' => 'qiwa_activated']);
+        // Ensure candidate is in POST_DEPARTURE status
+        if ($departure->candidate->status === CandidateStatus::DEPARTED->value) {
+            $departure->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
+        }
 
         // Log activity
         activity()
@@ -270,8 +277,10 @@ class DepartureService
             'current_stage' => 'salary_confirmed',
         ]);
 
-        // Update candidate status
-        $departure->candidate->update(['status' => 'salary_confirmed']);
+        // Ensure candidate is in POST_DEPARTURE status
+        if ($departure->candidate->status === CandidateStatus::DEPARTED->value) {
+            $departure->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
+        }
 
         // Log activity
         activity()
@@ -663,8 +672,8 @@ class DepartureService
             'current_stage' => 'iqama_issued',
         ]);
 
-        if ($departure->candidate) {
-            $departure->candidate->update(['status' => 'iqama_issued']);
+        if ($departure->candidate && $departure->candidate->status === CandidateStatus::DEPARTED->value) {
+            $departure->candidate->update(['status' => CandidateStatus::POST_DEPARTURE->value]);
         }
 
         activity()
@@ -982,7 +991,7 @@ class DepartureService
      */
     public function getActiveIssues()
     {
-        $departures = Departure::whereNotNull('issues')->get();
+        $departures = Departure::with('candidate')->whereNotNull('issues')->get();
 
         $activeIssues = [];
 

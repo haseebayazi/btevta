@@ -46,7 +46,7 @@ class BriefingDetails implements Arrayable
             'acknowledgment_path' => $this->acknowledgmentPath,
             'notes' => $this->notes,
             'conducted_by' => $this->conductedBy,
-        ], fn($v) => $v !== null && $v !== false);
+        ], fn($v) => $v !== null);
     }
 
     public function isComplete(): bool
