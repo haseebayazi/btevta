@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BriefingStatus;
+use App\Enums\CandidateStatus;
+use App\Enums\DepartureStatus;
 use App\Models\Candidate;
 use App\Models\Campus;
 use App\Models\Departure;
@@ -764,17 +767,18 @@ class VisaProcessingController extends Controller
 
             $visaProcess = $this->visaService->completeVisaProcess($candidate->visaProcess->id);
 
-            // Update candidate status to ready for departure
-            $candidate->update(['status' => Candidate::STATUS_READY]);
+            // Update candidate status to DEPARTURE_PROCESSING (proper enum transition)
+            $candidate->update(['status' => CandidateStatus::DEPARTURE_PROCESSING->value]);
 
-            // AUDIT FIX: Auto-create Departure record when candidate becomes READY
-            // This ensures departure tracking starts immediately and doesn't rely on manual creation
+            // Auto-create Departure record when candidate enters departure processing
             $departure = Departure::firstOrCreate(
                 ['candidate_id' => $candidate->id],
                 [
                     'visa_process_id' => $candidate->visaProcess->id,
                     'oep_id' => $candidate->oep_id,
                     'status' => 'pending_briefing',
+                    'departure_status' => DepartureStatus::PROCESSING->value,
+                    'briefing_status' => BriefingStatus::NOT_SCHEDULED->value,
                     'created_by' => auth()->id(),
                 ]
             );

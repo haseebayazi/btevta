@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CandidateStatus;
 use App\Http\Requests\CompleteBriefingRequest;
 use App\Http\Requests\UpdateTicketDetailsRequest;
 use App\Models\Campus;
@@ -189,7 +190,7 @@ class DepartureController extends Controller
             $medicalPath = null;
             if ($request->hasFile('post_arrival_medical')) {
                 $medicalPath = $request->file('post_arrival_medical')
-                    ->store('departure/medical', 'public');
+                    ->store('departure/medical', 'private');
             }
 
             $departure = $this->departureService->recordIqamaDetails(
@@ -282,7 +283,7 @@ class DepartureController extends Controller
             $proofPath = null;
             if ($request->hasFile('salary_proof')) {
                 $proofPath = $request->file('salary_proof')
-                    ->store('departure/salary-proof', 'public');
+                    ->store('departure/salary-proof', 'private');
             }
 
             $departure = $this->departureService->recordFirstSalary(
@@ -319,7 +320,7 @@ class DepartureController extends Controller
         try {
             // Store proof document
             $proofPath = $request->file('proof_document')
-                ->store('departure/salary-proof', 'public');
+                ->store('departure/salary-proof', 'private');
 
             // Update departure with salary confirmation
             $departure->update([
@@ -406,7 +407,7 @@ class DepartureController extends Controller
             $evidencePath = null;
             if ($request->hasFile('evidence')) {
                 $evidencePath = $request->file('evidence')
-                    ->store('departure/issues', 'public');
+                    ->store('departure/issues', 'private');
             }
 
             $issue = $this->departureService->reportIssue(
@@ -676,7 +677,7 @@ class DepartureController extends Controller
                 $validated['return_remarks'] ?? null
             );
 
-            $candidate->update(['status' => Candidate::STATUS_RETURNED]);
+            $candidate->update(['status' => CandidateStatus::COMPLETED->value]);
 
             return redirect()->route('departure.index')
                 ->with('success', 'Candidate marked as returned!');

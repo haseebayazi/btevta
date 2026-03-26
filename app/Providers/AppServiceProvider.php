@@ -34,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Listeners\HandleTrainingCompleted::class
         );
 
+        Event::listen(
+            \App\Events\CandidateDeparted::class,
+            \App\Listeners\HandleCandidateDeparted::class
+        );
+
         // Define standard API rate limiter
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

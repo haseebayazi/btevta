@@ -124,6 +124,7 @@ enum CandidateStatus: string
             self::COMPLETED,
             self::REJECTED,
             self::WITHDRAWN,
+            self::DEFERRED,
         ]);
     }
 

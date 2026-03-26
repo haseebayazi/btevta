@@ -106,6 +106,11 @@ class Departure extends Model
         'briefing_details',
         'departure_status',
         'departed_at',
+        'ptn_number',
+        'ticket_path',
+        'visa_process_id',
+        'oep_id',
+        'status',
     ];
 
     protected $casts = [
@@ -171,30 +176,15 @@ class Departure extends Model
     }
 
     /**
-     * Get the OEP through the candidate relationship.
-     * PHASE 2 FIX: Use HasManyThrough correctly or delegate to candidate.
+     * Get the OEP associated with this departure's candidate.
      *
-     * Note: For direct access, use $departure->candidate->oep instead.
-     *
-     * @see docs/IMPLEMENTATION_PLAN.md - Phase 2.2
+     * HasOneThrough is not suitable here because the intermediate table (candidates)
+     * does not have a FK pointing to departures; instead departures.candidate_id points
+     * to candidates.id. Use $departure->candidate->oep for direct access.
      */
-    public function oep()
+    public function getOepAttribute()
     {
-        // HasOneThrough requires correct key ordering:
-        // 1st arg: Final model we want (Oep)
-        // 2nd arg: Intermediate model (Candidate)
-        // 3rd arg: FK on intermediate table pointing to this (candidates.id matches departures.candidate_id)
-        // 4th arg: FK on final table (oeps.id)
-        // 5th arg: Local key on this model (departures.candidate_id)
-        // 6th arg: Local key on intermediate model (candidates.oep_id)
-        return $this->hasOneThrough(
-            Oep::class,
-            Candidate::class,
-            'id',           // candidates.id (FK on intermediate pointing to departures)
-            'id',           // oeps.id
-            'candidate_id', // departures.candidate_id (local key)
-            'oep_id'        // candidates.oep_id (key on intermediate pointing to final)
-        );
+        return $this->candidate?->oep;
     }
 
     /**
@@ -271,7 +261,7 @@ class Departure extends Model
     public function canMarkReadyToDepart(): bool
     {
         return $this->ptn_details_object->isIssued()
-            && ($this->protector_status === ProtectorStatus::DONE || $this->protector_status?->value === 'done')
+            && $this->protector_status === ProtectorStatus::DONE
             && $this->ticket_details_object->isComplete()
             && $this->briefing_details_object->isComplete();
     }
