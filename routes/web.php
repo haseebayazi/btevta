@@ -398,6 +398,10 @@ Route::middleware(['auth'])->group(function () {
     // Roles: admin, project_director, campus_admin, oep, visa_partner, viewer
     // ========================================================================
     Route::middleware('role:admin,project_director,campus_admin,oep,visa_partner,viewer')->group(function () {
+        // Module 6 enhanced-dashboard must be registered BEFORE the resource route
+        // to prevent /departure/enhanced-dashboard from matching departure.show
+        Route::get('departure/enhanced-dashboard', [DepartureController::class, 'enhancedDashboard'])
+            ->name('departure.enhanced-dashboard');
         Route::resource('departure', DepartureController::class);
         Route::prefix('departure')->name('departure.')->group(function () {
         // RECORD ROUTES (Core departure tracking)
@@ -446,8 +450,7 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('throttle:5,1')->name('tracking-90-days.export');
 
             // MODULE 6 ENHANCEMENT ROUTES
-            Route::get('/enhanced-dashboard', [DepartureController::class, 'enhancedDashboard'])
-                ->name('enhanced-dashboard');
+            // Note: enhanced-dashboard route is registered before the resource route above
             Route::get('/{departure}/checklist', [DepartureController::class, 'checklist'])
                 ->name('checklist');
             Route::post('/{departure}/ptn', [DepartureController::class, 'updatePTN'])

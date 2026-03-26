@@ -149,6 +149,7 @@ class Departure extends Model
         'protector_details' => 'array',
         'ticket_details' => 'array',
         'briefing_details' => 'array',
+        'protector_status' => ProtectorStatus::class,
         'briefing_status' => BriefingStatus::class,
         'departure_status' => DepartureStatus::class,
         'departed_at' => 'datetime',
@@ -306,7 +307,6 @@ class Departure extends Model
             $evidencePath = $this->uploadFile($evidenceFile, 'ptn');
         }
 
-        $this->ptn_number = $ptnNumber;
         $this->ptn_details = (new PTNDetails(
             status: 'issued',
             issuedDate: $issuedDate,
@@ -364,10 +364,6 @@ class Departure extends Model
             ticketPath: $ticketPath ?? $this->ticket_details_object->ticketPath,
             pnr: $ticketData['pnr'] ?? null,
         ))->toArray();
-
-        if ($ticketPath) {
-            $this->ticket_path = $ticketPath;
-        }
 
         $this->save();
 
