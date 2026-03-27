@@ -7,9 +7,16 @@
             <h1 class="text-3xl font-bold">Departure Process</h1>
             <p class="text-gray-600">{{ $departure->candidate->name }} - {{ $departure->destination_country }}</p>
         </div>
-        <a href="{{ route('departure.timeline', $departure) }}" class="btn btn-primary">
-            <i class="fas fa-timeline mr-2"></i>View Timeline
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('departure.timeline', $departure) }}" class="btn btn-primary">
+                <i class="fas fa-timeline mr-2"></i>View Timeline
+            </a>
+            @if($departure->departure_status?->value === 'departed')
+            <a href="{{ route('post-departure.show', $departure->candidate) }}" class="btn btn-info">
+                <i class="fas fa-globe mr-2"></i>Post-Departure Tracking
+            </a>
+            @endif
+        </div>
     </div>
 
     <!-- 90-Day Countdown Alert -->

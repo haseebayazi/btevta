@@ -384,28 +384,35 @@
                         <span x-show="sidebarOpen" class="font-medium">Departure</span>
                     </a>
 
-                    <!-- Tab 7: Correspondence -->
+                    <!-- Tab 7: Post-Departure -->
+                    <a href="{{ route('post-departure.dashboard') }}"
+                       class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('post-departure.*') ? 'sidebar-item-active' : '' }}">
+                        <i class="fas fa-globe text-lg w-6"></i>
+                        <span x-show="sidebarOpen" class="font-medium">Post-Departure</span>
+                    </a>
+
+                    <!-- Tab 8: Correspondence -->
                     <a href="{{ route('dashboard.correspondence') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.correspondence') ? 'sidebar-item-active' : '' }}">
                         <i class="fas fa-envelope text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Correspondence</span>
                     </a>
 
-                    <!-- Tab 8: Complaints -->
+                    <!-- Tab 9: Complaints -->
                     <a href="{{ route('dashboard.complaints') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.complaints') ? 'sidebar-item-active' : '' }}">
                         <i class="fas fa-exclamation-triangle text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Complaints</span>
                     </a>
 
-                    <!-- Tab 9: Document Archive -->
+                    <!-- Tab 10: Document Archive -->
                     <a href="{{ route('dashboard.document-archive') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.document-archive') ? 'sidebar-item-active' : '' }}">
                         <i class="fas fa-archive text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Documents</span>
                     </a>
 
-                    <!-- Tab 10: Reports -->
+                    <!-- Tab 11: Reports -->
                     <a href="{{ route('dashboard.reports') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.reports') ? 'sidebar-item-active' : '' }}">
                         <i class="fas fa-chart-bar text-lg w-6"></i>

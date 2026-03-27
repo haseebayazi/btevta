@@ -159,6 +159,7 @@ Business logic is separated from controllers into dedicated services:
 | `RemittanceService` | Money transfer tracking |
 | `ComplaintService` | SLA-based complaint management |
 | `PreDepartureDocumentService` | Module 1 document collection |
+| `PostDepartureService` | Module 7 post-departure tracking & compliance |
 
 ### 3. Policy-Based Authorization
 
@@ -519,7 +520,10 @@ php artisan serve
 - `docs/EVENTS_AND_LISTENERS.md` - Event architecture
 - `docs/openapi.yaml` - API specification
 - `docs/REMITTANCE_*.md` - Remittance module guides
+- `docs/MODULE_6_IMPLEMENTATION_PROMPT.md` - Module 6 Departure Enhancement spec
+- `docs/MODULE_7_IMPLEMENTATION_PROMPT.md` - Module 7 Post-Departure Enhancement spec
+- `docs/MODULE_7_POST_DEPARTURE.md` - Module 7 Post-Departure implementation guide
 
 ---
 
-*Last Updated: February 2026*
+*Last Updated: March 2026*
