@@ -256,6 +256,20 @@
             </div>
             @endif
 
+            {{-- Post-Departure Tracking Card - for departed/post_departure candidates --}}
+            @if(in_array($candidate->status, ['departed', 'post_departure']))
+            <div class="bg-white rounded-lg shadow-md p-6 border-2 border-info">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    <i class="fas fa-globe text-info mr-2"></i>Post-Departure Tracking
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">Track residency, employment, compliance, and company switches for this deployed candidate.</p>
+                <a href="{{ route('post-departure.show', $candidate) }}"
+                   class="block w-full bg-info hover:bg-blue-600 text-white text-center px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-globe mr-2"></i>View Post-Departure Details
+                </a>
+            </div>
+            @endif
+
             <!-- Action Card -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
