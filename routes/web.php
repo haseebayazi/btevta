@@ -9,6 +9,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\VisaProcessingController;
 use App\Http\Controllers\DepartureController;
+use App\Http\Controllers\PostDepartureController;
 use App\Http\Controllers\CorrespondenceController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\DocumentArchiveController;
@@ -468,6 +469,28 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{departure}/depart', [DepartureController::class, 'recordActualDeparture'])
                 ->name('record-departure-actual');
         });
+    });
+
+    // ========================================================================
+    // POST-DEPARTURE MANAGEMENT (Module 7)
+    // Purpose: Post-departure tracking, employment, compliance
+    // ========================================================================
+    Route::middleware(['auth'])->prefix('post-departure')->name('post-departure.')->group(function () {
+        Route::get('/dashboard', [PostDepartureController::class, 'dashboard'])->name('dashboard');
+        Route::get('/candidate/{candidate}', [PostDepartureController::class, 'show'])->name('show');
+
+        Route::post('/{detail}/iqama', [PostDepartureController::class, 'updateIqama'])->name('update-iqama');
+        Route::post('/{detail}/foreign-contact', [PostDepartureController::class, 'updateForeignContact'])->name('update-contact');
+        Route::post('/{detail}/foreign-bank', [PostDepartureController::class, 'updateForeignBank'])->name('update-bank');
+        Route::post('/{detail}/tracking-app', [PostDepartureController::class, 'registerTrackingApp'])->name('register-tracking');
+        Route::post('/{detail}/wps', [PostDepartureController::class, 'registerWPS'])->name('register-wps');
+        Route::post('/{detail}/contract', [PostDepartureController::class, 'updateContract'])->name('update-contract');
+        Route::post('/{detail}/employment', [PostDepartureController::class, 'addEmployment'])->name('add-employment');
+        Route::post('/{detail}/switch', [PostDepartureController::class, 'initiateSwitch'])->name('initiate-switch');
+        Route::post('/{detail}/verify-compliance', [PostDepartureController::class, 'verifyCompliance'])->name('verify-compliance');
+
+        Route::post('/switch/{switch}/approve', [PostDepartureController::class, 'approveSwitch'])->name('approve-switch');
+        Route::post('/switch/{switch}/complete', [PostDepartureController::class, 'completeSwitch'])->name('complete-switch');
     });
 
     // ========================================================================
