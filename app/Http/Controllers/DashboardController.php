@@ -689,7 +689,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
         
-        $departures = Departure::with(['candidate', 'candidate.campus', 'oep'])
+        $departures = Departure::with(['candidate', 'candidate.campus', 'candidate.oep'])
             ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
                 $sq->where('campus_id', $campusFilter)))
             ->latest()
