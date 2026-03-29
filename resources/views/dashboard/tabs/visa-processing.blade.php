@@ -74,7 +74,7 @@
                                     <span class="text-xs text-gray-600">{{ $progressItems }}/5</span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <a href="{{ route('visa-processing.show', $visa->id) }}" 
+                                    <a href="{{ route('visa-processing.show', $visa->candidate_id) }}"
                                        class="text-blue-600 hover:text-blue-900 font-medium">View</a>
                                 </td>
                             </tr>

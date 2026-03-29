@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CandidateStatus;
 use App\Models\Candidate;
 use Illuminate\Support\Collection;
 
@@ -72,7 +73,7 @@ class CandidateJourneyService
             'departed' => 'Departed',
             'post_departure' => 'Post Departure',
             'completed' => 'Journey Completed',
-            'rejected', 'withdrawn' => 'Journey Ended',
+            'deferred', 'rejected', 'withdrawn' => 'Journey Ended',
             default => 'Unknown',
         };
     }
@@ -85,69 +86,63 @@ class CandidateJourneyService
      */
     protected function getMilestones(Candidate $candidate): array
     {
+        $statusEnum = CandidateStatus::tryFrom($candidate->status);
+        $currentOrder = $statusEnum ? $statusEnum->order() : 0;
+
         return [
             [
                 'name' => 'Listed',
                 'date' => $candidate->created_at?->toDateString(),
-                'completed' => true, // Always completed if candidate exists
+                'completed' => $currentOrder >= CandidateStatus::LISTED->order(),
                 'icon' => 'fa-user-plus',
                 'color' => 'primary',
             ],
             [
                 'name' => 'Pre-Departure Documents',
                 'date' => $candidate->preDepartureDocuments()->whereNotNull('verified_at')->latest('verified_at')->value('verified_at'),
-                'completed' => $candidate->preDepartureDocuments()->whereNotNull('verified_at')->exists(),
+                'completed' => $currentOrder >= CandidateStatus::SCREENING->order(),
                 'icon' => 'fa-file-alt',
                 'color' => 'info',
             ],
             [
                 'name' => 'Screened',
                 'date' => $candidate->screenings()->where('screening_status', 'screened')->value('reviewed_at'),
-                'completed' => in_array($candidate->status, [
-                    'screened', 'registered', 'training', 'training_completed',
-                    'visa_process', 'visa_approved', 'departure_processing',
-                    'ready_to_depart', 'departed', 'post_departure', 'completed'
-                ]),
+                'completed' => $currentOrder >= CandidateStatus::SCREENED->order(),
                 'icon' => 'fa-phone',
                 'color' => 'warning',
             ],
             [
                 'name' => 'Registered',
                 'date' => $candidate->registration_date?->toDateString(),
-                'completed' => $candidate->registration_date !== null || in_array($candidate->status, [
-                    'registered', 'training', 'training_completed',
-                    'visa_process', 'visa_approved', 'departure_processing',
-                    'ready_to_depart', 'departed', 'post_departure', 'completed'
-                ]),
+                'completed' => $currentOrder >= CandidateStatus::REGISTERED->order(),
                 'icon' => 'fa-clipboard-check',
                 'color' => 'success',
             ],
             [
                 'name' => 'Training Complete',
-                // FIX: Use 'issue_date' instead of 'issued_at'
                 'date' => $candidate->trainingCertificates()->latest('issue_date')->value('issue_date'),
-                'completed' => $candidate->trainingCertificates()->exists(),
+                'completed' => $currentOrder >= CandidateStatus::TRAINING_COMPLETED->order(),
                 'icon' => 'fa-graduation-cap',
                 'color' => 'success',
             ],
             [
                 'name' => 'Visa Approved',
-                'date' => $candidate->visaProcess?->visa_issued_at?->toDateString(),
-                'completed' => $candidate->visaProcess?->visa_issued_at !== null,
+                'date' => $candidate->visaProcess?->visa_date?->toDateString(),
+                'completed' => $currentOrder >= CandidateStatus::VISA_APPROVED->order(),
                 'icon' => 'fa-passport',
                 'color' => 'primary',
             ],
             [
                 'name' => 'Departed',
                 'date' => $candidate->departure?->actual_departure_date?->toDateString(),
-                'completed' => $candidate->departure?->actual_departure_date !== null,
+                'completed' => $currentOrder >= CandidateStatus::DEPARTED->order(),
                 'icon' => 'fa-plane-departure',
                 'color' => 'info',
             ],
             [
                 'name' => 'Employment Confirmed',
                 'date' => $candidate->departure?->employment_confirmed_at?->toDateString(),
-                'completed' => $candidate->departure?->employment_confirmed_at !== null,
+                'completed' => $currentOrder >= CandidateStatus::COMPLETED->order(),
                 'icon' => 'fa-briefcase',
                 'color' => 'success',
             ],

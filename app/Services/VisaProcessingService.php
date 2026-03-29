@@ -268,7 +268,7 @@ class VisaProcessingService
             'biometric_status' => 'completed',
         ]);
 
-        $this->moveToNextStage($visaProcess, 'visa_applied');
+        $this->moveToNextStage($visaProcess, 'visa_submission');
 
         return $visaProcess->fresh();
     }
@@ -282,7 +282,7 @@ class VisaProcessingService
 
         $visaProcess->update([
             'visa_status' => 'applied',
-            'overall_status' => 'visa_applied',
+            'overall_status' => 'visa_submission',
         ]);
 
         return $visaProcess->fresh();
@@ -541,9 +541,9 @@ class VisaProcessingService
             'interview_completed' => $data['interview_status'] === 'passed',
         ]);
 
-        // Update overall status if interview passed
+        // Advance overall status to next stage if interview passed
         if ($data['interview_status'] === 'passed') {
-            $visaProcess->update(['overall_status' => 'interview_completed']);
+            $visaProcess->update(['overall_status' => 'trade_test']);
         }
 
         // Log activity
@@ -570,9 +570,9 @@ class VisaProcessingService
             'trade_test_completed' => $data['trade_test_status'] === 'passed',
         ]);
 
-        // Update overall status if trade test passed
+        // Advance overall status to next stage if trade test passed
         if ($data['trade_test_status'] === 'passed') {
-            $visaProcess->update(['overall_status' => 'trade_test_completed']);
+            $visaProcess->update(['overall_status' => 'takamol']);
         }
 
         // Log activity
@@ -598,9 +598,9 @@ class VisaProcessingService
             'takamol_remarks' => $data['takamol_remarks'] ?? null,
         ]);
 
-        // Update overall status if Takamol completed
+        // Advance overall status to next stage if Takamol completed
         if ($data['takamol_status'] === 'completed') {
-            $visaProcess->update(['overall_status' => 'takamol_completed']);
+            $visaProcess->update(['overall_status' => 'medical']);
         }
 
         // Log activity
@@ -627,9 +627,9 @@ class VisaProcessingService
             'medical_completed' => $data['medical_status'] === 'fit',
         ]);
 
-        // Update overall status if medical fit
+        // Advance overall status to next stage if medical fit
         if ($data['medical_status'] === 'fit') {
-            $visaProcess->update(['overall_status' => 'medical_completed']);
+            $visaProcess->update(['overall_status' => 'enumber']);
         }
 
         // Log activity
@@ -656,9 +656,9 @@ class VisaProcessingService
             'biometric_completed' => $data['biometric_status'] === 'completed',
         ]);
 
-        // Update overall status if biometric completed
+        // Advance overall status to next stage if biometric completed
         if ($data['biometric_status'] === 'completed') {
-            $visaProcess->update(['overall_status' => 'biometric_completed']);
+            $visaProcess->update(['overall_status' => 'visa_submission']);
         }
 
         // Log activity
@@ -718,7 +718,7 @@ class VisaProcessingService
         ]);
 
         // Update overall status
-        $visaProcess->update(['overall_status' => 'ticket_uploaded']);
+        $visaProcess->update(['overall_status' => 'ticket']);
 
         // Log activity
         activity()
@@ -903,11 +903,11 @@ class VisaProcessingService
             'total' => $processes->count(),
             'completed' => $processes->where('overall_status', 'completed')->count(),
             'in_progress' => $processes->where('overall_status', '!=', 'completed')->count(),
-            'interview_stage' => $processes->where('overall_status', 'interview_completed')->count(),
-            'trade_test_stage' => $processes->where('overall_status', 'trade_test_completed')->count(),
-            'takamol_stage' => $processes->where('overall_status', 'takamol_completed')->count(),
-            'medical_stage' => $processes->where('overall_status', 'medical_completed')->count(),
-            'biometric_stage' => $processes->where('overall_status', 'biometric_completed')->count(),
+            'interview_stage' => $processes->where('overall_status', 'interview')->count(),
+            'trade_test_stage' => $processes->where('overall_status', 'trade_test')->count(),
+            'takamol_stage' => $processes->where('overall_status', 'takamol')->count(),
+            'medical_stage' => $processes->where('overall_status', 'medical')->count(),
+            'biometric_stage' => $processes->where('overall_status', 'biometrics')->count(),
             'visa_issued' => $processes->where('visa_issued', true)->count(),
             'ticket_uploaded' => $processes->where('ticket_uploaded', true)->count(),
         ];

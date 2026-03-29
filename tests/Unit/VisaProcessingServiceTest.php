@@ -381,7 +381,7 @@ class VisaProcessingServiceTest extends TestCase
         ]);
 
         $this->assertTrue($result->biometric_completed);
-        $this->assertEquals('visa_applied', $result->overall_status);
+        $this->assertEquals('visa_submission', $result->overall_status);
     }
 
     // =========================================================================
@@ -398,7 +398,7 @@ class VisaProcessingServiceTest extends TestCase
             'application_number' => 'VIS-2024-12345',
         ]);
 
-        $this->assertEquals('visa_applied', $result->overall_status);
+        $this->assertEquals('visa_submission', $result->overall_status);
     }
 
     // =========================================================================
@@ -632,7 +632,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('passed', $result->interview_status);
         $this->assertTrue($result->interview_completed);
-        $this->assertEquals('interview_completed', $result->overall_status);
+        $this->assertEquals('trade_test', $result->overall_status);
     }
 
     #[Test]
@@ -648,7 +648,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('passed', $result->trade_test_status);
         $this->assertTrue($result->trade_test_completed);
-        $this->assertEquals('trade_test_completed', $result->overall_status);
+        $this->assertEquals('takamol', $result->overall_status);
     }
 
     #[Test]
@@ -663,7 +663,7 @@ class VisaProcessingServiceTest extends TestCase
         ]);
 
         $this->assertEquals('completed', $result->takamol_status);
-        $this->assertEquals('takamol_completed', $result->overall_status);
+        $this->assertEquals('medical', $result->overall_status);
     }
 
     #[Test]
@@ -679,7 +679,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('fit', $result->medical_status);
         $this->assertTrue($result->medical_completed);
-        $this->assertEquals('medical_completed', $result->overall_status);
+        $this->assertEquals('enumber', $result->overall_status);
     }
 
     #[Test]
@@ -694,7 +694,7 @@ class VisaProcessingServiceTest extends TestCase
 
         $this->assertEquals('completed', $result->biometric_status);
         $this->assertTrue($result->biometric_completed);
-        $this->assertEquals('biometric_completed', $result->overall_status);
+        $this->assertEquals('visa_submission', $result->overall_status);
     }
 
     #[Test]
@@ -729,7 +729,7 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertNotNull($result->ticket_path);
         $this->assertEquals('2024-09-01', $result->ticket_date?->format('Y-m-d'));
         $this->assertTrue($result->ticket_uploaded);
-        $this->assertEquals('ticket_uploaded', $result->overall_status);
+        $this->assertEquals('ticket', $result->overall_status);
 
         Storage::disk('public')->assertExists($result->ticket_path);
     }
