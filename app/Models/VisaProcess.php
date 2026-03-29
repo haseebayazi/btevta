@@ -405,18 +405,21 @@ class VisaProcess extends Model
             }
         }
 
-        // Advance overall_status to track pipeline progress
+        // Advance overall_status to the next stage in the pipeline
         if ($resultStatus === 'pass') {
             $stageProgressMap = [
-                'interview' => 'interview_completed',
-                'trade_test' => 'trade_test_completed',
-                'takamol' => 'takamol_completed',
-                'medical' => 'medical_completed',
-                'biometric' => 'biometric_completed',
+                'interview' => 'trade_test',
+                'trade_test' => 'takamol',
+                'takamol' => 'medical',
+                'medical' => 'enumber',
+                'biometric' => 'visa_submission',
             ];
             if (isset($stageProgressMap[$stage])) {
                 $this->overall_status = $stageProgressMap[$stage];
             }
+        } elseif (in_array($resultStatus, ['fail', 'refused'])) {
+            // Keep overall_status at current stage on failure
+            $this->overall_status = $stage;
         }
 
         $this->save();

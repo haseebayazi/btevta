@@ -678,39 +678,7 @@ class DashboardController extends Controller
     // ============================================
     public function visaProcessing(Request $request)
     {
-        $user = auth()->user();
-        $campusFilter = $user->role === 'campus_admin' ? $user->campus_id : null;
-        
-        $visaProcessing = VisaProcess::with(['candidate', 'oep', 'candidate.campus'])
-            ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                $sq->where('campus_id', $campusFilter)))
-            ->latest()
-            ->paginate(15);
-        
-        $visaStats = [
-            'interview' => VisaProcess::where('interview_completed', true)
-                ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                    $sq->where('campus_id', $campusFilter)))
-                ->count(),
-            'trade_test' => VisaProcess::where('trade_test_completed', true)
-                ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                    $sq->where('campus_id', $campusFilter)))
-                ->count(),
-            'medical' => VisaProcess::where('medical_completed', true)
-                ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                    $sq->where('campus_id', $campusFilter)))
-                ->count(),
-            'biometric' => VisaProcess::where('biometric_completed', true)
-                ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                    $sq->where('campus_id', $campusFilter)))
-                ->count(),
-            'visa_issued' => VisaProcess::where('visa_issued', true)
-                ->when($campusFilter, fn($q) => $q->whereHas('candidate', fn($sq) => 
-                    $sq->where('campus_id', $campusFilter)))
-                ->count(),
-        ];
-        
-        return view('dashboard.tabs.visa-processing', compact('visaProcessing', 'visaStats'));
+        return redirect()->route('visa-processing.index');
     }
 
     // ============================================

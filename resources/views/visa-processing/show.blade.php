@@ -310,8 +310,9 @@
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div class="px-5 py-3 border-b flex items-center justify-between">
                     <h5 class="font-semibold text-gray-800"><i class="fas fa-hashtag mr-2 text-indigo-500"></i>4. E-Number Generation</h5>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $visaProcess->enumber ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
-                        {{ $visaProcess->enumber ? 'Generated' : 'Pending' }}
+                    @php $eStatus = $visaProcess->enumber_status ?? ($visaProcess->enumber ? 'generated' : 'pending'); @endphp
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ in_array($eStatus, ['generated', 'verified']) ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                        {{ ucfirst($eStatus) }}
                     </span>
                 </div>
                 <div class="p-5">
@@ -321,13 +322,40 @@
                         </div>
                         <div class="space-y-1.5 text-sm">
                             <p><span class="text-gray-500">Status:</span>
-                                @php $eStatus = $visaProcess->enumber ? 'generated' : 'pending'; @endphp
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $eStatus === 'generated' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ in_array($eStatus, ['generated', 'verified']) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
                                     {{ ucfirst($eStatus) }}
                                 </span>
                             </p>
                         </div>
                     </div>
+                    @if($visaProcess->overall_status !== 'completed')
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <form action="{{ route('visa-processing.update-enumber', $candidate) }}" method="POST" class="space-y-3">
+                            @csrf
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">E-Number</label>
+                                    <input type="text" name="enumber" value="{{ $visaProcess->enumber }}" placeholder="Leave blank to auto-generate" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Date <span class="text-red-500">*</span></label>
+                                    <input type="date" name="enumber_date" value="{{ now()->format('Y-m-d') }}" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Status <span class="text-red-500">*</span></label>
+                                    <select name="enumber_status" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="pending" {{ $eStatus === 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="generated" {{ $eStatus === 'generated' ? 'selected' : '' }}>Generated</option>
+                                        <option value="verified" {{ $eStatus === 'verified' ? 'selected' : '' }}>Verified</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-sm">
+                                <i class="fas fa-save mr-1"></i> {{ $visaProcess->enumber ? 'Update' : 'Generate' }} E-Number
+                            </button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -430,6 +458,51 @@
                             @endif
                         </div>
                     </div>
+                    @if($visaProcess->overall_status !== 'completed')
+                    <div class="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                        {{-- Upload Ticket --}}
+                        <form action="{{ route('visa-processing.upload-ticket', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                            @csrf
+                            <h6 class="text-sm font-semibold text-gray-700"><i class="fas fa-ticket-alt mr-1"></i> Upload Ticket</h6>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Ticket File <span class="text-red-500">*</span></label>
+                                    <input type="file" name="ticket_file" required accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Ticket Date <span class="text-red-500">*</span></label>
+                                    <input type="date" name="ticket_date" value="{{ $visaProcess->ticket_date?->format('Y-m-d') }}" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-lg text-sm">
+                                <i class="fas fa-upload mr-1"></i> Upload Ticket
+                            </button>
+                        </form>
+
+                        {{-- Upload Travel Plan --}}
+                        <form action="{{ route('visa-processing.upload-travel-plan', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+                            @csrf
+                            <h6 class="text-sm font-semibold text-gray-700"><i class="fas fa-route mr-1"></i> Upload Travel Plan</h6>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Travel Plan File <span class="text-red-500">*</span></label>
+                                    <input type="file" name="travel_plan_file" required accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Departure Date <span class="text-red-500">*</span></label>
+                                    <input type="date" name="departure_date" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Flight Number</label>
+                                    <input type="text" name="flight_number" placeholder="e.g. PK-741" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-lg text-sm">
+                                <i class="fas fa-upload mr-1"></i> Upload Travel Plan
+                            </button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
             </div>
 

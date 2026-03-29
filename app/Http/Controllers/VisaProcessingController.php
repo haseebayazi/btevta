@@ -175,10 +175,9 @@ class VisaProcessingController extends Controller
     {
         $this->authorize('create', VisaProcess::class);
 
-        // Get candidates eligible for visa processing (completed training)
-        // FIXED: Use proper status constant - candidates in training with completed training_status
-        $candidates = Candidate::where('status', Candidate::STATUS_TRAINING)
-            ->where('training_status', Candidate::TRAINING_COMPLETED)
+        // Get candidates eligible for visa processing (completed training, no existing visa process)
+        $candidates = Candidate::where('status', CandidateStatus::TRAINING_COMPLETED->value)
+            ->whereDoesntHave('visaProcess')
             ->with(['trade', 'campus'])
             ->get();
 
@@ -597,7 +596,7 @@ class VisaProcessingController extends Controller
             ]);
 
             if ($validated['medical_status'] === 'fit') {
-                $candidate->visaProcess->update(['overall_status' => 'medical_completed']);
+                $candidate->visaProcess->update(['overall_status' => 'enumber']);
                 $this->notificationService->sendVisaStageCompleted($candidate, 'Medical');
             }
 
@@ -631,7 +630,7 @@ class VisaProcessingController extends Controller
             ]);
 
             if ($validated['takamol_status'] === 'completed') {
-                $candidate->visaProcess->update(['overall_status' => 'takamol_completed']);
+                $candidate->visaProcess->update(['overall_status' => 'medical']);
                 $this->notificationService->sendVisaStageCompleted($candidate, 'Takamol');
             }
 
