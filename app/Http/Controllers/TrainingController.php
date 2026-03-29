@@ -438,8 +438,8 @@ class TrainingController extends Controller
 
         // AUDIT FIX: Validate status transition before proceeding
         $transitionResult = $candidate->validateTransition(Candidate::STATUS_VISA_PROCESS);
-        if (!$transitionResult['valid']) {
-            return back()->with('error', 'Cannot complete training: ' . $transitionResult['message']);
+        if (!$transitionResult['can_transition']) {
+            return back()->with('error', 'Cannot complete training: ' . implode(', ', $transitionResult['issues']));
         }
 
         try {
