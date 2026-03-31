@@ -11,9 +11,6 @@
             <p class="text-gray-500 text-sm mt-1">Manage candidates in visa processing pipeline</p>
         </div>
         <div class="mt-3 sm:mt-0 flex space-x-2">
-            <a href="{{ route('visa-processing.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
-                <i class="fas fa-plus mr-1"></i> New Visa Process
-            </a>
             <a href="{{ route('visa-processing.hierarchical-dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">
                 <i class="fas fa-th-large mr-1"></i> Stage Dashboard
             </a>
@@ -122,7 +119,6 @@
                 <div class="text-center py-8">
                     <i class="fas fa-passport text-4xl text-gray-300 mb-3"></i>
                     <p class="text-gray-500">No candidates in visa processing.</p>
-                    <a href="{{ route('visa-processing.create') }}" class="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block">Start now</a>
                 </div>
             @endif
         </div>
