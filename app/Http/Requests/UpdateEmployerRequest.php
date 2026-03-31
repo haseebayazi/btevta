@@ -6,47 +6,57 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateEmployerRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('employer'));
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         $employerId = $this->route('employer')->id;
 
         return [
             'permission_number' => 'nullable|string|max:50|unique:employers,permission_number,' . $employerId,
+            'permission_issue_date' => 'nullable|date',
+            'permission_expiry_date' => 'nullable|date|after_or_equal:permission_issue_date',
+            'permission_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'visa_issuing_company' => 'required|string|max:200',
+            'visa_company_license' => 'nullable|string|max:100',
             'country_id' => 'required|exists:countries,id',
+            'city' => 'nullable|string|max:100',
             'sector' => 'nullable|string|max:100',
             'trade' => 'nullable|string|max:100',
+            'trade_id' => 'nullable|exists:trades,id',
             'basic_salary' => 'nullable|numeric|min:0|max:999999999',
             'salary_currency' => 'nullable|string|size:3',
             'food_by_company' => 'boolean',
             'transport_by_company' => 'boolean',
             'accommodation_by_company' => 'boolean',
             'other_conditions' => 'nullable|string|max:2000',
+            'company_size' => 'nullable|in:small,medium,large,enterprise',
+            'notes' => 'nullable|string|max:5000',
             'evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'is_active' => 'boolean',
+            // Default package fields
+            'package_base_salary' => 'nullable|numeric|min:0',
+            'package_currency' => 'nullable|string|size:3',
+            'package_housing_allowance' => 'nullable|numeric|min:0',
+            'package_food_allowance' => 'nullable|numeric|min:0',
+            'package_transport_allowance' => 'nullable|numeric|min:0',
+            'package_other_allowance' => 'nullable|numeric|min:0',
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [
             'permission_number' => 'permission number',
+            'permission_issue_date' => 'permission issue date',
+            'permission_expiry_date' => 'permission expiry date',
             'visa_issuing_company' => 'company name',
+            'visa_company_license' => 'visa company license',
             'country_id' => 'country',
+            'trade_id' => 'trade',
             'basic_salary' => 'basic salary',
             'salary_currency' => 'currency',
             'food_by_company' => 'food provided',
@@ -57,9 +67,6 @@ class UpdateEmployerRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom messages for validator errors.
-     */
     public function messages(): array
     {
         return [
@@ -70,6 +77,7 @@ class UpdateEmployerRequest extends FormRequest
             'basic_salary.min' => 'Salary cannot be negative.',
             'evidence.mimes' => 'Evidence must be a PDF or image file (JPG, JPEG, PNG).',
             'evidence.max' => 'Evidence file size cannot exceed 5MB.',
+            'permission_expiry_date.after_or_equal' => 'Expiry date must be after or equal to the issue date.',
         ];
     }
 }

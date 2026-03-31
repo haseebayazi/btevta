@@ -722,9 +722,16 @@ Route::middleware(['auth'])->group(function () {
         Route::post('implementing-partners/{implementingPartner}/toggle-status', [\App\Http\Controllers\ImplementingPartnerController::class, 'toggleStatus'])->name('implementing-partners.toggle-status');
 
         // Employers
+        Route::get('employers/dashboard', [\App\Http\Controllers\EmployerController::class, 'dashboard'])->name('employers.dashboard');
         Route::resource('employers', \App\Http\Controllers\EmployerController::class);
         Route::post('employers/{employer}/toggle-status', [\App\Http\Controllers\EmployerController::class, 'toggleStatus'])->name('employers.toggle-status');
         Route::get('employers/{employer}/download-evidence', [\App\Http\Controllers\EmployerController::class, 'downloadEvidence'])->name('employers.download-evidence');
+        Route::post('employers/{employer}/verify', [\App\Http\Controllers\EmployerController::class, 'verify'])->name('employers.verify');
+        Route::post('employers/{employer}/package', [\App\Http\Controllers\EmployerController::class, 'setPackage'])->name('employers.set-package');
+        Route::post('employers/{employer}/documents', [\App\Http\Controllers\EmployerController::class, 'uploadDocument'])->name('employers.upload-document');
+        Route::delete('employers/documents/{document}', [\App\Http\Controllers\EmployerController::class, 'deleteDocument'])->name('employers.delete-document');
+        Route::post('employers/{employer}/assign-candidate', [\App\Http\Controllers\EmployerController::class, 'assignCandidate'])->name('employers.assign-candidate');
+        Route::get('employers/{employer}/candidates', [\App\Http\Controllers\EmployerController::class, 'candidates'])->name('employers.candidates');
 
         // Document Checklists
         Route::resource('document-checklists', \App\Http\Controllers\DocumentChecklistController::class);

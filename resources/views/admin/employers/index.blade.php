@@ -8,18 +8,23 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Employer Information</h1>
-            <p class="text-gray-600 mt-1">Manage employer details and employment packages</p>
+            <p class="text-gray-600 mt-1">Manage employer details, employment packages, and verification</p>
         </div>
 
-        @can('create', App\Models\Employer::class)
-            <a href="{{ route('admin.employers.create') }}"
-               class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                </svg>
-                Add Employer
+        <div class="flex gap-3">
+            <a href="{{ route('admin.employers.dashboard') }}"
+               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i>
+                Dashboard
             </a>
-        @endcan
+            @can('create', App\Models\Employer::class)
+                <a href="{{ route('admin.employers.create') }}"
+                   class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    Add Employer
+                </a>
+            @endcan
+        </div>
     </div>
 
     @if(session('success'))
@@ -28,14 +33,20 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <form method="GET" action="{{ route('admin.employers.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" action="{{ route('admin.employers.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
-                       placeholder="Search by company name..."
+                       placeholder="Search company, permission #..."
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
@@ -61,6 +72,15 @@
                 </select>
             </div>
 
+            <div>
+                <select name="verified"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Verification</option>
+                    <option value="1" {{ request('verified') === '1' ? 'selected' : '' }}>Verified</option>
+                    <option value="0" {{ request('verified') === '0' ? 'selected' : '' }}>Unverified</option>
+                </select>
+            </div>
+
             <div class="flex gap-2">
                 <button type="submit"
                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex-1">
@@ -83,10 +103,13 @@
                         Company Information
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Country
+                        Country / City
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Employment Package
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Candidates
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
@@ -110,16 +133,28 @@
                             @endif
                             @if($employer->sector || $employer->trade)
                                 <div class="text-xs text-gray-500 mt-1">
-                                    {{ $employer->sector }} {{ $employer->trade ? '- ' . $employer->trade : '' }}
+                                    {{ $employer->sector }}{{ $employer->trade ? ' - ' . $employer->trade : '' }}
+                                </div>
+                            @endif
+                            @if($employer->company_size)
+                                <div class="mt-1">
+                                    <span class="px-2 py-0.5 bg-{{ $employer->company_size->color() }}-100 text-{{ $employer->company_size->color() }}-800 text-xs rounded">
+                                        {{ $employer->company_size->label() }}
+                                    </span>
                                 </div>
                             @endif
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
-                                @if($employer->country->flag_emoji)
+                                @if($employer->country && $employer->country->flag_emoji)
                                     <span class="text-xl">{{ $employer->country->flag_emoji }}</span>
                                 @endif
-                                <span class="text-sm text-gray-900">{{ $employer->country->name }}</span>
+                                <div>
+                                    <span class="text-sm text-gray-900">{{ $employer->country->name ?? 'N/A' }}</span>
+                                    @if($employer->city)
+                                        <div class="text-xs text-gray-500">{{ $employer->city }}</div>
+                                    @endif
+                                </div>
                             </div>
                         </td>
                         <td class="px-6 py-4">
@@ -128,23 +163,43 @@
                                     {{ $employer->salary_currency ?? 'PKR' }} {{ number_format($employer->basic_salary) }}
                                 </div>
                             @endif
-                            <div class="flex gap-1 mt-1">
+                            <div class="flex gap-1 mt-1 flex-wrap">
                                 @if($employer->food_by_company)
-                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Food</span>
+                                    <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">Food</span>
                                 @endif
                                 @if($employer->accommodation_by_company)
-                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Accommodation</span>
+                                    <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">Accommodation</span>
                                 @endif
                                 @if($employer->transport_by_company)
-                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Transport</span>
+                                    <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">Transport</span>
                                 @endif
                             </div>
                         </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="text-sm font-bold text-gray-900">{{ $employer->candidates_count }}</span>
+                        </td>
                         <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded-full text-xs font-medium
-                                       {{ $employer->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                {{ $employer->is_active ? 'Active' : 'Inactive' }}
-                            </span>
+                            <div class="flex flex-col gap-1">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium inline-block w-fit
+                                           {{ $employer->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                    {{ $employer->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                                @if($employer->verified)
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium inline-block w-fit">
+                                        <i class="fas fa-check-circle"></i> Verified
+                                    </span>
+                                @endif
+                                @if($employer->permission_expiring)
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium inline-block w-fit">
+                                        <i class="fas fa-exclamation-triangle"></i> Expiring
+                                    </span>
+                                @endif
+                                @if($employer->permission_expired)
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium inline-block w-fit">
+                                        <i class="fas fa-times-circle"></i> Expired
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-sm">
                             <div class="flex gap-2">
@@ -175,7 +230,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                             No employers found. <a href="{{ route('admin.employers.create') }}" class="text-blue-600 hover:underline">Add the first employer</a>
                         </td>
                     </tr>
@@ -204,17 +259,15 @@
             </div>
         </div>
         <div class="bg-white rounded-lg shadow-md p-4">
-            <div class="text-sm text-gray-600">By Countries</div>
+            <div class="text-sm text-gray-600">Verified</div>
             <div class="text-2xl font-bold text-blue-600">
-                {{ $employers->unique('country_id')->count() }}
+                {{ $employers->where('verified', true)->count() }}
             </div>
         </div>
         <div class="bg-white rounded-lg shadow-md p-4">
-            <div class="text-sm text-gray-600">With Benefits</div>
+            <div class="text-sm text-gray-600">By Countries</div>
             <div class="text-2xl font-bold text-purple-600">
-                {{ $employers->where(function($e) {
-                    return $e->food_by_company || $e->accommodation_by_company || $e->transport_by_company;
-                })->count() }}
+                {{ $employers->unique('country_id')->count() }}
             </div>
         </div>
     </div>
