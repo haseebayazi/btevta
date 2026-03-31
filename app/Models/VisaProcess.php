@@ -297,10 +297,20 @@ class VisaProcess extends Model
                 $failed[$key] = $stage;
             } elseif ($result === VisaStageResult::SCHEDULED || $stage['details']->isScheduled()) {
                 $scheduled[$key] = $stage;
-            } elseif ($stage['status'] === 'completed') {
-                $done[$key] = $stage;
             } else {
-                $pending[$key] = $stage;
+                // Fall back to legacy status column values
+                $status = $stage['status'] ?? null;
+                if (in_array($status, ['passed', 'fit'])) {
+                    $passed[$key] = $stage;
+                } elseif (in_array($status, ['failed', 'unfit', 'refused'])) {
+                    $failed[$key] = $stage;
+                } elseif ($status === 'scheduled') {
+                    $scheduled[$key] = $stage;
+                } elseif ($status === 'completed') {
+                    $done[$key] = $stage;
+                } else {
+                    $pending[$key] = $stage;
+                }
             }
         }
 
