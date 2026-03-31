@@ -28,14 +28,18 @@ class DepartureController extends Controller
     }
 
     /**
-     * Display list of departed candidates
+     * Display list of candidates in departure processing
      */
     public function index(Request $request)
     {
         $this->authorize('viewAny', Departure::class);
 
         $query = Candidate::with(['trade', 'oep', 'departure'])
-            ->where('status', 'departed');
+            ->whereIn('status', [
+                CandidateStatus::DEPARTURE_PROCESSING->value,
+                CandidateStatus::READY_TO_DEPART->value,
+                CandidateStatus::DEPARTED->value,
+            ]);
 
         // Filter by campus for campus admins
         if (auth()->user()->role === 'campus_admin') {

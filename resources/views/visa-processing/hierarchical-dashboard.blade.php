@@ -18,9 +18,6 @@
             <p class="text-gray-500 text-sm mt-1">Stage-by-stage overview of all active visa processes</p>
         </div>
         <div class="mt-4 md:mt-0 flex items-center gap-3">
-            <a href="{{ route('visa-processing.dashboard') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
-                <i class="fas fa-chart-bar mr-1"></i> Analytics Dashboard
-            </a>
             <a href="{{ route('visa-processing.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
                 <i class="fas fa-list mr-1"></i> List View
             </a>
