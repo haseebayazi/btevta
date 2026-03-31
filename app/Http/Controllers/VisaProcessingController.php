@@ -139,7 +139,21 @@ class VisaProcessingController extends Controller
         $this->authorize('viewAny', VisaProcess::class);
 
         $query = Candidate::with(['trade', 'campus', 'oep', 'visaProcess'])
-            ->where('status', Candidate::STATUS_VISA_PROCESS);
+            ->where(function ($q) {
+                // Active visa processing candidates
+                $q->whereIn('status', [
+                    CandidateStatus::VISA_PROCESS->value,
+                    CandidateStatus::VISA_APPROVED->value,
+                ])
+                // Candidates who completed visa and moved to departure (for reference)
+                ->orWhere(function ($q2) {
+                    $q2->whereIn('status', [
+                        CandidateStatus::DEPARTURE_PROCESSING->value,
+                        CandidateStatus::READY_TO_DEPART->value,
+                        CandidateStatus::DEPARTED->value,
+                    ])->whereHas('visaProcess');
+                });
+            });
 
         // Filter by campus for campus admins
         if (auth()->user()->role === 'campus_admin') {
@@ -176,7 +190,11 @@ class VisaProcessingController extends Controller
         $this->authorize('create', VisaProcess::class);
 
         // Get candidates eligible for visa processing (completed training, no existing visa process)
-        $candidates = Candidate::where('status', CandidateStatus::TRAINING_COMPLETED->value)
+        // Include both training_completed (enum state) and visa_process (legacy path skips training_completed)
+        $candidates = Candidate::whereIn('status', [
+                CandidateStatus::TRAINING_COMPLETED->value,
+                CandidateStatus::VISA_PROCESS->value,
+            ])
             ->whereDoesntHave('visaProcess')
             ->with(['trade', 'campus'])
             ->get();
