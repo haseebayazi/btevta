@@ -34,4 +34,19 @@ class EmployerPolicy
     {
         return $user->isSuperAdmin();
     }
+
+    public function verify(User $user, Employer $employer): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector();
+    }
+
+    public function assignCandidate(User $user, Employer $employer): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isOep();
+    }
+
+    public function manageDocuments(User $user, Employer $employer): bool
+    {
+        return $user->isSuperAdmin() || $user->isProjectDirector() || $user->isOep();
+    }
 }

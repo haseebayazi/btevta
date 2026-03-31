@@ -256,6 +256,46 @@
             </div>
             @endif
 
+            {{-- Employer Information Card --}}
+            @php
+                $currentEmployer = $candidate->currentEmployer()->with('country')->first();
+                $allEmployers = $candidate->employers()->with('country')->get();
+            @endphp
+            @if($currentEmployer || $allEmployers->count() > 0)
+            <div class="bg-white rounded-lg shadow-md p-6 border-2 border-indigo-500">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    <i class="fas fa-building text-indigo-500 mr-2"></i>Employer Information
+                </h3>
+                @if($currentEmployer)
+                    <div class="mb-3">
+                        <p class="text-sm font-semibold text-gray-900">{{ $currentEmployer->visa_issuing_company }}</p>
+                        <p class="text-xs text-gray-600">
+                            {{ $currentEmployer->country?->name ?? '' }}
+                            {{ $currentEmployer->city ? ', ' . $currentEmployer->city : '' }}
+                        </p>
+                        @if($currentEmployer->permission_number)
+                            <p class="text-xs text-gray-500 mt-1">Permission #: {{ $currentEmployer->permission_number }}</p>
+                        @endif
+                        @if($currentEmployer->basic_salary)
+                            <p class="text-xs text-gray-500">Salary: {{ $currentEmployer->salary_currency }} {{ number_format($currentEmployer->basic_salary) }}</p>
+                        @endif
+                        @if($currentEmployer->verified)
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs mt-1">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                        @endif
+                    </div>
+                @endif
+                @if($allEmployers->count() > 1)
+                    <p class="text-xs text-gray-500 mb-2">{{ $allEmployers->count() }} employer(s) linked</p>
+                @endif
+                <a href="{{ route('admin.employers.show', $currentEmployer ?? $allEmployers->first()) }}"
+                   class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-building mr-2"></i>View Employer Details
+                </a>
+            </div>
+            @endif
+
             {{-- Post-Departure Tracking Card - for departed/post_departure candidates --}}
             @if(in_array($candidate->status, ['departed', 'post_departure']))
             <div class="bg-white rounded-lg shadow-md p-6 border-2 border-info">

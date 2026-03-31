@@ -394,6 +394,24 @@ class Candidate extends Model
     }
 
     /**
+     * Get employers associated with this candidate.
+     */
+    public function employers()
+    {
+        return $this->belongsToMany(Employer::class, 'candidate_employer')
+            ->withPivot(['is_current', 'assigned_at', 'assigned_by', 'employment_type', 'assignment_date', 'custom_package', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the current employer for this candidate.
+     */
+    public function currentEmployer()
+    {
+        return $this->employers()->wherePivot('is_current', true)->wherePivot('status', 'active');
+    }
+
+    /**
      * Get all complaints filed by or about the candidate.
      */
     public function complaints()
