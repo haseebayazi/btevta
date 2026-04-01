@@ -38,7 +38,7 @@
 
     <!-- Summary Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col">
             <div class="card bg-secondary text-white">
                 <div class="card-body text-center">
                     <h4>{{ $dashboard['summary']['total'] }}</h4>
@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="card bg-warning text-white">
                 <div class="card-body text-center">
                     <h4>{{ $dashboard['summary']['processing'] }}</h4>
@@ -54,7 +54,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="card bg-info text-white">
                 <div class="card-body text-center">
                     <h4>{{ $dashboard['summary']['ready_to_depart'] }}</h4>
@@ -62,11 +62,19 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h4>{{ $dashboard['summary']['departed'] }}</h4>
                     <p class="mb-0"><i class="fas fa-plane"></i> Departed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h4>{{ $dashboard['summary']['cancelled'] }}</h4>
+                    <p class="mb-0"><i class="fas fa-ban"></i> Cancelled</p>
                 </div>
             </div>
         </div>
