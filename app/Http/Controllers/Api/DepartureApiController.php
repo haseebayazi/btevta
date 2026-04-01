@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Enums\CandidateStatus;
 use App\Models\Departure;
 use App\Models\Candidate;
 use Illuminate\Http\Request;
@@ -41,7 +42,8 @@ class DepartureApiController extends Controller
 
         // Filter by compliance status
         if ($request->filled('is_compliant')) {
-            $query->where('is_compliant', $request->boolean('is_compliant'));
+            $complianceValue = $request->boolean('is_compliant') ? 'compliant' : 'non_compliant';
+            $query->where('ninety_day_compliance_status', $complianceValue);
         }
 
         $perPage = min($request->input('per_page', 20), 100);
@@ -78,9 +80,7 @@ class DepartureApiController extends Controller
             'candidate_id' => 'required|exists:candidates,id',
             'departure_date' => 'required|date',
             'flight_number' => 'nullable|string|max:50',
-            'airline' => 'nullable|string|max:100',
-            'destination_country' => 'required|string|max:100',
-            'destination_city' => 'nullable|string|max:100',
+            'destination' => 'required|string|max:100',
             'employer_name' => 'nullable|string|max:255',
             'remarks' => 'nullable|string|max:2000',
         ]);
@@ -94,15 +94,15 @@ class DepartureApiController extends Controller
 
         // Check candidate is ready for departure
         $candidate = Candidate::findOrFail($request->candidate_id);
-        if ($candidate->status !== Candidate::STATUS_READY) {
+        if ($candidate->status !== CandidateStatus::READY_TO_DEPART->value) {
             return response()->json([
                 'success' => false,
-                'message' => 'Candidate must be in "ready" status for departure',
+                'message' => 'Candidate must be in "ready_to_depart" status for departure',
             ], 422);
         }
 
         $data = $validator->validated();
-        $data['recorded_by'] = auth()->id();
+        $data['created_by'] = auth()->id();
 
         // AUDIT FIX: Wrap departure creation and status update in transaction
         try {
@@ -111,7 +111,7 @@ class DepartureApiController extends Controller
             $departure = Departure::create($data);
 
             // Update candidate status
-            $candidate->update(['status' => Candidate::STATUS_DEPARTED]);
+            $candidate->update(['status' => CandidateStatus::DEPARTED->value]);
 
             DB::commit();
 
@@ -150,8 +150,7 @@ class DepartureApiController extends Controller
             'wps_registered' => 'nullable|boolean',
             'first_salary_date' => 'nullable|date',
             'first_salary_amount' => 'nullable|numeric|min:0',
-            'is_compliant' => 'nullable|boolean',
-            'compliance_date' => 'nullable|date',
+            'ninety_day_compliance_status' => 'nullable|string|in:pending,compliant,non_compliant,partial',
             'remarks' => 'nullable|string|max:2000',
         ]);
 
@@ -193,14 +192,13 @@ class DepartureApiController extends Controller
             $query->whereHas('candidate', fn($q) => $q->where('oep_id', $user->oep_id));
         }
 
-        $stats = $query->selectRaw('
+        $stats = $query->selectRaw("
             COUNT(*) as total_departures,
-            SUM(CASE WHEN is_compliant = 1 THEN 1 ELSE 0 END) as compliant_count,
+            SUM(CASE WHEN ninety_day_compliance_status = 'compliant' THEN 1 ELSE 0 END) as compliant_count,
             SUM(CASE WHEN iqama_number IS NOT NULL THEN 1 ELSE 0 END) as with_iqama,
             SUM(CASE WHEN absher_registered = 1 THEN 1 ELSE 0 END) as absher_registered,
-            SUM(CASE WHEN wps_registered = 1 THEN 1 ELSE 0 END) as wps_registered,
             SUM(CASE WHEN first_salary_date IS NOT NULL THEN 1 ELSE 0 END) as first_salary_received
-        ')->first();
+        ")->first();
 
         return response()->json([
             'success' => true,

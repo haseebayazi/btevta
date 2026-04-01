@@ -94,7 +94,7 @@
                             <th>Destination</th>
                             <th>Departure Date</th>
                             <th>Flight Details</th>
-                            <th>Compliance Status</th>
+                            <th>90-Day Compliance</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -108,7 +108,7 @@
                                 <td class="text-monospace">{{ $departure->candidate->btevta_id ?? 'N/A' }}</td>
                                 <td>{{ $departure->candidate->trade->name ?? 'N/A' }}</td>
                                 <td>
-                                    {{ $departure->destination_country ?? 'N/A' }}
+                                    {{ $departure->destination ?? 'N/A' }}
                                     @if($departure->oep)
                                         <br><small class="text-muted">{{ $departure->oep->name }}</small>
                                     @endif
@@ -122,23 +122,26 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($departure->flight_number)
+                                    @php $ticket = $departure->ticket_details_object; @endphp
+                                    @if($ticket->isComplete())
+                                        <strong>{{ $ticket->flightNumber }}</strong>
+                                        <br><small class="text-muted">{{ $ticket->airline }}</small>
+                                    @elseif($departure->flight_number)
                                         <strong>{{ $departure->flight_number }}</strong>
-                                        <br><small class="text-muted">{{ $departure->airline ?? '' }}</small>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @if($departure->compliance_status === 'compliant')
+                                    @if($departure->ninety_day_compliance_status === 'compliant')
                                         <span class="badge badge-success">
                                             <i class="fas fa-check-circle"></i> Compliant
                                         </span>
-                                    @elseif($departure->compliance_status === 'pending')
+                                    @elseif($departure->ninety_day_compliance_status === 'pending')
                                         <span class="badge badge-warning">
                                             <i class="fas fa-clock"></i> Pending
                                         </span>
-                                    @elseif($departure->compliance_status === 'non_compliant')
+                                    @elseif($departure->ninety_day_compliance_status === 'non_compliant')
                                         <span class="badge badge-danger">
                                             <i class="fas fa-times-circle"></i> Non-Compliant
                                         </span>
@@ -147,14 +150,12 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('candidates.show', $departure->candidate_id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye"></i> View
+                                    <a href="{{ route('departure.checklist', $departure) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-clipboard-list"></i> Manage
                                     </a>
-                                    @if($departure->compliance_status === 'pending')
-                                        <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#complianceModal{{ $departure->id }}">
-                                            <i class="fas fa-check"></i> Mark Compliant
-                                        </button>
-                                    @endif
+                                    <a href="{{ route('candidates.show', $departure->candidate_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-user"></i> Profile
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach

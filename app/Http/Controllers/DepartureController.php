@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CandidateStatus;
+use App\Enums\DepartureStatus;
 use App\Http\Requests\CompleteBriefingRequest;
 use App\Http\Requests\UpdateTicketDetailsRequest;
 use App\Models\Campus;
@@ -34,58 +35,76 @@ class DepartureController extends Controller
     {
         $this->authorize('viewAny', Departure::class);
 
-        $query = Candidate::with(['trade', 'oep', 'departure'])
-            ->whereIn('status', [
-                CandidateStatus::DEPARTURE_PROCESSING->value,
-                CandidateStatus::READY_TO_DEPART->value,
-                CandidateStatus::DEPARTED->value,
-            ]);
+        $query = Departure::with(['candidate.trade', 'candidate.oep', 'candidate.campus'])
+            ->whereHas('candidate', function ($q) {
+                $q->whereIn('status', [
+                    CandidateStatus::DEPARTURE_PROCESSING->value,
+                    CandidateStatus::READY_TO_DEPART->value,
+                    CandidateStatus::DEPARTED->value,
+                ]);
+            });
 
         // Filter by campus for campus admins
         if (auth()->user()->role === 'campus_admin') {
-            $query->where('campus_id', auth()->user()->campus_id);
-        }
-
-        // Apply filters
-        if ($request->filled('compliance_stage')) {
-            $query->whereHas('departure', function ($q) use ($request) {
-                $q->where('compliance_stage', $request->compliance_stage);
+            $query->whereHas('candidate', function ($q) {
+                $q->where('campus_id', auth()->user()->campus_id);
             });
         }
 
+        // Status filter (matches view's dropdown values mapped to departure_status)
+        if ($request->filled('status')) {
+            $statusMap = [
+                'scheduled'          => DepartureStatus::PROCESSING->value,
+                'departed'           => DepartureStatus::DEPARTED->value,
+                'pending_compliance' => DepartureStatus::READY_TO_DEPART->value,
+            ];
+            if (isset($statusMap[$request->status])) {
+                $query->where('departure_status', $statusMap[$request->status]);
+            }
+        }
+
+        // Month filter on departure_date
+        if ($request->filled('month')) {
+            $query->whereMonth('departure_date', $request->month);
+        }
+
+        // Search filter
         if ($request->filled('search')) {
             // Escape special LIKE characters to prevent SQL LIKE injection
             $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->search);
-            $query->where(function ($q) use ($escapedSearch) {
+            $query->whereHas('candidate', function ($q) use ($escapedSearch) {
                 $q->where('name', 'like', "%{$escapedSearch}%")
                     ->orWhere('cnic', 'like', "%{$escapedSearch}%")
                     ->orWhere('passport_number', 'like', "%{$escapedSearch}%");
             });
         }
 
-        $candidates = $query->paginate(20);
+        $departures = $query->latest()->paginate(20);
 
-        return view('departure.index', compact('candidates'));
+        $stats = [
+            'total_departures'    => Departure::count(),
+            'completed'           => Departure::where('departure_status', DepartureStatus::DEPARTED->value)->count(),
+            'pending_compliance'  => Departure::whereNotNull('departed_at')
+                ->where(function ($q) {
+                    $q->whereNull('ninety_day_compliance_status')
+                      ->orWhere('ninety_day_compliance_status', 'pending');
+                })->count(),
+            'this_month'          => Departure::whereMonth('departure_date', now()->month)
+                ->whereYear('departure_date', now()->year)
+                ->count(),
+        ];
+
+        return view('departure.index', compact('departures', 'stats'));
     }
 
     /**
-     * Show departure details
+     * Show departure details — redirects to the departure checklist (functional detail view).
      */
-    public function show(Candidate $candidate)
+    public function show(Departure $departure)
     {
-        $this->authorize('view', $candidate->departure ?? new Departure());
+        $this->authorize('view', $departure);
 
-        $candidate->load(['departure', 'trade', 'oep', 'campus']);
-
-        if (!$candidate->departure) {
-            return redirect()->route('departure.index')
-                ->with('error', 'No departure record found for this candidate');
-        }
-
-        // Get compliance checklist
-        $checklist = $this->departureService->getComplianceChecklist($candidate->id);
-
-        return view('departure.show', compact('candidate', 'checklist'));
+        return redirect()->route('departure.checklist', $departure);
     }
 
     /**
@@ -1166,7 +1185,7 @@ class DepartureController extends Controller
                 $validated['actual_departure_time'] ?? null
             );
 
-            return redirect()->route('departure.show', $departure->candidate)
+            return redirect()->route('departure.checklist', $departure)
                 ->with('success', 'Departure recorded. Proceed with post-departure tracking.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
