@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
         // Register policies
         Gate::policy(\App\Models\PreDepartureDocument::class, \App\Policies\PreDepartureDocumentPolicy::class);
         Gate::policy(\App\Models\CandidateLicense::class, \App\Policies\CandidateLicensePolicy::class);
+        Gate::policy(\App\Models\PostDepartureDetail::class, \App\Policies\PostDepartureDetailPolicy::class);
+        Gate::policy(\App\Models\CompanySwitchLog::class, \App\Policies\CompanySwitchLogPolicy::class);
 
         // Register event listeners
         Event::listen(

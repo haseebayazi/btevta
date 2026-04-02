@@ -189,6 +189,14 @@ class Departure extends Model
     }
 
     /**
+     * Get the post-departure detail record for this departure.
+     */
+    public function postDepartureDetail()
+    {
+        return $this->hasOne(PostDepartureDetail::class);
+    }
+
+    /**
      * Get all remittances for this departure.
      * AUDIT FIX 2026-01-09: Added missing relationship documented in SYSTEM_MAP.md
      */

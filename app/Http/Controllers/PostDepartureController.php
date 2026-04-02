@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Campus;
 use App\Models\Candidate;
 use App\Models\PostDepartureDetail;
 use App\Models\CompanySwitchLog;
@@ -23,8 +24,9 @@ class PostDepartureController extends Controller
         $campusId = $user->isCampusAdmin() ? $user->campus_id : $request->get('campus_id');
 
         $dashboard = $this->service->getDashboard($campusId);
+        $campuses = Campus::orderBy('name')->get();
 
-        return view('post-departure.dashboard', compact('dashboard'));
+        return view('post-departure.dashboard', compact('dashboard', 'campuses'));
     }
 
     public function show(Candidate $candidate)

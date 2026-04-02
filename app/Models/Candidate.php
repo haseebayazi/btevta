@@ -394,6 +394,30 @@ class Candidate extends Model
     }
 
     /**
+     * Get the post-departure detail record for the candidate.
+     */
+    public function postDepartureDetail()
+    {
+        return $this->hasOne(PostDepartureDetail::class);
+    }
+
+    /**
+     * Get all employment history records for the candidate (Module 7).
+     */
+    public function employmentHistories()
+    {
+        return $this->hasMany(EmploymentHistory::class)->orderBy('sequence');
+    }
+
+    /**
+     * Get all company switch logs for the candidate (Module 7).
+     */
+    public function companySwitches()
+    {
+        return $this->hasMany(CompanySwitchLog::class);
+    }
+
+    /**
      * Get employers associated with this candidate.
      */
     public function employers()

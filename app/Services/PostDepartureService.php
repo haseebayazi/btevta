@@ -278,6 +278,7 @@ class PostDepartureService
     {
         $query = PostDepartureDetail::with([
             'candidate.campus',
+            'candidate.trade',
             'currentEmployment',
         ]);
 
@@ -310,6 +311,7 @@ class PostDepartureService
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get(),
+            'candidates' => $details,
         ];
     }
 }
