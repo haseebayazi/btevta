@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Enums\CandidateStatus;
 use App\Events\CandidateDeparted;
+use App\Models\PostDepartureDetail;
 use Illuminate\Support\Facades\Log;
 
 class HandleCandidateDeparted
@@ -11,8 +12,9 @@ class HandleCandidateDeparted
     /**
      * Handle the CandidateDeparted event.
      *
-     * When a candidate departs (Module 6), this listener transitions them
-     * to POST_DEPARTURE status to begin post-departure tracking (Module 7).
+     * When a candidate departs (Module 6), this listener:
+     * 1. Transitions candidate status to POST_DEPARTURE (Module 7)
+     * 2. Creates the PostDepartureDetail record to begin post-departure tracking
      */
     public function handle(CandidateDeparted $event): void
     {
@@ -29,6 +31,12 @@ class HandleCandidateDeparted
                 'status' => CandidateStatus::POST_DEPARTURE->value,
             ]);
         }
+
+        // Auto-create the PostDepartureDetail record so Module 7 tracking can begin
+        PostDepartureDetail::firstOrCreate(
+            ['candidate_id' => $candidate->id],
+            ['departure_id' => $departure->id]
+        );
 
         activity()
             ->performedOn($candidate)
