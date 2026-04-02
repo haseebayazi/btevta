@@ -1,54 +1,56 @@
-<div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-clipboard-check"></i> 90-Day Compliance Checklist</h6>
+<div class="bg-white rounded-lg shadow">
+    <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-900"><i class="fas fa-clipboard-check mr-2 text-blue-500"></i>90-Day Compliance Checklist</h3>
         @if($detail->compliance_verified)
-            <span class="badge badge-success"><i class="fas fa-check-circle"></i> Verified on {{ $detail->compliance_verified_date?->format('d M Y') }}</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <i class="fas fa-check-circle mr-1"></i>Verified {{ $detail->compliance_verified_date?->format('d M Y') }}
+        </span>
         @endif
     </div>
-    <div class="card-body">
+    <div class="px-5 py-4">
         @php
             $completedCount = collect($checklist)->filter(fn($item) => $item['complete'])->count();
             $totalCount = count($checklist);
             $percentage = $totalCount > 0 ? round(($completedCount / $totalCount) * 100) : 0;
+            $barColor = $percentage === 100 ? 'bg-green-500' : ($percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500');
         @endphp
 
-        <div class="mb-3">
-            <div class="d-flex justify-content-between mb-1">
+        <div class="mb-4">
+            <div class="flex justify-between text-sm text-gray-600 mb-1">
                 <span>Progress: {{ $completedCount }}/{{ $totalCount }} items</span>
                 <span>{{ $percentage }}%</span>
             </div>
-            <div class="progress">
-                <div class="progress-bar bg-{{ $percentage === 100 ? 'success' : ($percentage >= 50 ? 'warning' : 'danger') }}"
-                     role="progressbar" style="width: {{ $percentage }}%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="{{ $barColor }} h-2 rounded-full transition-all" style="width: {{ $percentage }}%"></div>
             </div>
         </div>
 
-        <div class="row">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             @foreach($checklist as $key => $item)
-            <div class="col-md-4 mb-2">
-                <div class="d-flex align-items-center">
-                    @if($item['complete'])
-                        <i class="fas fa-check-circle text-success mr-2"></i>
-                    @else
-                        <i class="fas fa-times-circle text-danger mr-2"></i>
-                    @endif
-                    <span>{{ $item['label'] }}</span>
-                    @if(isset($item['expiring']) && $item['expiring'])
-                        <span class="badge badge-warning ml-1">Expiring</span>
-                    @endif
-                </div>
+            <div class="flex items-center gap-2">
+                @if($item['complete'])
+                <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
+                @else
+                <i class="fas fa-times-circle text-red-400 flex-shrink-0"></i>
+                @endif
+                <span class="text-sm text-gray-700">{{ $item['label'] }}</span>
+                @if(isset($item['expiring']) && $item['expiring'])
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Expiring</span>
+                @endif
             </div>
             @endforeach
         </div>
 
         @if(!$detail->compliance_verified && $percentage === 100)
-        <hr>
-        <form method="POST" action="{{ route('post-departure.verify-compliance', $detail) }}">
-            @csrf
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-check"></i> Verify 90-Day Compliance
-            </button>
-        </form>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <form method="POST" action="{{ route('post-departure.verify-compliance', $detail) }}">
+                @csrf
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                    <i class="fas fa-check mr-2"></i>Verify 90-Day Compliance
+                </button>
+            </form>
+        </div>
         @endif
     </div>
 </div>

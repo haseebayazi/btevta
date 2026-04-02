@@ -142,7 +142,8 @@ class PostDepartureDetail extends Model
     public function getIqamaExpiringAttribute(): bool
     {
         if (!$this->iqama_expiry_date) return false;
-        return $this->iqama_expiry_date->diffInDays(now()) <= 30;
+        $daysUntilExpiry = now()->diffInDays($this->iqama_expiry_date, false);
+        return $daysUntilExpiry >= 0 && $daysUntilExpiry <= 30;
     }
 
     public function getTotalSalaryAttribute(): float
