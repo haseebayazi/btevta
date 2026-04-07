@@ -229,7 +229,7 @@ class CorrespondenceApiController extends Controller
 
         $avgResponseTime = (clone $baseQuery)
             ->whereNotNull('replied_at')
-            ->selectRaw('AVG(DATEDIFF(replied_at, sent_at)) as avg_days')
+            ->selectRaw('AVG(' . $this->dateDiffDays('replied_at', 'sent_at') . ') as avg_days')
             ->value('avg_days');
 
         $stats['avg_response_time_days'] = $avgResponseTime ? round($avgResponseTime, 1) : 0;
@@ -267,6 +267,19 @@ class CorrespondenceApiController extends Controller
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Return a SQL fragment for day-difference between two columns, compatible
+     * with MySQL (DATEDIFF) and SQLite (julianday arithmetic).
+     */
+    private function dateDiffDays(string $col1, string $col2): string
+    {
+        if (\DB::connection()->getDriverName() === 'sqlite') {
+            return "CAST(julianday({$col1}) - julianday({$col2}) AS INTEGER)";
+        }
+
+        return "DATEDIFF({$col1}, {$col2})";
+    }
 
     /**
      * Map API request field names to canonical DB column names.
