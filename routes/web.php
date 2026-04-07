@@ -804,6 +804,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('remittances')->name('remittances.')->group(function () {
             // Verification
             Route::post('/{id}/verify', [RemittanceController::class, 'verify'])->name('verify');
+            Route::post('/{id}/reject', [RemittanceController::class, 'reject'])->name('reject');
 
             // Receipt Management
             Route::post('/{id}/upload-receipt', [RemittanceController::class, 'uploadReceipt'])

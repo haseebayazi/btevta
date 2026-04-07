@@ -35,19 +35,40 @@
         </div>
     </div>
 
+    @if(session('success'))
+    <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+        <p class="text-green-700">{{ session('success') }}</p>
+    </div>
+    @endif
+
     <!-- Status Card -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-                <p class="text-sm text-gray-600 mb-2">Current Status</p>
-                <span class="px-3 py-1 text-sm font-semibold rounded-full {{ config('remittance.statuses.' . $remittance->status . '.class') }}">
-                    {{ config('remittance.statuses.' . $remittance->status . '.label') }}
+                <p class="text-sm text-gray-600 mb-2">Remittance Status</p>
+                <span class="px-3 py-1 text-sm font-semibold rounded-full {{ config('remittance.statuses.' . ($remittance->status ?? 'pending') . '.class', 'bg-gray-100 text-gray-800') }}">
+                    {{ config('remittance.statuses.' . ($remittance->status ?? 'pending') . '.label', ucfirst($remittance->status ?? 'Pending')) }}
+                </span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-2">Verification Status</p>
+                @php
+                    $vStatusColors = [
+                        'pending'      => 'bg-yellow-100 text-yellow-800',
+                        'verified'     => 'bg-green-100 text-green-800',
+                        'rejected'     => 'bg-red-100 text-red-800',
+                        'under_review' => 'bg-blue-100 text-blue-800',
+                    ];
+                    $vStatus = $remittance->verification_status ?? 'pending';
+                @endphp
+                <span class="px-3 py-1 text-sm font-semibold rounded-full {{ $vStatusColors[$vStatus] ?? 'bg-gray-100 text-gray-800' }}">
+                    {{ ucwords(str_replace('_', ' ', $vStatus)) }}
                 </span>
             </div>
             <div>
                 <p class="text-sm text-gray-600 mb-2">Proof of Transfer</p>
                 <div class="flex items-center">
-                    @if($remittance->has_proof)
+                    @if($remittance->has_proof || $remittance->receipts->count() > 0)
                     <i class="fas fa-check-circle text-green-500 mr-2"></i>
                     <span class="text-sm font-medium text-green-700">{{ $remittance->receipts->count() }} document(s) uploaded</span>
                     @else
@@ -56,26 +77,55 @@
                     @endif
                 </div>
             </div>
-            <div>
-                @if($remittance->status === 'verified')
-                <p class="text-sm text-gray-600 mb-2">Verified By</p>
-                <div class="text-sm">
-                    <p class="font-medium text-gray-900">{{ $remittance->verifiedBy->name }}</p>
-                    <p class="text-gray-500">{{ $remittance->verified_at->format('M d, Y H:i') }}</p>
-                </div>
-                @elseif($remittance->status === 'pending')
-                @can('verify', $remittance)
-                <form action="{{ route('remittances.verify', $remittance) }}" method="POST" class="inline">
+        </div>
+
+        <!-- Verify / Reject Actions -->
+        @can('verify', $remittance)
+        @if($remittance->verification_status === 'pending' || $remittance->verification_status === 'under_review')
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="flex flex-wrap gap-4">
+                <form action="{{ route('remittances.verify', $remittance) }}" method="POST" class="flex items-center gap-2">
                     @csrf
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg inline-flex items-center">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        Verify Remittance
+                    <input type="text" name="verification_notes" placeholder="Verification notes (optional)"
+                           class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg inline-flex items-center text-sm">
+                        <i class="fas fa-check-circle mr-2"></i>Verify
                     </button>
                 </form>
-                @endcan
-                @endif
+
+                <form action="{{ route('remittances.reject', $remittance) }}" method="POST" class="flex items-center gap-2"
+                      onsubmit="return confirm('Are you sure you want to reject this remittance?');">
+                    @csrf
+                    <input type="text" name="rejection_reason" placeholder="Rejection reason (required)" required
+                           class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg inline-flex items-center text-sm">
+                        <i class="fas fa-times-circle mr-2"></i>Reject
+                    </button>
+                </form>
             </div>
         </div>
+        @endif
+        @endcan
+
+        @if($remittance->verification_status === 'verified' && $remittance->verifiedBy)
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-sm text-gray-600">Verified by <strong>{{ $remittance->verifiedBy->name }}</strong>
+                on {{ $remittance->verified_at?->format('M d, Y H:i') ?? 'N/A' }}</p>
+            @if($remittance->verification_notes)
+            <p class="text-sm text-gray-500 mt-1">Notes: {{ $remittance->verification_notes }}</p>
+            @endif
+        </div>
+        @endif
+
+        @if($remittance->verification_status === 'rejected')
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-sm text-red-700">Rejected by <strong>{{ $remittance->verifiedBy?->name ?? 'System' }}</strong>
+                on {{ $remittance->verified_at?->format('M d, Y H:i') ?? 'N/A' }}</p>
+            @if($remittance->rejection_reason)
+            <p class="text-sm text-red-600 mt-1">Reason: {{ $remittance->rejection_reason }}</p>
+            @endif
+        </div>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -91,25 +141,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-600">Full Name</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->candidate->full_name }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->candidate?->full_name ?? 'N/A' }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">CNIC</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->candidate->cnic }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->candidate?->cnic ?? 'N/A' }}</p>
                     </div>
                     @if($remittance->departure)
                     <div>
                         <p class="text-sm text-gray-600">Destination Country</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->departure->destination_country }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->departure->destination_country ?? 'N/A' }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">Deployment Date</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->departure->departure_date->format('M d, Y') }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->departure->departure_date?->format('M d, Y') ?? 'N/A' }}</p>
                     </div>
                     @if($remittance->month_number)
                     <div>
-                        <p class="text-sm text-gray-600">Month Number</p>
-                        <p class="font-medium text-gray-900">Month {{ $remittance->month_number }} of deployment</p>
+                        <p class="text-sm text-gray-600">Month of Deployment</p>
+                        <p class="font-medium text-gray-900">Month {{ $remittance->month_number }}</p>
                     </div>
                     @endif
                     @endif
@@ -124,22 +174,28 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-600">Transaction Reference</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->transaction_reference }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->transaction_reference ?? 'N/A' }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600">Transfer Date</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->transfer_date->format('M d, Y') }}</p>
+                        <p class="font-medium text-gray-900">
+                            {{ ($remittance->transfer_date ?? $remittance->transaction_date)?->format('M d, Y') ?? 'N/A' }}
+                        </p>
                     </div>
                     @if($remittance->transfer_method)
                     <div>
                         <p class="text-sm text-gray-600">Transfer Method</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->transfer_method }}</p>
+                        <p class="font-medium text-gray-900">
+                            {{ config('remittance.transfer_methods.' . $remittance->transfer_method, ucwords(str_replace('_', ' ', $remittance->transfer_method))) }}
+                        </p>
                     </div>
                     @endif
+                    @if($remittance->year && $remittance->month)
                     <div>
                         <p class="text-sm text-gray-600">Year / Month</p>
                         <p class="font-medium text-gray-900">{{ $remittance->year }} / {{ date('F', mktime(0, 0, 0, $remittance->month, 1)) }}</p>
                     </div>
+                    @endif
                 </div>
             </div>
 
@@ -152,8 +208,15 @@
                     <div>
                         <p class="text-sm text-gray-600">Amount</p>
                         <p class="text-2xl font-bold text-gray-900">{{ number_format($remittance->amount, 2) }}</p>
-                        <p class="text-sm text-gray-500">{{ $remittance->currency }}</p>
+                        <p class="text-sm text-gray-500">{{ $remittance->currency ?? 'PKR' }}</p>
                     </div>
+                    @if($remittance->amount_in_pkr && $remittance->currency !== 'PKR')
+                    <div>
+                        <p class="text-sm text-gray-600">Amount (PKR)</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ number_format($remittance->amount_in_pkr, 2) }}</p>
+                        <p class="text-sm text-gray-500">PKR</p>
+                    </div>
+                    @endif
                     @if($remittance->amount_foreign)
                     <div>
                         <p class="text-sm text-gray-600">Foreign Amount</p>
@@ -164,7 +227,9 @@
                     @if($remittance->exchange_rate)
                     <div>
                         <p class="text-sm text-gray-600">Exchange Rate</p>
-                        <p class="font-medium text-gray-900">1 {{ $remittance->foreign_currency }} = {{ number_format($remittance->exchange_rate, 4) }} {{ $remittance->currency }}</p>
+                        <p class="font-medium text-gray-900">
+                            1 {{ $remittance->foreign_currency ?? $remittance->currency }} = {{ number_format($remittance->exchange_rate, 4) }} PKR
+                        </p>
                     </div>
                     @endif
                 </div>
@@ -178,7 +243,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-600">Sender Name</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->sender_name }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->sender_name ?? 'N/A' }}</p>
                     </div>
                     @if($remittance->sender_location)
                     <div>
@@ -197,7 +262,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-600">Receiver Name</p>
-                        <p class="font-medium text-gray-900">{{ $remittance->receiver_name }}</p>
+                        <p class="font-medium text-gray-900">{{ $remittance->receiver_name ?? 'N/A' }}</p>
                     </div>
                     @if($remittance->receiver_account)
                     <div>
@@ -222,12 +287,14 @@
                 <div class="space-y-3">
                     <div>
                         <p class="text-sm text-gray-600">Primary Purpose</p>
-                        <p class="font-medium text-gray-900">{{ config('remittance.purposes.' . $remittance->primary_purpose) }}</p>
+                        <p class="font-medium text-gray-900">
+                            {{ config('remittance.purposes.' . ($remittance->primary_purpose ?? $remittance->purpose), ucwords(str_replace('_', ' ', $remittance->primary_purpose ?? $remittance->purpose ?? 'N/A'))) }}
+                        </p>
                     </div>
-                    @if($remittance->purpose_description)
+                    @if($remittance->purpose_description ?? $remittance->description)
                     <div>
                         <p class="text-sm text-gray-600">Description</p>
-                        <p class="text-gray-900">{{ $remittance->purpose_description }}</p>
+                        <p class="text-gray-900">{{ $remittance->purpose_description ?? $remittance->description }}</p>
                     </div>
                     @endif
                 </div>
@@ -245,7 +312,7 @@
 
         </div>
 
-        <!-- Right Column: Receipts & Actions -->
+        <!-- Right Column: Receipts & Activity -->
         <div class="space-y-6">
 
             <!-- Receipts Section -->
@@ -261,19 +328,20 @@
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
                                 <p class="font-medium text-sm text-gray-900">{{ $receipt->file_name }}</p>
-                                <p class="text-xs text-gray-500 mt-1">{{ $receipt->document_type }}</p>
-                                <p class="text-xs text-gray-500">Uploaded by {{ $receipt->uploadedBy->name }}</p>
+                                <p class="text-xs text-gray-500 mt-1">{{ $receipt->document_type_label }}</p>
+                                <p class="text-xs text-gray-500">Uploaded by {{ $receipt->uploadedBy?->name ?? 'Unknown' }}</p>
                                 <p class="text-xs text-gray-500">{{ $receipt->created_at->format('M d, Y H:i') }}</p>
                                 @if($receipt->is_verified)
                                 <span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">Verified</span>
                                 @endif
                             </div>
                             <div class="flex items-center space-x-2 ml-2">
-                                <a href="{{ Storage::url($receipt->file_path) }}" target="_blank" class="text-blue-600 hover:text-blue-900">
+                                <a href="{{ $receipt->file_url }}" target="_blank" class="text-blue-600 hover:text-blue-900">
                                     <i class="fas fa-download"></i>
                                 </a>
-                                @can('delete', $remittance)
-                                <form action="{{ route('remittances.delete-receipt', $receipt) }}" method="POST" class="inline" onsubmit="return confirm('Delete this receipt?');">
+                                @can('update', $remittance)
+                                <form action="{{ route('remittances.delete-receipt', $receipt) }}" method="POST" class="inline"
+                                      onsubmit="return confirm('Delete this receipt?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-900">
@@ -297,14 +365,15 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
                         <select name="document_type" required class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
                             <option value="">-- Select Type --</option>
-                            @foreach(config('remittance.document_types') as $type)
-                            <option value="{{ $type }}">{{ $type }}</option>
+                            @foreach(config('remittance.document_types') as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
-                        <input type="file" name="receipt" required accept=".pdf,.jpg,.jpeg,.png" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                        <input type="file" name="receipt" required accept=".pdf,.jpg,.jpeg,.png"
+                               class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
                         <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max 5MB)</p>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
@@ -328,9 +397,9 @@
                             <span class="text-sm font-semibold text-gray-900">{{ number_format($usage->amount, 2) }}</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ $usage->percentage }}%"></div>
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ min($usage->percentage, 100) }}%"></div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">{{ $usage->percentage }}%</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ number_format($usage->percentage, 1) }}%</p>
                     </div>
                     @endforeach
                 </div>
@@ -345,17 +414,17 @@
                 <div class="space-y-3">
                     <div>
                         <p class="text-xs text-gray-600">Recorded By</p>
-                        <p class="text-sm font-medium text-gray-900">{{ $remittance->recordedBy->name }}</p>
+                        <p class="text-sm font-medium text-gray-900">{{ $remittance->recordedBy?->name ?? 'System' }}</p>
                         <p class="text-xs text-gray-500">{{ $remittance->created_at->format('M d, Y H:i') }}</p>
                     </div>
-                    @if($remittance->status === 'verified' && $remittance->verifiedBy)
+                    @if($remittance->verification_status === 'verified' && $remittance->verifiedBy)
                     <div>
                         <p class="text-xs text-gray-600">Verified By</p>
                         <p class="text-sm font-medium text-gray-900">{{ $remittance->verifiedBy->name }}</p>
-                        <p class="text-xs text-gray-500">{{ $remittance->verified_at->format('M d, Y H:i') }}</p>
+                        <p class="text-xs text-gray-500">{{ $remittance->verified_at?->format('M d, Y H:i') ?? 'N/A' }}</p>
                     </div>
                     @endif
-                    @if($remittance->updated_at != $remittance->created_at)
+                    @if($remittance->updated_at->ne($remittance->created_at))
                     <div>
                         <p class="text-xs text-gray-600">Last Updated</p>
                         <p class="text-xs text-gray-500">{{ $remittance->updated_at->format('M d, Y H:i') }}</p>

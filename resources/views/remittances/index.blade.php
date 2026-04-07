@@ -130,11 +130,11 @@
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-gray-900">Remittance Records</h2>
             <div class="flex items-center space-x-2">
-                <a href="{{ route('remittances.export', 'excel') }}" class="text-green-600 hover:text-green-700 text-sm">
-                    <i class="fas fa-file-excel mr-1"></i>Export Excel
+                <a href="{{ route('remittances.export', ['format' => 'csv']) }}" class="text-green-600 hover:text-green-700 text-sm">
+                    <i class="fas fa-file-csv mr-1"></i>Export CSV
                 </a>
-                <a href="{{ route('remittances.export', 'pdf') }}" class="text-red-600 hover:text-red-700 text-sm">
-                    <i class="fas fa-file-pdf mr-1"></i>Export PDF
+                <a href="{{ route('remittance.reports.dashboard') }}" class="text-red-600 hover:text-red-700 text-sm">
+                    <i class="fas fa-chart-bar mr-1"></i>Reports
                 </a>
             </div>
         </div>
@@ -157,7 +157,7 @@
                     @forelse($remittances as $remittance)
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $remittance->transfer_date->format('M d, Y') }}
+                            {{ ($remittance->transfer_date ?? $remittance->transaction_date)?->format('M d, Y') ?? 'N/A' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $remittance->candidate->full_name }}</div>
