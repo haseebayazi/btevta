@@ -115,9 +115,9 @@ class CandidateController extends Controller
         $this->authorize('view', $candidate);
 
         $candidate->load([
-            'trade', 
-            'campus', 
-            'batch', 
+            'trade',
+            'campus',
+            'batch',
             'oep',
             'screenings',
             'documents',
@@ -128,7 +128,10 @@ class CandidateController extends Controller
             'certificate',
             'visaProcess',
             'departure',
-            'complaints'
+            'complaints',
+            'employers.country',
+            'employers.tradeRelation',
+            'employers.documents',
         ]);
 
         return view('candidates.show', compact('candidate'));

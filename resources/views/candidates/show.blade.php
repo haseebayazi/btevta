@@ -50,80 +50,114 @@
                 </div>
             </div>
 
-            <!-- Personal Information -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Personal Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Tabs -->
+            <div x-data="{ activeTab: 'details' }" class="bg-white rounded-lg shadow-md overflow-hidden">
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200 overflow-x-auto">
+                    <nav class="flex -mb-px" aria-label="Tabs">
+                        <button @click="activeTab = 'details'"
+                                :class="activeTab === 'details' ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="flex items-center whitespace-nowrap px-5 py-3 border-b-2 font-medium text-sm transition">
+                            <i class="fas fa-user mr-2"></i>Candidate Details
+                        </button>
+                        <button @click="activeTab = 'employer'"
+                                :class="activeTab === 'employer' ? 'border-indigo-500 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="flex items-center whitespace-nowrap px-5 py-3 border-b-2 font-medium text-sm transition">
+                            <i class="fas fa-building mr-2"></i>Employer Information
+                            @php $empCount = $candidate->employers->count(); @endphp
+                            @if($empCount > 0)
+                                <span class="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                                    {{ $candidate->employers->first(fn($e) => $e->pivot->is_current && $e->pivot->status === 'active') ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-gray-700' }}">
+                                    {{ $empCount }}
+                                </span>
+                            @endif
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab: Candidate Details -->
+                <div x-show="activeTab === 'details'" class="p-6 space-y-6">
+                    <!-- Personal Information -->
                     <div>
-                        <p class="text-sm text-gray-600">Full Name</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->name }}</p>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Personal Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <p class="text-sm text-gray-600">Full Name</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Father's Name</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->father_name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">CNIC</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->cnic }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Date of Birth</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->date_of_birth?->format('d M, Y') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Age</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->age ?? 'N/A' }} years</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Gender</p>
+                                <p class="text-lg font-semibold text-gray-900 capitalize">{{ $candidate->gender }}</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Contact Information -->
                     <div>
-                        <p class="text-sm text-gray-600">Father's Name</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->father_name }}</p>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Contact Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <p class="text-sm text-gray-600">Email</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->email ?? 'N/A' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Phone</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->phone }}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-gray-600">Address</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->full_address ?? $candidate->address }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">District</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->district }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Tehsil</p>
+                                <p class="text-lg font-semibold text-gray-900">{{ $candidate->tehsil ?? 'N/A' }}</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Trade / Skill Information -->
                     <div>
-                        <p class="text-sm text-gray-600">CNIC</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->cnic }}</p>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Trade / Skill</h2>
+                        <div>
+                            <p class="text-sm text-gray-600">Trade</p>
+                            <p class="text-lg font-semibold text-gray-900">{{ $candidate->trade?->name ?? 'N/A' }}</p>
+                        </div>
                     </div>
+
+                    <!-- Remarks -->
+                    @if($candidate->remarks)
                     <div>
-                        <p class="text-sm text-gray-600">Date of Birth</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->date_of_birth?->format('d M, Y') }}</p>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4 pb-4 border-b">Remarks</h2>
+                        <p class="text-gray-700">{{ $candidate->remarks }}</p>
                     </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Age</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->age ?? 'N/A' }} years</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Gender</p>
-                        <p class="text-lg font-semibold text-gray-900 capitalize">{{ $candidate->gender }}</p>
-                    </div>
+                    @endif
+                </div>
+
+                <!-- Tab: Employer Information -->
+                <div x-show="activeTab === 'employer'" class="p-6">
+                    @include('candidates.partials.employer-tab')
                 </div>
             </div>
-
-            <!-- Contact Information -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Contact Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm text-gray-600">Email</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->email ?? 'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Phone</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->phone }}</p>
-                    </div>
-                    <div class="md:col-span-2">
-                        <p class="text-sm text-gray-600">Address</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->full_address ?? $candidate->address }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">District</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->district }}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600">Tehsil</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ $candidate->tehsil ?? 'N/A' }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Trade / Skill Information -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6 pb-4 border-b">Trade / Skill</h2>
-                <div>
-                    <p class="text-sm text-gray-600">Trade</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ $candidate->trade?->name ?? 'N/A' }}</p>
-                </div>
-            </div>
-
-            <!-- Remarks -->
-            @if($candidate->remarks)
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4 pb-4 border-b">Remarks</h2>
-                <p class="text-gray-700">{{ $candidate->remarks }}</p>
-            </div>
-            @endif
         </div>
 
         <!-- Sidebar -->
@@ -256,43 +290,43 @@
             </div>
             @endif
 
-            {{-- Employer Information Card --}}
+            {{-- Employer Quick Card --}}
             @php
-                $currentEmployer = $candidate->currentEmployer()->with('country')->first();
-                $allEmployers = $candidate->employers()->with('country')->get();
+                $currentEmployerSidebar = $candidate->employers->first(fn($e) => $e->pivot->is_current && $e->pivot->status === 'active');
+                $allEmployersSidebar = $candidate->employers;
             @endphp
-            @if($currentEmployer || $allEmployers->count() > 0)
+            @if($currentEmployerSidebar || $allEmployersSidebar->count() > 0)
             <div class="bg-white rounded-lg shadow-md p-6 border-2 border-indigo-500">
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">
                     <i class="fas fa-building text-indigo-500 mr-2"></i>Employer Information
                 </h3>
-                @if($currentEmployer)
+                @if($currentEmployerSidebar)
                     <div class="mb-3">
-                        <p class="text-sm font-semibold text-gray-900">{{ $currentEmployer->visa_issuing_company }}</p>
+                        <p class="text-sm font-semibold text-gray-900">{{ $currentEmployerSidebar->visa_issuing_company }}</p>
                         <p class="text-xs text-gray-600">
-                            {{ $currentEmployer->country?->name ?? '' }}
-                            {{ $currentEmployer->city ? ', ' . $currentEmployer->city : '' }}
+                            {{ $currentEmployerSidebar->country?->name ?? '' }}
+                            {{ $currentEmployerSidebar->city ? ', ' . $currentEmployerSidebar->city : '' }}
                         </p>
-                        @if($currentEmployer->permission_number)
-                            <p class="text-xs text-gray-500 mt-1">Permission #: {{ $currentEmployer->permission_number }}</p>
+                        @if($currentEmployerSidebar->permission_number)
+                            <p class="text-xs text-gray-500 mt-1">Permission #: {{ $currentEmployerSidebar->permission_number }}</p>
                         @endif
-                        @if($currentEmployer->basic_salary)
-                            <p class="text-xs text-gray-500">Salary: {{ $currentEmployer->salary_currency }} {{ number_format($currentEmployer->basic_salary) }}</p>
+                        @if($currentEmployerSidebar->basic_salary)
+                            <p class="text-xs text-gray-500">Salary: {{ $currentEmployerSidebar->salary_currency }} {{ number_format($currentEmployerSidebar->basic_salary) }}</p>
                         @endif
-                        @if($currentEmployer->verified)
+                        @if($currentEmployerSidebar->verified)
                             <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs mt-1">
                                 <i class="fas fa-check-circle"></i> Verified
                             </span>
                         @endif
                     </div>
                 @endif
-                @if($allEmployers->count() > 1)
-                    <p class="text-xs text-gray-500 mb-2">{{ $allEmployers->count() }} employer(s) linked</p>
+                @if($allEmployersSidebar->count() > 1)
+                    <p class="text-xs text-gray-500 mb-2">{{ $allEmployersSidebar->count() }} employer(s) linked</p>
                 @endif
-                <a href="{{ route('admin.employers.show', $currentEmployer ?? $allEmployers->first()) }}"
-                   class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center px-4 py-2 rounded-lg transition">
+                <button onclick="document.querySelector('[\\@click=\\'activeTab = \\\"employer\\\"\\'\\]').click()"
+                        class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center px-4 py-2 rounded-lg transition cursor-pointer">
                     <i class="fas fa-building mr-2"></i>View Employer Details
-                </a>
+                </button>
             </div>
             @endif
 
