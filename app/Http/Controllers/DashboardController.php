@@ -267,15 +267,15 @@ class DashboardController extends Controller
 
     private function getDocumentComplianceStats($campusId): array
     {
-        $totalCandidates = Candidate::whereIn('status', ['registered', 'training', 'visa_processing', 'departed'])
+        $activeStatuses = ['registered', 'training', 'visa_process', 'departed'];
+
+        $totalCandidates = Candidate::whereIn('status', $activeStatuses)
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
             ->count();
 
-        $withCompleteDocs = Candidate::whereIn('status', ['registered', 'training', 'visa_processing', 'departed'])
+        $withCompleteDocs = Candidate::whereIn('status', $activeStatuses)
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-            ->whereHas('documents', function ($q) {
-                $q->havingRaw('COUNT(*) >= 4'); // Minimum 4 required documents
-            })
+            ->has('documents', '>=', 4)
             ->count();
 
         $expiredDocs = DocumentArchive::where('expiry_date', '<', now())
@@ -290,7 +290,7 @@ class DashboardController extends Controller
         return [
             'total' => $totalCandidates,
             'complete' => $withCompleteDocs,
-            'rate' => $totalCandidates > 0 ? round(($withCompleteDocs / $totalCandidates) * 100, 1) : 0,
+            'rate' => $totalCandidates > 0 ? round(($withCompleteDocs / $totalCandidates) * 100, 1) : null,
             'expired' => $expiredDocs,
             'expiring_soon' => $expiringDocs,
         ];
@@ -299,10 +299,12 @@ class DashboardController extends Controller
     private function getTrainingComplianceStats($campusId): array
     {
         $totalAttendance = TrainingAttendance::when($campusId, fn($q) => $q->whereHas('candidate', fn($sq) => $sq->where('campus_id', $campusId)))
+            ->whereYear('date', now()->year)
             ->whereMonth('date', now()->month)
             ->count();
 
         $presentCount = TrainingAttendance::when($campusId, fn($q) => $q->whereHas('candidate', fn($sq) => $sq->where('campus_id', $campusId)))
+            ->whereYear('date', now()->year)
             ->whereMonth('date', now()->month)
             ->where('status', 'present')
             ->count();
@@ -317,7 +319,7 @@ class DashboardController extends Controller
             ->count();
 
         return [
-            'attendance_rate' => $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100, 1) : 0,
+            'attendance_rate' => $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100, 1) : null,
             'total_sessions' => $totalAttendance,
             'present_count' => $presentCount,
             'active_batches' => $activeBatches,
@@ -351,7 +353,7 @@ class DashboardController extends Controller
         return [
             'total' => $totalDeparted,
             'compliant' => $compliant,
-            'rate' => $totalDeparted > 0 ? round(($compliant / $totalDeparted) * 100, 1) : 100,
+            'rate' => $totalDeparted > 0 ? round(($compliant / $totalDeparted) * 100, 1) : null,
             'overdue' => $overdue,
             'due_soon' => $dueSoon,
         ];
@@ -381,7 +383,7 @@ class DashboardController extends Controller
         return [
             'total_resolved' => $totalResolved,
             'within_sla' => $withinSla,
-            'sla_rate' => $totalResolved > 0 ? round(($withinSla / $totalResolved) * 100, 1) : 100,
+            'sla_rate' => $totalResolved > 0 ? round(($withinSla / $totalResolved) * 100, 1) : null,
             'current_overdue' => $currentOverdue,
             'avg_resolution_days' => round($avgResolutionTime ?? 0, 1),
         ];
@@ -389,7 +391,7 @@ class DashboardController extends Controller
 
     private function calculateOverallComplianceScore(array $rates): array
     {
-        $validRates = array_filter($rates, fn($r) => $r > 0);
+        $validRates = array_filter($rates, fn($r) => $r !== null);
         $score = count($validRates) > 0 ? round(array_sum($validRates) / count($validRates), 1) : 0;
 
         return [

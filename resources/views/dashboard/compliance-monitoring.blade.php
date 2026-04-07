@@ -50,15 +50,21 @@
                 <h3 class="text-lg font-bold text-gray-900">
                     <i class="fas fa-file-alt text-blue-600 mr-2"></i>Document Compliance
                 </h3>
-                <span class="text-2xl font-bold {{ $documentCompliance['rate'] >= 80 ? 'text-green-600' : ($documentCompliance['rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
-                    {{ $documentCompliance['rate'] }}%
-                </span>
+                @if($documentCompliance['rate'] !== null)
+                    <span class="text-2xl font-bold {{ $documentCompliance['rate'] >= 80 ? 'text-green-600' : ($documentCompliance['rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
+                        {{ $documentCompliance['rate'] }}%
+                    </span>
+                @else
+                    <span class="text-2xl font-bold text-gray-400">N/A</span>
+                @endif
             </div>
 
             <div class="mb-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="{{ $documentCompliance['rate'] >= 80 ? 'bg-green-600' : ($documentCompliance['rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
-                         style="width: {{ $documentCompliance['rate'] }}%"></div>
+                    @if($documentCompliance['rate'] !== null)
+                        <div class="{{ $documentCompliance['rate'] >= 80 ? 'bg-green-600' : ($documentCompliance['rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
+                             style="width: {{ $documentCompliance['rate'] }}%"></div>
+                    @endif
                 </div>
             </div>
 
@@ -94,15 +100,21 @@
                 <h3 class="text-lg font-bold text-gray-900">
                     <i class="fas fa-graduation-cap text-green-600 mr-2"></i>Training Compliance
                 </h3>
-                <span class="text-2xl font-bold {{ $trainingCompliance['attendance_rate'] >= 80 ? 'text-green-600' : ($trainingCompliance['attendance_rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
-                    {{ $trainingCompliance['attendance_rate'] }}%
-                </span>
+                @if($trainingCompliance['attendance_rate'] !== null)
+                    <span class="text-2xl font-bold {{ $trainingCompliance['attendance_rate'] >= 80 ? 'text-green-600' : ($trainingCompliance['attendance_rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
+                        {{ $trainingCompliance['attendance_rate'] }}%
+                    </span>
+                @else
+                    <span class="text-2xl font-bold text-gray-400">N/A</span>
+                @endif
             </div>
 
             <div class="mb-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="{{ $trainingCompliance['attendance_rate'] >= 80 ? 'bg-green-600' : ($trainingCompliance['attendance_rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
-                         style="width: {{ $trainingCompliance['attendance_rate'] }}%"></div>
+                    @if($trainingCompliance['attendance_rate'] !== null)
+                        <div class="{{ $trainingCompliance['attendance_rate'] >= 80 ? 'bg-green-600' : ($trainingCompliance['attendance_rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
+                             style="width: {{ $trainingCompliance['attendance_rate'] }}%"></div>
+                    @endif
                 </div>
                 <p class="text-xs text-gray-500 mt-1">Attendance Rate (This Month)</p>
             </div>
@@ -139,15 +151,21 @@
                 <h3 class="text-lg font-bold text-gray-900">
                     <i class="fas fa-plane-departure text-purple-600 mr-2"></i>90-Day Compliance
                 </h3>
-                <span class="text-2xl font-bold {{ $departureCompliance['rate'] >= 80 ? 'text-green-600' : ($departureCompliance['rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
-                    {{ $departureCompliance['rate'] }}%
-                </span>
+                @if($departureCompliance['rate'] !== null)
+                    <span class="text-2xl font-bold {{ $departureCompliance['rate'] >= 80 ? 'text-green-600' : ($departureCompliance['rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
+                        {{ $departureCompliance['rate'] }}%
+                    </span>
+                @else
+                    <span class="text-2xl font-bold text-gray-400">N/A</span>
+                @endif
             </div>
 
             <div class="mb-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="{{ $departureCompliance['rate'] >= 80 ? 'bg-green-600' : ($departureCompliance['rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
-                         style="width: {{ $departureCompliance['rate'] }}%"></div>
+                    @if($departureCompliance['rate'] !== null)
+                        <div class="{{ $departureCompliance['rate'] >= 80 ? 'bg-green-600' : ($departureCompliance['rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
+                             style="width: {{ $departureCompliance['rate'] }}%"></div>
+                    @endif
                 </div>
                 <p class="text-xs text-gray-500 mt-1">90-Day Report Submission Rate</p>
             </div>
@@ -184,15 +202,21 @@
                 <h3 class="text-lg font-bold text-gray-900">
                     <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>Complaint SLA
                 </h3>
-                <span class="text-2xl font-bold {{ $complaintCompliance['sla_rate'] >= 80 ? 'text-green-600' : ($complaintCompliance['sla_rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
-                    {{ $complaintCompliance['sla_rate'] }}%
-                </span>
+                @if($complaintCompliance['sla_rate'] !== null)
+                    <span class="text-2xl font-bold {{ $complaintCompliance['sla_rate'] >= 80 ? 'text-green-600' : ($complaintCompliance['sla_rate'] >= 60 ? 'text-yellow-600' : 'text-red-600') }}">
+                        {{ $complaintCompliance['sla_rate'] }}%
+                    </span>
+                @else
+                    <span class="text-2xl font-bold text-gray-400">N/A</span>
+                @endif
             </div>
 
             <div class="mb-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="{{ $complaintCompliance['sla_rate'] >= 80 ? 'bg-green-600' : ($complaintCompliance['sla_rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
-                         style="width: {{ $complaintCompliance['sla_rate'] }}%"></div>
+                    @if($complaintCompliance['sla_rate'] !== null)
+                        <div class="{{ $complaintCompliance['sla_rate'] >= 80 ? 'bg-green-600' : ($complaintCompliance['sla_rate'] >= 60 ? 'bg-yellow-500' : 'bg-red-600') }} rounded-full h-3 transition-all"
+                             style="width: {{ $complaintCompliance['sla_rate'] }}%"></div>
+                    @endif
                 </div>
                 <p class="text-xs text-gray-500 mt-1">Resolved Within SLA</p>
             </div>
