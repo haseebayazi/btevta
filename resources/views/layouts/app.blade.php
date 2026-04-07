@@ -425,9 +425,8 @@
                         <i class="fas fa-money-bill-transfer text-lg w-6"></i>
                         <span x-show="sidebarOpen" class="font-medium">Remittance</span>
                     </a>
-                </div>
 
-                    <!-- Tab 12: Employers -->
+                    <!-- Tab 12: Employers (admin only) -->
                     @if(auth()->user()->isAdmin())
                     <a href="{{ route('admin.employers.index') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('admin.employers.*') ? 'sidebar-item-active' : '' }}">
