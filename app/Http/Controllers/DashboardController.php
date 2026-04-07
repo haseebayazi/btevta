@@ -313,7 +313,7 @@ class DashboardController extends Controller
 
         $batchesWithSchedule = Batch::where('status', 'active')
             ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-            ->whereHas('schedules')
+            ->whereHas('trainingSchedules')
             ->count();
 
         return [
