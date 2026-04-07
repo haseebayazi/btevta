@@ -7,43 +7,58 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CorrespondenceResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'reference_number' => $this->reference_number,
-            'organization_type' => $this->organization_type,
-            'type' => $this->type,
-            'subject' => $this->subject,
-            'sender' => $this->sender,
-            'recipient' => $this->recipient,
-            'date_received' => $this->date_received?->format('Y-m-d'),
-            'date_sent' => $this->date_sent?->format('Y-m-d'),
-            'content' => $this->content,
-            'priority' => $this->priority,
-            'status' => $this->status,
-            'due_date' => $this->due_date?->format('Y-m-d'),
-            'response_date' => $this->response_date?->format('Y-m-d'),
-            'notes' => $this->notes,
-            'campus' => [
-                'id' => $this->campus?->id,
-                'name' => $this->campus?->name,
-            ],
-            'oep' => [
-                'id' => $this->oep?->id,
-                'name' => $this->oep?->name,
-            ],
-            'creator' => [
-                'id' => $this->creator?->id,
-                'name' => $this->creator?->name,
-            ],
-            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'id'               => $this->id,
+
+            // API-compatible aliases (tests and external consumers use these names)
+            'reference_number' => $this->file_reference_number,
+            'type'             => $this->type,
+            'content'          => $this->message,
+            'priority'         => $this->priority_level,
+
+            // Canonical field names
+            'subject'          => $this->subject,
+            'organization_type'=> $this->organization_type,
+            'sender'           => $this->sender,
+            'recipient'        => $this->recipient,
+            'status'           => $this->status,
+            'description'      => $this->description,
+            'notes'            => $this->notes,
+            'due_date'         => $this->due_date?->format('Y-m-d'),
+
+            // Date fields surfaced with both API alias and canonical name
+            'date_received'    => $this->type === 'incoming'
+                ? $this->sent_at?->format('Y-m-d')
+                : null,
+            'date_sent'        => $this->type === 'outgoing'
+                ? $this->sent_at?->format('Y-m-d')
+                : null,
+            'response_date'    => $this->replied_at?->format('Y-m-d'),
+
+            // Reply tracking
+            'requires_reply'   => $this->requires_reply,
+            'replied'          => $this->replied,
+
+            // Nested relations (null-safe)
+            'campus'           => $this->campus ? [
+                'id'   => $this->campus->id,
+                'name' => $this->campus->name,
+            ] : null,
+
+            'oep'              => $this->oep ? [
+                'id'   => $this->oep->id,
+                'name' => $this->oep->name,
+            ] : null,
+
+            'creator'          => $this->creator ? [
+                'id'   => $this->creator->id,
+                'name' => $this->creator->name,
+            ] : null,
+
+            'created_at'       => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at'       => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

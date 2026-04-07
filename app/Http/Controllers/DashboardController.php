@@ -732,15 +732,15 @@ class DashboardController extends Controller
                 $q->where('file_reference_number', 'like', '%'.$escapedCorrespondenceSearch.'%')
                   ->orWhere('subject', 'like', '%'.$escapedCorrespondenceSearch.'%')
             )
-            ->when($request->type, fn($q) => $q->where('correspondence_type', $request->type))
+            ->when($request->type, fn($q) => $q->where('type', $request->type))
             ->latest()
             ->paginate(15);
-        
+
         $correspondenceStats = [
             'total' => Correspondence::when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
-            'incoming' => Correspondence::where('correspondence_type', 'incoming')
+            'incoming' => Correspondence::where('type', 'incoming')
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
-            'outgoing' => Correspondence::where('correspondence_type', 'outgoing')
+            'outgoing' => Correspondence::where('type', 'outgoing')
                 ->when($campusFilter, fn($q) => $q->where('campus_id', $campusFilter))->count(),
             'pending_reply' => Correspondence::where('requires_reply', true)
                 ->where('replied', false)
