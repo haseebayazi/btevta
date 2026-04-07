@@ -161,6 +161,16 @@ class Remittance extends Model
         return $this->belongsTo(User::class, 'recorded_by');
     }
 
+    public function receipts()
+    {
+        return $this->hasMany(RemittanceReceipt::class);
+    }
+
+    public function usageBreakdown()
+    {
+        return $this->hasMany(RemittanceUsageBreakdown::class);
+    }
+
     public function scopeVerificationStatus($query, $status)
     {
         return $query->where('verification_status', $status);

@@ -100,7 +100,7 @@ class RemittanceService
             'verified_by' => $verifiedBy,
             'verified_at' => now(),
             'rejection_reason' => $reason,
-            'status' => 'failed',
+            'status' => 'flagged',
         ]);
 
         return $remittance->fresh();
@@ -185,7 +185,7 @@ class RemittanceService
     /**
      * Generate unique transaction reference
      */
-    protected function generateTransactionReference(): string
+    public function generateTransactionReference(): string
     {
         $prefix = 'RMT';
         $date = now()->format('Ymd');

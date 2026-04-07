@@ -131,8 +131,8 @@
                     <select name="transfer_method"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 @error('transfer_method') border-red-500 @enderror">
                         <option value="">-- Select Method --</option>
-                        @foreach(config('remittance.transfer_methods') as $method)
-                        <option value="{{ $method }}" {{ old('transfer_method', $remittance->transfer_method) == $method ? 'selected' : '' }}>{{ $method }}</option>
+                        @foreach(config('remittance.transfer_methods') as $key => $label)
+                        <option value="{{ $key }}" {{ old('transfer_method', $remittance->transfer_method) == $key ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                     @error('transfer_method')
@@ -195,8 +195,8 @@
                     </label>
                     <select name="currency"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 @error('currency') border-red-500 @enderror">
-                        @foreach(config('remittance.currencies') as $curr)
-                        <option value="{{ $curr }}" {{ old('currency', $remittance->currency) == $curr ? 'selected' : '' }}>{{ $curr }}</option>
+                        @foreach(config('remittance.currencies') as $code => $name)
+                        <option value="{{ $code }}" {{ old('currency', $remittance->currency) == $code ? 'selected' : '' }}>{{ $code }} – {{ $name }}</option>
                         @endforeach
                     </select>
                     @error('currency')
@@ -226,8 +226,8 @@
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 @error('foreign_currency') border-red-500 @enderror"
                             {{ old('amount_foreign', $remittance->amount_foreign) ? '' : 'disabled' }}>
                         <option value="">-- Select --</option>
-                        @foreach(config('remittance.currencies') as $curr)
-                        <option value="{{ $curr }}" {{ old('foreign_currency', $remittance->foreign_currency) == $curr ? 'selected' : '' }}>{{ $curr }}</option>
+                        @foreach(config('remittance.currencies') as $code => $name)
+                        <option value="{{ $code }}" {{ old('foreign_currency', $remittance->foreign_currency) == $code ? 'selected' : '' }}>{{ $code }} – {{ $name }}</option>
                         @endforeach
                     </select>
                     @error('foreign_currency')
