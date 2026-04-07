@@ -14,7 +14,6 @@ class Correspondence extends Model
     protected $table = 'correspondences';
 
     protected $fillable = [
-        // Actual columns from 2025_10_31_165531_create_correspondences_table migration
         'campus_id',
         'oep_id',
         'candidate_id',
@@ -26,6 +25,10 @@ class Correspondence extends Model
         'replied_at',
         'status',
         'attachment_path',
+        'correspondence_type',
+        'file_reference_number',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -36,10 +39,8 @@ class Correspondence extends Model
     ];
 
     protected $attributes = [
-        // Disabled - these columns don't exist in current schema
-        // 'status' => 'pending',
-        // 'priority_level' => 'normal',
-        // 'correspondence_type' => 'letter',
+        'status' => 'pending',
+        'correspondence_type' => 'incoming',
     ];
 
     /**
@@ -174,27 +175,23 @@ class Correspondence extends Model
         parent::boot();
 
         static::creating(function ($correspondence) {
-            // Disabled - file_reference_number column doesn't exist in current schema
-            // if (empty($correspondence->file_reference_number)) {
-            //     $correspondence->file_reference_number = self::generateFileReferenceNumber();
-            // }
+            if (empty($correspondence->file_reference_number)) {
+                $correspondence->file_reference_number = self::generateFileReferenceNumber();
+            }
 
-            // AUDIT FIX 2026-01-10: Changed correspondence_date to sent_at (actual column name)
             if (empty($correspondence->sent_at)) {
                 $correspondence->sent_at = now();
             }
 
-            // Note: created_by and updated_by columns don't exist in current schema
-            // if (auth()->check()) {
-            //     $correspondence->created_by = auth()->id();
-            // }
+            if (auth()->check()) {
+                $correspondence->created_by = auth()->id();
+            }
         });
 
         static::updating(function ($correspondence) {
-            // Note: updated_by column doesn't exist in current schema
-            // if (auth()->check()) {
-            //     $correspondence->updated_by = auth()->id();
-            // }
+            if (auth()->check()) {
+                $correspondence->updated_by = auth()->id();
+            }
         });
     }
 }
