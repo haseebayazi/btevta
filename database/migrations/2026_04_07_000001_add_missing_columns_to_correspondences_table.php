@@ -5,71 +5,100 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Adds all columns required by the Correspondence module that were missing
+ * Adds all columns required by the Correspondence module that were absent
  * from the original 2025_10_31 migration.
  *
- * Canonical column names chosen to satisfy both the API tests and the
- * DashboardController:
- *   - `type`               instead of `correspondence_type`
- *   - `file_reference_number` for the auto-generated reference
- *   - `priority_level`     for urgency (low / normal / high / urgent)
- *   - `message`            already exists – body text kept as-is
- *   - `sent_at`            already exists – used for all date variants
- *   - `replied_at`         already exists – timestamp when reply was sent
+ * Every column addition is guarded with hasColumn() so the migration is
+ * idempotent — safe to run even when the test DB already contains columns
+ * from a previous version of this file (same filename, evolved content).
+ *
+ * Canonical column names:
+ *   `type`                – direction (incoming|outgoing)
+ *   `file_reference_number` – auto-generated COR-YYYYMM-NNNNN
+ *   `priority_level`      – urgency (low|normal|high|urgent)
+ *   `message`             – body text (existed in original schema)
+ *   `sent_at`             – date sent/received (existed in original schema)
+ *   `replied_at`          – reply timestamp (existed in original schema)
  */
 return new class extends Migration {
+    private string $table = 'correspondences';
+
     public function up(): void
     {
-        Schema::table('correspondences', function (Blueprint $table) {
-            // Direction: incoming | outgoing
-            $table->string('type')->default('incoming')->after('status');
+        Schema::table($this->table, function (Blueprint $table) {
+            // ── type (direction) ──────────────────────────────────────────────
+            // Renamed from `correspondence_type` in a previous iteration.
+            // If the old column exists rename it; otherwise create fresh.
+            if (Schema::hasColumn($this->table, 'correspondence_type')
+                && !Schema::hasColumn($this->table, 'type')) {
+                $table->renameColumn('correspondence_type', 'type');
+            } elseif (!Schema::hasColumn($this->table, 'type')) {
+                $table->string('type')->default('incoming')->after('status');
+            }
 
-            // Auto-generated reference number (e.g. COR-202604-00001)
-            $table->string('file_reference_number')->nullable()->after('type');
+            if (!Schema::hasColumn($this->table, 'file_reference_number')) {
+                $table->string('file_reference_number')->nullable();
+            }
 
-            // Who the correspondence is with / about
-            $table->string('organization_type')->nullable()->after('file_reference_number'); // btevta|oep|embassy|campus|government|other
-            $table->string('sender')->nullable()->after('organization_type');
-            $table->string('recipient')->nullable()->after('sender');
+            if (!Schema::hasColumn($this->table, 'organization_type')) {
+                $table->string('organization_type')->nullable();
+            }
 
-            // Urgency
-            $table->string('priority_level')->default('normal')->after('recipient'); // low|normal|high|urgent
+            if (!Schema::hasColumn($this->table, 'sender')) {
+                $table->string('sender')->nullable();
+            }
 
-            // Extended body / description separate from the short `message`
-            $table->text('description')->nullable()->after('priority_level');
+            if (!Schema::hasColumn($this->table, 'recipient')) {
+                $table->string('recipient')->nullable();
+            }
 
-            // Internal notes / reply notes
-            $table->text('notes')->nullable()->after('description');
+            if (!Schema::hasColumn($this->table, 'priority_level')) {
+                $table->string('priority_level')->default('normal');
+            }
 
-            // Deadlines & response tracking
-            $table->date('due_date')->nullable()->after('notes');
+            if (!Schema::hasColumn($this->table, 'description')) {
+                $table->text('description')->nullable();
+            }
 
-            // Assignment
-            $table->unsignedBigInteger('assigned_to')->nullable()->after('due_date');
+            if (!Schema::hasColumn($this->table, 'notes')) {
+                $table->text('notes')->nullable();
+            }
 
-            // Audit trail
-            $table->unsignedBigInteger('created_by')->nullable()->after('assigned_to');
-            $table->unsignedBigInteger('updated_by')->nullable()->after('created_by');
+            if (!Schema::hasColumn($this->table, 'due_date')) {
+                $table->date('due_date')->nullable();
+            }
+
+            if (!Schema::hasColumn($this->table, 'assigned_to')) {
+                $table->unsignedBigInteger('assigned_to')->nullable();
+            }
+
+            if (!Schema::hasColumn($this->table, 'created_by')) {
+                $table->unsignedBigInteger('created_by')->nullable();
+            }
+
+            if (!Schema::hasColumn($this->table, 'updated_by')) {
+                $table->unsignedBigInteger('updated_by')->nullable();
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('correspondences', function (Blueprint $table) {
-            $table->dropColumn([
-                'type',
-                'file_reference_number',
-                'organization_type',
-                'sender',
-                'recipient',
-                'priority_level',
-                'description',
-                'notes',
-                'due_date',
-                'assigned_to',
-                'created_by',
-                'updated_by',
-            ]);
+        Schema::table($this->table, function (Blueprint $table) {
+            $columns = [
+                'type', 'file_reference_number', 'organization_type',
+                'sender', 'recipient', 'priority_level', 'description',
+                'notes', 'due_date', 'assigned_to', 'created_by', 'updated_by',
+            ];
+
+            $existing = array_filter(
+                $columns,
+                fn ($col) => Schema::hasColumn($this->table, $col)
+            );
+
+            if (!empty($existing)) {
+                $table->dropColumn(array_values($existing));
+            }
         });
     }
 };
