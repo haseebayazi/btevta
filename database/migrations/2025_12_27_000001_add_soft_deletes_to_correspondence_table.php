@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('correspondence', function (Blueprint $table) {
-            if (!Schema::hasColumn('correspondence', 'deleted_at')) {
+        Schema::table('correspondences', function (Blueprint $table) {
+            if (!Schema::hasColumn('correspondences', 'deleted_at')) {
                 $table->softDeletes();
             }
         });
@@ -22,7 +22,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::table('correspondence', function (Blueprint $table) {
+        Schema::table('correspondences', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
     }

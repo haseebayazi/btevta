@@ -1,11 +1,10 @@
 <?php
-// ============================================
-// File: app/Http/Controllers/CorrespondenceController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Correspondence;
+use App\Models\Candidate;
 use App\Models\Campus;
+use App\Models\Correspondence;
 use App\Models\Oep;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,21 +12,16 @@ use Illuminate\Support\Facades\Cache;
 
 class CorrespondenceController extends Controller
 {
+    // ─── Index ────────────────────────────────────────────────────────────────
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        $query = Correspondence::with(['campus', 'oep'])->latest();
+        $user  = Auth::user();
+        $query = Correspondence::with(['campus', 'oep', 'createdBy'])->latest();
 
-        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-            if ($user->isCampusAdmin() && $user->campus_id) {
-                $query->where('campus_id', $user->campus_id);
-            } elseif ($user->isOep() && $user->oep_id) {
-                $query->where('oep_id', $user->oep_id);
-            }
-        }
+        $this->applyUserScope($query, $user);
 
         if ($request->filled('organization_type')) {
             $query->where('organization_type', $request->organization_type);
@@ -37,25 +31,34 @@ class CorrespondenceController extends Controller
             $query->where('type', $request->type);
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $correspondences = $query->paginate(20);
 
         return view('correspondence.index', compact('correspondences'));
     }
 
+    // ─── Create / Store ───────────────────────────────────────────────────────
+
     public function create()
     {
         $this->authorize('create', Correspondence::class);
 
-        // PERFORMANCE: Use cached dropdown data
-        $campuses = Cache::remember('active_campuses', 86400, function () {
-            return Campus::where('is_active', true)->select('id', 'name')->get();
-        });
+        $campuses = Cache::remember('active_campuses', 86400, fn () =>
+            Campus::where('is_active', true)->select('id', 'name')->get()
+        );
 
-        $oeps = Cache::remember('active_oeps', 86400, function () {
-            return Oep::where('is_active', true)->select('id', 'name', 'code')->get();
-        });
+        $oeps = Cache::remember('active_oeps', 86400, fn () =>
+            Oep::where('is_active', true)->select('id', 'name', 'code')->get()
+        );
 
-        return view('correspondence.create', compact('campuses', 'oeps'));
+        $types             = Correspondence::getDirectionTypes();
+        $organizationTypes = Correspondence::getOrganizationTypes();
+        $priorities        = Correspondence::getPriorities();
+
+        return view('correspondence.create', compact('campuses', 'oeps', 'types', 'organizationTypes', 'priorities'));
     }
 
     public function store(Request $request)
@@ -63,23 +66,28 @@ class CorrespondenceController extends Controller
         $this->authorize('create', Correspondence::class);
 
         $validated = $request->validate([
-            'reference_number' => 'required|unique:correspondences,reference_number',
-            'date' => 'required|date',
-            'subject' => 'required|string|max:500',
-            'type' => 'required|in:incoming,outgoing',
-            'sender' => 'required|string|max:255',
-            'recipient' => 'required|string|max:255',
-            'organization_type' => 'required|in:btevta,oep,embassy,campus,government,other',
-            'campus_id' => 'nullable|exists:campuses,id',
-            'oep_id' => 'nullable|exists:oeps,id',
-            'summary' => 'nullable|string',
-            'file' => 'required|file|max:10240|mimes:pdf',
-            'requires_reply' => 'boolean',
-            'reply_deadline' => 'nullable|date|after:date',
+            'type'              => 'required|in:incoming,outgoing',
+            'organization_type' => 'required|in:btevta,oep,embassy,campus,government,private,ngo,internal,other',
+            'subject'           => 'required|string|max:500',
+            'sender'            => 'required|string|max:255',
+            'recipient'         => 'required|string|max:255',
+            'sent_at'           => 'required|date',
+            'campus_id'         => 'nullable|exists:campuses,id',
+            'oep_id'            => 'nullable|exists:oeps,id',
+            'candidate_id'      => 'nullable|exists:candidates,id',
+            'message'           => 'nullable|string',
+            'description'       => 'nullable|string',
+            'priority_level'    => 'nullable|in:low,normal,high,urgent',
+            'requires_reply'    => 'boolean',
+            'due_date'          => 'nullable|date|after:sent_at',
+            'file'              => 'nullable|file|max:10240|mimes:pdf,doc,docx,jpg,png',
         ]);
 
         try {
-            $validated['file_path'] = $request->file('file')->store('correspondence', 'public');
+            if ($request->hasFile('file')) {
+                $validated['attachment_path'] = $request->file('file')
+                    ->store('correspondence', 'private');
+            }
 
             $correspondence = Correspondence::create($validated);
 
@@ -88,38 +96,115 @@ class CorrespondenceController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Correspondence recorded');
 
-            return redirect()->route('correspondence.index')
-                ->with('success', 'Correspondence recorded successfully!');
+            return redirect()->route('correspondence.show', $correspondence)
+                ->with('success', 'Correspondence recorded successfully.');
         } catch (\Exception $e) {
-            // SECURITY: Log exception details, show generic message to user
-            \Log::error('Correspondence creation failed', ['error' => $e->getMessage(), 'user_id' => auth()->id()]);
-            return back()->withInput()->with('error', 'Failed to record correspondence. Please try again or contact support.');
+            \Log::error('Correspondence creation failed', [
+                'error'   => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withInput()
+                ->with('error', 'Failed to record correspondence. Please try again or contact support.');
         }
     }
+
+    // ─── Show ─────────────────────────────────────────────────────────────────
 
     public function show(Correspondence $correspondence)
     {
         $this->authorize('view', $correspondence);
 
+        $correspondence->load(['campus', 'oep', 'candidate', 'createdBy', 'assignee']);
+
         return view('correspondence.show', compact('correspondence'));
     }
+
+    // ─── Edit / Update ────────────────────────────────────────────────────────
+
+    public function edit(Correspondence $correspondence)
+    {
+        $this->authorize('update', $correspondence);
+
+        $campuses = Cache::remember('active_campuses', 86400, fn () =>
+            Campus::where('is_active', true)->select('id', 'name')->get()
+        );
+
+        $oeps = Cache::remember('active_oeps', 86400, fn () =>
+            Oep::where('is_active', true)->select('id', 'name', 'code')->get()
+        );
+
+        $candidates        = Candidate::select('id', 'name', 'btevta_id')->orderBy('name')->get();
+        $types             = Correspondence::getDirectionTypes();
+        $organizationTypes = Correspondence::getOrganizationTypes();
+        $priorities        = Correspondence::getPriorities();
+
+        return view('correspondence.edit', compact(
+            'correspondence', 'campuses', 'oeps', 'candidates',
+            'types', 'organizationTypes', 'priorities'
+        ));
+    }
+
+    public function update(Request $request, Correspondence $correspondence)
+    {
+        $this->authorize('update', $correspondence);
+
+        $validated = $request->validate([
+            'type'              => 'required|in:incoming,outgoing',
+            'organization_type' => 'nullable|in:btevta,oep,embassy,campus,government,private,ngo,internal,other',
+            'subject'           => 'required|string|max:500',
+            'sender'            => 'required|string|max:255',
+            'recipient'         => 'required|string|max:255',
+            'sent_at'           => 'required|date',
+            'campus_id'         => 'nullable|exists:campuses,id',
+            'oep_id'            => 'nullable|exists:oeps,id',
+            'candidate_id'      => 'nullable|exists:candidates,id',
+            'message'           => 'nullable|string',
+            'description'       => 'nullable|string|max:5000',
+            'priority_level'    => 'nullable|in:low,normal,high,urgent',
+            'requires_reply'    => 'boolean',
+            'due_date'          => 'nullable|date',
+            'status'            => 'nullable|in:pending,in_progress,replied,closed',
+        ]);
+
+        $correspondence->update($validated);
+
+        activity()
+            ->performedOn($correspondence)
+            ->causedBy(auth()->user())
+            ->log('Correspondence updated');
+
+        return redirect()->route('correspondence.show', $correspondence)
+            ->with('success', 'Correspondence updated successfully.');
+    }
+
+    // ─── Destroy ──────────────────────────────────────────────────────────────
+
+    public function destroy(Correspondence $correspondence)
+    {
+        $this->authorize('delete', $correspondence);
+
+        $correspondence->delete();
+
+        activity()
+            ->performedOn($correspondence)
+            ->causedBy(auth()->user())
+            ->log('Correspondence deleted');
+
+        return redirect()->route('correspondence.index')
+            ->with('success', 'Correspondence deleted successfully.');
+    }
+
+    // ─── Pending Reply ────────────────────────────────────────────────────────
 
     public function pendingReply()
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        $query = Correspondence::where('requires_reply', true)
-            ->where('replied', false);
+        $user  = Auth::user();
+        $query = Correspondence::pendingReply()->with(['campus', 'oep']);
 
-        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-            if ($user->isCampusAdmin() && $user->campus_id) {
-                $query->where('campus_id', $user->campus_id);
-            } elseif ($user->isOep() && $user->oep_id) {
-                $query->where('oep_id', $user->oep_id);
-            }
-        }
+        $this->applyUserScope($query, $user);
 
         $correspondences = $query->latest()->paginate(20);
 
@@ -130,75 +215,71 @@ class CorrespondenceController extends Controller
     {
         $this->authorize('update', $correspondence);
 
-        // FIXED: Added validation
         $request->validate([
-            'reply_notes' => 'nullable|string|max:1000',
+            'reply_notes' => 'nullable|string|max:2000',
         ]);
 
         try {
-            $correspondence->replied = true;
-            $correspondence->replied_at = now();
-            if ($request->filled('reply_notes')) {
-                $correspondence->reply_notes = $request->reply_notes;
-            }
-            $correspondence->save();
+            $correspondence->update([
+                'replied'    => true,
+                'replied_at' => now(),
+                'status'     => Correspondence::STATUS_REPLIED,
+                'notes'      => $request->filled('reply_notes')
+                    ? $request->reply_notes
+                    : $correspondence->notes,
+            ]);
 
             activity()
                 ->performedOn($correspondence)
                 ->causedBy(auth()->user())
                 ->log('Correspondence marked as replied');
 
-            return back()->with('success', 'Marked as replied!');
+            return back()->with('success', 'Marked as replied.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to mark as replied: ' . $e->getMessage());
+            \Log::error('markReplied failed', ['error' => $e->getMessage(), 'id' => $correspondence->id]);
+
+            return back()->with('error', 'Failed to mark as replied. Please try again.');
         }
     }
+
+    // ─── Register ─────────────────────────────────────────────────────────────
 
     public function register()
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        $query = Correspondence::with(['campus', 'oep']);
+        $user  = Auth::user();
+        $query = Correspondence::with(['campus', 'oep', 'createdBy']);
 
-        // AUDIT FIX: Apply campus/OEP filtering for non-admin users
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-            if ($user->isCampusAdmin() && $user->campus_id) {
-                $query->where('campus_id', $user->campus_id);
-            } elseif ($user->isOep() && $user->oep_id) {
-                $query->where('oep_id', $user->oep_id);
-            }
-        }
+        $this->applyUserScope($query, $user);
 
-        // FIXED: Changed from get() to paginate() to prevent loading all records
-        $correspondences = $query->latest()->paginate(50); // Show 50 records per page for register view
+        $correspondences = $query->latest()->paginate(50);
 
         return view('correspondence.register', compact('correspondences'));
     }
 
-    /**
-     * Communication summary report with outgoing/incoming ratio
-     */
+    // ─── Summary Report ───────────────────────────────────────────────────────
+
     public function summary(Request $request)
     {
         $this->authorize('viewAny', Correspondence::class);
 
         $validated = $request->validate([
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date'        => 'nullable|date',
+            'end_date'          => 'nullable|date|after_or_equal:start_date',
             'organization_type' => 'nullable|string',
-            'campus_id' => 'nullable|exists:campuses,id',
+            'campus_id'         => 'nullable|exists:campuses,id',
         ]);
 
         try {
+            $user  = Auth::user();
             $query = Correspondence::query();
 
-            // Apply date filters
             if (!empty($validated['start_date'])) {
-                $query->whereDate('date', '>=', $validated['start_date']);
+                $query->whereDate('sent_at', '>=', $validated['start_date']);
             }
             if (!empty($validated['end_date'])) {
-                $query->whereDate('date', '<=', $validated['end_date']);
+                $query->whereDate('sent_at', '<=', $validated['end_date']);
             }
             if (!empty($validated['organization_type'])) {
                 $query->where('organization_type', $validated['organization_type']);
@@ -207,307 +288,188 @@ class CorrespondenceController extends Controller
                 $query->where('campus_id', $validated['campus_id']);
             }
 
-            // AUDIT FIX: Apply campus/OEP filtering for non-admin users
-            $user = Auth::user();
-            if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-                if ($user->isCampusAdmin() && $user->campus_id) {
-                    $query->where('campus_id', $user->campus_id);
-                } elseif ($user->isOep() && $user->oep_id) {
-                    $query->where('oep_id', $user->oep_id);
-                }
-            }
+            $this->applyUserScope($query, $user);
 
-            // Calculate summary statistics
             $incoming = (clone $query)->where('type', 'incoming')->count();
             $outgoing = (clone $query)->where('type', 'outgoing')->count();
-            $total = $incoming + $outgoing;
+            $total    = $incoming + $outgoing;
 
-            // By organization type
             $byOrganization = (clone $query)
                 ->selectRaw('organization_type, type, count(*) as count')
                 ->groupBy('organization_type', 'type')
                 ->get()
                 ->groupBy('organization_type');
 
-            // By month (last 12 months)
-            $byMonth = Correspondence::selectRaw('DATE_FORMAT(date, "%Y-%m") as month, type, count(*) as count')
-                ->where('date', '>=', now()->subMonths(12))
-                ->when(auth()->user()->role === 'campus_admin', function($q) {
-                    $q->where('campus_id', auth()->user()->campus_id);
-                })
+            $byMonth = (clone $query)
+                ->selectRaw('DATE_FORMAT(sent_at, "%Y-%m") as month, type, count(*) as count')
+                ->where('sent_at', '>=', now()->subMonths(12))
                 ->groupBy('month', 'type')
                 ->orderBy('month')
                 ->get()
                 ->groupBy('month');
 
-            // Pending replies
-            $pendingReplies = Correspondence::where('requires_reply', true)
+            $pendingReplies = (clone $query)
+                ->where('requires_reply', true)
                 ->where('replied', false)
-                ->when(auth()->user()->role === 'campus_admin', function($q) {
-                    $q->where('campus_id', auth()->user()->campus_id);
-                })
                 ->count();
 
-            // Overdue replies (past deadline)
-            $overdueReplies = Correspondence::where('requires_reply', true)
+            $overdueReplies = (clone $query)
+                ->where('requires_reply', true)
                 ->where('replied', false)
-                ->whereNotNull('reply_deadline')
-                ->where('reply_deadline', '<', now())
-                ->when(auth()->user()->role === 'campus_admin', function($q) {
-                    $q->where('campus_id', auth()->user()->campus_id);
-                })
+                ->whereNotNull('due_date')
+                ->where('due_date', '<', now())
                 ->count();
 
-            // Average response time (in days)
-            $avgResponseTime = Correspondence::whereNotNull('replied_at')
-                ->selectRaw('AVG(DATEDIFF(replied_at, created_at)) as avg_days')
-                ->when(auth()->user()->role === 'campus_admin', function($q) {
-                    $q->where('campus_id', auth()->user()->campus_id);
-                })
+            $avgResponseTime = (clone $query)
+                ->whereNotNull('replied_at')
+                ->selectRaw('AVG(DATEDIFF(replied_at, sent_at)) as avg_days')
                 ->value('avg_days');
 
             $summary = [
-                'total' => $total,
-                'incoming' => $incoming,
-                'outgoing' => $outgoing,
-                'ratio' => $outgoing > 0 ? round($incoming / $outgoing, 2) : ($incoming > 0 ? 'All Incoming' : 'N/A'),
-                'by_organization' => $byOrganization,
-                'by_month' => $byMonth,
-                'pending_replies' => $pendingReplies,
-                'overdue_replies' => $overdueReplies,
+                'total'            => $total,
+                'incoming'         => $incoming,
+                'outgoing'         => $outgoing,
+                'ratio'            => $outgoing > 0
+                    ? round($incoming / $outgoing, 2)
+                    : ($incoming > 0 ? 'All Incoming' : 'N/A'),
+                'by_organization'  => $byOrganization,
+                'by_month'         => $byMonth,
+                'pending_replies'  => $pendingReplies,
+                'overdue_replies'  => $overdueReplies,
                 'avg_response_time' => $avgResponseTime ? round($avgResponseTime, 1) : 0,
             ];
 
-            $campuses = Cache::remember('active_campuses', 86400, function () {
-                return Campus::where('is_active', true)->select('id', 'name')->get();
-            });
+            $campuses = Cache::remember('active_campuses', 86400, fn () =>
+                Campus::where('is_active', true)->select('id', 'name')->get()
+            );
 
-            $organizationTypes = [
-                'btevta' => 'BTEVTA',
-                'oep' => 'OEP',
-                'embassy' => 'Embassy',
-                'campus' => 'Campus',
-                'government' => 'Government',
-                'other' => 'Other',
-            ];
+            $organizationTypes = Correspondence::getOrganizationTypes();
 
-            return view('correspondence.reports.summary', compact('summary', 'campuses', 'organizationTypes', 'validated'));
+            return view('correspondence.reports.summary', compact(
+                'summary', 'campuses', 'organizationTypes', 'validated'
+            ));
         } catch (\Exception $e) {
             \Log::error('Correspondence summary failed', ['error' => $e->getMessage()]);
+
             return back()->with('error', 'Failed to generate summary report. Please try again.');
         }
     }
 
-    /**
-     * AUDIT FIX: Added missing CRUD methods for Route::resource()
-     */
+    // ─── Search ───────────────────────────────────────────────────────────────
 
-    /**
-     * Show the form for editing a correspondence.
-     */
-    public function edit(Correspondence $correspondence)
-    {
-        $campuses = Cache::remember('active_campuses', 86400, function () {
-            return Campus::where('is_active', true)->select('id', 'name')->get();
-        });
-
-        $candidates = Candidate::select('id', 'name', 'btevta_id')->orderBy('name')->get();
-
-        return view('correspondence.edit', compact('correspondence', 'campuses', 'candidates'));
-    }
-
-    /**
-     * Update the specified correspondence.
-     */
-    public function update(Request $request, Correspondence $correspondence)
-    {
-        $validated = $request->validate([
-            'file_reference_number' => 'required|string|max:100',
-            'correspondence_type' => 'required|in:incoming,outgoing',
-            'sender' => 'required|string|max:255',
-            'recipient' => 'required|string|max:255',
-            'subject' => 'required|string|max:500',
-            'description' => 'nullable|string|max:5000',
-            'correspondence_date' => 'required|date',
-            'priority_level' => 'nullable|in:low,normal,high,urgent',
-            'candidate_id' => 'nullable|exists:candidates,id',
-            'requires_reply' => 'boolean',
-        ]);
-
-        $validated['updated_by'] = auth()->id();
-
-        $correspondence->update($validated);
-
-        activity()
-            ->performedOn($correspondence)
-            ->causedBy(auth()->user())
-            ->log('Correspondence updated');
-
-        return redirect()->route('correspondence.show', $correspondence)
-            ->with('success', 'Correspondence updated successfully!');
-    }
-
-    /**
-     * Remove the specified correspondence (soft delete).
-     */
-    public function destroy(Correspondence $correspondence)
-    {
-        $correspondence->delete();
-
-        activity()
-            ->performedOn($correspondence)
-            ->causedBy(auth()->user())
-            ->log('Correspondence deleted');
-
-        return redirect()->route('correspondence.index')
-            ->with('success', 'Correspondence deleted successfully!');
-    }
-
-    /**
-     * Full-text search across correspondence records
-     */
     public function search(Request $request)
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        $query = $request->get('q');
+        $rawQuery = $request->get('q', '');
 
-        if (empty($query)) {
+        if (empty(trim($rawQuery))) {
             return redirect()->route('correspondence.index')
                 ->with('info', 'Please enter a search query.');
         }
 
-        // Escape special LIKE characters to prevent SQL injection
-        $escapedQuery = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query);
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $rawQuery);
+        $user    = Auth::user();
 
-        // Build search query
-        $results = Correspondence::where(function($q) use ($escapedQuery) {
-            $q->where('subject', 'LIKE', "%{$escapedQuery}%")
-              ->orWhere('reference_number', 'LIKE', "%{$escapedQuery}%")
-              ->orWhere('sender', 'LIKE', "%{$escapedQuery}%")
-              ->orWhere('recipient', 'LIKE', "%{$escapedQuery}%")
-              ->orWhere('content', 'LIKE', "%{$escapedQuery}%")
-              ->orWhere('notes', 'LIKE', "%{$escapedQuery}%");
+        $results = Correspondence::where(function ($q) use ($escaped) {
+            $q->where('subject', 'LIKE', "%{$escaped}%")
+              ->orWhere('file_reference_number', 'LIKE', "%{$escaped}%")
+              ->orWhere('sender', 'LIKE', "%{$escaped}%")
+              ->orWhere('recipient', 'LIKE', "%{$escaped}%")
+              ->orWhere('message', 'LIKE', "%{$escaped}%")
+              ->orWhere('notes', 'LIKE', "%{$escaped}%")
+              ->orWhere('description', 'LIKE', "%{$escaped}%");
         });
 
-        // Apply campus/OEP filtering for non-admin users
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-            if ($user->isCampusAdmin() && $user->campus_id) {
-                $results->where('campus_id', $user->campus_id);
-            } elseif ($user->isOep() && $user->oep_id) {
-                $results->where('oep_id', $user->oep_id);
-            }
-        }
+        $this->applyUserScope($results, $user);
 
-        $results = $results->with(['campus', 'oep', 'creator'])
+        $results = $results->with(['campus', 'oep', 'createdBy'])
             ->latest()
             ->paginate(20);
 
-        // Highlight search terms in results (optional, for frontend use)
-        $highlightedQuery = htmlspecialchars($query, ENT_QUOTES, 'UTF-8');
+        $query            = $rawQuery;
+        $highlightedQuery = htmlspecialchars($rawQuery, ENT_QUOTES, 'UTF-8');
 
         return view('correspondence.search-results', compact('results', 'query', 'highlightedQuery'));
     }
 
-    /**
-     * Pendency analytics dashboard
-     */
+    // ─── Pendency Report ──────────────────────────────────────────────────────
+
     public function pendencyReport()
     {
         $this->authorize('viewAny', Correspondence::class);
 
-        // Base query
+        $user      = Auth::user();
         $baseQuery = Correspondence::query();
 
-        // Apply campus/OEP filtering for non-admin users
-        $user = Auth::user();
-        if (!$user->isSuperAdmin() && !$user->isProjectDirector() && !$user->isViewer()) {
-            if ($user->isCampusAdmin() && $user->campus_id) {
-                $baseQuery->where('campus_id', $user->campus_id);
-            } elseif ($user->isOep() && $user->oep_id) {
-                $baseQuery->where('oep_id', $user->oep_id);
-            }
-        }
+        $this->applyUserScope($baseQuery, $user);
 
-        // Basic statistics
         $stats = [
             'total_correspondence' => (clone $baseQuery)->count(),
-            'total_pending' => (clone $baseQuery)->where('status', 'pending')->count(),
-            'total_replied' => (clone $baseQuery)->where('status', 'replied')->count(),
-            'total_closed' => (clone $baseQuery)->where('status', 'closed')->count(),
+            'total_pending'        => (clone $baseQuery)->where('status', Correspondence::STATUS_PENDING)->count(),
+            'total_replied'        => (clone $baseQuery)->where('status', Correspondence::STATUS_REPLIED)->count(),
+            'total_closed'         => (clone $baseQuery)->where('status', Correspondence::STATUS_CLOSED)->count(),
         ];
 
-        // Pending by type
         $stats['pending_by_type'] = (clone $baseQuery)
-            ->where('status', 'pending')
-            ->select('type', \DB::raw('count(*) as count'))
+            ->where('status', Correspondence::STATUS_PENDING)
+            ->selectRaw('type, count(*) as count')
             ->groupBy('type')
             ->get()
             ->pluck('count', 'type');
 
-        // Average response time (for replied correspondence)
         $avgResponseTime = (clone $baseQuery)
-            ->whereNotNull('response_date')
-            ->select(\DB::raw('AVG(DATEDIFF(response_date, created_at)) as avg_days'))
+            ->whereNotNull('replied_at')
+            ->selectRaw('AVG(DATEDIFF(replied_at, sent_at)) as avg_days')
             ->value('avg_days');
 
         $stats['avg_response_time_days'] = $avgResponseTime ? round($avgResponseTime, 1) : 0;
 
-        // Overdue correspondence (pending beyond due date)
-        $stats['overdue'] = (clone $baseQuery)
-            ->where('status', 'pending')
-            ->whereNotNull('due_date')
-            ->where('due_date', '<', now())
-            ->count();
+        $stats['overdue'] = (clone $baseQuery)->overdue()->count();
 
-        // Overdue list (detailed)
         $stats['overdue_list'] = (clone $baseQuery)
-            ->where('status', 'pending')
-            ->whereNotNull('due_date')
-            ->where('due_date', '<', now())
-            ->with(['campus', 'oep', 'creator'])
-            ->orderBy('due_date', 'asc')
+            ->overdue()
+            ->with(['campus', 'oep', 'createdBy'])
+            ->orderBy('due_date')
             ->limit(20)
             ->get()
-            ->map(function($correspondence) {
-                $daysPastDue = now()->diffInDays($correspondence->due_date);
+            ->map(function ($c) {
+                $daysPastDue = now()->diffInDays($c->due_date);
+
                 return [
-                    'correspondence' => $correspondence,
-                    'days_past_due' => $daysPastDue,
-                    'severity' => $daysPastDue > 14 ? 'critical' : ($daysPastDue > 7 ? 'high' : 'moderate'),
+                    'correspondence' => $c,
+                    'days_past_due'  => $daysPastDue,
+                    'severity'       => $daysPastDue > 14 ? 'critical' : ($daysPastDue > 7 ? 'high' : 'moderate'),
                 ];
             });
 
-        // By organization type
         $stats['by_org_type'] = (clone $baseQuery)
-            ->select('organization_type', \DB::raw('count(*) as count'))
+            ->selectRaw('organization_type, count(*) as count')
             ->groupBy('organization_type')
             ->get()
             ->pluck('count', 'organization_type');
 
         // Monthly trend (last 6 months)
-        $monthlyTrend = (clone $baseQuery)
+        $stats['monthly_trend'] = (clone $baseQuery)
             ->where('created_at', '>=', now()->subMonths(6))
-            ->select(
-                \DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                \DB::raw('count(*) as total'),
-                \DB::raw('SUM(CASE WHEN status = "replied" THEN 1 ELSE 0 END) as replied'),
-                \DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending')
+            ->selectRaw(
+                'DATE_FORMAT(created_at, "%Y-%m") as month,' .
+                'count(*) as total,' .
+                'SUM(CASE WHEN status = "replied" THEN 1 ELSE 0 END) as replied,' .
+                'SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending'
             )
             ->groupBy('month')
             ->orderBy('month')
             ->get();
 
-        $stats['monthly_trend'] = $monthlyTrend;
-
-        // Response rate (percentage of correspondence with responses)
+        // On-time response rate
         $totalWithDueDate = (clone $baseQuery)->whereNotNull('due_date')->count();
+
         if ($totalWithDueDate > 0) {
             $respondedOnTime = (clone $baseQuery)
                 ->whereNotNull('due_date')
-                ->whereNotNull('response_date')
-                ->whereRaw('response_date <= due_date')
+                ->whereNotNull('replied_at')
+                ->whereRaw('replied_at <= due_date')
                 ->count();
 
             $stats['on_time_response_rate'] = round(($respondedOnTime / $totalWithDueDate) * 100, 1);
@@ -515,33 +477,48 @@ class CorrespondenceController extends Controller
             $stats['on_time_response_rate'] = 0;
         }
 
-        // Campus breakdown (for admins only)
-        if ($user->role === 'admin' || $user->role === 'project_director') {
+        // Campus / OEP breakdowns (admins only)
+        if (in_array($user->role, ['admin', 'super_admin', 'project_director'])) {
             $stats['by_campus'] = Correspondence::join('campuses', 'correspondences.campus_id', '=', 'campuses.id')
-                ->select('campuses.name as campus_name', \DB::raw('count(*) as count'))
+                ->selectRaw('campuses.name as campus_name, count(*) as count')
                 ->groupBy('campuses.id', 'campuses.name')
-                ->orderBy('count', 'desc')
+                ->orderByDesc('count')
                 ->limit(10)
                 ->get();
-        }
 
-        // OEP breakdown (for admins only)
-        if ($user->role === 'admin' || $user->role === 'project_director') {
             $stats['by_oep'] = Correspondence::join('oeps', 'correspondences.oep_id', '=', 'oeps.id')
-                ->select('oeps.name as oep_name', \DB::raw('count(*) as count'))
+                ->selectRaw('oeps.name as oep_name, count(*) as count')
                 ->groupBy('oeps.id', 'oeps.name')
-                ->orderBy('count', 'desc')
+                ->orderByDesc('count')
                 ->limit(10)
                 ->get();
         }
 
-        // Recent correspondence activity
         $stats['recent_activity'] = (clone $baseQuery)
-            ->with(['campus', 'oep', 'creator'])
+            ->with(['campus', 'oep', 'createdBy'])
             ->latest('updated_at')
             ->limit(10)
             ->get();
 
         return view('correspondence.pendency-report', compact('stats'));
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Constrain a query to records visible to the authenticated user based on
+     * their role (campus admin sees only their campus; OEP sees only their OEP).
+     */
+    private function applyUserScope($query, $user): void
+    {
+        if ($user->isSuperAdmin() || $user->isProjectDirector() || $user->isViewer()) {
+            return;
+        }
+
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $query->where('campus_id', $user->campus_id);
+        } elseif ($user->isOep() && $user->oep_id) {
+            $query->where('oep_id', $user->oep_id);
+        }
     }
 }
