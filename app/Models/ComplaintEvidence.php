@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ComplaintEvidenceCategory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,14 +20,24 @@ class ComplaintEvidence extends Model
         'uploaded_by',
         'description',
         'created_by',
-        'updated_by'
+        'updated_by',
+        // Enhanced fields
+        'evidence_category',
+        'is_confidential',
+        'verified',
+        'verified_by',
+        'verified_at',
     ];
 
     protected $casts = [
-        'file_size' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
+        'file_size'         => 'integer',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+        'deleted_at'        => 'datetime',
+        'evidence_category' => ComplaintEvidenceCategory::class,
+        'is_confidential'   => 'boolean',
+        'verified'          => 'boolean',
+        'verified_at'       => 'datetime',
     ];
 
     /**
@@ -57,6 +68,27 @@ class ComplaintEvidence extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    // Methods
+
+    public function verify(): void
+    {
+        $this->update([
+            'verified'    => true,
+            'verified_by' => auth()->id(),
+            'verified_at' => now(),
+        ]);
+
+        activity()
+            ->performedOn($this)
+            ->causedBy(auth()->user())
+            ->log('Evidence verified');
     }
 
     // Accessors

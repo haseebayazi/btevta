@@ -521,6 +521,13 @@ Route::middleware(['auth'])->group(function () {
     // Purpose: Track and resolve candidate complaints with SLA monitoring
     // ========================================================================
     Route::middleware('role:admin,campus_admin,viewer')->group(function () {
+        // MODULE 9: Static GET routes must come BEFORE resource to avoid being
+        // shadowed by /complaints/{complaint} (the resource show route).
+        Route::prefix('complaints')->name('complaints.')->group(function () {
+            Route::get('/templates', [ComplaintController::class, 'templates'])->name('templates');
+            Route::get('/enhanced-dashboard', [ComplaintController::class, 'enhancedDashboard'])->name('enhanced-dashboard');
+        });
+
         Route::resource('complaints', ComplaintController::class);
         Route::prefix('complaints')->name('complaints.')->group(function () {
         // WORKFLOW ROUTES (Complaint lifecycle management)
@@ -555,6 +562,11 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('throttle:5,1')->name('sla-report');
         Route::post('/export', [ComplaintController::class, 'export'])
             ->middleware('throttle:5,1')->name('export');
+
+        // MODULE 9 ENHANCEMENT ROUTES (POST/action routes)
+        Route::post('/from-template/{template}', [ComplaintController::class, 'createFromTemplate'])->name('from-template');
+        Route::post('/{complaint}/evidence/categorized', [ComplaintController::class, 'addCategorizedEvidence'])->name('add-categorized-evidence');
+        Route::post('/evidence/{evidence}/verify', [ComplaintController::class, 'verifyEvidence'])->name('verify-evidence');
         });
     });
 
@@ -742,10 +754,19 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('courses', \App\Http\Controllers\CourseController::class);
         Route::post('courses/{course}/toggle-status', [\App\Http\Controllers\CourseController::class, 'toggleStatus'])->name('courses.toggle-status');
 
-        // Success Stories
+        // Success Stories (Module 9A)
         Route::resource('success-stories', \App\Http\Controllers\SuccessStoryController::class);
-        Route::post('success-stories/{successStory}/toggle-featured', [\App\Http\Controllers\SuccessStoryController::class, 'toggleFeatured'])->name('success-stories.toggle-featured');
-        Route::get('success-stories/{successStory}/download-evidence', [\App\Http\Controllers\SuccessStoryController::class, 'downloadEvidence'])->name('success-stories.download-evidence');
+        Route::prefix('success-stories')->name('success-stories.')->group(function () {
+            Route::post('/{successStory}/toggle-featured', [\App\Http\Controllers\SuccessStoryController::class, 'toggleFeatured'])->name('toggle-featured');
+            Route::get('/{successStory}/download-evidence', [\App\Http\Controllers\SuccessStoryController::class, 'downloadEvidence'])->name('download-evidence');
+            // Module 9 workflow
+            Route::post('/{successStory}/submit-review', [\App\Http\Controllers\SuccessStoryController::class, 'submitForReview'])->name('submit-review');
+            Route::post('/{successStory}/approve', [\App\Http\Controllers\SuccessStoryController::class, 'approve'])->name('approve');
+            Route::post('/{successStory}/publish', [\App\Http\Controllers\SuccessStoryController::class, 'publish'])->name('publish');
+            Route::post('/{successStory}/reject', [\App\Http\Controllers\SuccessStoryController::class, 'reject'])->name('reject');
+            Route::post('/{successStory}/evidence', [\App\Http\Controllers\SuccessStoryController::class, 'addEvidence'])->name('add-evidence');
+            Route::delete('/{successStory}/evidence/{evidence}', [\App\Http\Controllers\SuccessStoryController::class, 'deleteEvidence'])->name('delete-evidence');
+        });
     });
 
     // ========================================================================
@@ -891,6 +912,11 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 });
+
+// ========================================================================
+// PUBLIC ROUTES (no auth required)
+// ========================================================================
+Route::get('/stories/gallery', [\App\Http\Controllers\SuccessStoryController::class, 'publicGallery'])->name('success-stories.public');
 
 // ========================================================================
 // NOTE: API Routes

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Complaint;
 use App\Models\Candidate;
+use App\Models\ComplaintEvidence;
+use App\Models\ComplaintTemplate;
 use App\Enums\ComplaintStatus;
 use App\Enums\ComplaintPriority;
 use Illuminate\Support\Facades\DB;
@@ -912,5 +914,134 @@ class ComplaintService
             ->log("Complaint deleted: {$complaint->complaint_reference}");
 
         return $complaint->delete();
+    }
+
+    // =========================================================================
+    // MODULE 9 ENHANCEMENTS
+    // =========================================================================
+
+    /**
+     * Get enhanced dashboard metrics including evidence breakdown,
+     * resolution time stats, category trends, and templates.
+     */
+    public function getEnhancedDashboard(?int $campusId = null): array
+    {
+        $filters = $campusId ? ['campus_id' => $campusId] : [];
+        $baseMetrics = $this->getStatistics($filters);
+
+        // Normalize key names for the enhanced dashboard view
+        $baseMetrics['total']         = $baseMetrics['total_complaints'] ?? 0;
+        $baseMetrics['overdue_count'] = $baseMetrics['overdue'] ?? 0;
+        $baseMetrics['by_status']     = [
+            'open'        => $baseMetrics['open'] ?? 0,
+            'assigned'    => $baseMetrics['assigned'] ?? 0,
+            'in_progress' => $baseMetrics['in_progress'] ?? 0,
+            'resolved'    => $baseMetrics['resolved'] ?? 0,
+            'closed'      => $baseMetrics['closed'] ?? 0,
+        ];
+        // by_category from getStatistics returns Collection of arrays, flatten to simple key=>count
+        $baseMetrics['by_category'] = collect($baseMetrics['by_category'] ?? [])
+            ->mapWithKeys(fn ($v, $k) => [$k => is_array($v) ? ($v['count'] ?? $v) : $v])
+            ->all();
+
+        // Evidence category breakdown
+        $evidenceMetrics = ComplaintEvidence::query()
+            ->selectRaw('evidence_category, COUNT(*) as count')
+            ->groupBy('evidence_category')
+            ->pluck('count', 'evidence_category');
+
+        // Resolution time metrics — computed in PHP for DB portability
+        $resolvedComplaints = Complaint::where('status', ComplaintStatus::RESOLVED->value)
+            ->whereNotNull('resolved_at')
+            ->select('created_at', 'resolved_at')
+            ->get();
+
+        $resolutionHours = $resolvedComplaints->map(
+            fn ($c) => $c->created_at->diffInHours($c->resolved_at)
+        );
+
+        $resolutionMetrics = $resolutionHours->isNotEmpty() ? (object) [
+            'avg_resolution_hours' => $resolutionHours->avg(),
+            'min_resolution_hours' => $resolutionHours->min(),
+            'max_resolution_hours' => $resolutionHours->max(),
+        ] : null;
+
+        // Category trends (last 6 months) — DB-agnostic approach
+        $recentComplaints = Complaint::select('complaint_category', 'created_at')
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->get();
+
+        $categoryTrends = $recentComplaints
+            ->groupBy('complaint_category')
+            ->map(function ($items) {
+                return $items->groupBy(fn ($c) => $c->created_at->format('Y-m'))
+                    ->map(fn ($group, $month) => (object) [
+                        'category' => $group->first()->complaint_category,
+                        'month'    => $month,
+                        'count'    => $group->count(),
+                    ]);
+            });
+
+        return array_merge($baseMetrics, [
+            'evidence_by_category' => $evidenceMetrics,
+            'resolution_metrics'   => $resolutionMetrics,
+            'category_trends'      => $categoryTrends,
+            'templates'            => ComplaintTemplate::active()->get(),
+        ]);
+    }
+
+    /**
+     * Create a complaint from a template.
+     */
+    public function createFromTemplate(
+        ComplaintTemplate $template,
+        Candidate $candidate,
+        string $description,
+        array $additionalData = []
+    ): Complaint {
+        return $this->registerComplaint(array_merge([
+            'candidate_id'       => $candidate->id,
+            'complaint_category' => $template->category,
+            'description'        => $description,
+            'priority'           => $template->default_priority->value,
+            'subject'            => $template->name,
+            'complainant_name'   => $candidate->name,
+            'complainant_contact' => $candidate->phone ?? $candidate->cnic ?? 'N/A',
+            'complainant_email'  => $candidate->email ?? null,
+            'campus_id'          => $candidate->campus_id,
+        ], $additionalData));
+    }
+
+    /**
+     * Add categorized evidence to a complaint.
+     */
+    public function addCategorizedEvidence(
+        Complaint $complaint,
+        $file,
+        string $category,
+        bool $isConfidential = false,
+        ?string $description = null
+    ): ComplaintEvidence {
+        $path = $file->store("complaints/{$complaint->id}/evidence", 'private');
+
+        $evidence = ComplaintEvidence::create([
+            'complaint_id'      => $complaint->id,
+            'file_name'         => $file->getClientOriginalName(),
+            'file_path'         => $path,
+            'file_type'         => $file->getMimeType(),
+            'file_size'         => $file->getSize(),
+            'evidence_category' => $category,
+            'is_confidential'   => $isConfidential,
+            'description'       => $description,
+            'uploaded_by'       => auth()->id(),
+        ]);
+
+        activity()
+            ->performedOn($complaint)
+            ->causedBy(auth()->user())
+            ->withProperties(['category' => $category, 'file' => $file->getClientOriginalName()])
+            ->log('Categorized evidence added');
+
+        return $evidence;
     }
 }

@@ -23,12 +23,22 @@ class StoreSuccessStoryRequest extends FormRequest
         $evidenceTypes = implode(',', array_keys(EvidenceType::toArray()));
 
         return [
-            'candidate_id' => 'required|exists:candidates,id',
-            'departure_id' => 'nullable|exists:departures,id',
-            'written_note' => 'required|string|max:5000',
-            'evidence_type' => 'required|string|in:' . $evidenceTypes,
-            'evidence' => 'nullable|file|max:51200', // 50MB max for video
-            'is_featured' => 'boolean',
+            'candidate_id'            => 'required|exists:candidates,id',
+            'departure_id'            => 'nullable|exists:departures,id',
+            'written_note'            => 'required|string|max:5000',
+            'evidence_type'           => 'nullable|string|in:' . $evidenceTypes,
+            'evidence'                => 'nullable|file|max:102400', // 100MB for video
+            'is_featured'             => 'boolean',
+            // Enhanced fields
+            'story_type'              => 'nullable|string|in:employment,career_growth,skill_achievement,remittance,other',
+            'headline'                => 'nullable|string|max:200',
+            'employer_name'           => 'nullable|string|max:200',
+            'position_achieved'       => 'nullable|string|max:100',
+            'country_id'              => 'nullable|exists:countries,id',
+            'salary_achieved'         => 'nullable|numeric|min:0',
+            'salary_currency'         => 'nullable|string|max:10',
+            'employment_start_date'   => 'nullable|date',
+            'time_to_employment_days' => 'nullable|integer|min:0',
         ];
     }
 
