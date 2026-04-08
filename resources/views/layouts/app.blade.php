@@ -405,6 +405,13 @@
                         <span x-show="sidebarOpen" class="font-medium">Complaints</span>
                     </a>
 
+                    <!-- Module 9: Success Stories -->
+                    <a href="{{ route('admin.success-stories.index') }}"
+                       class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('admin.success-stories.*') ? 'sidebar-item-active' : '' }}">
+                        <i class="fas fa-star text-lg w-6"></i>
+                        <span x-show="sidebarOpen" class="font-medium">Success Stories</span>
+                    </a>
+
                     <!-- Tab 10: Document Archive -->
                     <a href="{{ route('dashboard.document-archive') }}"
                        class="sidebar-item flex items-center space-x-3 px-3 py-2 rounded-lg {{ request()->routeIs('dashboard.document-archive') ? 'sidebar-item-active' : '' }}">

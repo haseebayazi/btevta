@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Complaint;
+use App\Models\ComplaintEvidence;
+use App\Models\ComplaintTemplate;
 use App\Models\Candidate;
 use App\Models\Campus;
 use App\Models\Oep;
@@ -679,6 +681,115 @@ class ComplaintController extends Controller
             return view('complaints.statistics', compact('statistics'));
         } catch (Exception $e) {
             return back()->with('error', 'Failed to generate statistics: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // MODULE 9 ENHANCEMENTS
+    // =========================================================================
+
+    /**
+     * Display available complaint templates.
+     */
+    public function templates()
+    {
+        $this->authorize('viewAny', Complaint::class);
+
+        $templates = ComplaintTemplate::active()->orderBy('category')->orderBy('name')->get();
+
+        return view('complaints.templates', compact('templates'));
+    }
+
+    /**
+     * Create a complaint from a template.
+     */
+    public function createFromTemplate(Request $request, ComplaintTemplate $template)
+    {
+        $this->authorize('create', Complaint::class);
+
+        $request->validate([
+            'candidate_id' => 'required|exists:candidates,id',
+            'description'  => 'required|string|min:20|max:5000',
+            'campus_id'    => 'nullable|exists:campuses,id',
+        ]);
+
+        try {
+            $candidate = Candidate::findOrFail($request->candidate_id);
+            $complaint = $this->complaintService->createFromTemplate(
+                $template,
+                $candidate,
+                $request->description,
+                ['campus_id' => $request->campus_id ?? $candidate->campus_id]
+            );
+
+            return redirect()->route('complaints.show', $complaint)
+                ->with('success', 'Complaint created from template successfully.');
+        } catch (Exception $e) {
+            return back()->withInput()->with('error', 'Failed to create complaint: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Add categorized evidence to a complaint.
+     */
+    public function addCategorizedEvidence(Request $request, Complaint $complaint)
+    {
+        $this->authorize('update', $complaint);
+
+        $request->validate([
+            'file'             => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx',
+            'evidence_category' => 'required|in:initial_report,supporting_document,photo_video,witness_statement,communication_record,resolution_proof,other',
+            'is_confidential'  => 'boolean',
+            'description'      => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $this->complaintService->addCategorizedEvidence(
+                $complaint,
+                $request->file('file'),
+                $request->evidence_category,
+                $request->boolean('is_confidential'),
+                $request->description
+            );
+
+            return back()->with('success', 'Evidence added and categorized successfully.');
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to add evidence: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Verify a piece of complaint evidence.
+     */
+    public function verifyEvidence(ComplaintEvidence $evidence)
+    {
+        $this->authorize('update', $evidence->complaint);
+
+        try {
+            $evidence->verify();
+
+            return back()->with('success', 'Evidence verified successfully.');
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to verify evidence: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Enhanced dashboard with metrics, trends, and templates.
+     */
+    public function enhancedDashboard(Request $request)
+    {
+        $this->authorize('viewAny', Complaint::class);
+
+        try {
+            $user     = Auth::user();
+            $campusId = $user->isCampusAdmin() ? $user->campus_id : $request->campus_id;
+
+            $dashboard = $this->complaintService->getEnhancedDashboard($campusId);
+
+            return view('complaints.enhanced-dashboard', compact('dashboard'));
+        } catch (Exception $e) {
+            return back()->with('error', 'Failed to load enhanced dashboard: '.$e->getMessage());
         }
     }
 }

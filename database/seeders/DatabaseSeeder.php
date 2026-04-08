@@ -289,6 +289,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ImplementingPartnersSeeder::class);
         $this->call(CoursesSeeder::class);
         $this->call(DocumentChecklistsSeeder::class);
+        $this->call(ComplaintTemplatesSeeder::class);
 
         echo "\n";
 
