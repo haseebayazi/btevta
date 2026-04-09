@@ -535,6 +535,22 @@ class Candidate extends Model
         return $this->hasMany(CandidateLicense::class);
     }
 
+    /**
+     * Get all status change logs for this candidate (Module 10 audit trail)
+     */
+    public function statusLogs()
+    {
+        return $this->hasMany(CandidateStatusLog::class)->orderBy('changed_at', 'desc');
+    }
+
+    /**
+     * Get all document renewal requests for this candidate (Module 10)
+     */
+    public function documentRenewalRequests()
+    {
+        return $this->hasMany(DocumentRenewalRequest::class);
+    }
+
     // ==================== SCOPES ====================
 
     /**
