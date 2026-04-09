@@ -23,12 +23,14 @@ class PreDepartureDocument extends Model
         'verified_at',
         'verified_by',
         'verification_notes',
+        'expiry_date',
     ];
 
     protected $casts = [
-        'file_size' => 'integer',
+        'file_size'   => 'integer',
         'uploaded_at' => 'datetime',
         'verified_at' => 'datetime',
+        'expiry_date' => 'date',
     ];
 
     /**
@@ -93,5 +95,13 @@ class PreDepartureDocument extends Model
     public function scopeUnverified($query)
     {
         return $query->whereNull('verified_at');
+    }
+
+    /**
+     * Get renewal requests for this document (Module 10)
+     */
+    public function renewalRequests()
+    {
+        return $this->morphMany(DocumentRenewalRequest::class, 'documentable');
     }
 }
