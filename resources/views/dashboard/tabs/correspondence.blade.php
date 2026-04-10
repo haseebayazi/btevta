@@ -51,16 +51,16 @@
                     <tbody>
                         @foreach($correspondences as $corr)
                             <tr class="border-b hover:bg-gray-50">
-                                <td class="px-6 py-4 font-mono font-semibold">{{ $corr->reference_number }}</td>
-                                <td class="px-6 py-4">{{ $corr->correspondence_date->format('Y-m-d') }}</td>
+                                <td class="px-6 py-4 font-mono font-semibold">{{ $corr->file_reference_number }}</td>
+                                <td class="px-6 py-4">{{ $corr->sent_at?->format('Y-m-d') ?? 'N/A' }}</td>
                                 <td class="px-6 py-4">
                                     <span class="inline-block px-2 py-1 rounded text-xs font-semibold
-                                        {{ $corr->correspondence_type === 'incoming' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
-                                        {{ ucfirst($corr->correspondence_type) }}
+                                        {{ $corr->type === 'incoming' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                        {{ ucfirst($corr->type) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">{{ Str::limit($corr->subject, 40) }}</td>
-                                <td class="px-6 py-4">{{ $corr->from_to ?? 'N/A' }}</td>
+                                <td class="px-6 py-4">{{ $corr->type === 'incoming' ? ($corr->sender ?? 'N/A') : ($corr->recipient ?? 'N/A') }}</td>
                                 <td class="px-6 py-4">
                                     @if($corr->requires_reply && !$corr->replied)
                                         <span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
