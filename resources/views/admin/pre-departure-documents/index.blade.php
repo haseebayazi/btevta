@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Pre-Departure Documents - ' . $candidate->name)
 
