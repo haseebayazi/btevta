@@ -209,15 +209,19 @@
                     </tr>
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">Avg Processing Time (Days)</td>
-                        <td class="px-4 py-3 text-right">{{ $stats['avg_processing_days'] ?? 45 }}</td>
-                        <td class="px-4 py-3 text-right text-gray-500">{{ $stats['last_month_avg_processing'] ?? 48 }}</td>
+                        <td class="px-4 py-3 text-right">{{ $stats['avg_processing_days'] ?? 0 ?: '—' }}</td>
+                        <td class="px-4 py-3 text-right text-gray-500">{{ $stats['last_month_avg_processing'] ?? 0 ?: '—' }}</td>
                         <td class="px-4 py-3 text-right">
                             @php
-                                $procChange = ($stats['avg_processing_days'] ?? 45) - ($stats['last_month_avg_processing'] ?? 48);
+                                $procChange = ($stats['avg_processing_days'] ?? 0) - ($stats['last_month_avg_processing'] ?? 0);
                             @endphp
+                            @if(($stats['avg_processing_days'] ?? 0) && ($stats['last_month_avg_processing'] ?? 0))
                             <span class="{{ $procChange <= 0 ? 'text-green-600' : 'text-red-600' }}">
                                 {{ $procChange <= 0 ? '' : '+' }}{{ $procChange }} days
                             </span>
+                            @else
+                            <span class="text-gray-400">—</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3">
                             <div class="w-24 bg-gray-200 rounded-full h-2">
@@ -227,11 +231,11 @@
                     </tr>
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium">Complaint Resolution Rate</td>
-                        <td class="px-4 py-3 text-right">{{ $stats['complaint_resolution_rate'] ?? 85 }}%</td>
-                        <td class="px-4 py-3 text-right text-gray-500">{{ $stats['last_month_resolution_rate'] ?? 82 }}%</td>
+                        <td class="px-4 py-3 text-right">{{ $stats['complaint_resolution_rate'] ?? 0 }}%</td>
+                        <td class="px-4 py-3 text-right text-gray-500">{{ $stats['last_month_resolution_rate'] ?? 0 }}%</td>
                         <td class="px-4 py-3 text-right">
                             @php
-                                $resChange = ($stats['complaint_resolution_rate'] ?? 85) - ($stats['last_month_resolution_rate'] ?? 82);
+                                $resChange = ($stats['complaint_resolution_rate'] ?? 0) - ($stats['last_month_resolution_rate'] ?? 0);
                             @endphp
                             <span class="{{ $resChange >= 0 ? 'text-green-600' : 'text-red-600' }}">
                                 {{ $resChange >= 0 ? '+' : '' }}{{ $resChange }}%
@@ -239,7 +243,7 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="w-24 bg-gray-200 rounded-full h-2">
-                                <div class="bg-yellow-500 h-2 rounded-full" style="width: {{ $stats['complaint_resolution_rate'] ?? 85 }}%"></div>
+                                <div class="bg-yellow-500 h-2 rounded-full" style="width: {{ $stats['complaint_resolution_rate'] ?? 0 }}%"></div>
                             </div>
                         </td>
                     </tr>
@@ -302,17 +306,17 @@ function initializeCharts() {
         trendChart = new Chart(trendCtx, {
             type: 'line',
             data: {
-                labels: {!! json_encode($stats['trend_labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']) !!},
+                labels: {!! json_encode($stats['trend_labels'] ?? []) !!},
                 datasets: [{
                     label: 'Registrations',
-                    data: {!! json_encode($stats['trend_registrations'] ?? [12, 19, 25, 32, 28, 35, 42, 38, 45, 52, 48, 55]) !!},
+                    data: {!! json_encode($stats['trend_registrations'] ?? []) !!},
                     borderColor: '#3B82F6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     fill: true,
                     tension: 0.4
                 }, {
                     label: 'Departures',
-                    data: {!! json_encode($stats['trend_departures'] ?? [5, 8, 12, 15, 18, 22, 25, 28, 32, 35, 38, 42]) !!},
+                    data: {!! json_encode($stats['trend_departures'] ?? []) !!},
                     borderColor: '#10B981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     fill: true,
@@ -342,10 +346,10 @@ function initializeCharts() {
         campusChart = new Chart(campusCtx, {
             type: 'bar',
             data: {
-                labels: {!! json_encode($stats['campus_names'] ?? ['Campus A', 'Campus B', 'Campus C', 'Campus D']) !!},
+                labels: {!! json_encode($stats['campus_names'] ?? []) !!},
                 datasets: [{
                     label: 'Candidates',
-                    data: {!! json_encode($stats['campus_candidates'] ?? [45, 32, 28, 21]) !!},
+                    data: {!! json_encode($stats['campus_candidates'] ?? []) !!},
                     backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6']
                 }]
             },
@@ -366,9 +370,9 @@ function initializeCharts() {
         tradeChart = new Chart(tradeCtx, {
             type: 'pie',
             data: {
-                labels: {!! json_encode($stats['trade_names'] ?? ['Electrician', 'Plumber', 'Welder', 'Mason', 'Other']) !!},
+                labels: {!! json_encode($stats['trade_names'] ?? []) !!},
                 datasets: [{
-                    data: {!! json_encode($stats['trade_counts'] ?? [35, 25, 20, 15, 5]) !!},
+                    data: {!! json_encode($stats['trade_counts'] ?? []) !!},
                     backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6B7280']
                 }]
             },
@@ -391,10 +395,10 @@ function initializeCharts() {
         activityChart = new Chart(activityCtx, {
             type: 'bar',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: {!! json_encode($stats['weekly_labels'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) !!},
                 datasets: [{
-                    label: 'Activities',
-                    data: {!! json_encode($stats['weekly_activity'] ?? [12, 19, 15, 22, 18, 8, 5]) !!},
+                    label: 'Registrations',
+                    data: {!! json_encode($stats['weekly_activity'] ?? [0, 0, 0, 0, 0, 0, 0]) !!},
                     backgroundColor: 'rgba(99, 102, 241, 0.8)',
                     borderRadius: 4
                 }]
@@ -433,7 +437,7 @@ function refreshMetrics() {
 function liveStats() {
     return {
         todayRegistrations: {{ $stats['today_registrations'] ?? 0 }},
-        registrationTrend: {{ $stats['registration_trend'] ?? 5 }},
+        registrationTrend: {{ $stats['registration_trend'] ?? 0 }},
 
         init() {
             // Poll for updates every 30 seconds

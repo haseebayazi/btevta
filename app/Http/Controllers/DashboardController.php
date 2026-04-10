@@ -412,86 +412,273 @@ class DashboardController extends Controller
 
     private function getStatistics($campusId = null, $oepId = null)
     {
-        // PERFORMANCE: Cache dashboard statistics for 5 minutes
-        // Cache key includes campus_id and oep_id for role-based isolation
         $cacheKey = 'dashboard_stats_' . ($campusId ?? 'all') . '_' . ($oepId ?? 'all');
 
-        // AUDIT FIX: Pass both campusId and oepId to the closure for proper filtering
         return Cache::remember($cacheKey, 300, function () use ($campusId, $oepId) {
-            // Use single query with CASE statements instead of 8 separate queries
-            // PHASE 8 FIX: Fixed status constants to match Candidate model
-            // STATUS_NEW = 'new' (was 'listed'), STATUS_VISA_PROCESS = 'visa_process' (was 'visa_processing')
+            // Full pipeline in one query — all statuses including new workflow stages
             $candidateStats = DB::table('candidates')
-            ->selectRaw('
-                COUNT(*) as total_candidates,
-                SUM(CASE WHEN status = "new" THEN 1 ELSE 0 END) as listed,
-                SUM(CASE WHEN status = "screening" THEN 1 ELSE 0 END) as screening,
-                SUM(CASE WHEN status = "registered" THEN 1 ELSE 0 END) as registered,
-                SUM(CASE WHEN status = "training" THEN 1 ELSE 0 END) as in_training,
-                SUM(CASE WHEN status = "visa_process" THEN 1 ELSE 0 END) as visa_processing,
-                SUM(CASE WHEN status = "departed" THEN 1 ELSE 0 END) as departed,
-                SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected
-            ')
-            ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-            // AUDIT FIX: Apply OEP filtering for OEP users
-            ->when($oepId, fn($q) => $q->where('oep_id', $oepId))
-            ->whereNull('deleted_at')
-            ->first();
+                ->selectRaw('
+                    COUNT(*) as total_candidates,
+                    SUM(CASE WHEN status IN ("new", "listed") THEN 1 ELSE 0 END) as listed,
+                    SUM(CASE WHEN status = "pre_departure_docs" THEN 1 ELSE 0 END) as pre_departure_docs,
+                    SUM(CASE WHEN status = "screening" THEN 1 ELSE 0 END) as screening,
+                    SUM(CASE WHEN status = "screened" THEN 1 ELSE 0 END) as screened,
+                    SUM(CASE WHEN status = "registered" THEN 1 ELSE 0 END) as registered,
+                    SUM(CASE WHEN status = "training" THEN 1 ELSE 0 END) as in_training,
+                    SUM(CASE WHEN status = "training_completed" THEN 1 ELSE 0 END) as training_completed,
+                    SUM(CASE WHEN status = "visa_process" THEN 1 ELSE 0 END) as visa_processing,
+                    SUM(CASE WHEN status = "visa_approved" THEN 1 ELSE 0 END) as visa_approved,
+                    SUM(CASE WHEN status = "departure_processing" THEN 1 ELSE 0 END) as departure_processing,
+                    SUM(CASE WHEN status = "ready_to_depart" THEN 1 ELSE 0 END) as ready_to_depart,
+                    SUM(CASE WHEN status = "departed" THEN 1 ELSE 0 END) as departed,
+                    SUM(CASE WHEN status = "post_departure" THEN 1 ELSE 0 END) as post_departure,
+                    SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = "deferred" THEN 1 ELSE 0 END) as deferred,
+                    SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected,
+                    SUM(CASE WHEN status = "withdrawn" THEN 1 ELSE 0 END) as withdrawn,
+                    SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today_registrations,
+                    SUM(CASE WHEN DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) THEN 1 ELSE 0 END) as yesterday_registrations,
+                    SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN 1 ELSE 0 END) as this_month_registrations,
+                    SUM(CASE WHEN YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) as last_month_registrations
+                ')
+                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                ->when($oepId, fn($q) => $q->where('oep_id', $oepId))
+                ->whereNull('deleted_at')
+                ->first();
 
-        // Remittance statistics - AUDIT FIX: Apply both campus and OEP filtering
-        $remittanceQuery = Remittance::query();
-        if ($campusId) {
-            $remittanceQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
-        } elseif ($oepId) {
-            $remittanceQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $oepId));
-        }
+            // Departure stats — conditional join for campus filtering
+            $departureQuery = DB::table('departures')->whereNotNull('departure_date');
+            if ($campusId) {
+                $departureQuery->join('candidates as dep_c', 'departures.candidate_id', '=', 'dep_c.id')
+                    ->where('dep_c.campus_id', $campusId)
+                    ->whereNull('dep_c.deleted_at');
+            }
+            $departureStats = $departureQuery->selectRaw('
+                SUM(CASE WHEN YEARWEEK(departure_date, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) as week_departures,
+                SUM(CASE WHEN YEAR(departure_date) = YEAR(CURDATE()) AND MONTH(departure_date) = MONTH(CURDATE()) THEN 1 ELSE 0 END) as this_month_departures,
+                SUM(CASE WHEN YEAR(departure_date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND MONTH(departure_date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) as last_month_departures
+            ')->first();
 
-        $remittanceStats = $remittanceQuery
-            ->selectRaw('
+            // Average processing time: candidate creation → departure date
+            $avgProcessingDays = (int) DB::table('departures')
+                ->join('candidates as proc_c', 'departures.candidate_id', '=', 'proc_c.id')
+                ->whereNotNull('departures.departure_date')
+                ->whereNull('proc_c.deleted_at')
+                ->when($campusId, fn($q) => $q->where('proc_c.campus_id', $campusId))
+                ->selectRaw('ROUND(AVG(DATEDIFF(departures.departure_date, proc_c.created_at))) as avg_days')
+                ->value('avg_days');
+
+            $lastMonthAvgProcessing = (int) DB::table('departures')
+                ->join('candidates as proc_c2', 'departures.candidate_id', '=', 'proc_c2.id')
+                ->whereNotNull('departures.departure_date')
+                ->whereNull('proc_c2.deleted_at')
+                ->whereYear('departures.departure_date', now()->subMonth()->year)
+                ->whereMonth('departures.departure_date', now()->subMonth()->month)
+                ->when($campusId, fn($q) => $q->where('proc_c2.campus_id', $campusId))
+                ->selectRaw('ROUND(AVG(DATEDIFF(departures.departure_date, proc_c2.created_at))) as avg_days')
+                ->value('avg_days');
+
+            // Complaint resolution rate (real data)
+            $totalComplaints = Complaint::when($campusId, fn($q) => $q->where('campus_id', $campusId))->count();
+            $resolvedComplaints = Complaint::whereIn('status', ['resolved', 'closed'])
+                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))->count();
+            $complaintResolutionRate = $totalComplaints > 0
+                ? round($resolvedComplaints / $totalComplaints * 100) : 100;
+
+            $lastMonthTotalComplaints = Complaint::when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->whereMonth('created_at', now()->subMonth()->month)->count();
+            $lastMonthResolved = Complaint::whereIn('status', ['resolved', 'closed'])
+                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->whereMonth('created_at', now()->subMonth()->month)->count();
+            $lastMonthResolutionRate = $lastMonthTotalComplaints > 0
+                ? round($lastMonthResolved / $lastMonthTotalComplaints * 100) : 100;
+
+            // 12-month trend data — two GROUP BY queries instead of 24 individual queries
+            $regTrendRaw = DB::table('candidates')
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
+                ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                ->when($oepId, fn($q) => $q->where('oep_id', $oepId))
+                ->whereNull('deleted_at')
+                ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+                ->pluck('count', 'month');
+
+            $depTrendQuery = DB::table('departures')
+                ->selectRaw("DATE_FORMAT(departure_date, '%Y-%m') as month, COUNT(*) as count")
+                ->whereNotNull('departure_date')
+                ->where('departure_date', '>=', now()->subMonths(11)->startOfMonth());
+            if ($campusId) {
+                $depTrendQuery->join('candidates as trend_c', 'departures.candidate_id', '=', 'trend_c.id')
+                    ->where('trend_c.campus_id', $campusId);
+            }
+            $depTrendRaw = $depTrendQuery
+                ->groupByRaw("DATE_FORMAT(departure_date, '%Y-%m')")
+                ->pluck('count', 'month');
+
+            $trendLabels = $trendRegistrations = $trendDepartures = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $key = $date->format('Y-m');
+                $trendLabels[]        = $date->format('M Y');
+                $trendRegistrations[] = $regTrendRaw[$key] ?? 0;
+                $trendDepartures[]    = $depTrendRaw[$key] ?? 0;
+            }
+
+            // Campus breakdown (top 8 by candidate count)
+            $campusData = DB::table('candidates')
+                ->join('campuses', 'candidates.campus_id', '=', 'campuses.id')
+                ->when($campusId, fn($q) => $q->where('candidates.campus_id', $campusId))
+                ->when($oepId, fn($q) => $q->where('candidates.oep_id', $oepId))
+                ->whereNull('candidates.deleted_at')
+                ->selectRaw('campuses.name, COUNT(*) as count')
+                ->groupBy('campuses.id', 'campuses.name')
+                ->orderByDesc('count')
+                ->limit(8)
+                ->get();
+
+            // Trade breakdown (top 8)
+            $tradeData = DB::table('candidates')
+                ->join('trades', 'candidates.trade_id', '=', 'trades.id')
+                ->when($campusId, fn($q) => $q->where('candidates.campus_id', $campusId))
+                ->when($oepId, fn($q) => $q->where('candidates.oep_id', $oepId))
+                ->whereNull('candidates.deleted_at')
+                ->whereNotNull('candidates.trade_id')
+                ->selectRaw('trades.name, COUNT(*) as count')
+                ->groupBy('trades.id', 'trades.name')
+                ->orderByDesc('count')
+                ->limit(8)
+                ->get();
+
+            // Weekly registrations — last 7 days keyed by date string
+            $weeklyRaw = DB::table('candidates')
+                ->selectRaw('DATE(created_at) as day_date, COUNT(*) as count')
+                ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                ->when($oepId, fn($q) => $q->where('oep_id', $oepId))
+                ->whereNull('deleted_at')
+                ->groupBy('day_date')
+                ->pluck('count', 'day_date');
+
+            $weeklyLabels = $weeklyActivity = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $day = now()->subDays($i)->toDateString();
+                $weeklyLabels[]   = now()->subDays($i)->format('D');
+                $weeklyActivity[] = $weeklyRaw[$day] ?? 0;
+            }
+
+            // Remittance statistics
+            $remittanceQuery = Remittance::query();
+            if ($campusId) {
+                $remittanceQuery->whereHas('candidate', fn($q) => $q->where('campus_id', $campusId));
+            } elseif ($oepId) {
+                $remittanceQuery->whereHas('candidate', fn($q) => $q->where('oep_id', $oepId));
+            }
+            $remittanceStats = $remittanceQuery->selectRaw('
                 COUNT(*) as total_remittances,
                 SUM(amount) as total_amount,
                 SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending_verification,
                 SUM(CASE WHEN has_proof = 0 THEN 1 ELSE 0 END) as missing_proof
-            ')
-            ->first();
+            ')->first();
 
-        $currentMonthRemittances = Remittance::query()
-            ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
-            // AUDIT FIX: Apply OEP filtering for current month remittances
-            ->when($oepId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('oep_id', $oepId)))
-            ->where('year', date('Y'))
-            ->where('month', date('n'))
-            ->selectRaw('COUNT(*) as count, SUM(amount) as amount')
-            ->first();
+            $currentMonthRemittances = Remittance::query()
+                ->when($campusId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('campus_id', $campusId)))
+                ->when($oepId, fn($q) => $q->whereHas('candidate', fn($q2) => $q2->where('oep_id', $oepId)))
+                ->where('year', date('Y'))
+                ->where('month', date('n'))
+                ->selectRaw('COUNT(*) as count, SUM(amount) as amount')
+                ->first();
 
-        return [
-            'total_candidates' => $candidateStats->total_candidates ?? 0,
-            'listed' => $candidateStats->listed ?? 0,
-            'screening' => $candidateStats->screening ?? 0,
-            'registered' => $candidateStats->registered ?? 0,
-            'in_training' => $candidateStats->in_training ?? 0,
-            'visa_processing' => $candidateStats->visa_processing ?? 0,
-            'departed' => $candidateStats->departed ?? 0,
-            'rejected' => $candidateStats->rejected ?? 0,
-            'active_batches' => Batch::where('status', 'active')
-                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-                ->count(),
-            'pending_complaints' => Complaint::whereIn('status', ['registered', 'under_review', 'assigned', 'in_progress'])
-                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-                ->count(),
-            'pending_correspondence' => Correspondence::where('requires_reply', true)
-                ->where('replied', false)
-                ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
-                ->count(),
+            $total = max(1, $candidateStats->total_candidates ?? 1);
+            $todayReg     = $candidateStats->today_registrations ?? 0;
+            $yesterdayReg = $candidateStats->yesterday_registrations ?? 0;
+            $registrationTrend = $yesterdayReg > 0
+                ? round(($todayReg - $yesterdayReg) / $yesterdayReg * 100) : 0;
 
-            // Remittance stats
-            'remittances_total' => $remittanceStats->total_remittances ?? 0,
-            'remittances_amount' => $remittanceStats->total_amount ?? 0,
-            'remittances_this_month_count' => $currentMonthRemittances->count ?? 0,
-            'remittances_this_month_amount' => $currentMonthRemittances->amount ?? 0,
-            'remittances_pending' => $remittanceStats->pending_verification ?? 0,
-            'remittances_missing_proof' => $remittanceStats->missing_proof ?? 0,
-        ];
+            return [
+                // Full pipeline counts
+                'total_candidates'     => $candidateStats->total_candidates ?? 0,
+                'listed'               => $candidateStats->listed ?? 0,
+                'pre_departure_docs'   => $candidateStats->pre_departure_docs ?? 0,
+                'screening'            => $candidateStats->screening ?? 0,
+                'screened'             => $candidateStats->screened ?? 0,
+                'registered'           => $candidateStats->registered ?? 0,
+                'in_training'          => $candidateStats->in_training ?? 0,
+                'training_completed'   => $candidateStats->training_completed ?? 0,
+                'visa_processing'      => $candidateStats->visa_processing ?? 0,
+                'visa_approved'        => $candidateStats->visa_approved ?? 0,
+                'departure_processing' => $candidateStats->departure_processing ?? 0,
+                'ready_to_depart'      => $candidateStats->ready_to_depart ?? 0,
+                'departed'             => $candidateStats->departed ?? 0,
+                'post_departure'       => $candidateStats->post_departure ?? 0,
+                'completed'            => $candidateStats->completed ?? 0,
+                'deferred'             => $candidateStats->deferred ?? 0,
+                'rejected'             => $candidateStats->rejected ?? 0,
+                'withdrawn'            => $candidateStats->withdrawn ?? 0,
+
+                // Derived metrics
+                'pending_visas'  => ($candidateStats->visa_processing ?? 0) + ($candidateStats->visa_approved ?? 0),
+                'active_pipeline' => ($candidateStats->listed ?? 0) + ($candidateStats->pre_departure_docs ?? 0)
+                                   + ($candidateStats->screening ?? 0) + ($candidateStats->screened ?? 0)
+                                   + ($candidateStats->registered ?? 0) + ($candidateStats->in_training ?? 0)
+                                   + ($candidateStats->training_completed ?? 0) + ($candidateStats->visa_processing ?? 0)
+                                   + ($candidateStats->visa_approved ?? 0) + ($candidateStats->departure_processing ?? 0)
+                                   + ($candidateStats->ready_to_depart ?? 0),
+                'completion_rate' => round(($candidateStats->completed ?? 0) / $total * 100, 1),
+
+                // Time-based registration counts
+                'today_registrations'       => $todayReg,
+                'registration_trend'        => $registrationTrend,
+                'this_month_registrations'  => $candidateStats->this_month_registrations ?? 0,
+                'last_month_registrations'  => $candidateStats->last_month_registrations ?? 0,
+
+                // Departure time-based counts
+                'week_departures'       => $departureStats->week_departures ?? 0,
+                'this_month_departures' => $departureStats->this_month_departures ?? 0,
+                'last_month_departures' => $departureStats->last_month_departures ?? 0,
+
+                // Real performance metrics (no hardcoding)
+                'avg_processing_days'        => $avgProcessingDays,
+                'last_month_avg_processing'  => $lastMonthAvgProcessing,
+                'complaint_resolution_rate'  => $complaintResolutionRate,
+                'last_month_resolution_rate' => $lastMonthResolutionRate,
+
+                // 12-month trend arrays
+                'trend_labels'        => $trendLabels,
+                'trend_registrations' => $trendRegistrations,
+                'trend_departures'    => $trendDepartures,
+
+                // Campus & trade breakdowns (real data)
+                'campus_names'      => $campusData->pluck('name')->toArray(),
+                'campus_candidates' => $campusData->pluck('count')->toArray(),
+                'trade_names'       => $tradeData->pluck('name')->toArray(),
+                'trade_counts'      => $tradeData->pluck('count')->toArray(),
+
+                // Weekly activity (last 7 days)
+                'weekly_labels'   => $weeklyLabels,
+                'weekly_activity' => $weeklyActivity,
+
+                // Operational counts
+                'active_batches' => Batch::where('status', 'active')
+                    ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                    ->count(),
+                'pending_complaints' => Complaint::whereIn('status', ['registered', 'under_review', 'assigned', 'in_progress'])
+                    ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                    ->count(),
+                'pending_correspondence' => Correspondence::where('requires_reply', true)
+                    ->where('replied', false)
+                    ->when($campusId, fn($q) => $q->where('campus_id', $campusId))
+                    ->count(),
+
+                // Remittance stats
+                'remittances_total'             => $remittanceStats->total_remittances ?? 0,
+                'remittances_amount'            => $remittanceStats->total_amount ?? 0,
+                'remittances_this_month_count'  => $currentMonthRemittances->count ?? 0,
+                'remittances_this_month_amount' => $currentMonthRemittances->amount ?? 0,
+                'remittances_pending'           => $remittanceStats->pending_verification ?? 0,
+                'remittances_missing_proof'     => $remittanceStats->missing_proof ?? 0,
+            ];
         });
     }
 
