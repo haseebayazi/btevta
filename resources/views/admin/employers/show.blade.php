@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Employer Details - ' . $employer->visa_issuing_company)
 

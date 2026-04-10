@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', isset($departure) ? 'Edit Departure' : 'Create Departure')
 
