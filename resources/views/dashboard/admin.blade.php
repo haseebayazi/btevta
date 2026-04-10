@@ -228,7 +228,7 @@
                         </div>
                         <span class="text-sm text-gray-700">Active Batches</span>
                     </div>
-                    <a href="{{ route('batches.index') }}" class="font-bold text-gray-900 hover:text-blue-600">{{ number_format($stats['active_batches']) }}</a>
+                    <a href="{{ route('admin.batches.index') }}" class="font-bold text-gray-900 hover:text-blue-600">{{ number_format($stats['active_batches']) }}</a>
                 </div>
 
                 <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition">
@@ -463,7 +463,7 @@
                     @php $share = $stats['total_candidates'] > 0 ? round($campus->candidates_count / $stats['total_candidates'] * 100, 1) : 0; @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium text-gray-800">
-                            <a href="{{ route('campuses.show', $campus->id) }}" class="hover:text-blue-600">{{ $campus->name }}</a>
+                            <a href="{{ route('admin.campuses.show', $campus->id) }}" class="hover:text-blue-600">{{ $campus->name }}</a>
                         </td>
                         <td class="px-4 py-3 text-right font-bold text-gray-900">{{ number_format($campus->candidates_count) }}</td>
                         <td class="px-4 py-3 hidden md:table-cell">
