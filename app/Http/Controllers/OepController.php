@@ -63,7 +63,7 @@ class OepController extends Controller
                 ->causedBy(auth()->user())
                 ->log('OEP created');
 
-            return redirect()->route('oeps.index')
+            return redirect()->route('admin.oeps.index')
                 ->with('success', 'OEP created successfully!');
         } catch (\Exception $e) {
             // SECURITY: Log exception details, show generic message to user
@@ -130,7 +130,7 @@ class OepController extends Controller
                 ->causedBy(auth()->user())
                 ->log('OEP updated');
 
-            return redirect()->route('oeps.index')
+            return redirect()->route('admin.oeps.index')
                 ->with('success', 'OEP updated successfully!');
         } catch (\Exception $e) {
             // SECURITY: Log exception details, show generic message to user

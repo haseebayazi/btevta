@@ -57,7 +57,7 @@ class TradeController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Trade created');
 
-            return redirect()->route('trades.index')
+            return redirect()->route('admin.trades.index')
                 ->with('success', 'Trade created successfully!');
         } catch (\Exception $e) {
             return back()->withInput()
@@ -116,7 +116,7 @@ class TradeController extends Controller
                 ->causedBy(auth()->user())
                 ->log('Trade updated');
 
-            return redirect()->route('trades.index')
+            return redirect()->route('admin.trades.index')
                 ->with('success', 'Trade updated successfully!');
         } catch (\Exception $e) {
             return back()->withInput()
