@@ -56,7 +56,7 @@ class EmployerController extends Controller
         }
 
         $employers = $query->latest()->paginate(20);
-        $countries = Country::destinationCountries()->active()->get();
+        $countries = Country::destinations()->active()->get();
 
         return view('admin.employers.index', compact('employers', 'countries'));
     }
@@ -68,7 +68,7 @@ class EmployerController extends Controller
     {
         $this->authorize('create', Employer::class);
 
-        $countries = Country::destinationCountries()->active()->get();
+        $countries = Country::destinations()->active()->get();
         $trades = Trade::active()->orderBy('name')->get();
 
         return view('admin.employers.create', compact('countries', 'trades'));
@@ -144,7 +144,7 @@ class EmployerController extends Controller
     {
         $this->authorize('update', $employer);
 
-        $countries = Country::destinationCountries()->active()->get();
+        $countries = Country::destinations()->active()->get();
         $trades = Trade::active()->orderBy('name')->get();
 
         return view('admin.employers.edit', compact('employer', 'countries', 'trades'));
