@@ -11,6 +11,11 @@
             <p class="text-gray-500 text-sm mt-1">Manage candidates in visa processing pipeline</p>
         </div>
         <div class="mt-3 sm:mt-0 flex space-x-2">
+            @can('create', App\Models\VisaProcess::class)
+            <a href="{{ route('visa-processing.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-plus mr-1"></i> Initiate Visa Process
+            </a>
+            @endcan
             <a href="{{ route('visa-processing.hierarchical-dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">
                 <i class="fas fa-th-large mr-1"></i> Stage Dashboard
             </a>
