@@ -287,11 +287,11 @@ class CandidateJourneyService
                 break;
 
             case 'training_completed':
-                $actions[] = ['action' => 'Start Visa Processing', 'url' => route('visa.create', $candidate)];
+                $actions[] = ['action' => 'Start Visa Processing', 'url' => route('visa-processing.create', $candidate)];
                 break;
 
             case 'visa_process':
-                $actions[] = ['action' => 'Update Visa Stage', 'url' => route('visa.show', $candidate->visaProcess ?? $candidate)];
+                $actions[] = ['action' => 'Update Visa Stage', 'url' => route('visa-processing.show', $candidate)];
                 break;
 
             case 'visa_approved':
@@ -304,11 +304,11 @@ class CandidateJourneyService
                 break;
 
             case 'departed':
-                $actions[] = ['action' => 'Complete Post-Departure Setup', 'url' => route('post-departure.show', $candidate)];
+                $actions[] = ['action' => 'Complete Post-Departure Setup', 'url' => route('post-departure.show', ['candidate' => $candidate])];
                 break;
 
             case 'post_departure':
-                $actions[] = ['action' => 'Verify 90-Day Compliance', 'url' => route('post-departure.show', $candidate)];
+                $actions[] = ['action' => 'Verify 90-Day Compliance', 'url' => route('post-departure.show', ['candidate' => $candidate])];
                 break;
         }
 
