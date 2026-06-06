@@ -80,12 +80,15 @@ Module 5 enhances the existing BTEVTA WASL Visa Processing system with **hierarc
 |  3. Trade Test ----> Schedule -> Record Result -> Pass    |
 |  4. Takamol -------> Schedule -> Record Result -> Pass    |
 |  5. Medical (GAMCA)> Schedule -> Record Result -> Pass    |
-|  6. E-Number ------> Generated externally                 |
+|  6. E-Number ------> Generated externally (no biometric   |
+|                       prerequisite enforced)              |
 |  7. Biometrics ----> Schedule -> Record Result -> Pass    |
 |  8. Visa Submission                                       |
-|  9. Visa & PTN ----> Application + Issued Status          |
-| 10. Ticket & Travel                                       |
-| 11. Completed                                             |
+|  9. Visa Issuance -> visa_status, visa_number, visa_date  |
+| 10. PTN Clearance -> Yes / No (ptn_cleared boolean)       |
+| 11. Protector -----> Date + Status (pending/approved/     |
+|                       rejected)                           |
+| 12. Completed                                             |
 |                                                           |
 |  Detail Stages (with VisaStageDetails):                   |
 |  interview, trade_test, takamol, medical,                 |
@@ -101,12 +104,15 @@ Module 5 enhances the existing BTEVTA WASL Visa Processing system with **hierarc
 
 ### Stage Prerequisites
 
-| Stage      | Prerequisite                               |
-|------------|--------------------------------------------|
-| Interview  | None                                       |
-| Trade Test | Interview must be passed                   |
-| Takamol    | Interview must be passed                   |
-| Medical    | Interview must be passed                   |
+| Stage              | Prerequisite                               |
+|--------------------|--------------------------------------------|
+| Interview          | None                                       |
+| Trade Test         | Interview must be passed                   |
+| Takamol            | Interview must be passed                   |
+| Medical            | Interview must be passed                   |
+| E-Number           | None (externally generated, no prerequisite enforced) |
+| PTN Clearance      | Visa must be issued                        |
+| Protector          | None (independent clearance)               |
 | Biometric  | Medical must be fit/completed/passed        |
 
 ---
@@ -603,13 +609,14 @@ const STAGES = [
     'interview'       => ['label' => 'Interview',             'order' => 2,  'color' => 'info'],
     'trade_test'      => ['label' => 'Trade Test',            'order' => 3,  'color' => 'info'],
     'takamol'         => ['label' => 'Takamol Test',          'order' => 4,  'color' => 'info'],
-    'medical'         => ['label' => 'Medical (GAMCA)',       'order' => 5,  'color' => 'info'],
+    'medical'         => ['label' => 'Medical (GAMCA)',        'order' => 5,  'color' => 'info'],
     'enumber'         => ['label' => 'E-Number',              'order' => 6,  'color' => 'info'],
-    'biometrics'      => ['label' => 'Biometrics (Etimad)',   'order' => 7,  'color' => 'info'],
-    'visa_submission' => ['label' => 'Visa Submission',       'order' => 8,  'color' => 'warning'],
-    'visa_issued'     => ['label' => 'Visa & PTN',            'order' => 9,  'color' => 'primary'],
-    'ticket'          => ['label' => 'Ticket & Travel',       'order' => 10, 'color' => 'success'],
-    'completed'       => ['label' => 'Completed',             'order' => 11, 'color' => 'success'],
+    'biometrics'      => ['label' => 'Biometrics (Etimad)',    'order' => 7,  'color' => 'info'],
+    'visa_submission' => ['label' => 'Visa Submission',        'order' => 8,  'color' => 'warning'],
+    'visa_issued'     => ['label' => 'Visa Issuance',          'order' => 9,  'color' => 'primary'],
+    'ptn'             => ['label' => 'PTN Clearance',          'order' => 10, 'color' => 'primary'],
+    'protector'       => ['label' => 'Protector Clearance',    'order' => 11, 'color' => 'warning'],
+    'completed'       => ['label' => 'Completed',              'order' => 12, 'color' => 'success'],
 ];
 ```
 

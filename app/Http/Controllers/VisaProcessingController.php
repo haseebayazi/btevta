@@ -63,9 +63,7 @@ class VisaProcessingController extends Controller
                 break;
 
             case 'enumber':
-                if ($visaProcess->biometric_status !== 'completed') {
-                    $errors[] = 'Biometrics must be completed before E-Number generation';
-                }
+                // E-Number is generated externally; no prerequisite enforced
                 break;
 
             case 'visa':
@@ -123,9 +121,14 @@ class VisaProcessingController extends Controller
             $errors[] = 'Visa must be issued (current: ' . ($visaProcess->visa_status ?? 'not set') . ')';
         }
 
-        // PTN is required for departure
-        if (empty($visaProcess->ptn_number)) {
-            $errors[] = 'PTN number must be issued';
+        // PTN clearance required for departure
+        if (!$visaProcess->ptn_cleared) {
+            $errors[] = 'PTN clearance must be confirmed (Yes)';
+        }
+
+        // Protector clearance required for departure
+        if ($visaProcess->protector_clearance_status !== 'approved') {
+            $errors[] = 'Protector clearance must be approved (current: ' . ($visaProcess->protector_clearance_status ?? 'not set') . ')';
         }
 
         return $errors;
@@ -533,30 +536,55 @@ class VisaProcessingController extends Controller
     }
 
     /**
-     * Update PTN and attestation
+     * Update PTN clearance status (Yes/No)
      */
     public function updatePTN(Request $request, Candidate $candidate)
     {
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
 
         $validated = $request->validate([
-            'ptn_number' => 'nullable|string|max:50',
-            'ptn_issue_date' => 'required|date',
-            'attestation_date' => 'nullable|date',
+            'ptn_cleared' => 'required|in:1,0,yes,no',
         ]);
 
         try {
-            // Auto-generate PTN if not provided
-            if (empty($validated['ptn_number'])) {
-                $validated['ptn_number'] = $this->visaService->generatePTN($candidate);
-            }
+            $cleared = in_array($validated['ptn_cleared'], ['1', 'yes', true], true);
+            $candidate->visaProcess->update([
+                'ptn_cleared' => $cleared,
+                'overall_status' => $cleared ? 'ptn' : $candidate->visaProcess->overall_status,
+            ]);
 
-            $candidate->visaProcess->update($validated);
-
-            return back()->with('success', 'PTN updated successfully! Number: ' . $validated['ptn_number']);
+            return back()->with('success', 'PTN clearance updated successfully!');
         } catch (Exception $e) {
             return back()->withInput()
-                ->with('error', 'Failed to update PTN: ' . $e->getMessage());
+                ->with('error', 'Failed to update PTN clearance: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update Protector clearance stage (visa processing)
+     */
+    public function updateProtectorClearance(Request $request, Candidate $candidate)
+    {
+        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
+
+        $validated = $request->validate([
+            'protector_clearance_date' => 'nullable|date',
+            'protector_clearance_status' => 'required|in:pending,approved,rejected',
+            'protector_clearance_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $data = $validated;
+            if ($validated['protector_clearance_status'] === 'approved') {
+                $data['overall_status'] = 'protector';
+            }
+
+            $candidate->visaProcess->update($data);
+
+            return back()->with('success', 'Protector clearance updated successfully!');
+        } catch (Exception $e) {
+            return back()->withInput()
+                ->with('error', 'Failed to update protector clearance: ' . $e->getMessage());
         }
     }
 

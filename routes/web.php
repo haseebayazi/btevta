@@ -380,6 +380,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{candidate}/update-visa-submission', [VisaProcessingController::class, 'updateVisaSubmission'])->name('update-visa-submission');
             Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
             Route::post('/{candidate}/update-ptn', [VisaProcessingController::class, 'updatePTN'])->name('update-ptn');
+            Route::post('/{candidate}/update-protector-clearance', [VisaProcessingController::class, 'updateProtectorClearance'])->name('update-protector-clearance');
 
             // E-Number (externally generated, no Module 5 equivalent)
             Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');

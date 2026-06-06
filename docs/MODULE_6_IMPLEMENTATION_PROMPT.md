@@ -58,13 +58,19 @@ php artisan tinker --execute="Schema::getColumnListing('departures')"
 
 | Change ID | Type | Description | Priority |
 |-----------|------|-------------|----------|
-| DP-001 | MODIFIED | PTN Status restructured with sub-details | HIGH |
-| DP-002 | NEW | Protector Status: Applied/Done/Pending/Deferred | HIGH |
+| DP-001 | REMOVED | PTN Status moved to Visa Processing (Module 5) as Yes/No field | — |
+| DP-002 | REMOVED | Protector Status moved to Visa Processing (Module 5) as clearance stage | — |
 | DP-003 | MODIFIED | Ticket Status with sub-details (airline, flight, date) | HIGH |
 | DP-004 | NEW | Pre-Departure Briefing with document upload | HIGH |
 | DP-005 | NEW | Pre-Departure Briefing video upload | MEDIUM |
 | DP-006 | MODIFIED | Final Departure Status: Ready to Depart / Departed | HIGH |
 | DP-007 | NEW | Enhanced Departure Dashboard | HIGH |
+
+> **Design Decision (June 2026):** PTN and Protector clearance were relocated to the
+> Visa Processing workflow (Module 5, stages 10–11) because they are logically part
+> of the overseas approval pipeline, not departure logistics. The departure checklist
+> (`canMarkReadyToDepart`) now only requires Ticket and Pre-Departure Briefing to be
+> complete.
 
 ---
 
