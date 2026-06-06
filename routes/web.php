@@ -369,6 +369,18 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('visa-processing', VisaProcessingController::class)
             ->parameters(['visa-processing' => 'candidate']);
         Route::prefix('visa-processing')->name('visa-processing.')->group(function () {
+            // Interview, Trade Test, Takamol, Medical, Biometric, Visa, PTN
+            Route::post('/{candidate}/update-interview', [VisaProcessingController::class, 'updateInterview'])->name('update-interview');
+            Route::post('/{candidate}/update-trade-test', [VisaProcessingController::class, 'updateTradeTest'])->name('update-trade-test');
+            Route::post('/{candidate}/update-takamol', [VisaProcessingController::class, 'updateTakamol'])->name('update-takamol');
+            Route::post('/{candidate}/upload-takamol-result', [VisaProcessingController::class, 'uploadTakamolResult'])->middleware('throttle:30,1')->name('upload-takamol-result');
+            Route::post('/{candidate}/update-medical', [VisaProcessingController::class, 'updateMedical'])->name('update-medical');
+            Route::post('/{candidate}/upload-gamca-result', [VisaProcessingController::class, 'uploadGamcaResult'])->middleware('throttle:30,1')->name('upload-gamca-result');
+            Route::post('/{candidate}/update-biometric', [VisaProcessingController::class, 'updateBiometric'])->name('update-biometric');
+            Route::post('/{candidate}/update-visa-submission', [VisaProcessingController::class, 'updateVisaSubmission'])->name('update-visa-submission');
+            Route::post('/{candidate}/update-visa', [VisaProcessingController::class, 'updateVisa'])->name('update-visa');
+            Route::post('/{candidate}/update-ptn', [VisaProcessingController::class, 'updatePTN'])->name('update-ptn');
+
             // E-Number (externally generated, no Module 5 equivalent)
             Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');
 
