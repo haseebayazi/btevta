@@ -269,28 +269,17 @@ class Departure extends Model
      */
     public function canMarkReadyToDepart(): bool
     {
-        return $this->ptn_details_object->isIssued()
-            && $this->protector_status === ProtectorStatus::DONE
-            && $this->ticket_details_object->isComplete()
+        return $this->ticket_details_object->isComplete()
             && $this->briefing_details_object->isComplete();
     }
 
     /**
-     * Return a structured checklist of all departure requirements.
+     * Return a structured checklist of departure requirements.
+     * PTN and Protector clearance are handled in visa processing, not here.
      */
     public function getDepartureChecklist(): array
     {
         return [
-            'ptn' => [
-                'label' => 'PTN Issued',
-                'complete' => $this->ptn_details_object->isIssued(),
-                'details' => $this->ptn_details_object,
-            ],
-            'protector' => [
-                'label' => 'Protector Clearance',
-                'complete' => $this->protector_status?->value === 'done',
-                'status' => $this->protector_status,
-            ],
             'ticket' => [
                 'label' => 'Flight Ticket',
                 'complete' => $this->ticket_details_object->isComplete(),

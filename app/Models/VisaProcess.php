@@ -39,7 +39,9 @@ class VisaProcess extends Model
         // Visa & PTN
         'visa_date', 'visa_number', 'visa_status', 'visa_issued',
         'visa_application_status', 'visa_issued_status', 'visa_application_details',
-        'ptn_number',
+        'ptn_number', 'ptn_cleared',
+        // Protector Clearance (visa processing stage)
+        'protector_clearance_date', 'protector_clearance_status', 'protector_clearance_remarks',
         // Ticket & Travel
         'ticket_uploaded', 'ticket_date', 'ticket_path', 'travel_plan_path',
         // General
@@ -65,6 +67,7 @@ class VisaProcess extends Model
         'biometric_completed' => 'boolean',
         'visa_issued' => 'boolean',
         'ticket_uploaded' => 'boolean',
+        'ptn_cleared' => 'boolean',
         // JSON detail columns
         'interview_details' => 'array',
         'trade_test_details' => 'array',
@@ -92,17 +95,18 @@ class VisaProcess extends Model
      * Visa processing stages configuration
      */
     const STAGES = [
-        'initiated' => ['label' => 'Initiated', 'order' => 1, 'color' => 'secondary'],
-        'interview' => ['label' => 'Interview', 'order' => 2, 'color' => 'info'],
-        'trade_test' => ['label' => 'Trade Test', 'order' => 3, 'color' => 'info'],
-        'takamol' => ['label' => 'Takamol Test', 'order' => 4, 'color' => 'info'],
-        'medical' => ['label' => 'Medical (GAMCA)', 'order' => 5, 'color' => 'info'],
-        'enumber' => ['label' => 'E-Number', 'order' => 6, 'color' => 'info'],
-        'biometrics' => ['label' => 'Biometrics (Etimad)', 'order' => 7, 'color' => 'info'],
-        'visa_submission' => ['label' => 'Visa Submission', 'order' => 8, 'color' => 'warning'],
-        'visa_issued' => ['label' => 'Visa & PTN', 'order' => 9, 'color' => 'primary'],
-        'ticket' => ['label' => 'Ticket & Travel', 'order' => 10, 'color' => 'success'],
-        'completed' => ['label' => 'Completed', 'order' => 11, 'color' => 'success'],
+        'initiated'       => ['label' => 'Initiated',             'order' => 1,  'color' => 'secondary'],
+        'interview'       => ['label' => 'Interview',             'order' => 2,  'color' => 'info'],
+        'trade_test'      => ['label' => 'Trade Test',            'order' => 3,  'color' => 'info'],
+        'takamol'         => ['label' => 'Takamol Test',          'order' => 4,  'color' => 'info'],
+        'medical'         => ['label' => 'Medical (GAMCA)',        'order' => 5,  'color' => 'info'],
+        'enumber'         => ['label' => 'E-Number',              'order' => 6,  'color' => 'info'],
+        'biometrics'      => ['label' => 'Biometrics (Etimad)',    'order' => 7,  'color' => 'info'],
+        'visa_submission' => ['label' => 'Visa Submission',        'order' => 8,  'color' => 'warning'],
+        'visa_issued'     => ['label' => 'Visa Issuance',          'order' => 9,  'color' => 'primary'],
+        'ptn'             => ['label' => 'PTN Clearance',          'order' => 10, 'color' => 'primary'],
+        'protector'       => ['label' => 'Protector Clearance',    'order' => 11, 'color' => 'warning'],
+        'completed'       => ['label' => 'Completed',              'order' => 12, 'color' => 'success'],
     ];
 
     /**
