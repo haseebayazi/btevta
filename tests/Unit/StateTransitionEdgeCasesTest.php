@@ -271,13 +271,73 @@ class StateTransitionEdgeCasesTest extends TestCase
         VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
             'interview_status' => 'passed',
-            'trade_test_passed' => false,
-            'medical_passed' => false,
+            'trade_test_completed' => false,
+            'medical_completed' => false,
         ]);
 
         $result = $candidate->canTransitionToReady();
 
         $this->assertFalse($result['can_transition']);
+    }
+
+    // =========================================================================
+    // WASL v3 VISA -> DEPARTURE TRANSITION CHAIN
+    // =========================================================================
+
+    #[Test]
+    public function it_allows_v3_visa_to_departure_transition_chain()
+    {
+        $candidate = Candidate::factory()->create([
+            'status' => 'visa_process',
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
+        ]);
+
+        $candidate->updateStatus('visa_approved');
+        $this->assertEquals('visa_approved', $candidate->fresh()->status);
+
+        $candidate->updateStatus('departure_processing');
+        $this->assertEquals('departure_processing', $candidate->fresh()->status);
+
+        $candidate->updateStatus('ready_to_depart');
+        $this->assertEquals('ready_to_depart', $candidate->fresh()->status);
+
+        $candidate->updateStatus('departed');
+        $this->assertEquals('departed', $candidate->fresh()->status);
+    }
+
+    #[Test]
+    public function it_blocks_visa_approved_skipping_directly_to_departed()
+    {
+        $candidate = Candidate::factory()->create([
+            'status' => 'visa_approved',
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
+        ]);
+
+        $this->expectException(\Exception::class);
+        $candidate->updateStatus('departed');
+    }
+
+    #[Test]
+    public function it_allows_transition_to_ready_when_visa_completed()
+    {
+        $candidate = Candidate::factory()->create([
+            'status' => 'visa_approved',
+            'campus_id' => $this->campus->id,
+            'trade_id' => $this->trade->id,
+        ]);
+
+        VisaProcess::factory()->create([
+            'candidate_id' => $candidate->id,
+            'visa_issued' => true,
+            'trade_test_completed' => true,
+            'medical_completed' => true,
+        ]);
+
+        $result = $candidate->canTransitionToReady();
+
+        $this->assertTrue($result['can_transition'], implode(', ', $result['issues']));
     }
 
     // =========================================================================

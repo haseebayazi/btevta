@@ -148,6 +148,12 @@ class Candidate extends Model
     const STATUS_LISTED = 'listed';
     const STATUS_PRE_DEPARTURE_DOCS = 'pre_departure_docs';
     const STATUS_SCREENED = 'screened';
+    const STATUS_TRAINING_DONE = 'training_completed';
+    const STATUS_VISA_APPROVED = 'visa_approved';
+    const STATUS_DEPARTURE_PROCESSING = 'departure_processing';
+    const STATUS_READY_TO_DEPART = 'ready_to_depart';
+    const STATUS_POST_DEPARTURE = 'post_departure';
+    const STATUS_COMPLETED = 'completed';
     const STATUS_DEFERRED = 'deferred';
     const STATUS_WITHDRAWN = 'withdrawn';
 
@@ -177,9 +183,15 @@ class Candidate extends Model
             self::STATUS_SCREENED => 'Screened',
             self::STATUS_REGISTERED => 'Registered',
             self::STATUS_TRAINING => 'Training',
+            self::STATUS_TRAINING_DONE => 'Training Completed',
             self::STATUS_VISA_PROCESS => 'Visa Process',
+            self::STATUS_VISA_APPROVED => 'Visa Approved',
+            self::STATUS_DEPARTURE_PROCESSING => 'Departure Processing',
+            self::STATUS_READY_TO_DEPART => 'Ready to Depart',
             self::STATUS_READY => 'Ready',
             self::STATUS_DEPARTED => 'Departed',
+            self::STATUS_POST_DEPARTURE => 'Post Departure',
+            self::STATUS_COMPLETED => 'Completed',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_DROPPED => 'Dropped',
             self::STATUS_RETURNED => 'Returned',
@@ -777,12 +789,20 @@ class Candidate extends Model
             self::STATUS_SCREENING => [self::STATUS_SCREENED, self::STATUS_REGISTERED, self::STATUS_DEFERRED, self::STATUS_REJECTED],
             self::STATUS_SCREENED => [self::STATUS_REGISTERED, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
             
-            // Original workflow (unchanged)
             self::STATUS_REGISTERED => [self::STATUS_TRAINING, self::STATUS_DROPPED, self::STATUS_DEFERRED],
-            self::STATUS_TRAINING => [self::STATUS_VISA_PROCESS, self::STATUS_DROPPED],
-            self::STATUS_VISA_PROCESS => [self::STATUS_READY, self::STATUS_REJECTED],
-            self::STATUS_READY => [self::STATUS_DEPARTED],
-            self::STATUS_DEPARTED => [self::STATUS_RETURNED],  // Workers can return from abroad
+
+            // WASL v3 workflow: Training → Visa → Departure → Post-Departure → Completed.
+            // Aligned with CandidateStatus enum validNextStatuses(); legacy targets retained for
+            // backward compatibility (e.g. visa_process → ready, training → visa_process directly).
+            self::STATUS_TRAINING => [self::STATUS_TRAINING_DONE, self::STATUS_VISA_PROCESS, self::STATUS_DROPPED, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
+            self::STATUS_TRAINING_DONE => [self::STATUS_VISA_PROCESS, self::STATUS_DEFERRED, self::STATUS_WITHDRAWN],
+            self::STATUS_VISA_PROCESS => [self::STATUS_VISA_APPROVED, self::STATUS_READY, self::STATUS_REJECTED, self::STATUS_WITHDRAWN],
+            self::STATUS_VISA_APPROVED => [self::STATUS_DEPARTURE_PROCESSING, self::STATUS_WITHDRAWN],
+            self::STATUS_DEPARTURE_PROCESSING => [self::STATUS_READY_TO_DEPART, self::STATUS_WITHDRAWN],
+            self::STATUS_READY_TO_DEPART => [self::STATUS_DEPARTED, self::STATUS_WITHDRAWN],
+            self::STATUS_READY => [self::STATUS_DEPARTED],  // Legacy "ready" state
+            self::STATUS_DEPARTED => [self::STATUS_POST_DEPARTURE, self::STATUS_RETURNED],  // Workers can also return from abroad
+            self::STATUS_POST_DEPARTURE => [self::STATUS_COMPLETED],
         ];
 
         $currentStatus = $this->status;
@@ -1033,8 +1053,11 @@ class Candidate extends Model
     {
         $issues = [];
 
-        if ($this->status !== self::STATUS_VISA_PROCESS) {
-            $issues[] = "Current status must be 'visa_process'. Current: {$this->status}";
+        // In the WASL v3 flow the candidate is at 'visa_approved' once the visa is
+        // confirmed; the legacy 'visa_process' source is also accepted.
+        $validStatuses = [self::STATUS_VISA_PROCESS, self::STATUS_VISA_APPROVED];
+        if (!in_array($this->status, $validStatuses)) {
+            $issues[] = "Current status must be 'visa_process' or 'visa_approved'. Current: {$this->status}";
         }
 
         // Check visa process record
@@ -1045,12 +1068,41 @@ class Candidate extends Model
             if (!$visaProcess->visa_issued) {
                 $issues[] = 'Visa must be issued';
             }
-            if (!$visaProcess->trade_test_passed) {
+            // NOTE: visa_processes stores completion via *_completed columns
+            // (trade_test_completed / medical_completed), not *_passed.
+            if (!$visaProcess->trade_test_completed) {
                 $issues[] = 'Trade test must be passed';
             }
-            if (!$visaProcess->medical_passed) {
+            if (!$visaProcess->medical_completed) {
                 $issues[] = 'Medical (GAMCA) must be passed';
             }
+        }
+
+        return [
+            'can_transition' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Check if candidate can transition from DEPARTURE_PROCESSING to READY_TO_DEPART.
+     * Validates that the departure checklist (ticket + briefing) is complete.
+     *
+     * @return array ['can_transition' => bool, 'issues' => array]
+     */
+    public function canTransitionToReadyToDepart()
+    {
+        $issues = [];
+
+        if ($this->status !== self::STATUS_DEPARTURE_PROCESSING) {
+            $issues[] = "Current status must be 'departure_processing'. Current: {$this->status}";
+        }
+
+        $departure = $this->departure;
+        if (!$departure) {
+            $issues[] = 'Departure record not found';
+        } elseif (method_exists($departure, 'canMarkReadyToDepart') && !$departure->canMarkReadyToDepart()) {
+            $issues[] = 'All departure checklist items (ticket, briefing) must be complete';
         }
 
         return [
@@ -1109,7 +1161,10 @@ class Candidate extends Model
             self::STATUS_REGISTERED => 'canTransitionToRegistered',
             self::STATUS_TRAINING => 'canTransitionToTraining',
             self::STATUS_VISA_PROCESS => 'canTransitionToVisaProcess',
+            // 'visa_approved' carries the same visa prerequisites as the legacy 'ready' gate.
+            self::STATUS_VISA_APPROVED => 'canTransitionToReady',
             self::STATUS_READY => 'canTransitionToReady',
+            self::STATUS_READY_TO_DEPART => 'canTransitionToReadyToDepart',
             self::STATUS_DEPARTED => 'canTransitionToDeparted',
         ];
 
@@ -1117,8 +1172,20 @@ class Candidate extends Model
             return $this->{$validators[$targetStatus]}();
         }
 
-        // For rejected/dropped statuses, always allow
-        if (in_array($targetStatus, [self::STATUS_REJECTED, self::STATUS_DROPPED])) {
+        // State-machine-only transitions (no extra business prerequisites checked here;
+        // the structural gate in updateStatus() still enforces validity).
+        $alwaysAllowed = [
+            self::STATUS_REJECTED,
+            self::STATUS_DROPPED,
+            self::STATUS_DEFERRED,
+            self::STATUS_WITHDRAWN,
+            self::STATUS_RETURNED,
+            self::STATUS_TRAINING_DONE,
+            self::STATUS_DEPARTURE_PROCESSING,
+            self::STATUS_POST_DEPARTURE,
+            self::STATUS_COMPLETED,
+        ];
+        if (in_array($targetStatus, $alwaysAllowed)) {
             return ['can_transition' => true, 'issues' => []];
         }
 
@@ -1148,9 +1215,15 @@ class Candidate extends Model
             self::STATUS_SCREENING,
             self::STATUS_REGISTERED,
             self::STATUS_TRAINING,
+            self::STATUS_TRAINING_DONE,
             self::STATUS_VISA_PROCESS,
+            self::STATUS_VISA_APPROVED,
+            self::STATUS_DEPARTURE_PROCESSING,
+            self::STATUS_READY_TO_DEPART,
             self::STATUS_READY,
             self::STATUS_DEPARTED,
+            self::STATUS_POST_DEPARTURE,
+            self::STATUS_COMPLETED,
             self::STATUS_REJECTED,
             self::STATUS_DROPPED,
         ];
