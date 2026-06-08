@@ -453,6 +453,8 @@ class VisaProcessingControllerTest extends TestCase
             'enumber_status' => 'verified',
             'visa_status' => 'issued',
             'ptn_number' => 'PTN123',
+            'ptn_cleared' => true,
+            'protector_performed' => true,
         ]);
 
         $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/complete");
@@ -461,7 +463,7 @@ class VisaProcessingControllerTest extends TestCase
         $response->assertSessionHas('success');
 
         $candidate->refresh();
-        $this->assertEquals('ready', $candidate->status);
+        $this->assertEquals('departure_processing', $candidate->status);
     }
 
     // =========================================================================

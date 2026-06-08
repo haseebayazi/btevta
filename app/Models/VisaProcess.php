@@ -22,14 +22,16 @@ class VisaProcess extends Model
         'visa_partner_id',
         // Interview & Trade Test
         'interview_date', 'interview_status', 'interview_completed', 'interview_remarks',
-        'interview_details',
+        'interview_details', 'interview_evidence_path',
         'trade_test_date', 'trade_test_status', 'trade_test_completed', 'trade_test_remarks',
         'trade_test_details',
         // Takamol Test
-        'takamol_date', 'takamol_status',
+        'takamol_date', 'takamol_status', 'takamol_center', 'takamol_remarks',
+        'takamol_appointment_slip_path', 'takamol_result_path',
         'takamol_details',
         // Medical/GAMCA
-        'medical_date', 'medical_status', 'medical_completed',
+        'medical_date', 'medical_status', 'medical_completed', 'medical_center', 'medical_remarks',
+        'medical_appointment_slip_path', 'medical_result_path',
         'medical_details',
         // E-Number
         'enumber', 'enumber_status',
@@ -39,9 +41,10 @@ class VisaProcess extends Model
         // Visa & PTN
         'visa_date', 'visa_number', 'visa_status', 'visa_issued',
         'visa_application_status', 'visa_issued_status', 'visa_application_details',
-        'ptn_number', 'ptn_cleared',
+        'ptn_number', 'ptn_cleared', 'ptn_issue_date', 'ptn_document_path',
         // Protector Clearance (visa processing stage)
         'protector_clearance_date', 'protector_clearance_status', 'protector_clearance_remarks',
+        'protector_submission_date', 'protector_performed', 'protector_document_path',
         // Ticket & Travel
         'ticket_uploaded', 'ticket_date', 'ticket_path', 'travel_plan_path',
         // General
@@ -60,6 +63,9 @@ class VisaProcess extends Model
         'biometric_date' => 'date',
         'visa_date' => 'date',
         'ticket_date' => 'date',
+        'ptn_issue_date' => 'date',
+        'protector_submission_date' => 'date',
+        'protector_performed' => 'boolean',
         'failed_at' => 'datetime',
         'interview_completed' => 'boolean',
         'trade_test_completed' => 'boolean',

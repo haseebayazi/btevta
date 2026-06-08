@@ -32,6 +32,21 @@ class VisaProcessingController extends Controller
     }
 
     /**
+     * Store an uploaded visa-processing document on the private disk.
+     *
+     * Files are kept under visa-process/{candidateId} and served through
+     * the SecureFileController download route.
+     */
+    protected function storeVisaFile($file, Candidate $candidate, string $label): string
+    {
+        $timestamp = now()->format('Y-m-d_His');
+        $extension = $file->getClientOriginalExtension();
+        $filename = "visa_{$label}_{$candidate->id}_{$timestamp}.{$extension}";
+
+        return $file->storeAs("visa-process/{$candidate->id}", $filename, 'private');
+    }
+
+    /**
      * Validate visa stage prerequisites before allowing updates.
      *
      * Stage Order: interview → takamol → medical → biometric → enumber → visa → ticket
@@ -51,7 +66,7 @@ class VisaProcessingController extends Controller
                 if ($visaProcess->interview_status !== 'passed') {
                     $errors[] = 'Interview must be passed first';
                 }
-                if ($visaProcess->takamol_status !== 'passed') {
+                if (! in_array($visaProcess->takamol_status, ['passed', 'completed'], true)) {
                     $errors[] = 'Takamol test must be passed before medical examination';
                 }
                 break;
@@ -127,8 +142,8 @@ class VisaProcessingController extends Controller
         }
 
         // Protector clearance required for departure
-        if ($visaProcess->protector_clearance_status !== 'approved') {
-            $errors[] = 'Protector clearance must be approved (current: ' . ($visaProcess->protector_clearance_status ?? 'not set') . ')';
+        if (! $visaProcess->protector_performed) {
+            $errors[] = 'Protector clearance must be performed (Yes)';
         }
 
         return $errors;
@@ -312,9 +327,17 @@ class VisaProcessingController extends Controller
             'interview_date' => 'required|date',
             'interview_status' => 'required|in:pending,passed,failed',
             'interview_remarks' => 'nullable|string|max:1000',
+            'interview_evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         try {
+            if ($request->hasFile('interview_evidence')) {
+                $validated['interview_evidence_path'] = $this->storeVisaFile(
+                    $request->file('interview_evidence'), $candidate, 'interview'
+                );
+            }
+            unset($validated['interview_evidence']);
+
             $visaProcess = $this->visaService->updateInterview(
                 $candidate->visaProcess->id,
                 $validated
@@ -372,10 +395,25 @@ class VisaProcessingController extends Controller
         $validated = $request->validate([
             'takamol_date' => 'required|date',
             'takamol_status' => 'required|in:pending,completed,failed',
+            'takamol_center' => 'nullable|string|max:255',
             'takamol_remarks' => 'nullable|string|max:1000',
+            'takamol_appointment_slip' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'takamol_result_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         try {
+            if ($request->hasFile('takamol_appointment_slip')) {
+                $validated['takamol_appointment_slip_path'] = $this->storeVisaFile(
+                    $request->file('takamol_appointment_slip'), $candidate, 'takamol_slip'
+                );
+            }
+            if ($request->hasFile('takamol_result_file')) {
+                $validated['takamol_result_path'] = $this->storeVisaFile(
+                    $request->file('takamol_result_file'), $candidate, 'takamol_result'
+                );
+            }
+            unset($validated['takamol_appointment_slip'], $validated['takamol_result_file']);
+
             $visaProcess = $this->visaService->updateTakamol(
                 $candidate->visaProcess->id,
                 $validated
@@ -409,10 +447,25 @@ class VisaProcessingController extends Controller
         $validated = $request->validate([
             'medical_date' => 'required|date',
             'medical_status' => 'required|in:pending,fit,unfit',
+            'medical_center' => 'nullable|string|max:255',
             'medical_remarks' => 'nullable|string|max:1000',
+            'medical_appointment_slip' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'medical_result_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         try {
+            if ($request->hasFile('medical_appointment_slip')) {
+                $validated['medical_appointment_slip_path'] = $this->storeVisaFile(
+                    $request->file('medical_appointment_slip'), $candidate, 'medical_slip'
+                );
+            }
+            if ($request->hasFile('medical_result_file')) {
+                $validated['medical_result_path'] = $this->storeVisaFile(
+                    $request->file('medical_result_file'), $candidate, 'medical_result'
+                );
+            }
+            unset($validated['medical_appointment_slip'], $validated['medical_result_file']);
+
             $visaProcess = $this->visaService->updateMedical(
                 $candidate->visaProcess->id,
                 $validated
@@ -544,14 +597,25 @@ class VisaProcessingController extends Controller
 
         $validated = $request->validate([
             'ptn_cleared' => 'required|in:1,0,yes,no',
+            'ptn_issue_date' => 'nullable|date',
+            'ptn_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         try {
             $cleared = in_array($validated['ptn_cleared'], ['1', 'yes', true], true);
-            $candidate->visaProcess->update([
+            $data = [
                 'ptn_cleared' => $cleared,
+                'ptn_issue_date' => $validated['ptn_issue_date'] ?? null,
                 'overall_status' => $cleared ? 'ptn' : $candidate->visaProcess->overall_status,
-            ]);
+            ];
+
+            if ($request->hasFile('ptn_document')) {
+                $data['ptn_document_path'] = $this->storeVisaFile(
+                    $request->file('ptn_document'), $candidate, 'ptn'
+                );
+            }
+
+            $candidate->visaProcess->update($data);
 
             return back()->with('success', 'PTN clearance updated successfully!');
         } catch (Exception $e) {
@@ -568,15 +632,28 @@ class VisaProcessingController extends Controller
         $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
 
         $validated = $request->validate([
-            'protector_clearance_date' => 'nullable|date',
-            'protector_clearance_status' => 'required|in:pending,approved,rejected',
-            'protector_clearance_remarks' => 'nullable|string|max:1000',
+            'protector_submission_date' => 'nullable|date',
+            'protector_performed' => 'required|in:1,0,yes,no',
+            'protector_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         try {
-            $data = $validated;
-            if ($validated['protector_clearance_status'] === 'approved') {
+            $performed = in_array($validated['protector_performed'], ['1', 'yes', true], true);
+            $data = [
+                'protector_submission_date' => $validated['protector_submission_date'] ?? null,
+                'protector_performed' => $performed,
+                // Keep legacy status column in sync for completion checks/reporting
+                'protector_clearance_status' => $performed ? 'approved' : 'pending',
+            ];
+
+            if ($performed) {
                 $data['overall_status'] = 'protector';
+            }
+
+            if ($request->hasFile('protector_document')) {
+                $data['protector_document_path'] = $this->storeVisaFile(
+                    $request->file('protector_document'), $candidate, 'protector'
+                );
             }
 
             $candidate->visaProcess->update($data);
