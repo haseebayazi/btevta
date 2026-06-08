@@ -38,6 +38,8 @@ class VisaProcess extends Model
         // Biometrics/Etimad
         'biometric_date', 'etimad_appointment_id', 'biometric_status', 'biometric_completed',
         'biometric_details',
+        // Visa Documents Submission
+        'visa_submission_date', 'visa_application_number', 'embassy',
         // Visa & PTN
         'visa_date', 'visa_number', 'visa_status', 'visa_issued',
         'visa_application_status', 'visa_issued_status', 'visa_application_details',
@@ -61,6 +63,7 @@ class VisaProcess extends Model
         'takamol_date' => 'date',
         'medical_date' => 'date',
         'biometric_date' => 'date',
+        'visa_submission_date' => 'date',
         'visa_date' => 'date',
         'ticket_date' => 'date',
         'ptn_issue_date' => 'date',
