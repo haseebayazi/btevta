@@ -83,7 +83,7 @@
                             'stage-submission'  => ['label' => 'Visa Submission',         'done' => (bool)$visaProcess->visa_submission_date],
                             'stage-visa'        => ['label' => 'Visa Issuance',           'done' => $visaProcess->visa_issued],
                             'stage-ptn'         => ['label' => 'PTN Clearance',           'done' => $visaProcess->ptn_cleared],
-                            'stage-protector'   => ['label' => 'Protector Clearance',     'done' => $visaProcess->protector_clearance_status === 'approved'],
+                            'stage-protector'   => ['label' => 'Protector Clearance',     'done' => $visaProcess->protector_performed],
                         ];
                     @endphp
                     @foreach($navItems as $anchor => $item)
@@ -109,7 +109,7 @@
                     {{-- Interview --}}
                     <div>
                         <h6 class="font-semibold text-gray-700 border-b pb-2 mb-4">Interview</h6>
-                        <form action="{{ route('visa-processing.update-interview', $candidate) }}" method="POST" class="space-y-3">
+                        <form action="{{ route('visa-processing.update-interview', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
                             @csrf
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Date <span class="text-red-500">*</span></label>
@@ -129,6 +129,18 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
                                 <textarea name="interview_remarks" rows="2"
                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">{{ $visaProcess->interview_remarks }}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Evidence Attachment</label>
+                                <input type="file" name="interview_evidence" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <p class="text-xs text-gray-400 mt-1">PDF, JPG, PNG — Max 5MB</p>
+                                @if($visaProcess->interview_evidence_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->interview_evidence_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current evidence
+                                </a>
+                                @endif
                             </div>
                             <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                                 <i class="fas fa-save mr-2"></i> Save Interview
@@ -172,10 +184,14 @@
                 <div class="bg-cyan-500 text-white px-5 py-3 rounded-t-xl">
                     <h5 class="font-semibold"><i class="fas fa-clipboard-check mr-2"></i>2. Takamol Test</h5>
                 </div>
-                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <form action="{{ route('visa-processing.update-takamol', $candidate) }}" method="POST" class="space-y-3">
-                            @csrf
+                <div class="p-5">
+                    <p class="text-sm text-gray-500 mb-4">
+                        First an appointment is booked; the Takamol test is conducted 2&ndash;3 days later.
+                        The result is simply pass or fail.
+                    </p>
+                    <form action="{{ route('visa-processing.update-takamol', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        @csrf
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Test Date <span class="text-red-500">*</span></label>
                                 <input type="date" name="takamol_date" required
@@ -183,11 +199,40 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Test Center</label>
+                                <input type="text" name="takamol_center"
+                                       value="{{ $visaProcess->takamol_center }}"
+                                       placeholder="e.g., Takamol Center Lahore"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Appointment Slip</label>
+                                <input type="file" name="takamol_appointment_slip" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->takamol_appointment_slip_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->takamol_appointment_slip_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current slip
+                                </a>
+                                @endif
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Result Attachment</label>
+                                <input type="file" name="takamol_result_file" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->takamol_result_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->takamol_result_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current result
+                                </a>
+                                @endif
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
                                 <select name="takamol_status" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="pending"   {{ $visaProcess->takamol_status === 'pending'   ? 'selected' : '' }}>Pending</option>
-                                    <option value="completed" {{ $visaProcess->takamol_status === 'completed' ? 'selected' : '' }}>Completed</option>
-                                    <option value="failed"    {{ $visaProcess->takamol_status === 'failed'    ? 'selected' : '' }}>Failed</option>
+                                    <option value="completed" {{ $visaProcess->takamol_status === 'completed' ? 'selected' : '' }}>Pass</option>
+                                    <option value="failed"    {{ $visaProcess->takamol_status === 'failed'    ? 'selected' : '' }}>Fail</option>
                                 </select>
                             </div>
                             <div>
@@ -195,39 +240,11 @@
                                 <textarea name="takamol_remarks" rows="2"
                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">{{ $visaProcess->takamol_remarks }}</textarea>
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                <i class="fas fa-save mr-2"></i> Save Takamol
-                            </button>
-                        </form>
-                    </div>
-                    <div>
-                        <h6 class="font-semibold text-gray-700 border-b pb-2 mb-4">Upload Result</h6>
-                        <form action="{{ route('visa-processing.upload-takamol-result', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
-                            @csrf
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Result File <span class="text-red-500">*</span></label>
-                                <input type="file" name="takamol_result_file" required accept=".pdf,.jpg,.jpeg,.png"
-                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                <p class="text-xs text-gray-400 mt-1">PDF, JPG, PNG — Max 5MB</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Score</label>
-                                <input type="number" name="takamol_score" min="0" max="100"
-                                       value="{{ $visaProcess->takamol_score }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                                <select name="takamol_status" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="completed">Completed / Pass</option>
-                                    <option value="failed">Failed</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                <i class="fas fa-upload mr-2"></i> Upload Result
-                            </button>
-                        </form>
-                    </div>
+                        </div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <i class="fas fa-save mr-2"></i> Save Takamol
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -236,15 +253,48 @@
                 <div class="bg-cyan-500 text-white px-5 py-3 rounded-t-xl">
                     <h5 class="font-semibold"><i class="fas fa-heartbeat mr-2"></i>3. Medical (GAMCA)</h5>
                 </div>
-                <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <form action="{{ route('visa-processing.update-medical', $candidate) }}" method="POST" class="space-y-3">
-                            @csrf
+                <div class="p-5">
+                    <p class="text-sm text-gray-500 mb-4">
+                        First an appointment is booked; the medical (GAMCA) test is conducted afterwards.
+                        The result is simply fit or unfit.
+                    </p>
+                    <form action="{{ route('visa-processing.update-medical', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                        @csrf
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Medical Date <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Test Date <span class="text-red-500">*</span></label>
                                 <input type="date" name="medical_date" required
                                        value="{{ $visaProcess->medical_date?->format('Y-m-d') }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Test Center</label>
+                                <input type="text" name="medical_center"
+                                       value="{{ $visaProcess->medical_center }}"
+                                       placeholder="e.g., GAMCA Medical Center"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Appointment Slip</label>
+                                <input type="file" name="medical_appointment_slip" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->medical_appointment_slip_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->medical_appointment_slip_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current slip
+                                </a>
+                                @endif
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Result Attachment</label>
+                                <input type="file" name="medical_result_file" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->medical_result_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->medical_result_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current result
+                                </a>
+                                @endif
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
@@ -259,43 +309,11 @@
                                 <textarea name="medical_remarks" rows="2"
                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">{{ $visaProcess->medical_remarks }}</textarea>
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                <i class="fas fa-save mr-2"></i> Save Medical
-                            </button>
-                        </form>
-                    </div>
-                    <div>
-                        <h6 class="font-semibold text-gray-700 border-b pb-2 mb-4">Upload GAMCA Result</h6>
-                        <form action="{{ route('visa-processing.upload-gamca-result', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
-                            @csrf
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">GAMCA Certificate <span class="text-red-500">*</span></label>
-                                <input type="file" name="gamca_result_file" required accept=".pdf,.jpg,.jpeg,.png"
-                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">GAMCA Barcode</label>
-                                <input type="text" name="gamca_barcode" value="{{ $visaProcess->gamca_barcode }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                                <input type="date" name="gamca_expiry_date"
-                                       value="{{ $visaProcess->gamca_expiry_date?->format('Y-m-d') }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                                <select name="medical_status" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="fit">Fit</option>
-                                    <option value="unfit">Unfit</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                <i class="fas fa-upload mr-2"></i> Upload GAMCA
-                            </button>
-                        </form>
-                    </div>
+                        </div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <i class="fas fa-save mr-2"></i> Save Medical
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -470,34 +488,55 @@
                 </div>
                 <div class="p-5">
                     <p class="text-sm text-gray-500 mb-4">
-                        Confirm whether the Permission to Depart (PTN) has been cleared for this candidate.
+                        Record the Permission to Depart (PTN) clearance details for this candidate.
                     </p>
                     @if($visaProcess->ptn_cleared)
                     <div class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-lg text-sm mb-4">
                         <i class="fas fa-check-circle text-green-600"></i>
-                        <span>PTN is confirmed cleared.</span>
+                        <span>PTN is confirmed performed.</span>
                     </div>
                     @endif
-                    <form action="{{ route('visa-processing.update-ptn', $candidate) }}" method="POST">
+                    <form action="{{ route('visa-processing.update-ptn', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                         @csrf
-                        <div class="flex items-center gap-4">
-                            <label class="block text-sm font-medium text-gray-700">PTN Cleared? <span class="text-red-500">*</span></label>
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="ptn_cleared" value="yes"
-                                       {{ $visaProcess->ptn_cleared ? 'checked' : '' }}
-                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <span class="text-sm text-gray-700">Yes</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="ptn_cleared" value="no"
-                                       {{ !$visaProcess->ptn_cleared ? 'checked' : '' }}
-                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                                <span class="text-sm text-gray-700">No</span>
-                            </label>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors ml-4">
-                                <i class="fas fa-save mr-2"></i> Update PTN
-                            </button>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">PTN Issue Date</label>
+                                <input type="date" name="ptn_issue_date"
+                                       value="{{ $visaProcess->ptn_issue_date?->format('Y-m-d') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">PTN Performed? <span class="text-red-500">*</span></label>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="ptn_cleared" value="yes"
+                                               {{ $visaProcess->ptn_cleared ? 'checked' : '' }}
+                                               class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="ptn_cleared" value="no"
+                                               {{ !$visaProcess->ptn_cleared ? 'checked' : '' }}
+                                               class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Upload PTN</label>
+                                <input type="file" name="ptn_document" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->ptn_document_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->ptn_document_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current PTN document
+                                </a>
+                                @endif
+                            </div>
                         </div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <i class="fas fa-save mr-2"></i> Update PTN
+                        </button>
                     </form>
                 </div>
             </div>
@@ -508,46 +547,52 @@
                     <h5 class="font-semibold"><i class="fas fa-shield-alt mr-2"></i>9. Protector Clearance</h5>
                 </div>
                 <div class="p-5">
-                    @if($visaProcess->protector_clearance_status)
-                    @php
-                        $pcStatus = $visaProcess->protector_clearance_status;
-                        $pcColor = match($pcStatus) {
-                            'approved' => 'green',
-                            'rejected' => 'red',
-                            default    => 'yellow',
-                        };
-                    @endphp
-                    <div class="flex items-center gap-2 bg-{{ $pcColor }}-50 border border-{{ $pcColor }}-200 text-{{ $pcColor }}-800 px-4 py-2 rounded-lg text-sm mb-4">
-                        <i class="fas fa-{{ $pcStatus === 'approved' ? 'check-circle' : ($pcStatus === 'rejected' ? 'times-circle' : 'clock') }}"></i>
-                        <span>Current status: <strong>{{ ucfirst($pcStatus) }}</strong>
-                            @if($visaProcess->protector_clearance_date)
-                                &mdash; {{ \Carbon\Carbon::parse($visaProcess->protector_clearance_date)->format('d M Y') }}
+                    @if($visaProcess->protector_performed)
+                    <div class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-lg text-sm mb-4">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Protector clearance is confirmed performed.
+                            @if($visaProcess->protector_submission_date)
+                                &mdash; {{ $visaProcess->protector_submission_date->format('d M Y') }}
                             @endif
                         </span>
                     </div>
                     @endif
-                    <form action="{{ route('visa-processing.update-protector-clearance', $candidate) }}" method="POST" class="space-y-3">
+                    <form action="{{ route('visa-processing.update-protector-clearance', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                         @csrf
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Clearance Date</label>
-                                <input type="date" name="protector_clearance_date"
-                                       value="{{ $visaProcess->protector_clearance_date ? \Carbon\Carbon::parse($visaProcess->protector_clearance_date)->format('Y-m-d') : '' }}"
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Protector Submission Date</label>
+                                <input type="date" name="protector_submission_date"
+                                       value="{{ $visaProcess->protector_submission_date?->format('Y-m-d') }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                                <select name="protector_clearance_status" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="pending"  {{ $visaProcess->protector_clearance_status === 'pending'  ? 'selected' : '' }}>Pending</option>
-                                    <option value="approved" {{ $visaProcess->protector_clearance_status === 'approved' ? 'selected' : '' }}>Approved</option>
-                                    <option value="rejected" {{ $visaProcess->protector_clearance_status === 'rejected' ? 'selected' : '' }}>Rejected</option>
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Protector Performed? <span class="text-red-500">*</span></label>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="protector_performed" value="yes"
+                                               {{ $visaProcess->protector_performed ? 'checked' : '' }}
+                                               class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" name="protector_performed" value="no"
+                                               {{ !$visaProcess->protector_performed ? 'checked' : '' }}
+                                               class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-                                <input type="text" name="protector_clearance_remarks"
-                                       value="{{ $visaProcess->protector_clearance_remarks }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Upload Protector</label>
+                                <input type="file" name="protector_document" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @if($visaProcess->protector_document_path)
+                                <a href="{{ route('secure-file.download', $visaProcess->protector_document_path) }}" target="_blank"
+                                   class="inline-flex items-center text-xs text-green-600 hover:text-green-800 mt-1">
+                                    <i class="fas fa-paperclip mr-1"></i> View current protector document
+                                </a>
+                                @endif
                             </div>
                         </div>
                         <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">

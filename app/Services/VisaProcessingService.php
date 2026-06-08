@@ -534,12 +534,16 @@ class VisaProcessingService
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
-        $visaProcess->update([
+        $update = [
             'interview_date' => $data['interview_date'],
             'interview_status' => $data['interview_status'],
             'interview_remarks' => $data['interview_remarks'] ?? null,
             'interview_completed' => $data['interview_status'] === 'passed',
-        ]);
+        ];
+        if (array_key_exists('interview_evidence_path', $data)) {
+            $update['interview_evidence_path'] = $data['interview_evidence_path'];
+        }
+        $visaProcess->update($update);
 
         // Advance overall status to next stage if interview passed
         if ($data['interview_status'] === 'passed') {
@@ -592,11 +596,17 @@ class VisaProcessingService
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
-        $visaProcess->update([
+        $update = [
             'takamol_date' => $data['takamol_date'],
             'takamol_status' => $data['takamol_status'],
             'takamol_remarks' => $data['takamol_remarks'] ?? null,
-        ]);
+        ];
+        foreach (['takamol_center', 'takamol_appointment_slip_path', 'takamol_result_path'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = $data[$field];
+            }
+        }
+        $visaProcess->update($update);
 
         // Advance overall status to next stage if Takamol completed
         if ($data['takamol_status'] === 'completed') {
@@ -620,12 +630,18 @@ class VisaProcessingService
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
-        $visaProcess->update([
+        $update = [
             'medical_date' => $data['medical_date'],
             'medical_status' => $data['medical_status'],
             'medical_remarks' => $data['medical_remarks'] ?? null,
             'medical_completed' => $data['medical_status'] === 'fit',
-        ]);
+        ];
+        foreach (['medical_center', 'medical_appointment_slip_path', 'medical_result_path'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = $data[$field];
+            }
+        }
+        $visaProcess->update($update);
 
         // Advance overall status to next stage if medical fit
         if ($data['medical_status'] === 'fit') {
