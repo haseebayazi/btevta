@@ -166,19 +166,50 @@
                 </div>
             </div>
 
-            {{-- Complete Button --}}
-            @if($visaProcess && $visaProcess->ticket_uploaded && $visaProcess->overall_status !== 'completed')
+            {{-- Completion / Departure Hand-off --}}
+            @if($visaProcess && $visaProcess->overall_status === 'completed')
+                <div class="bg-white rounded-xl shadow-sm border-2 border-green-300 overflow-hidden">
+                    <div class="p-5 text-center">
+                        <i class="fas fa-check-circle text-5xl text-green-500 mb-3"></i>
+                        <h5 class="font-semibold text-gray-800 mb-2">Visa Process Completed</h5>
+                        <p class="text-gray-500 text-sm mb-4">This candidate has been handed over to the Departure module.</p>
+                        <a href="{{ route('departure.index') }}" class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
+                            <i class="fas fa-plane-departure mr-2"></i>Go to Departure Module
+                        </a>
+                    </div>
+                </div>
+            @elseif($visaProcess && $visaProcess->isReadyToComplete())
                 <div class="bg-white rounded-xl shadow-sm border-2 border-green-300 overflow-hidden">
                     <div class="p-5 text-center">
                         <i class="fas fa-check-circle text-5xl text-green-500 mb-3"></i>
                         <h5 class="font-semibold text-gray-800 mb-2">Ready to Complete</h5>
-                        <p class="text-gray-500 text-sm mb-4">All stages are completed. Mark this visa process as complete.</p>
+                        <p class="text-gray-500 text-sm mb-4">All required stages are completed. Completing will move this candidate to the Departure module.</p>
                         <form action="{{ route('visa-processing.complete', $candidate) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold" onclick="return confirm('Mark visa process as complete?')">
-                                <i class="fas fa-check-double mr-2"></i>Complete Process
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold" onclick="return confirm('Mark visa process as complete and move candidate to Departure?')">
+                                <i class="fas fa-check-double mr-2"></i>Complete &amp; Send to Departure
                             </button>
                         </form>
+                    </div>
+                </div>
+            @elseif($visaProcess)
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="px-5 py-3 border-b">
+                        <h5 class="font-semibold text-gray-800"><i class="fas fa-clipboard-list mr-2 text-yellow-500"></i>Pending for Completion</h5>
+                    </div>
+                    <div class="p-5">
+                        <p class="text-gray-500 text-sm mb-3">Complete the following before this candidate can move to the Departure module:</p>
+                        <ul class="space-y-1.5 text-sm">
+                            @foreach($visaProcess->getOutstandingCompletionRequirements() as $requirement)
+                                <li class="flex items-start text-gray-700">
+                                    <i class="fas fa-circle-exclamation text-yellow-500 mr-2 mt-1 text-xs"></i>
+                                    <span>{{ $requirement }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <a href="{{ route('visa-processing.edit', $candidate) }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm mt-4">
+                            <i class="fas fa-edit mr-1"></i> Edit stages
+                        </a>
                     </div>
                 </div>
             @endif
@@ -428,81 +459,58 @@
                 </div>
             </div>
 
-            {{-- Stage 7: Ticket & Travel --}}
+            {{-- Stage 7: Final Clearances (PTN & Protector) --}}
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div class="px-5 py-3 border-b flex items-center justify-between">
-                    <h5 class="font-semibold text-gray-800"><i class="fas fa-plane-departure mr-2 text-sky-500"></i>7. Ticket & Travel Plan</h5>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $visaProcess->ticket_uploaded ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
-                        {{ $visaProcess->ticket_uploaded ? 'Uploaded' : 'Pending' }}
+                    <h5 class="font-semibold text-gray-800"><i class="fas fa-stamp mr-2 text-emerald-500"></i>7. Final Clearances (PTN &amp; Protector)</h5>
+                    @php $clearancesDone = $visaProcess->ptn_cleared && $visaProcess->protector_performed; @endphp
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $clearancesDone ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                        {{ $clearancesDone ? 'Cleared' : 'Pending' }}
                     </span>
                 </div>
                 <div class="p-5">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-1.5 text-sm">
-                            <p><span class="text-gray-500">Ticket Date:</span> <span class="font-medium">{{ $visaProcess->ticket_date ? $visaProcess->ticket_date->format('d M Y') : 'N/A' }}</span></p>
-                            @if($visaProcess->ticket_path)
-                                <p><span class="text-gray-500">Ticket:</span>
-                                    <a href="{{ route('secure-file.download', $visaProcess->ticket_path) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs">
-                                        <i class="fas fa-download mr-1"></i>View Ticket
+                            <h6 class="font-semibold text-gray-700 mb-1">PTN Clearance</h6>
+                            <p><span class="text-gray-500">Status:</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $visaProcess->ptn_cleared ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $visaProcess->ptn_cleared ? 'Cleared' : 'Pending' }}
+                                </span>
+                            </p>
+                            <p><span class="text-gray-500">Issue Date:</span> <span class="font-medium">{{ $visaProcess->ptn_issue_date ? $visaProcess->ptn_issue_date->format('d M Y') : 'N/A' }}</span></p>
+                            @if($visaProcess->ptn_document_path)
+                                <p><span class="text-gray-500">Document:</span>
+                                    <a href="{{ route('secure-file.download', $visaProcess->ptn_document_path) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs">
+                                        <i class="fas fa-download mr-1"></i>View PTN
                                     </a>
                                 </p>
                             @endif
                         </div>
                         <div class="space-y-1.5 text-sm">
-                            @if($visaProcess->travel_plan_path)
-                                <p><span class="text-gray-500">Travel Plan:</span>
-                                    <a href="{{ route('secure-file.download', $visaProcess->travel_plan_path) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs">
-                                        <i class="fas fa-download mr-1"></i>View Plan
+                            <h6 class="font-semibold text-gray-700 mb-1">Protector Clearance</h6>
+                            <p><span class="text-gray-500">Status:</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $visaProcess->protector_performed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $visaProcess->protector_performed ? 'Performed' : 'Pending' }}
+                                </span>
+                            </p>
+                            <p><span class="text-gray-500">Submission Date:</span> <span class="font-medium">{{ $visaProcess->protector_submission_date ? $visaProcess->protector_submission_date->format('d M Y') : 'N/A' }}</span></p>
+                            @if($visaProcess->protector_document_path)
+                                <p><span class="text-gray-500">Document:</span>
+                                    <a href="{{ route('secure-file.download', $visaProcess->protector_document_path) }}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs">
+                                        <i class="fas fa-download mr-1"></i>View Protector
                                     </a>
                                 </p>
                             @endif
                         </div>
                     </div>
                     @if($visaProcess->overall_status !== 'completed')
-                    <div class="mt-4 pt-4 border-t border-gray-100 space-y-4">
-                        {{-- Upload Ticket --}}
-                        <form action="{{ route('visa-processing.upload-ticket', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
-                            @csrf
-                            <h6 class="text-sm font-semibold text-gray-700"><i class="fas fa-ticket-alt mr-1"></i> Upload Ticket</h6>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Ticket File <span class="text-red-500">*</span></label>
-                                    <input type="file" name="ticket_file" required accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Ticket Date <span class="text-red-500">*</span></label>
-                                    <input type="date" name="ticket_date" value="{{ $visaProcess->ticket_date?->format('Y-m-d') }}" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-lg text-sm">
-                                <i class="fas fa-upload mr-1"></i> Upload Ticket
-                            </button>
-                        </form>
-
-                        {{-- Upload Travel Plan --}}
-                        <form action="{{ route('visa-processing.upload-travel-plan', $candidate) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
-                            @csrf
-                            <h6 class="text-sm font-semibold text-gray-700"><i class="fas fa-route mr-1"></i> Upload Travel Plan</h6>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Travel Plan File <span class="text-red-500">*</span></label>
-                                    <input type="file" name="travel_plan_file" required accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Departure Date <span class="text-red-500">*</span></label>
-                                    <input type="date" name="departure_date" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Flight Number</label>
-                                    <input type="text" name="flight_number" placeholder="e.g. PK-741" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1.5 rounded-lg text-sm">
-                                <i class="fas fa-upload mr-1"></i> Upload Travel Plan
-                            </button>
-                        </form>
-                    </div>
+                    <a href="{{ route('visa-processing.edit', $candidate) }}#stage-ptn" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs mt-3">
+                        <i class="fas fa-cog mr-1"></i> Update Clearances
+                    </a>
                     @endif
+                    <p class="text-xs text-gray-400 mt-3">
+                        <i class="fas fa-info-circle mr-1"></i>Ticket &amp; travel plan are recorded in the Departure module after completion.
+                    </p>
                 </div>
             </div>
 
