@@ -84,6 +84,7 @@
                             'stage-visa'        => ['label' => 'Visa Issuance',           'done' => $visaProcess->visa_issued],
                             'stage-ptn'         => ['label' => 'PTN Clearance',           'done' => $visaProcess->ptn_cleared],
                             'stage-protector'   => ['label' => 'Protector Clearance',     'done' => $visaProcess->protector_performed],
+                            'stage-complete'    => ['label' => 'Complete & Departure',    'done' => $visaProcess->overall_status === 'completed'],
                         ];
                     @endphp
                     @foreach($navItems as $anchor => $item)
@@ -599,6 +600,40 @@
                             <i class="fas fa-save mr-2"></i> Update Protector Clearance
                         </button>
                     </form>
+                </div>
+            </div>
+
+            {{-- Completion / Departure Hand-off --}}
+            <div class="bg-white rounded-xl shadow-sm border-2 {{ $visaProcess->isReadyToComplete() ? 'border-green-300' : 'border-gray-200' }}" id="stage-complete">
+                <div class="bg-green-600 text-white px-5 py-3 rounded-t-xl">
+                    <h5 class="font-semibold"><i class="fas fa-flag-checkered mr-2"></i>Complete &amp; Send to Departure</h5>
+                </div>
+                <div class="p-5">
+                    @if($visaProcess->overall_status === 'completed')
+                        <div class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Visa process is complete. This candidate is now in the Departure module.</span>
+                        </div>
+                    @elseif($visaProcess->isReadyToComplete())
+                        <p class="text-gray-600 text-sm mb-4">All required stages are complete. Completing will move this candidate to the Departure module.</p>
+                        <form action="{{ route('visa-processing.complete', $candidate) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                    onclick="return confirm('Mark visa process as complete and move candidate to Departure?')">
+                                <i class="fas fa-check-double mr-2"></i> Complete &amp; Send to Departure
+                            </button>
+                        </form>
+                    @else
+                        <p class="text-gray-600 text-sm mb-3">Complete the following before this candidate can move to the Departure module:</p>
+                        <ul class="space-y-1.5 text-sm">
+                            @foreach($visaProcess->getOutstandingCompletionRequirements() as $requirement)
+                                <li class="flex items-start text-gray-700">
+                                    <i class="fas fa-circle-exclamation text-yellow-500 mr-2 mt-1 text-xs"></i>
+                                    <span>{{ $requirement }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </div>
             </div>
 

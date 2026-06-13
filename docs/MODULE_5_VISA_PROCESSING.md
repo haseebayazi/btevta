@@ -90,17 +90,50 @@ Module 5 enhances the existing BTEVTA WASL Visa Processing system with **hierarc
 |                       rejected)                           |
 | 12. Completed                                             |
 |                                                           |
+|  NOTE: Ticket & Travel Plan are NOT part of visa          |
+|  processing — they are recorded in the Departure module   |
+|  (Module 6) after completion.                             |
+|                                                           |
 |  Detail Stages (with VisaStageDetails):                   |
 |  interview, trade_test, takamol, medical,                 |
 |  biometric, visa_application                              |
 +----------------------------------------------------------+
            |                              |
-           | All stages complete          | Any stage FAIL/REFUSED
+           | All required stages complete | Any stage FAIL/REFUSED
            v                              v
 +------------------+            +------------------+
 |    COMPLETED     |            |    REJECTED      |
+| candidate -> DEPARTURE_PROCESSING                |
+| (a Departure record is auto-created)             |
 +------------------+            +------------------+
 ```
+
+### Completion & Hand-off to Departure
+
+Completion is **gated on the required visa stages**, not on a ticket upload.
+The "Complete & Send to Departure" action is available (on both the candidate
+show view and the edit view) only when `VisaProcess::isReadyToComplete()` returns
+true — i.e. all of the following are satisfied:
+
+- Interview passed
+- Medical cleared as `fit`
+- Biometrics completed
+- E-Number generated **and** verified
+- Visa issued
+- PTN clearance confirmed (`ptn_cleared = true`)
+- Protector clearance performed (`protector_performed = true`)
+
+`VisaProcess::getOutstandingCompletionRequirements()` returns the human-readable
+list of any unmet requirements, which the UI surfaces as a "Pending for
+Completion" checklist so the operator always knows what is missing.
+
+On completion (`VisaProcessingController@complete`):
+
+1. `overall_status` is set to `completed` (the candidate dashboard/progress bar
+   then reflects 100% / "Completed" — it no longer gets stuck at "Visa Issuance").
+2. The candidate transitions to `CandidateStatus::DEPARTURE_PROCESSING`.
+3. A `Departure` record is auto-created (`firstOrCreate`) so the candidate
+   immediately appears in the Departure module.
 
 ### Stage Prerequisites
 
@@ -111,9 +144,12 @@ Module 5 enhances the existing BTEVTA WASL Visa Processing system with **hierarc
 | Takamol            | Interview must be passed                   |
 | Medical            | Interview must be passed                   |
 | E-Number           | None (externally generated, no prerequisite enforced) |
+| Biometric          | Medical must be fit/completed/passed       |
 | PTN Clearance      | Visa must be issued                        |
 | Protector          | None (independent clearance)               |
-| Biometric  | Medical must be fit/completed/passed        |
+
+> **Note:** Ticket & Travel Plan are **not** visa-processing stages. They were
+> removed from this module and are handled by the Departure module (Module 6).
 
 ---
 
@@ -127,6 +163,15 @@ Module 5 enhances the existing BTEVTA WASL Visa Processing system with **hierarc
 | `failed_at`         | timestamp     | When the process was marked as failed            |
 | `failed_stage`      | varchar(50)   | Which stage caused the failure                   |
 | `failure_reason`    | text          | Reason for failure                               |
+| `enumber_date`      | date          | Date the E-Number was generated/verified (migration `2026_06_13_000001`) |
+| `etimad_center`     | varchar       | Etimad biometric enrolment center (migration `2026_06_13_000001`) |
+
+> **Edit-form persistence fix:** `enumber_date` and `etimad_center` were
+> previously submitted by the edit/show forms but had no backing column (and
+> `etimad_appointment_id`/`etimad_center` were not persisted by the biometric
+> update service), so they re-appeared blank after saving. These columns now
+> exist, are in `$fillable`, and the biometric update persists the Etimad
+> appointment id and center.
 
 ### Previously Enhanced Columns (Migration `2026_01_18_100016`)
 
@@ -189,9 +234,14 @@ Each `*_details` JSON column stores:
 **Route:** `/visa-processing/{candidate}`
 
 **Layout:**
-- Progress bar with 10-stage stepper
-- Left column: candidate info card, key numbers (E-Number, PTN, Visa Number), completion button
-- Right column: 7 stage cards with status badges, details, and "Manage Stage" links
+- Progress bar with stage stepper
+- Left column: candidate info card, key numbers (E-Number, PTN, Visa Number), and a
+  completion panel that shows **either** a "Complete & Send to Departure" button
+  (when ready), a "Pending for Completion" checklist (when not ready), or a
+  "Go to Departure Module" link (once completed)
+- Right column: stage cards with status badges, details, and "Manage Stage" links.
+  Stage 7 shows the **Final Clearances (PTN & Protector)** summary — the old
+  "Ticket & Travel Plan" card was removed (now in the Departure module)
 - Failure info panel (if process failed)
 - **Styling**: Fully rewritten to Tailwind CSS (was Bootstrap)
 
@@ -244,9 +294,8 @@ All routes are protected by `role:admin,project_director,campus_admin,instructor
 | PUT    | `/visa-processing/{candidate}`                     | Update visa process           |
 | GET    | `/visa-processing/{candidate}/timeline`            | Timeline view                 |
 | POST   | `/visa-processing/{candidate}/update-enumber`      | E-number update (external)    |
-| POST   | `/visa-processing/{candidate}/upload-travel-plan`  | Upload travel plan            |
-| POST   | `/visa-processing/{candidate}/upload-ticket`       | Upload ticket                 |
-| POST   | `/visa-processing/{candidate}/complete`            | Complete visa process         |
+| POST   | `/visa-processing/{candidate}/update-biometric`    | Biometrics (persists Etimad appointment id + center) |
+| POST   | `/visa-processing/{candidate}/complete`            | Complete visa process & hand off to Departure |
 | GET    | `/visa-processing/dashboard`                       | Analytics dashboard           |
 | GET    | `/visa-processing/reports/overdue`                 | Overdue report                |
 | POST   | `/visa-processing/reports/generate`                | Generate report               |
@@ -498,9 +547,7 @@ The following legacy routes have been **removed** in favor of Module 5 stage man
 | Route | Reason |
 |---|---|
 | `POST /update-enumber` | E-Number is externally generated |
-| `POST /upload-travel-plan` | Ticket/travel stage not in Module 5 detail stages |
-| `POST /upload-ticket` | Ticket/travel stage not in Module 5 detail stages |
-| `POST /complete` | Process completion validation |
+| `POST /complete` | Process completion validation + hand-off to Departure |
 | `GET /timeline` | Timeline view |
 | `GET /dashboard` | Analytics dashboard |
 | Resource routes (CRUD) | Index, create, store, show, edit, update, destroy |
@@ -724,6 +771,32 @@ const STAGES = [
 ---
 
 ## Change Log
+
+### Version 1.1.0 (June 2026) — Bug-fix pass
+
+Fixes for four reported visa-processing issues:
+
+1. **Blank-on-edit fields persisted.** Added `enumber_date` and `etimad_center`
+   columns (migration `2026_06_13_000001`) and made them fillable. The biometric
+   update service now persists `etimad_appointment_id` and `etimad_center`, so
+   saved values no longer reappear blank when the edit form is reopened.
+2. **Individual candidate dashboard no longer stuck at "Visa Issuance".**
+   Completion now drives `overall_status` to `completed`, so the progress bar
+   reflects the true state once the process is completed.
+3. **Ticket & Travel Plan removed from visa processing.** Removed the
+   `upload-ticket` and `upload-travel-plan` routes, controller methods, service
+   methods, and the show-view card. These are handled by the Departure module.
+   The show view now shows a **Final Clearances (PTN & Protector)** card instead.
+4. **Reliable hand-off to Departure.** Completion is gated on
+   `VisaProcess::isReadyToComplete()` (required stages, not a ticket upload) and
+   is reachable from both the show and edit views. Completing transitions the
+   candidate to `DEPARTURE_PROCESSING` and auto-creates a `Departure` record so
+   the candidate appears in the Departure module. A "Pending for Completion"
+   checklist (`getOutstandingCompletionRequirements()`) shows any unmet
+   requirements.
+
+Tests: added feature tests for Etimad persistence, departure creation on
+completion, completion gating, and E-Number date persistence.
 
 ### Version 1.0.0 (February 2026)
 - VisaStageDetails value object for immutable stage data

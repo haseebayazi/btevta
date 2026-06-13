@@ -385,11 +385,8 @@ Route::middleware(['auth'])->group(function () {
             // E-Number (externally generated, no Module 5 equivalent)
             Route::post('/{candidate}/update-enumber', [VisaProcessingController::class, 'updateEnumber'])->name('update-enumber');
 
-            // Ticket & Travel (no Module 5 equivalent)
-            Route::post('/{candidate}/upload-travel-plan', [VisaProcessingController::class, 'uploadTravelPlan'])
-                ->middleware('throttle:30,1')->name('upload-travel-plan');
-            Route::post('/{candidate}/upload-ticket', [VisaProcessingController::class, 'uploadTicket'])
-                ->middleware('throttle:30,1')->name('upload-ticket');
+            // NOTE: Ticket & Travel Plan are handled by the Departure module
+            // (see departure.update-ticket), not visa processing.
 
             // VIEW & REPORTING ROUTES
             Route::get('/dashboard', [VisaProcessingController::class, 'dashboard'])->name('dashboard');

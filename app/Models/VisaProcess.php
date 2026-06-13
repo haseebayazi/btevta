@@ -34,9 +34,9 @@ class VisaProcess extends Model
         'medical_appointment_slip_path', 'medical_result_path',
         'medical_details',
         // E-Number
-        'enumber', 'enumber_status',
+        'enumber', 'enumber_status', 'enumber_date',
         // Biometrics/Etimad
-        'biometric_date', 'etimad_appointment_id', 'biometric_status', 'biometric_completed',
+        'biometric_date', 'etimad_appointment_id', 'etimad_center', 'biometric_status', 'biometric_completed',
         'biometric_details',
         // Visa Documents Submission
         'visa_submission_date', 'visa_application_number', 'embassy',
@@ -63,6 +63,7 @@ class VisaProcess extends Model
         'takamol_date' => 'date',
         'medical_date' => 'date',
         'biometric_date' => 'date',
+        'enumber_date' => 'date',
         'visa_submission_date' => 'date',
         'visa_date' => 'date',
         'ticket_date' => 'date',
@@ -137,6 +138,54 @@ class VisaProcess extends Model
     public function getCurrentStageInfo()
     {
         return self::STAGES[$this->overall_status] ?? self::STAGES['initiated'];
+    }
+
+    /**
+     * Required-stage requirements that must be satisfied before a visa process
+     * can be marked complete and the candidate handed over to the Departure
+     * module. Returns a list of human-readable messages for any unmet
+     * requirement; an empty array means the process is ready to complete.
+     *
+     * Note: Ticket & Travel Plan are intentionally NOT part of this list —
+     * those are handled by the Departure module, not visa processing.
+     */
+    public function getOutstandingCompletionRequirements(): array
+    {
+        $errors = [];
+
+        if ($this->interview_status !== 'passed') {
+            $errors[] = 'Interview must be passed';
+        }
+        if ($this->medical_status !== 'fit') {
+            $errors[] = 'Medical examination must be cleared as "fit"';
+        }
+        if ($this->biometric_status !== 'completed') {
+            $errors[] = 'Biometrics must be completed';
+        }
+        if (empty($this->enumber) || $this->enumber_status !== 'verified') {
+            $errors[] = 'E-Number must be generated and verified';
+        }
+        if ($this->visa_status !== 'issued') {
+            $errors[] = 'Visa must be issued';
+        }
+        if (! $this->ptn_cleared) {
+            $errors[] = 'PTN clearance must be confirmed';
+        }
+        if (! $this->protector_performed) {
+            $errors[] = 'Protector clearance must be performed';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Whether all required visa stages are complete and the process can be
+     * marked complete (which transitions the candidate to the Departure module).
+     */
+    public function isReadyToComplete(): bool
+    {
+        return $this->overall_status !== 'completed'
+            && empty($this->getOutstandingCompletionRequirements());
     }
 
     /**
