@@ -442,27 +442,6 @@ class VisaProcessingServiceTest extends TestCase
     }
 
     // =========================================================================
-    // TRAVEL PLAN
-    // =========================================================================
-
-    #[Test]
-    public function it_uploads_travel_plan_and_completes_process()
-    {
-        $visaProcess = VisaProcess::factory()->create(['overall_status' => 'ptn_issuance']);
-        $file = UploadedFile::fake()->create('ticket.pdf', 500);
-
-        $result = $this->service->uploadTravelPlan($visaProcess->id, $file, [
-            'flight_number' => 'PK-302',
-            'arrival_date' => '2024-09-01',
-        ]);
-
-        $this->assertNotNull($result->travel_plan_path);
-        $this->assertEquals('ticket', $result->overall_status);
-
-        Storage::disk('public')->assertExists($result->travel_plan_path);
-    }
-
-    // =========================================================================
     // TIMELINE CALCULATION
     // =========================================================================
 
@@ -712,26 +691,6 @@ class VisaProcessingServiceTest extends TestCase
         $this->assertEquals('VISA-2024-12345', $result->visa_number);
         $this->assertTrue($result->visa_issued);
         $this->assertEquals('visa_issued', $result->overall_status);
-    }
-
-    // =========================================================================
-    // TICKET UPLOAD
-    // =========================================================================
-
-    #[Test]
-    public function it_uploads_ticket()
-    {
-        $visaProcess = VisaProcess::factory()->create();
-        $file = UploadedFile::fake()->create('ticket.pdf', 500);
-
-        $result = $this->service->uploadTicket($visaProcess->id, $file, '2024-09-01');
-
-        $this->assertNotNull($result->ticket_path);
-        $this->assertEquals('2024-09-01', $result->ticket_date?->format('Y-m-d'));
-        $this->assertTrue($result->ticket_uploaded);
-        $this->assertEquals('ticket', $result->overall_status);
-
-        Storage::disk('public')->assertExists($result->ticket_path);
     }
 
     // =========================================================================

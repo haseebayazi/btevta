@@ -666,34 +666,6 @@ class VisaProcessingController extends Controller
     }
 
     /**
-     * Upload travel plan
-     */
-    public function uploadTravelPlan(Request $request, Candidate $candidate)
-    {
-        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
-
-        $validated = $request->validate([
-            'travel_plan_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'flight_number' => 'nullable|string|max:50',
-            'departure_date' => 'required|date',
-            'arrival_date' => 'nullable|date|after:departure_date',
-        ]);
-
-        try {
-            $visaProcess = $this->visaService->uploadTravelPlan(
-                $candidate->visaProcess->id,
-                $request->file('travel_plan_file'),
-                $validated
-            );
-
-            return back()->with('success', 'Travel plan uploaded successfully!');
-        } catch (Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Failed to upload travel plan: ' . $e->getMessage());
-        }
-    }
-
-    /**
      * Upload GAMCA result
      */
     public function uploadGamcaResult(Request $request, Candidate $candidate)
@@ -792,34 +764,6 @@ class VisaProcessingController extends Controller
         } catch (Exception $e) {
             return back()->withInput()
                 ->with('error', 'Failed to update visa: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Upload ticket
-     */
-    public function uploadTicket(Request $request, Candidate $candidate)
-    {
-        $this->authorize('update', $candidate->visaProcess ?? VisaProcess::class);
-
-        $validated = $request->validate([
-            'ticket_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'ticket_date' => 'required|date',
-        ]);
-
-        try {
-            $visaProcess = $this->visaService->uploadTicket(
-                $candidate->visaProcess->id,
-                $request->file('ticket_file'),
-                $validated['ticket_date']
-            );
-
-            $this->notificationService->sendTicketUploaded($candidate);
-
-            return back()->with('success', 'Ticket uploaded successfully!');
-        } catch (Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Failed to upload ticket: ' . $e->getMessage());
         }
     }
 

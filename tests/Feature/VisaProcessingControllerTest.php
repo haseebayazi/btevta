@@ -361,21 +361,28 @@ class VisaProcessingControllerTest extends TestCase
     // =========================================================================
 
     #[Test]
-    public function enumber_requires_biometrics_completed()
+    public function enumber_can_be_generated_and_persists_date()
     {
+        // E-Number is generated externally (stage 4, before Biometrics stage 5),
+        // so it has no biometric prerequisite. The generation date must persist.
         $user = User::factory()->create(['role' => 'super_admin']);
         $candidate = Candidate::factory()->create(['status' => 'visa_process']);
-        VisaProcess::factory()->create([
+        $visaProcess = VisaProcess::factory()->create([
             'candidate_id' => $candidate->id,
             'biometric_status' => 'pending',
         ]);
 
+        $date = now()->toDateString();
         $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/update-enumber", [
-            'enumber_date' => now()->toDateString(),
+            'enumber' => 'E123456',
+            'enumber_date' => $date,
             'enumber_status' => 'generated',
         ]);
 
-        $response->assertSessionHasErrors(['prerequisites']);
+        $response->assertSessionDoesntHaveErrors(['prerequisites']);
+        $visaProcess->refresh();
+        $this->assertEquals('E123456', $visaProcess->enumber);
+        $this->assertEquals($date, $visaProcess->enumber_date?->format('Y-m-d'));
     }
 
     #[Test]
@@ -395,44 +402,6 @@ class VisaProcessingControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['enumber']);
-    }
-
-    // =========================================================================
-    // UPLOAD DOCUMENTS (Legacy routes retained)
-    // =========================================================================
-
-    #[Test]
-    public function admin_can_upload_travel_plan()
-    {
-        $user = User::factory()->create(['role' => 'super_admin']);
-        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
-        VisaProcess::factory()->create(['candidate_id' => $candidate->id]);
-
-        $file = UploadedFile::fake()->create('travel_plan.pdf', 500);
-
-        $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/upload-travel-plan", [
-            'travel_plan_file' => $file,
-            'departure_date' => now()->addMonth()->toDateString(),
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-    }
-
-    #[Test]
-    public function travel_plan_validates_file_type()
-    {
-        $user = User::factory()->create(['role' => 'super_admin']);
-        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
-        VisaProcess::factory()->create(['candidate_id' => $candidate->id]);
-
-        $file = UploadedFile::fake()->create('travel_plan.exe', 500);
-
-        $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/upload-travel-plan", [
-            'travel_plan_file' => $file,
-        ]);
-
-        $response->assertSessionHasErrors(['travel_plan_file']);
     }
 
     // =========================================================================
@@ -464,6 +433,80 @@ class VisaProcessingControllerTest extends TestCase
 
         $candidate->refresh();
         $this->assertEquals('departure_processing', $candidate->status);
+    }
+
+    #[Test]
+    public function completing_visa_process_creates_departure_record()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
+        $visaProcess = VisaProcess::factory()->create([
+            'candidate_id' => $candidate->id,
+            'interview_status' => 'passed',
+            'medical_status' => 'fit',
+            'biometric_status' => 'completed',
+            'enumber' => 'E123456',
+            'enumber_status' => 'verified',
+            'visa_status' => 'issued',
+            'ptn_cleared' => true,
+            'protector_performed' => true,
+        ]);
+
+        $this->actingAs($user)->post("/visa-processing/{$candidate->id}/complete");
+
+        // Visa process is marked complete and the candidate is handed to Departure.
+        $this->assertEquals('completed', $visaProcess->fresh()->overall_status);
+        $this->assertDatabaseHas('departures', ['candidate_id' => $candidate->id]);
+    }
+
+    #[Test]
+    public function complete_is_blocked_until_required_stages_are_done()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
+        VisaProcess::factory()->create([
+            'candidate_id' => $candidate->id,
+            'interview_status' => 'passed',
+            'medical_status' => 'fit',
+            'biometric_status' => 'completed',
+            'enumber' => 'E123456',
+            'enumber_status' => 'verified',
+            'visa_status' => 'issued',
+            // PTN & protector NOT done yet
+            'ptn_cleared' => false,
+            'protector_performed' => false,
+        ]);
+
+        $response = $this->actingAs($user)->post("/visa-processing/{$candidate->id}/complete");
+
+        $response->assertSessionHasErrors(['visa_completion']);
+        $this->assertEquals('visa_process', $candidate->fresh()->status);
+    }
+
+    // =========================================================================
+    // BIOMETRICS — Etimad fields must persist (no longer blank on edit)
+    // =========================================================================
+
+    #[Test]
+    public function biometric_update_persists_etimad_appointment_and_center()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $candidate = Candidate::factory()->create(['status' => 'visa_process']);
+        $visaProcess = VisaProcess::factory()->create([
+            'candidate_id' => $candidate->id,
+            'medical_status' => 'fit',
+        ]);
+
+        $this->actingAs($user)->post("/visa-processing/{$candidate->id}/update-biometric", [
+            'etimad_appointment_id' => 'ETM-20260613-ABC123',
+            'etimad_center' => 'Etimad Center Lahore',
+            'biometric_date' => now()->toDateString(),
+            'biometric_status' => 'completed',
+        ]);
+
+        $visaProcess->refresh();
+        $this->assertEquals('ETM-20260613-ABC123', $visaProcess->etimad_appointment_id);
+        $this->assertEquals('Etimad Center Lahore', $visaProcess->etimad_center);
     }
 
     // =========================================================================

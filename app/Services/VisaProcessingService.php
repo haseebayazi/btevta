@@ -311,26 +311,6 @@ class VisaProcessingService
     }
 
     /**
-     * Upload travel plan/ticket
-     */
-    public function uploadTravelPlan($visaProcessId, $file, $data)
-    {
-        $visaProcess = VisaProcess::findOrFail($visaProcessId);
-        
-        // Store file
-        $path = $file->store('visa/travel', 'public');
-        
-        $visaProcess->update([
-            'travel_plan_path' => $path,
-        ]);
-
-        $this->moveToNextStage($visaProcess, 'ticket');
-        $this->completeVisaProcess($visaProcess->id);
-
-        return $visaProcess;
-    }
-
-    /**
      * Move to next stage
      */
     private function moveToNextStage($visaProcess, $stage)
@@ -665,12 +645,19 @@ class VisaProcessingService
     {
         $visaProcess = VisaProcess::findOrFail($visaProcessId);
 
-        $visaProcess->update([
+        $update = [
             'biometric_date' => $data['biometric_date'],
             'biometric_status' => $data['biometric_status'],
             'biometric_remarks' => $data['biometric_remarks'] ?? null,
             'biometric_completed' => $data['biometric_status'] === 'completed',
-        ]);
+        ];
+        // Persist Etimad appointment details so they survive a reload of the edit form
+        foreach (['etimad_appointment_id', 'etimad_center'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = $data[$field];
+            }
+        }
+        $visaProcess->update($update);
 
         // Advance overall status to next stage if biometric completed
         if ($data['biometric_status'] === 'completed') {
@@ -712,35 +699,6 @@ class VisaProcessingService
             ->performedOn($visaProcess)
             ->causedBy(auth()->user())
             ->log('Visa issuance details updated');
-
-        return $visaProcess;
-    }
-
-    /**
-     * Upload ticket
-     * CRITICAL FIX: This method was missing, causing uploadTicket() to fail
-     */
-    public function uploadTicket($visaProcessId, $file, $ticketDate)
-    {
-        $visaProcess = VisaProcess::findOrFail($visaProcessId);
-
-        // Store ticket file
-        $path = $file->store('visa/tickets', 'public');
-
-        $visaProcess->update([
-            'ticket_path' => $path,
-            'ticket_date' => $ticketDate,
-            'ticket_uploaded' => true,
-        ]);
-
-        // Update overall status
-        $visaProcess->update(['overall_status' => 'ticket']);
-
-        // Log activity
-        activity()
-            ->performedOn($visaProcess)
-            ->causedBy(auth()->user())
-            ->log('Ticket uploaded');
 
         return $visaProcess;
     }
