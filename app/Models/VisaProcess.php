@@ -235,6 +235,17 @@ class VisaProcess extends Model
                 $model->updated_by = auth()->id();
             }
         });
+
+        // Clear the visa partner dashboard cache when visa stage data changes,
+        // since that dashboard is driven entirely by VisaProcess fields.
+        $clearVisaPartnerCache = function ($model) {
+            if ($model->visa_partner_id) {
+                \Illuminate\Support\Facades\Cache::forget('visa_partner_dashboard_' . $model->visa_partner_id);
+            }
+        };
+
+        static::saved($clearVisaPartnerCache);
+        static::deleted($clearVisaPartnerCache);
     }
 
     // =========================================================================

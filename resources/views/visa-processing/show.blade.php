@@ -155,12 +155,14 @@
                         <label class="text-gray-500 text-xs block mb-1">E-Number</label>
                         <span class="font-mono text-lg font-semibold text-gray-800">{{ $visaProcess->enumber ?? 'Not Generated' }}</span>
                     </div>
+                    @if($visaProcess->visa_status === 'issued')
                     <div>
                         <label class="text-gray-500 text-xs block mb-1">PTN Number</label>
                         <span class="font-mono text-lg font-semibold text-gray-800">{{ $visaProcess->ptn_number ?? 'Not Issued' }}</span>
                     </div>
+                    @endif
                     <div>
-                        <label class="text-gray-500 text-xs block mb-1">Visa Number</label>
+                        <label class="text-gray-500 text-xs block mb-1">Visa Application Number</label>
                         <span class="font-mono text-lg font-semibold text-gray-800">{{ $visaProcess->visa_number ?? 'Not Issued' }}</span>
                     </div>
                 </div>
@@ -441,7 +443,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-1.5 text-sm">
                             <p><span class="text-gray-500">Application Status:</span> <span class="font-medium">{{ ucfirst(str_replace('_', ' ', $appStatus)) }}</span></p>
-                            <p><span class="text-gray-500">Visa Number:</span> <span class="font-mono font-medium">{{ $visaProcess->visa_number ?? 'Not Issued' }}</span></p>
+                            <p><span class="text-gray-500">Visa Application Number:</span> <span class="font-mono font-medium">{{ $visaProcess->visa_number ?? 'Not Issued' }}</span></p>
                             <p><span class="text-gray-500">Visa Date:</span> <span class="font-medium">{{ $visaProcess->visa_date ? $visaProcess->visa_date->format('d M Y') : 'N/A' }}</span></p>
                         </div>
                         <div class="space-y-1.5 text-sm">
@@ -450,7 +452,9 @@
                                     {{ ucfirst($issuedStatus) }}
                                 </span>
                             </p>
+                            @if($visaProcess->visa_status === 'issued')
                             <p><span class="text-gray-500">PTN Number:</span> <span class="font-mono font-medium">{{ $visaProcess->ptn_number ?? 'Not Issued' }}</span></p>
+                            @endif
                         </div>
                     </div>
                     <a href="{{ route('visa-processing.stage-details', [$visaProcess, 'visa_application']) }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs mt-3">

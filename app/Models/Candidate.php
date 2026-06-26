@@ -1766,12 +1766,21 @@ class Candidate extends Model
      */
     private static function clearDashboardCache($candidate)
     {
-        \Illuminate\Support\Facades\Cache::forget('dashboard_stats_all');
-        \Illuminate\Support\Facades\Cache::forget('dashboard_alerts_all');
+        $cache = \Illuminate\Support\Facades\Cache::getFacadeRoot();
+
+        $cache->forget('dashboard_stats_all_all');
+        $cache->forget('dashboard_alerts_all');
+        $cache->forget('admin_dashboard_data');
 
         if ($candidate->campus_id) {
-            \Illuminate\Support\Facades\Cache::forget('dashboard_stats_' . $candidate->campus_id);
-            \Illuminate\Support\Facades\Cache::forget('dashboard_alerts_' . $candidate->campus_id);
+            $cache->forget('dashboard_stats_' . $candidate->campus_id . '_all');
+            $cache->forget('dashboard_alerts_' . $candidate->campus_id);
+            $cache->forget('campus_admin_dashboard_' . $candidate->campus_id);
+        }
+
+        if ($candidate->oep_id) {
+            $cache->forget('dashboard_stats_all_' . $candidate->oep_id);
+            $cache->forget('oep_dashboard_' . $candidate->oep_id);
         }
     }
 

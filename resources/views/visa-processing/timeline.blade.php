@@ -41,7 +41,7 @@
                         <p class="mt-1"><span class="font-medium">Notes:</span> {{ $event['remarks'] }}</p>
                         @endif
                         @if($event['visa_number'] ?? null)
-                        <p class="mt-1"><span class="font-medium">Visa Number:</span> {{ $event['visa_number'] }}</p>
+                        <p class="mt-1"><span class="font-medium">Visa Application Number:</span> {{ $event['visa_number'] }}</p>
                         @endif
                     </div>
                 </div>
