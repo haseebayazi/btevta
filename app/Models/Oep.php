@@ -48,6 +48,12 @@ class Oep extends Model
         return $this->hasManyThrough(Departure::class, Candidate::class);
     }
 
+    public function visaProcesses()
+    {
+        // Visa processes are linked to OEPs through their candidate (candidates.oep_id).
+        return $this->hasManyThrough(VisaProcess::class, Candidate::class);
+    }
+
     public function users()
     {
         return $this->hasMany(User::class);

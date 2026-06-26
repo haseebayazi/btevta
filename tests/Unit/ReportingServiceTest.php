@@ -226,12 +226,16 @@ class ReportingServiceTest extends TestCase
         $candidate1 = Candidate::factory()->create();
         $candidate2 = Candidate::factory()->create();
 
+        // Set compliance explicitly so the assertion is deterministic (the
+        // factory randomises ninety_day_report_submitted).
         Departure::factory()->create([
             'candidate_id' => $candidate1->id,
+            'ninety_day_report_submitted' => true,
         ]);
 
         Departure::factory()->create([
             'candidate_id' => $candidate2->id,
+            'ninety_day_report_submitted' => false,
         ]);
 
         $report = $this->service->getComplianceReport();

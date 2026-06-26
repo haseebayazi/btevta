@@ -13,6 +13,7 @@ use App\Models\Complaint;
 use App\Models\Remittance;
 use App\Models\TrainingAttendance;
 use App\Models\TrainingAssessment;
+use App\Models\DocumentArchive;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
@@ -313,13 +314,29 @@ class ReportingService
         $endDate = $filters['to_date'] ?? Carbon::now();
 
         return Candidate::select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw($this->monthExpression('created_at') . ' as month'),
                 DB::raw('COUNT(*) as count')
             )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('month')
             ->orderBy('month')
             ->get();
+    }
+
+    /**
+     * Build a database-portable "year-month" SQL expression for a column.
+     *
+     * Production uses MySQL (DATE_FORMAT); the test suite uses SQLite
+     * (strftime). Keeping this driver-aware prevents reports from breaking
+     * on a non-MySQL connection.
+     */
+    protected function monthExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', {$column})",
+            'pgsql' => "to_char({$column}, 'YYYY-MM')",
+            default => "DATE_FORMAT({$column}, '%Y-%m')",
+        };
     }
 
     /**
@@ -779,7 +796,10 @@ class ReportingService
         }
 
         $departures = $query->get();
-        $compliant = $departures->where('ninety_day_compliance', true)->count();
+        // Real column is `ninety_day_report_submitted` (boolean). The previous
+        // `ninety_day_compliance` field does not exist, so this report always
+        // returned 0 compliant departures.
+        $compliant = $departures->where('ninety_day_report_submitted', true)->count();
 
         return [
             'total_departures' => $departures->count(),
@@ -870,14 +890,48 @@ class ReportingService
 
     /**
      * Get document expiry statistics.
+     *
+     * Queries the document_archives table for real expiry data, with
+     * role-based campus/OEP scoping applied via the candidate relationship.
      */
     protected function getDocumentExpiryStats(array $filters = []): array
     {
-        // This would query document_archives table
+        $applyScope = function ($query) {
+            $user = Auth::user();
+
+            if ($user && !$user->isSuperAdmin() && !$user->isProjectDirector()) {
+                if ($user->role === 'campus_admin' && $user->campus_id) {
+                    $query->whereHas('candidate', fn ($q) => $q->where('campus_id', $user->campus_id));
+                }
+                if ($user->role === 'oep' && $user->oep_id) {
+                    $query->whereHas('candidate', fn ($q) => $q->where('oep_id', $user->oep_id));
+                }
+            }
+
+            return $query;
+        };
+
+        $expiringSoon = $applyScope(DocumentArchive::query())
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', now())
+            ->whereDate('expiry_date', '<=', now()->addDays(30))
+            ->count();
+
+        $expired = $applyScope(DocumentArchive::query())
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '<', now())
+            ->count();
+
+        $valid = $applyScope(DocumentArchive::query())
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>', now()->addDays(30))
+            ->count();
+
         return [
-            'expiring_soon' => 0,
-            'expired' => 0,
-            'valid' => 0,
+            'expiring_soon' => $expiringSoon,
+            'expired' => $expired,
+            'valid' => $valid,
+            'total_with_expiry' => $expiringSoon + $expired + $valid,
         ];
     }
 
@@ -1056,10 +1110,22 @@ class ReportingService
 
     /**
      * Clear report cache.
+     *
+     * Only the redis/memcached/array stores support tagging; the file and
+     * database stores throw BadMethodCallException on Cache::tags(). Guard
+     * against that so the production cache driver cannot crash this call.
      */
     public function clearCache(): void
     {
-        Cache::tags(['reports'])->flush();
+        $store = Cache::getStore();
+
+        if ($store instanceof \Illuminate\Cache\TaggableStore) {
+            Cache::tags(['reports'])->flush();
+
+            return;
+        }
+
+        Cache::flush();
     }
 
     /**

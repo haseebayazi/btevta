@@ -97,7 +97,11 @@ node_modules/
 *.db
 
 # Uploaded files and runtime storage
-/storage/app/private/
+# Keep the directories (so they exist on fresh deploys) but ignore their contents.
+/storage/app/private/*
+!/storage/app/private/.gitkeep
+/storage/app/temp/*
+!/storage/app/temp/.gitkeep
 /storage/app/public/certificates/*.pdf
 /storage/app/public/visa/
 

@@ -590,10 +590,13 @@ class RemittanceAnalyticsService
     public function getTopRemittingCandidates($limit = 10)
     {
         // AUDIT FIX: Apply campus/OEP filtering
+        // The candidates table column is `name`; `full_name` is only a PHP
+        // accessor, so it cannot be referenced in raw SQL. Alias name -> full_name
+        // to keep the output shape while fixing the query.
         $query = Remittance::join('candidates', 'remittances.candidate_id', '=', 'candidates.id')
             ->select(
                 'candidates.id',
-                'candidates.full_name',
+                'candidates.name as full_name',
                 'candidates.cnic',
                 DB::raw('count(remittances.id) as remittance_count'),
                 DB::raw('sum(remittances.amount) as total_amount'),
@@ -602,7 +605,7 @@ class RemittanceAnalyticsService
 
         $this->applyAccessFilter($query, 'remittances.candidate_id');
 
-        return $query->groupBy('candidates.id', 'candidates.full_name', 'candidates.cnic')
+        return $query->groupBy('candidates.id', 'candidates.name', 'candidates.cnic')
             ->orderBy('total_amount', 'desc')
             ->limit($limit)
             ->get();
