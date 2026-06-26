@@ -200,7 +200,7 @@
                             </div>
                             @if($visaProcess->visa_number)
                             <div>
-                                <span class="text-xs text-gray-500 uppercase tracking-wide">Visa Number</span>
+                                <span class="text-xs text-gray-500 uppercase tracking-wide">Visa Application Number</span>
                                 <p class="font-mono font-medium">{{ $visaProcess->visa_number }}</p>
                             </div>
                             @endif
@@ -421,17 +421,13 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Visa Number</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Visa Application Number</label>
                                     <input type="text" name="visa_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter visa number" value="{{ old('visa_number', $visaProcess->visa_number) }}">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Visa Date</label>
                                     <input type="date" name="visa_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="{{ old('visa_date', $visaProcess->visa_date?->format('Y-m-d')) }}">
                                 </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">PTN Number</label>
-                                <input type="text" name="ptn_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter PTN number" value="{{ old('ptn_number', $visaProcess->ptn_number) }}">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>

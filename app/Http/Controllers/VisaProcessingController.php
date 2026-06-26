@@ -1037,7 +1037,6 @@ class VisaProcessingController extends Controller
             'issued_status' => 'nullable|in:pending,confirmed,refused',
             'visa_number' => 'nullable|string|max:50',
             'visa_date' => 'nullable|date',
-            'ptn_number' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:2000',
             'evidence' => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
         ]);
@@ -1051,7 +1050,7 @@ class VisaProcessingController extends Controller
                 $request->file('evidence'),
                 $validated['visa_number'] ?? null,
                 $validated['visa_date'] ?? null,
-                $validated['ptn_number'] ?? null,
+                null,
             );
 
             return back()->with('success', 'Visa application status updated.');

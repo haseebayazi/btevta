@@ -455,7 +455,7 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Visa Number <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Visa Application Number <span class="text-red-500">*</span></label>
                                 <input type="text" name="visa_number" required
                                        value="{{ $visaProcess->visa_number }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-blue-500 focus:border-blue-500">
@@ -482,7 +482,8 @@
                 </div>
             </div>
 
-            {{-- Stage 8: PTN Clearance (Yes/No) --}}
+            {{-- Stage 8: PTN Clearance (Yes/No) - Only shown after visa is issued --}}
+            @if($visaProcess->visa_status === 'issued')
             <div class="bg-white rounded-xl shadow-sm border" id="stage-ptn">
                 <div class="bg-blue-600 text-white px-5 py-3 rounded-t-xl">
                     <h5 class="font-semibold"><i class="fas fa-stamp mr-2"></i>8. PTN Clearance</h5>
@@ -541,6 +542,7 @@
                     </form>
                 </div>
             </div>
+            @endif
 
             {{-- Stage 9: Protector Clearance --}}
             <div class="bg-white rounded-xl shadow-sm border" id="stage-protector">

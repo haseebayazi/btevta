@@ -499,7 +499,7 @@ class TrainingService
         $filename = "certificate_{$certificate->certificate_number}.pdf";
         $path = "certificates/{$filename}";
         
-        Storage::disk('public')->put($path, $pdf->output());
+        Storage::disk('private')->put($path, $pdf->output());
         
         return $path;
     }

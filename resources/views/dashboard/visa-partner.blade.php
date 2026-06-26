@@ -101,7 +101,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Candidate</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">TheLeap ID</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Visa Number</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Visa Application Number</th>
                         <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Issue Date</th>
                         <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Status</th>
                     </tr>
