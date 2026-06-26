@@ -1782,11 +1782,6 @@ class Candidate extends Model
             $cache->forget('dashboard_stats_all_' . $candidate->oep_id);
             $cache->forget('oep_dashboard_' . $candidate->oep_id);
         }
-
-        $visaProcess = $candidate->visaProcess;
-        if ($visaProcess && $visaProcess->visa_partner_id) {
-            $cache->forget('visa_partner_dashboard_' . $visaProcess->visa_partner_id);
-        }
     }
 
     /**
