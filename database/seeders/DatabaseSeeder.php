@@ -14,16 +14,22 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * DatabaseSeeder - Secure Implementation
+ * DatabaseSeeder
  *
- * SECURITY FEATURES:
- * - Random passwords generated using Str::random(16)
- * - Passwords logged to secure file (not console)
- * - All seeded users have force_password_change=true
- * - No passwords echoed to console output
+ * Environment-aware entry point for `php artisan db:seed`:
  *
- * After seeding, check: storage/logs/seeder-credentials.log
- * This file should be securely deleted after initial setup.
+ * - PRODUCTION: delegates to {@see ProductionSeeder} — admin-tier accounts plus
+ *   essential reference data only. No sample candidates or placeholder org data.
+ *
+ * - LOCAL / TESTING: seeds a full demo environment (sample campuses, trades,
+ *   OEPs, role users, batches and lifecycle candidates) for development and QA.
+ *
+ * SECURITY:
+ * - In production, admin passwords come from SEED_ADMIN_PASSWORD or a strong
+ *   random value, and force_password_change is enabled.
+ * - In local/testing a fixed convenience password is used for the demo users.
+ * - Passwords are written only to storage/logs/seeder-credentials.log (0600,
+ *   git-ignored). Delete that file after initial setup.
  */
 class DatabaseSeeder extends Seeder
 {
@@ -44,6 +50,15 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // DATA-READINESS: In production, never seed demo org data or sample
+        // candidates. Delegate to the lean ProductionSeeder (admins + reference
+        // data only) so the database stays clean for real candidate records.
+        if (app()->environment('production')) {
+            $this->call(ProductionSeeder::class);
+
+            return;
+        }
+
         // Initialize credentials log
         $this->initializeCredentialsLog();
 

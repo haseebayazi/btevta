@@ -45,8 +45,20 @@ class LifecycleDataSeeder extends Seeder
      */
     public function run(): void
     {
+        // SECURITY / DATA-READINESS: This seeder creates synthetic candidates
+        // (fake names, CNICs, emails) across every lifecycle stage. It must
+        // never run against a production database that will hold real data.
+        if (app()->environment('production')) {
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->command->warn('⏭️  LifecycleDataSeeder skipped: sample candidate data is NOT');
+            $this->command->warn('   seeded in production. Load real candidate data instead.');
+            $this->command->warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+            return;
+        }
+
         $this->command->info('Starting Lifecycle Data Seeder...');
-        
+
         // Create base dependencies
         $this->createBaseDependencies();
 
