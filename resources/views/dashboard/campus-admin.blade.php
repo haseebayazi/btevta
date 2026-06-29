@@ -119,7 +119,7 @@
                     <span class="badge badge-success">Active</span>
                 </div>
                 <p class="text-sm text-gray-600">{{ $batch->trade->name ?? 'N/A' }}</p>
-                <p class="text-sm text-gray-600">Instructor: {{ $batch->instructor->name ?? 'Not Assigned' }}</p>
+                <p class="text-sm text-gray-600">Instructor: {{ $batch->trainer->name ?? 'Not Assigned' }}</p>
                 <div class="mt-3 flex items-center justify-between text-sm">
                     <span class="text-gray-500">
                         <i class="fas fa-users mr-1"></i>{{ $batch->candidates_count ?? 0 }} students
@@ -138,19 +138,19 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                 <p class="text-sm text-green-700">Present</p>
-                <p class="text-2xl font-bold text-green-800">{{ $roleData['attendance_today']['present']->count() ?? 0 }}</p>
+                <p class="text-2xl font-bold text-green-800">{{ $roleData['attendance_today']['present'] ?? 0 }}</p>
             </div>
             <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
                 <p class="text-sm text-red-700">Absent</p>
-                <p class="text-2xl font-bold text-red-800">{{ $roleData['attendance_today']['absent']->count() ?? 0 }}</p>
+                <p class="text-2xl font-bold text-red-800">{{ $roleData['attendance_today']['absent'] ?? 0 }}</p>
             </div>
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
                 <p class="text-sm text-yellow-700">Late</p>
-                <p class="text-2xl font-bold text-yellow-800">{{ $roleData['attendance_today']['late']->count() ?? 0 }}</p>
+                <p class="text-2xl font-bold text-yellow-800">{{ $roleData['attendance_today']['late'] ?? 0 }}</p>
             </div>
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <p class="text-sm text-blue-700">Excused</p>
-                <p class="text-2xl font-bold text-blue-800">{{ $roleData['attendance_today']['excused']->count() ?? 0 }}</p>
+                <p class="text-sm text-blue-700">Leave</p>
+                <p class="text-2xl font-bold text-blue-800">{{ $roleData['attendance_today']['leave'] ?? 0 }}</p>
             </div>
         </div>
     </div>
