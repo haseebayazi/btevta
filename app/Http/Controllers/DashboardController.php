@@ -97,19 +97,31 @@ class DashboardController extends Controller
         $cacheKey = "campus_admin_dashboard_{$campusId}";
         return Cache::remember($cacheKey, 300, function () use ($campusId) {
             $campus = Campus::find($campusId);
+
+            $attendanceByStatus = TrainingAttendance::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
+                ->whereDate('date', today())
+                ->get()
+                ->groupBy('status');
+
             return [
                 'campus' => $campus,
                 'active_batches' => Batch::where('campus_id', $campusId)
                     ->where('status', 'active')
-                    ->with('instructor')
+                    ->with('trainer')
                     ->get(),
                 'pending_registrations' => Candidate::where('campus_id', $campusId)
                     ->whereIn('status', ['screened', 'screening_passed'])
                     ->count(),
-                'attendance_today' => TrainingAttendance::whereHas('candidate', fn($q) => $q->where('campus_id', $campusId))
-                    ->whereDate('date', today())
-                    ->get()
-                    ->groupBy('status'),
+                // Return guaranteed integer counts for every status so the
+                // dashboard view never hits an undefined key when a status
+                // has no records today. Attendance statuses are
+                // present/absent/late/leave (there is no "excused" value).
+                'attendance_today' => [
+                    'present' => $attendanceByStatus->get('present', collect())->count(),
+                    'absent' => $attendanceByStatus->get('absent', collect())->count(),
+                    'late' => $attendanceByStatus->get('late', collect())->count(),
+                    'leave' => $attendanceByStatus->get('leave', collect())->count(),
+                ],
             ];
         });
     }
