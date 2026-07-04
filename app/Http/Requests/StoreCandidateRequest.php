@@ -16,6 +16,21 @@ class StoreCandidateRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     *
+     * Accept CNIC in the dashed format (e.g. 21509-4361096-5) by stripping any
+     * non-digit characters so it is stored and validated as 13 plain digits.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('cnic')) {
+            $this->merge([
+                'cnic' => preg_replace('/\D/', '', (string) $this->input('cnic')),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array

@@ -68,9 +68,27 @@ class CandidateController extends Controller
         return view('candidates.create', compact('campuses', 'trades', 'oeps'));
     }
 
+    /**
+     * Strip any non-digit characters (dashes, spaces) from the submitted CNIC so
+     * the dashed format 21509-4361096-5 and the plain 2150943610965 both resolve
+     * to the same 13-digit value used for storage, uniqueness and search.
+     */
+    private function normalizeCnicInput(Request $request): void
+    {
+        if ($request->has('cnic')) {
+            $request->merge([
+                'cnic' => preg_replace('/\D/', '', (string) $request->input('cnic')),
+            ]);
+        }
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', Candidate::class);
+
+        // Normalize CNIC: accept the dashed format (e.g. 21509-4361096-5) and
+        // store it as 13 digits, matching how it is persisted and searched.
+        $this->normalizeCnicInput($request);
 
         $validated = $request->validate([
             'btevta_id' => 'nullable|unique:candidates,btevta_id',
@@ -88,6 +106,8 @@ class CandidateController extends Controller
             'campus_id' => 'nullable|exists:campuses,id',
             'oep_id' => 'nullable|exists:oeps,id',
             'photo' => 'nullable|image|max:2048',
+        ], [
+            'cnic.digits' => 'CNIC must be 13 digits (e.g. 21509-4361096-5). Dashes are optional.',
         ]);
 
         // Handle photo upload
@@ -97,6 +117,14 @@ class CandidateController extends Controller
 
         // Ensure address is never null (fallback for nullable migration compatibility)
         $validated['address'] = $validated['address'] ?? '';
+
+        // Campus admins can only register candidates for their own campus. Force the
+        // campus_id so the candidate stays within their scope and remains accessible
+        // to them afterwards (otherwise the CandidatePolicy would deny access).
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $validated['campus_id'] = $user->campus_id;
+        }
 
         $validated['status'] = 'new';
 
@@ -165,6 +193,10 @@ class CandidateController extends Controller
     {
         $this->authorize('update', $candidate);
 
+        // Normalize CNIC: accept the dashed format (e.g. 21509-4361096-5) and
+        // store it as 13 digits, matching how it is persisted and searched.
+        $this->normalizeCnicInput($request);
+
         $validated = $request->validate([
             // btevta_id is auto-generated and disabled in form, so not validated here
             'cnic' => 'required|digits:13|unique:candidates,cnic,' . $candidate->id,
@@ -184,6 +216,8 @@ class CandidateController extends Controller
             'status' => 'nullable|in:new,screening,registered,training,visa_process,ready,departed,rejected,dropped',
             'remarks' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+        ], [
+            'cnic.digits' => 'CNIC must be 13 digits (e.g. 21509-4361096-5). Dashes are optional.',
         ]);
 
         // Handle photo upload
@@ -193,6 +227,13 @@ class CandidateController extends Controller
                 Storage::disk('public')->delete($candidate->photo_path);
             }
             $validated['photo_path'] = $request->file('photo')->store('candidates/photos', 'public');
+        }
+
+        // Campus admins may not move a candidate out of their own campus, which would
+        // otherwise lock them out of the record they just edited.
+        $user = auth()->user();
+        if ($user->isCampusAdmin() && $user->campus_id) {
+            $validated['campus_id'] = $user->campus_id;
         }
 
         $candidate->update($validated);
