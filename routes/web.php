@@ -208,6 +208,7 @@ Route::middleware(['auth'])->group(function () {
     // Pre-Departure Reports
     Route::prefix('reports/pre-departure')->name('reports.pre-departure.')->middleware('throttle:10,1')->group(function () {
         Route::get('/individual/{candidate}', [\App\Http\Controllers\PreDepartureReportController::class, 'individualReport'])->name('individual');
+        Route::get('/combined-documents/{candidate}', [\App\Http\Controllers\PreDepartureReportController::class, 'combinedDocuments'])->name('combined-documents');
         Route::get('/bulk', [\App\Http\Controllers\PreDepartureReportController::class, 'bulkReport'])->name('bulk');
         Route::get('/missing', [\App\Http\Controllers\PreDepartureReportController::class, 'missingDocumentsReport'])->name('missing');
     });

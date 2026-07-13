@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Candidate;
 use App\Models\PreDepartureDocument;
+use App\Services\CandidateDocumentPackageService;
 use App\Services\PreDepartureDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,33 @@ class PreDepartureReportController extends Controller
     public function __construct(PreDepartureDocumentService $service)
     {
         $this->service = $service;
+    }
+
+    /**
+     * Generate a single, consolidated PDF of all documents collected for a
+     * candidate across every stage, merged in the standard order.
+     */
+    public function combinedDocuments(Candidate $candidate, CandidateDocumentPackageService $packageService)
+    {
+        $this->authorize('viewAny', [PreDepartureDocument::class, $candidate]);
+
+        $pdf = $packageService->generateCombinedPdf($candidate);
+        $filename = $packageService->filename($candidate);
+
+        // Log activity
+        activity()
+            ->performedOn($candidate)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'report_type' => 'combined_documents',
+            ])
+            ->log('Generated combined candidate documents PDF');
+
+        // Stream directly (never persisted — these are highly sensitive documents).
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     /**

@@ -165,8 +165,7 @@
 <body>
     {{-- Header Section --}}
     <div class="header">
-        <div class="logo">BTEVTA - WASL</div>
-        <div class="subtitle">Board of Technical Education & Vocational Training Authority</div>
+        <div class="logo">LEAP - WASL</div>
         <div class="subtitle">Workforce Abroad Skills & Linkages (WASL) Program</div>
         <div class="report-title">Pre-Departure Document Report</div>
     </div>
@@ -179,7 +178,7 @@
                 <div class="info-value">{{ $candidate->name }}</div>
             </div>
             <div class="info-row">
-                <div class="info-label">BTEVTA ID:</div>
+                <div class="info-label">LEAP ID:</div>
                 <div class="info-value">{{ $candidate->btevta_id }}</div>
             </div>
             <div class="info-row">
@@ -319,7 +318,7 @@
             </div>
             <div class="footer-row">
                 <div class="footer-cell" colspan="2" style="padding-top: 10px;">
-                    <em>This is a system-generated document from BTEVTA WASL Application.</em>
+                    <em>This is a system-generated document from LEAP WASL Application.</em>
                 </div>
             </div>
         </div>

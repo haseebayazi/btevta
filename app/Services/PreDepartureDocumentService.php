@@ -649,7 +649,7 @@ class PreDepartureDocumentService
         // Header
         $sheet->setCellValue('A1', 'Pre-Departure Document Report');
         $sheet->setCellValue('A2', 'Candidate: ' . $data['candidate']->name);
-        $sheet->setCellValue('A3', 'BTEVTA ID: ' . $data['candidate']->btevta_id);
+        $sheet->setCellValue('A3', 'LEAP ID: ' . $data['candidate']->btevta_id);
         $sheet->setCellValue('A4', 'Generated: ' . now()->format('Y-m-d H:i:s'));
 
         // Column headers
@@ -727,7 +727,7 @@ class PreDepartureDocumentService
 
         // Column headers
         $row = 4;
-        $headers = ['BTEVTA ID', 'Name', 'CNIC', 'Campus', 'Trade', 'Status'];
+        $headers = ['LEAP ID', 'Name', 'CNIC', 'Campus', 'Trade', 'Status'];
 
         // Add document columns
         foreach ($checklists as $checklist) {
