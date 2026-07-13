@@ -363,6 +363,14 @@
                         <div class="text-xs text-green-500">Download as Excel</div>
                     </div>
                 </a>
+                <a href="{{ route('reports.pre-departure.combined-documents', $candidate) }}"
+                   class="inline-flex items-center px-5 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition border border-blue-200">
+                    <i class="fas fa-file-pdf text-xl mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium">Combined Documents PDF</div>
+                        <div class="text-xs text-blue-500">All uploaded documents in one PDF</div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
