@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Candidate;
 use App\Models\DocumentArchive;
+use App\Services\Pdf\PdfNormalizer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use setasign\Fpdi\Fpdi;
+use setasign\Fpdi\PdfParser\StreamReader;
 
 /**
  * Builds a single, consolidated PDF containing every document collected for a
@@ -27,6 +29,17 @@ class CandidateDocumentPackageService
     protected array $disks = ['private', 'public', 'local', 'photos'];
 
     /**
+     * Rewrites modern PDFs (compressed cross-reference / object streams) into a
+     * form the free FPDI parser can embed.
+     */
+    protected PdfNormalizer $pdfNormalizer;
+
+    public function __construct(?PdfNormalizer $pdfNormalizer = null)
+    {
+        $this->pdfNormalizer = $pdfNormalizer ?? new PdfNormalizer;
+    }
+
+    /**
      * Generate the combined PDF and return its raw binary contents.
      *
      * The result is intentionally NOT persisted to disk (these are highly
@@ -40,7 +53,7 @@ class CandidateDocumentPackageService
         $pdf->SetAutoPageBreak(false);
         $pdf->SetCreator('LEAP - WASL');
         $pdf->SetAuthor('LEAP - WASL');
-        $pdf->SetTitle('Candidate Document Package - ' . ($candidate->btevta_id ?? $candidate->id));
+        $pdf->SetTitle('Candidate Document Package - '.($candidate->btevta_id ?? $candidate->id));
 
         $this->addCoverPage($pdf, $candidate, $sections);
 
@@ -318,10 +331,20 @@ class CandidateDocumentPackageService
 
     /**
      * Import every page of an existing PDF at its native size/orientation.
+     *
+     * Modern PDFs (produced by scanners, phone apps and office suites) use
+     * compressed cross-reference streams and object streams that the free FPDI
+     * parser cannot read. When the direct import fails we transparently rewrite
+     * the document into a classic-structured PDF and retry, so real content is
+     * embedded instead of a "could not be embedded" placeholder.
      */
     protected function appendPdf(Fpdi $pdf, string $absPath): void
     {
-        $pageCount = $pdf->setSourceFile($absPath);
+        try {
+            $pageCount = $pdf->setSourceFile($absPath);
+        } catch (\Throwable $e) {
+            $pageCount = $this->importNormalizedPdf($pdf, $absPath);
+        }
 
         for ($p = 1; $p <= $pageCount; $p++) {
             $tpl = $pdf->importPage($p);
@@ -331,6 +354,27 @@ class CandidateDocumentPackageService
             $pdf->AddPage($orientation, [$size['width'], $size['height']]);
             $pdf->useTemplate($tpl);
         }
+    }
+
+    /**
+     * Rewrite an FPDI-incompatible PDF into a classic structure and set it as
+     * the current source, returning its page count.
+     *
+     * @throws \RuntimeException when the file cannot be read or normalised.
+     */
+    protected function importNormalizedPdf(Fpdi $pdf, string $absPath): int
+    {
+        $raw = @file_get_contents($absPath);
+        if ($raw === false) {
+            throw new \RuntimeException('Unable to read PDF for normalisation.');
+        }
+
+        $normalized = $this->pdfNormalizer->normalize($raw);
+        if ($normalized === null) {
+            throw new \RuntimeException('PDF could not be normalised for embedding.');
+        }
+
+        return $pdf->setSourceFile(StreamReader::createByString($normalized));
     }
 
     /**
@@ -379,7 +423,7 @@ class CandidateDocumentPackageService
         $pdf->SetFont('Arial', '', 11);
         $pdf->SetTextColor(60, 60, 60);
         $pdf->SetXY(12, 32);
-        $pdf->MultiCell(186, 6, $this->latin($note . "\n\nFile: " . $filename));
+        $pdf->MultiCell(186, 6, $this->latin($note."\n\nFile: ".$filename));
     }
 
     /**
@@ -434,7 +478,7 @@ class CandidateDocumentPackageService
 
         foreach ($rows as [$key, $value]) {
             $pdf->SetFont('Arial', 'B', 11);
-            $pdf->Cell(45, 8, $this->latin($key . ':'), 0, 0);
+            $pdf->Cell(45, 8, $this->latin($key.':'), 0, 0);
             $pdf->SetFont('Arial', '', 11);
             $pdf->Cell(0, 8, $this->latin((string) ($value ?? 'N/A')), 0, 1);
         }
@@ -453,9 +497,9 @@ class CandidateDocumentPackageService
             foreach ($sections as $section) {
                 $count = count($section['files']);
                 $pdf->SetFont('Arial', '', 10);
-                $pdf->Cell(10, 6, $index . '.', 0, 0);
+                $pdf->Cell(10, 6, $index.'.', 0, 0);
                 $pdf->Cell(130, 6, $this->latin($section['label']), 0, 0);
-                $pdf->Cell(0, 6, $count . ' file' . ($count === 1 ? '' : 's'), 0, 1);
+                $pdf->Cell(0, 6, $count.' file'.($count === 1 ? '' : 's'), 0, 1);
                 $index++;
             }
         }
@@ -466,7 +510,7 @@ class CandidateDocumentPackageService
         $pdf->Cell(
             0,
             6,
-            $this->latin('Generated: ' . now()->format('d M, Y h:i A') . ' by ' . (optional(auth()->user())->name ?? 'System')),
+            $this->latin('Generated: '.now()->format('d M, Y h:i A').' by '.(optional(auth()->user())->name ?? 'System')),
             0,
             1
         );
